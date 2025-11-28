@@ -1,0 +1,68 @@
+# ======================
+# Node & TypeScript
+# ======================
+node_modules/
+dist/
+build/
+*.tsbuildinfo
+*.js
+*.js.map
+*.d.ts
+
+# ======================
+# Environment files
+# ======================
+.env
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+
+# ======================
+# Logs
+# ======================
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+# ======================
+# OS files
+# ======================
+.DS_Store
+Thumbs.db
+*.swp
+*.swo
+
+# ======================
+# IDEs / Editors
+# ======================
+.vscode/
+.idea/
+*.sublime-project
+*.sublime-workspace
+
+# ======================
+# React / Frontend
+# ======================
+*.lock
+.cache/
+.vite/
+coverage/
+*.eslintcache
+*.prettiercache
+
+# ======================
+# Mongo / Database
+# ======================
+dump/
+*.mongo
+*.bson
+
+# ======================
+# Misc / Temporary
+# ======================
+*.log
+*.tmp
+*.bak
+*.old
