@@ -1,7 +1,7 @@
 import formatDevfolio from "./devfolioFormatter.ts";
 export function universalFormatter(rawData: any, platform: string) {
   switch (platform.toLowerCase()) {
-    case "Devfolio":
+    case "devfolio":
       return formatDevfolio(rawData);
 
     // case "Unstop":
