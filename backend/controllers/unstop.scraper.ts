@@ -55,20 +55,70 @@ export const scrapeUnstop = async (req: any, res: any) => {
     //Normalize the raw data
     const normalizedList = universalFormatter(hackathons, "unstop");
 
+    // IMPORTANT CHALLENGE (Handling Duplicates): Remove duplicates from array
+    const uniqueHackathons = normalizedList.filter(
+      (hack: any, idx: any, self: any) =>
+        idx === 
+        self.findIndex(
+          (t: any) => t.slug === hack.slug && t.platform === hack.platform
+        )
+    );
+
     //save in the DB
-    for (const hack of normalizedList as any[]) {
-      await hackathon.findOneAndUpdate(
-        {
-          slug: hack.slug,
-          platform: hack.platfomr,
-        },
-        { $set: hack },
-        { upsert: true, new: true }
-      );
+    for (const hack of uniqueHackathons as any[]) {
+      try {
+        await hackathon.findOneAndUpdate(
+          {
+            slug: hack.slug,
+            platform: hack.platform,
+          },
+          { $set: hack },
+          { upsert: true, new: true }
+        );
+      } catch (err: any) {
+        if (err.code === 11000) {
+          console.log(`skipped duplicate hackathon: ${hack.slug}`);
+        } else {
+          console.error(`DB Error for ${hack.slug}: `, err);
+        }
+      }
     }
 
     return res.json({ ok: true, count: normalizedList });
-  } catch (err) {
-    console.error(err);
+  } catch (err: any) {
+    console.error(
+      "API might be blocked. Approach 1 failed, switching to fallback...",
+      err.message
+    );
   }
+
+  // Approach 2: HTML scraping
+  // try {
+  //   const { data: html } = await axios.get("https://unstop.com/hackathons", {
+  //     headers: HEADERS,
+  //   });
+  //   const $ = cheerio.load(html);
+  //   const rawJson = $("#__NEXT_DATA__").html();
+
+  //   if (!rawJson) {
+  //     throw new Error("Critical issue: No __NEXt_DATA__ found");
+  //   }
+
+  //   const json = JSON.parse(rawJson);
+  //   // Deep search for data in case path changed
+  //   const hacks =
+  //     json?.props?.pageProps?.initialState?.opportunities?.searchResult?.data ||
+  //     json?.props?.pageProps?.seo_data?.opportunities;
+
+  //   if (!hacks || hacks.length === 0) {
+  //     return res
+  //       .status(400)
+  //       .json({ error: "No hackathons found via HTML scraping too..." });
+  //   }
+
+  //   return res.json({ ok: true, source: "html", count: hacks.length });
+  // } catch (err) {
+  //   console.error("Both Approaches failed...", err);
+  //   return res.status(500).json({ error: "Scraper failed completely!" });
+  // }
 };
