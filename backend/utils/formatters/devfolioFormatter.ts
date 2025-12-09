@@ -12,6 +12,6 @@ export default function formatDevfolio(rawData: any) {
         coverImage: h.settings?.featured_cover_img_v2 ?? null,
         scrappedFromURL: "https://devfolio.co/hackathons"
 
-    }))
+    }));
     return formatedData;
 }
