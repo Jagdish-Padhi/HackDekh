@@ -62,13 +62,9 @@ export const scrapeDevfolio = async (req: any, res: any) => {
     }
 
     const json = JSON.parse(rawJson);
-
-    console.log("Parsing the RAW JSON DATA...", json);
     const hackathons =
       json?.props?.pageProps?.dehydratedState?.queries[0]?.state?.data
         ?.open_hackathons || [];
-
-    console.log("****************************Getting the hackathons from json...");
 
     if (!hackathons) {
       return res.status(400).json({ error: "No hackathons found..." });
