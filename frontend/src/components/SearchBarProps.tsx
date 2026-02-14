@@ -1,6 +1,6 @@
 type SearchBarProps = {
     value: string
-    onchange: (value: string) => void
+    onChange: (value: string) => void
 }
 
 const SearchBar = ({ value, onChange }: SearchBarProps) => (
