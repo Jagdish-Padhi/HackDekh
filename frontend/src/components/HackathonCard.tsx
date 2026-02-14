@@ -8,6 +8,8 @@ type Hackathon = {
     mode?: string
     prize?: string
     location?: string
+    applyLink?: string
+
 }
 
 
@@ -43,6 +45,17 @@ const HackathonCard = ({ hackathon }: { hackathon: Hackathon }) => (
                 </span>
             )}
         </div>
+        {hackathon.applyLink && (
+            <a
+                href={hackathon.applyLink}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="absolute bottom-5 right-5 px-5 py-2 rounded-md bg-violet-brand text-text-primary font-semibold text-sm shadow-sm transition hover:shadow-cyan-glow hover:bg-violet-deep focus:outline-none focus:ring-2 focus:ring-cyan-neon z-10"
+                style={{ minWidth: 72 }}
+            >
+                View Details
+            </a>
+        )}
     </div>
 );
 

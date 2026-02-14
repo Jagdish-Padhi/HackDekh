@@ -6,7 +6,7 @@ export default function formatDevfolio(rawData: any) {
         deadline: h.settings?.reg_ends_at ?? null,
         mode: h.is_online ? "Online" : "Offline",
         platform: "Devfolio",
-        applyLink: `https://devfolio.co/hackathons/${h.slug}`,
+        applyLink: `https://${h.slug}.devfolio.co/overview`,
         organization: h.settings?.organization_name ?? null,
         tags: h.settings?.themes ?? [],
         // Use featured_cover_img_v2, then featured_cover_img, then fallback to other fields
