@@ -1,7 +1,7 @@
 import axios from "axios";
 import hackathon from "../models/hackathon.model.ts";
 import * as cheerio from "cheerio";
-import { universalFormatter } from "../utils/formatters/universalFormatter.ts";
+import { universalFormatter } from "../formatters/universalFormatter.ts";
 
 //ATTEMPT 1: Tried to fetch from .json file in network tab but..
 // its id was changing with time so not stable for long term

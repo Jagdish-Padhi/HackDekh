@@ -1,6 +1,6 @@
 import { Router } from "express";
-import { scrapeDevfolio } from "../controllers/devfolio.scraper.ts";
-import { scrapeUnstop } from "../controllers/unstop.scraper.ts";
+import { scrapeDevfolio } from "../scrappers/devfolio.scraper.ts";
+import { scrapeUnstop } from "../scrappers/unstop.scraper.ts";
 
 const router = Router();
 
