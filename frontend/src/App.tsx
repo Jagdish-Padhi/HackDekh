@@ -1,11 +1,13 @@
-import './App.css';
+import MainLayout from './components/MainLayout'
 
 function App() {
   return (
-    <div>
-      {/* Main App entry. Add layouts, routes, and components here. */}
-    </div>
-  );
+    <MainLayout>
+      {/* Your hackathon content will go here */}
+      <h1 className="text-2xl font-semibold mb-4">Hackathon Aggregator</h1>
+      <p>Welcome to HackDekh!</p>
+    </MainLayout>
+  )
 }
 
-export default App;
+export default App
