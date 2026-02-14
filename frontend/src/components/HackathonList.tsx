@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import HackathonCard from './HackathonCard'
 import axiosInstance from '../utils/axiosInstance'
-import SearchBar from './SearchBarProps'
+import SearchBar from './SearchBar'
 import FilterPanel from './FilterPanel'
 
 type Hackathon = {
@@ -39,18 +39,22 @@ const HackathonList = () => {
         (mode ? h.mode === mode : true)
     )
 
-    if (loading) return <div>Loading...</div>
-    if (!hackathons.length) return <div>No hackathons found.</div>
 
     return (
         <div>
             <SearchBar value={search} onChange={setSearch} />
             <FilterPanel platform={platform} setPlatform={setPlatform} mode={mode} setMode={setMode} />
-            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6">
-                {filtered.map(hack => (
-                    <HackathonCard key={hack._id} hackathon={hack} />
-                ))}
-            </div>
+            {loading ? (
+                <div> Loading... </div>
+            ) : filtered.length ? (
+                <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6">
+                    {filtered.map(hack => (
+                        <HackathonCard key={hack._id} hackathon={hack} />
+                    ))}
+                </div>
+            ) : (
+                <div>No hackathons found...</div>
+            )}
 
         </div>
     )
