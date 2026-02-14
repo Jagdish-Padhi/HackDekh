@@ -10,27 +10,35 @@ type Hackathon = {
     location?: string
 }
 
+
 const HackathonCard = ({ hackathon }: { hackathon: Hackathon }) => (
-    <div className="bg-white rounded-lg shadow p-4 flex flex-col hover:shadow-lg transition">
+    <div
+        className="relative border border-[#23233A] rounded-lg p-6 flex flex-col transition hover:shadow-cyan-glow hover:border-cyan-neon overflow-hidden"
+        style={{ background: 'radial-gradient(ellipse at 60% 0%, rgba(124,58,237,0.08) 0%, rgba(34,211,238,0.06) 40%, #181825 100%)' }}
+    >
         {hackathon.coverImage && (
-            <img src={hackathon.coverImage} alt={hackathon.title}
-                className="h-32 w-full object-cover rounded mb-2" />
+            <img
+                src={hackathon.coverImage}
+                alt={hackathon.title}
+                className="h-32 w-full object-cover rounded-lg mb-4"
+            />
         )}
-
-        <h2 className="h-32 w-full object-cover rounded mb-2"> {hackathon.title} </h2>
-        <div className="text-sm text-gray-500 mb-2"> {hackathon.platform}</div>
-        <div className="flex flex-wrap gap-2 text-xs text-gray-600 mb-2">
-            <span> start: {hackathon.startDate?.slice(0, 10)}</span>
-            <span> start: {hackathon.deadline?.slice(0, 10)}</span>
+        <h2 className="font-sans font-semibold text-lg text-text-primary mb-1 tracking-tight">
+            {hackathon.title}
+        </h2>
+        <div className="text-sm text-text-secondary mb-2 font-mono">
+            {hackathon.platform}
         </div>
-
-        <div className="flex justify-between items-center mt-auto">
-            <span className="text-blue-600 font-semibold">
+        <div className="flex flex-wrap gap-3 text-xs text-text-muted mb-3 font-mono">
+            <span>Start: {hackathon.startDate?.slice(0, 10)}</span>
+            <span>Deadline: {hackathon.deadline?.slice(0, 10)}</span>
+        </div>
+        <div className="flex justify-between items-center mt-auto gap-2">
+            <span className="font-semibold text-text-secondary">
                 {hackathon.mode}
             </span>
-
             {hackathon.prize && (
-                <span className="bg-yellow-100 text-yellow-800 px-2 py-1 rounded text-xs">
+                <span className="bg-yellow-400/10 text-yellow-400 px-2 py-1 rounded-md text-xs font-mono">
                     {hackathon.prize}
                 </span>
             )}

@@ -8,7 +8,8 @@ type FilterPanelProps = {
 const FilterPanel = ({ platform, setPlatform, mode, setMode }: FilterPanelProps) => (
   <div className="flex flex-wrap gap-4 mb-4">
     <select
-      className="px-3 py-2 border rounded"
+      className="px-3 py-2 border rounded-md focus:outline-none"
+      style={{ background: '#181825', color: '#F3F4F6', borderColor: '#2A2A3A' }}
       value={platform}
       onChange={e => setPlatform(e.target.value)}
     >
@@ -17,7 +18,8 @@ const FilterPanel = ({ platform, setPlatform, mode, setMode }: FilterPanelProps)
       <option value="Unstop">Unstop</option>
     </select>
     <select
-      className="px-3 py-2 border rounded"
+      className="px-3 py-2 border rounded-md focus:outline-none"
+      style={{ background: '#181825', color: '#F3F4F6', borderColor: '#2A2A3A' }}
       value={mode}
       onChange={e => setMode(e.target.value)}
     >

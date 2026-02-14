@@ -1,1 +1,60 @@
+
 @import "tailwindcss";
+
+@theme {
+	/* Layered dark backgrounds */
+	--color-background-main: #0F0F1A;
+	--color-background-card: #181825;
+	--color-background-elevated: #1F1F2E;
+	--color-background-border: #2A2A3A;
+
+	/* Violet brand identity */
+	--color-violet-brand: #7C3AED;
+	--color-violet-deep: #5B21B6;
+	--color-violet-soft: #A78BFA;
+
+	/* Cyan accent (glow, hover, active, badges only) */
+	--color-cyan-neon: #22D3EE;
+	--color-cyan-soft: #67E8F9;
+	--color-cyan-hover: #06B6D4;
+
+	/* Text colors */
+	--color-text-primary: #F3F4F6;
+	--color-text-secondary: #C4C6D0;
+	--color-text-muted: #8B8EA7;
+	--color-text-disabled: #5B5E75;
+
+	/* Status colors (unchanged) */
+	--color-status-success: #22C55E;
+	--color-status-warning: #F59E0B;
+	--color-status-error: #EF4444;
+	--color-status-info: #38BDF8;
+
+	/* Border radius for premium look */
+	--radius-md: 12px;
+	--radius-lg: 16px;
+
+	/* Soft shadows, premium glow */
+	--shadow-violet: 0 0 12px 0 rgba(124, 58, 237, 0.25);
+	--shadow-cyan-glow: 0 0 16px 0 rgba(34, 211, 238, 0.18);
+}
+
+/* Glow utility for violet and cyan */
+.glow-violet {
+	box-shadow: 0 0 12px 0 rgba(124, 58, 237, 0.25);
+}
+.glow-cyan {
+	box-shadow: 0 0 16px 0 rgba(34, 211, 238, 0.18);
+}
+
+/* Brand gradient for rare highlights */
+.bg-brand-gradient {
+	background: linear-gradient(135deg, #5B21B6 0%, #7C3AED 50%, #A78BFA 100%);
+}
+.glow-violet {
+	box-shadow: 0 0 12px 0 rgba(124, 58, 237, 0.4);
+}
+
+.bg-brand-gradient {
+	background: linear-gradient(135deg, #5B21B6 0%, #7C3AED 50%, #A78BFA 100%);
+}
