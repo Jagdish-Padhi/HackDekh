@@ -62,20 +62,21 @@ userSchema.methods.generateAccessToken = function () {
             username: this.username,
             fullName: this.fullName,
         },
-        process.env.ACCESS_TOKEN_SECRET,
+        process.env.ACCESS_TOKEN_SECRET!,
         {
-            expiresIn: process.env.ACCESS_TOKEN_EXPIRY,
+            expiresIn: process.env.ACCESS_TOKEN_EXPIRY || "1d",
         }
     );
 };
 
 
 userSchema.methods.generateRefreshToken = function () {
-    return jwt.sign({
-        _id: this._id,
-    },
-        process.env.REFRESH_TOKEN_SECRET,
+    return jwt.sign(
         {
-            expiresIn: process.env.REFRESH_TOKEN_EXPIRY,
+            _id: this._id,
+        },
+        process.env.REFRESH_TOKEN_SECRET!,
+        {
+            expiresIn: process.env.REFRESH_TOKEN_EXPIRY || "7d",
         });
 }
