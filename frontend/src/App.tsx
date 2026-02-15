@@ -1,13 +1,21 @@
-import MainLayout from './components/MainLayout'
-import HackathonList from './components/HackathonList'
+
+import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
+import MainLayout from './components/MainLayout';
+import HomePage from './pages/Home';
+import HackathonsPage from './pages/Hackathons';
 
 function App() {
   return (
-    <MainLayout>
-       <h1 className="text-2xl font-semibold mb-4">Hackathon Aggregator</h1>
-      <HackathonList />
-    </MainLayout>
-  )
+    <Router>
+      <MainLayout>
+        <Routes>
+          <Route path="/" element={<HomePage />} />
+          <Route path="/Hackathons" element={<HackathonsPage />} />
+          {/* Add more routes here as you build more pages */}
+        </Routes>
+      </MainLayout>
+    </Router>
+  );
 }
 
-export default App
+export default App;
