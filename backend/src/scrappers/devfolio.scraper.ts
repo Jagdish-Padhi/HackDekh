@@ -48,6 +48,15 @@ import { universalFormatter } from "../formatters/universalFormatter.ts";
 
 export const scrapeDevfolio = async (req: any, res: any) => {
   try {
+    const data = await scrapeDevfolioData();
+    return res.json({ ok: true, count: data.length });
+  } catch (error: any) {
+    return res.status(500).json({ error: error.message || "Internal server error" });
+  }
+};
+
+export async function scrapeDevfolioData() {
+  try {
     //1. Fetch HTML from main page
     const URL = "https://devfolio.co/hackathons";
     const html = await axios.get(URL);
@@ -58,7 +67,7 @@ export const scrapeDevfolio = async (req: any, res: any) => {
 
     //safety check if not found...
     if (!rawJson) {
-      return res.status(404).json({ error: "No Hackathons found..." });
+      throw new Error("No Hackathons found...");
     }
 
     const json = JSON.parse(rawJson);
@@ -66,8 +75,8 @@ export const scrapeDevfolio = async (req: any, res: any) => {
       json?.props?.pageProps?.dehydratedState?.queries[0]?.state?.data
         ?.open_hackathons || [];
 
-    if (!hackathons) {
-      return res.status(400).json({ error: "No hackathons found..." });
+    if (!hackathons || hackathons.length === 0) {
+      throw new Error("No Hackathons found...");
     }
 
     //2. Pass Raw Data to universal formatter
@@ -84,10 +93,9 @@ export const scrapeDevfolio = async (req: any, res: any) => {
         { upsert: true, new: true }
       );
     }
-    //4. return the data and result
-    return res.json({ ok: true, count: normalizedList.length });
+    return normalizedList;
   } catch (error) {
     console.log("Devfolio Scraper Error: ", error);
-    return res.status(500).json({ error: "Internal server error" });
+    throw error;
   }
-};
+}

@@ -3,6 +3,7 @@ const app = express();
 import scrapperRoutes from './routes/scrapeRoutes.ts'
 import hackathonRoutes from './routes/hackathonRoutes.ts'
 import cors from 'cors';
+import './cron/scrapeScheduler.ts';
 
 app.use(express.json({ limit: "16kb" }));
 app.use(express.urlencoded({ extended: true, limit: "16kb" }));
