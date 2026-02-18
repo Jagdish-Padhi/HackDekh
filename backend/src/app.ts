@@ -11,6 +11,6 @@ app.use(express.urlencoded({ extended: true, limit: "16kb" }));
 app.use(cors());
 
 app.use("/scrape", scrapperRoutes);
-app.use("/api/hack", hackathonRoutes);
+app.use("/api", hackathonRoutes);
 app.use("/api/user", userRoutes);
 export { app };
