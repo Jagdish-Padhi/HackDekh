@@ -1,6 +1,6 @@
 import { asyncHandler } from "../utils/asyncHandler.ts";
 import { ApiError } from "../utils/apiError.ts";
-import { User } from "../models/user.model.ts";
+import User from "../models/user.model.ts";
 import { ApiResponse } from "../utils/apiResponse.ts";
 import jwt from "jsonwebtoken";
 
