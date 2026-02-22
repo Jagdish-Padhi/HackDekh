@@ -21,7 +21,6 @@ const generateAccessAndRefreshTokens = async (userId: string) => {
   }
 };
 
-// REGISTRATION OF USER
 
 const registerUser = asyncHandler(async (req: any, res: any) => {
   //Get user details from frontend
@@ -71,7 +70,6 @@ const registerUser = asyncHandler(async (req: any, res: any) => {
     .json(new ApiResponse(200, createdUser, "User registered successfully!"));
 });
 
-// LOGIN OF USER
 
 const loginUser = asyncHandler(async (req: any, res: any) => {
   const { username, email, password } = req.body;
@@ -130,7 +128,6 @@ const loginUser = asyncHandler(async (req: any, res: any) => {
     );
 });
 
-// LOGOUT OF USER
 
 const logoutUser = asyncHandler(async (req: any, res: any) => {
   await User.findByIdAndUpdate(
@@ -146,7 +143,6 @@ const logoutUser = asyncHandler(async (req: any, res: any) => {
     .json(new ApiResponse(200, {}, "User logged out successfully!"));
 });
 
-// REFRESHING ACCESS TOKEN
 
 const refreshAccessToken = asyncHandler(async (req: any, res: any) => {
   const incomingRefreshToken =
@@ -188,7 +184,6 @@ const refreshAccessToken = asyncHandler(async (req: any, res: any) => {
   }
 });
 
-// UPDATION CONTROLLERS
 
 const changeCurrentPassword = asyncHandler(async (req: any, res: any) => {
   const { oldPassword, newPassword } = req.body;
@@ -209,7 +204,6 @@ const changeCurrentPassword = asyncHandler(async (req: any, res: any) => {
     .json(new ApiResponse(200, {}, "Password changed successfully!"));
 });
 
-// GET CURRENT USER
 
 const getCurrentUser = asyncHandler(async (req: any, res: any) => {
   return res
@@ -217,7 +211,6 @@ const getCurrentUser = asyncHandler(async (req: any, res: any) => {
     .json(new ApiResponse(200, req.user, "Current user fetched successfully!"));
 });
 
-// UPDATE ACCOUNT DETAILS
 
 const updateAccountDetails = asyncHandler(async (req: any, res: any) => {
   //BEST PRACTICE: agar kahi pe file update karana ho to
