@@ -2,6 +2,9 @@ import axios from "axios";
 import hackathon from "../models/hackathon.model.ts";
 import * as cheerio from "cheerio";
 import { universalFormatter } from "../formatters/universalFormatter.ts";
+import { asyncHandler } from "../utils/asyncHandler.ts";
+import { ApiResponse } from "../utils/apiResponse.ts";
+import { ApiError } from "../utils/apiError.ts";
 
 //ATTEMPT 1: Tried to fetch from .json file in network tab but..
 // its id was changing with time so not stable for long term
@@ -46,14 +49,14 @@ import { universalFormatter } from "../formatters/universalFormatter.ts";
 // ATTEMPT 2: Using cheerio extract html of main page and
 // inside that fetch that hackathons json file in script tag
 
-export const scrapeDevfolio = async (req: any, res: any) => {
+export const scrapeDevfolio = asyncHandler(async (req: any, res: any) => {
   try {
     const data = await scrapeDevfolioData();
-    return res.json({ ok: true, count: data.length });
+    return res.status(200).json(new ApiResponse(200, { ok: true, count: data.length }, "Devfolio hackathons scraped successfully!"));
   } catch (error: any) {
-    return res.status(500).json({ error: error.message || "Internal server error" });
+    throw new ApiError(500, error.message || "Internal server error");
   }
-};
+});
 
 export async function scrapeDevfolioData() {
   try {
