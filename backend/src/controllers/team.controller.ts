@@ -1,8 +1,8 @@
+import type { Request, Response } from 'express';
+import type { ObjectId } from 'mongoose';
 import * as teamService from '../services/team.service.ts';
 import { ApiResponse } from '../utils/apiResponse.ts';
 import { asyncHandler } from '../utils/asyncHandler.ts';
-import type { Request, Response } from 'express';
-import mongoose from 'mongoose';
 
 interface CreateTeamRequestBody {
     name: string;
@@ -10,13 +10,12 @@ interface CreateTeamRequestBody {
 }
 
 interface AuthRequest extends Request {
-    user: { _id: mongoose.Schema.Types.ObjectId };
-    body: any;
+    user: { _id: ObjectId };
+    body: CreateTeamRequestBody;
 }
 
-
 export const createTeam = asyncHandler(async (req: AuthRequest, res: Response) => {
-    const { name, invites } = req.body as CreateTeamRequestBody;
+    const { name, invites } = req.body;
     if (!name || typeof name !== 'string' || name.trim() === '') {
         return res.status(400).json(new ApiResponse(400, null, 'Team name is required'));
     }

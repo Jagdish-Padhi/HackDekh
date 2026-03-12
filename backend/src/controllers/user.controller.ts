@@ -248,5 +248,4 @@ export {
   changeCurrentPassword,
   getCurrentUser,
   updateAccountDetails,
-
 };

@@ -1,6 +1,6 @@
 import { ObjectId } from 'mongoose';
 import Team from '../models/team.model.ts';
-import { ApiError } from '../utils/apiError.ts';
+import User from '../models/user.model.ts';
 
 interface CreateTeamInput {
     name: string;
@@ -8,9 +8,9 @@ interface CreateTeamInput {
 }
 
 export async function createTeam(teamData: CreateTeamInput, ownerId: ObjectId) {
-
-    const existing = await Team.findOne({ name: teamData.name, owner: ownerId });
-    if (existing) throw new ApiError(409, 'Team name already exists for this user');
+    // Optionally: check for duplicate team name for this user
+    // const existing = await Team.findOne({ name: teamData.name, owner: ownerId });
+    // if (existing) throw new Error('Team name already exists for this user');
 
     const team = new Team({
         ...teamData,

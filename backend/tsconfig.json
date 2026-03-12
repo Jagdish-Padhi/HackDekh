@@ -18,9 +18,10 @@
 
     // Other Outputs
     "sourceMap": true,
-    "declaration": true,
-    "declarationMap": true,
-    "emitDeclarationOnly": true,
+    "declaration": false,
+    "declarationMap": false,
+    "emitDeclarationOnly": false,
+    "noEmit": true,
 
     // Stricter Typechecking Options
     "noUncheckedIndexedAccess": true,
