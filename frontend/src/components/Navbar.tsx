@@ -1,5 +1,6 @@
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import { NavLink } from 'react-router-dom';
+import DarkModeToggle from './DarkModeToggle';
 
 const navItems = [
     { name: 'Home', path: '/' },
@@ -9,21 +10,7 @@ const navItems = [
 ];
 
 const Navbar = () => {
-    const [theme, setTheme] = useState<'light' | 'dark'>('light')
     const [menuOpen, setMenuOpen] = useState(false)
-
-    useEffect(() => {
-        const savedTheme = window.localStorage.getItem('theme') === 'dark' ? 'dark' : 'light'
-        setTheme(savedTheme)
-        document.documentElement.classList.toggle('dark', savedTheme === 'dark')
-    }, [])
-
-    const handleThemeToggle = () => {
-        const nextTheme = theme === 'dark' ? 'light' : 'dark'
-        setTheme(nextTheme)
-        document.documentElement.classList.toggle('dark', nextTheme === 'dark')
-        window.localStorage.setItem('theme', nextTheme)
-    }
 
     return (
         <nav className="mx-auto w-full max-w-7xl rounded-[1.4rem] border-b border-zinc-200 bg-white/70 px-4 py-3 shadow-sm backdrop-blur-md transition-all duration-200 sm:px-5 sm:py-2.5 dark:border-zinc-800 dark:bg-zinc-900/70 dark:shadow-md">
@@ -58,26 +45,12 @@ const Navbar = () => {
                             {item.name}
                         </NavLink>
                     ))}
-                    <button
-                        type="button"
-                        onClick={handleThemeToggle}
-                        className="rounded-full border border-zinc-200 bg-white px-4 py-2 text-sm font-medium text-zinc-700 shadow-sm transition-all duration-200 hover:-translate-y-0.5 hover:bg-zinc-100 hover:text-zinc-900 hover:shadow-md dark:border-zinc-700 dark:bg-zinc-800/70 dark:text-zinc-200 dark:hover:border-zinc-600 dark:hover:bg-zinc-800 dark:hover:text-white dark:hover:shadow-md"
-                        aria-label="Toggle theme"
-                    >
-                        {theme === 'dark' ? 'Light mode ☀️' : 'Dark mode 🌙'}
-                    </button>
+                    <DarkModeToggle />
                 </div>
 
                 {/* Mobile controls: theme icon + hamburger — hidden on sm+ */}
                 <div className="flex items-center gap-2 sm:hidden">
-                    <button
-                        type="button"
-                        onClick={handleThemeToggle}
-                        className="rounded-full border border-zinc-200 bg-white px-3 py-2 text-base leading-none text-zinc-700 shadow-sm transition-all duration-200 hover:bg-zinc-100 hover:shadow-md dark:border-zinc-700 dark:bg-zinc-800/70 dark:text-zinc-200 dark:hover:bg-zinc-800 dark:hover:shadow-md"
-                        aria-label="Toggle theme"
-                    >
-                        {theme === 'dark' ? '☀️' : '🌙'}
-                    </button>
+                    <DarkModeToggle />
                     <button
                         type="button"
                         onClick={() => setMenuOpen(prev => !prev)}
