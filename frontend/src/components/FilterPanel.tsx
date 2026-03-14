@@ -1,6 +1,11 @@
+import { ArrowDown, ArrowUp } from 'lucide-react'
 import { useEffect, useRef, useState } from 'react'
 
-type Option = { label: string; value: string }
+type Option = {
+    label: string
+    value: string
+    icon?: 'up' | 'down'
+}
 
 type DropdownProps = {
     value: string
@@ -27,6 +32,18 @@ const Dropdown = ({ value, onChange, options, placeholder }: DropdownProps) => {
     const selected = options.find(o => o.value === value)
     const label = selected ? selected.label : placeholder
 
+    const getDirectionIcon = (direction?: Option['icon']) => {
+        if (direction === 'up') {
+            return <ArrowUp className="h-3.5 w-3.5 shrink-0" strokeWidth={2.2} aria-hidden="true" />
+        }
+
+        if (direction === 'down') {
+            return <ArrowDown className="h-3.5 w-3.5 shrink-0" strokeWidth={2.2} aria-hidden="true" />
+        }
+
+        return null
+    }
+
     return (
         <div ref={ref} className="relative w-full sm:w-43 sm:shrink-0">
             {/* Trigger button */}
@@ -39,8 +56,9 @@ const Dropdown = ({ value, onChange, options, placeholder }: DropdownProps) => {
                         : 'border-zinc-200 dark:border-zinc-800'
                 } bg-white text-zinc-900 dark:bg-zinc-900 dark:text-zinc-100`}
             >
-                <span className={`truncate ${value ? 'text-zinc-900 dark:text-zinc-100' : 'text-zinc-400 dark:text-zinc-500'}`}>
-                    {label}
+                <span className={`flex min-w-0 items-center gap-1.5 truncate ${value ? 'text-zinc-900 dark:text-zinc-100' : 'text-zinc-400 dark:text-zinc-500'}`}>
+                    {getDirectionIcon(selected?.icon)}
+                    <span className="truncate">{label}</span>
                 </span>
                 {/* Chevron */}
                 <svg
@@ -84,7 +102,10 @@ const Dropdown = ({ value, onChange, options, placeholder }: DropdownProps) => {
                                     <path d="M20 6L9 17l-5-5" />
                                 </svg>
                             )}
-                            <span className={`${value === opt.value ? '' : 'ml-4'} truncate`}>{opt.label}</span>
+                            <span className={`${value === opt.value ? '' : 'ml-4'} flex min-w-0 items-center gap-1.5 truncate`}>
+                                {getDirectionIcon(opt.icon)}
+                                <span className="truncate">{opt.label}</span>
+                            </span>
                         </button>
                     ))}
                 </div>
@@ -118,10 +139,10 @@ const modeOptions: Option[] = [
 
 const sortOptions: Option[] = [
     { label: 'Default Order', value: '' },
-    { label: 'Deadline (Ascending)', value: 'deadline-asc' },
-    { label: 'Deadline (Descending)', value: 'deadline-desc' },
-    { label: 'Prize (Descending)', value: 'prize-desc' },
-    { label: 'Prize (Ascending)', value: 'prize-asc' },
+    { label: 'Deadline', value: 'deadline-asc', icon: 'up' },
+    { label: 'Deadline', value: 'deadline-desc', icon: 'down' },
+    { label: 'Prize', value: 'prize-desc', icon: 'down' },
+    { label: 'Prize', value: 'prize-asc', icon: 'up' },
 ]
 
 const FilterPanel = ({ platform, setPlatform, mode, setMode, sortBy, setSortBy }: FilterPanelProps) => (

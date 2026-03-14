@@ -27,17 +27,9 @@ const getRandomDefaultImage = () =>
 const SAFE_DEADLINE_BUFFER_DAYS = 3;
 const SAFE_DEADLINE_MIN_WINDOW_DAYS = 5;
 
-const formatDisplayDate = (value?: string) => {
-    if (!value?.trim()) {
-        return "TBD";
-    }
-
-    const parsed = new Date(value);
-    if (Number.isNaN(parsed.getTime())) {
-        return "TBD";
-    }
-
-    return parsed.toISOString().slice(0, 10);
+type DeadlineDisplay = {
+    label: string;
+    isUrgent: boolean;
 };
 
 const isUnavailablePrize = (value: string) =>
@@ -60,15 +52,15 @@ const getPrizeDisplay = (value?: string) => {
     return { label: cleanedPrize, isTbd: false };
 };
 
-const getSafeDeadlineDate = (deadline?: string) => {
+const getDeadlineDisplay = (deadline?: string): DeadlineDisplay => {
     if (!deadline?.trim()) {
-        return null;
+        return { label: "TBD", isUrgent: false };
     }
 
     const rawDeadline = deadline.trim();
     const parsed = new Date(rawDeadline);
     if (Number.isNaN(parsed.getTime())) {
-        return null;
+        return { label: "TBD", isUrgent: false };
     }
 
     if (/^\d{4}-\d{2}-\d{2}$/.test(rawDeadline)) {
@@ -78,24 +70,40 @@ const getSafeDeadlineDate = (deadline?: string) => {
     const msPerDay = 1000 * 60 * 60 * 24;
     const daysUntilActualDeadline = Math.ceil((parsed.getTime() - Date.now()) / msPerDay);
 
+    if (daysUntilActualDeadline >= 0 && daysUntilActualDeadline <= SAFE_DEADLINE_MIN_WINDOW_DAYS) {
+        const daysLeft = Math.max(daysUntilActualDeadline, 1);
+        const dayLabel = daysLeft === 1 ? "day" : "days";
+
+        return {
+            label: `${daysLeft} ${dayLabel} left only`,
+            isUrgent: true,
+        };
+    }
+
     if (daysUntilActualDeadline > SAFE_DEADLINE_MIN_WINDOW_DAYS) {
         parsed.setDate(parsed.getDate() - SAFE_DEADLINE_BUFFER_DAYS);
     }
 
     if (Number.isNaN(parsed.getTime())) {
-        return null;
+        return { label: "TBD", isUrgent: false };
     }
 
-    return parsed.toISOString().slice(0, 10);
+    return {
+        label: parsed.toISOString().slice(0, 10),
+        isUrgent: false,
+    };
 };
 
 const HackathonCard = ({ hackathon }: { hackathon: Hackathon }) => {
     const fallbackImageRef = useRef<string>(getRandomDefaultImage());
     const fallbackImage = fallbackImageRef.current;
     const primaryImage = hackathon.coverImage?.trim() || "";
-    const safeDeadlineDate = getSafeDeadlineDate(hackathon.deadline);
+    const deadlineDisplay = getDeadlineDisplay(hackathon.deadline);
     const locationLabel = hackathon.location?.trim() || "TBD";
     const prizeDisplay = getPrizeDisplay(hackathon.prize);
+    const deadlineChipClass = deadlineDisplay.isUrgent
+        ? "inline-flex rounded-full border border-rose-300/80 bg-gradient-to-r from-rose-50 via-red-50 to-orange-50 px-3 py-1 text-xs font-semibold text-rose-700 shadow-[0_0_0_1px_rgba(244,63,94,0.12),0_10px_20px_-14px_rgba(225,29,72,0.9)] dark:border-rose-400/35 dark:bg-gradient-to-r dark:from-rose-500/18 dark:via-red-500/16 dark:to-orange-500/14 dark:text-rose-200"
+        : "inline-flex rounded-full border border-zinc-200 bg-zinc-50 px-3 py-1 dark:border-zinc-700 dark:bg-zinc-800/55";
     const prizeChipClass = prizeDisplay.isTbd
         ? "inline-flex items-center gap-2 rounded-full border border-amber-300 bg-amber-50 px-3 py-1.5 text-xs font-semibold text-amber-700 shadow-[0_0_0_1px_rgba(251,191,36,0.1),0_10px_20px_-16px_rgba(245,158,11,0.95)] dark:border-amber-400/30 dark:bg-amber-500/12 dark:text-amber-300 dark:shadow-[0_0_0_1px_rgba(251,191,36,0.2),0_10px_20px_-14px_rgba(245,158,11,0.8)]"
         : "inline-flex items-center gap-2 rounded-full border border-emerald-300/80 bg-emerald-50 px-3 py-1.5 text-xs font-semibold text-emerald-700 shadow-[0_0_0_1px_rgba(16,185,129,0.08),0_12px_24px_-16px_rgba(5,150,105,0.9)] dark:border-emerald-400/35 dark:bg-emerald-500/12 dark:text-emerald-300 dark:shadow-[0_0_0_1px_rgba(52,211,153,0.2),0_10px_20px_-14px_rgba(16,185,129,0.8)]";
@@ -130,8 +138,8 @@ const HackathonCard = ({ hackathon }: { hackathon: Hackathon }) => {
             {hackathon.title}
         </h2>
         <div className="mt-4 flex flex-wrap gap-2 text-xs text-zinc-500 dark:text-zinc-400">
-            <span className="inline-flex rounded-full border border-zinc-200 bg-zinc-50 px-3 py-1 dark:border-zinc-700 dark:bg-zinc-800/55">
-                Deadline: {safeDeadlineDate ?? formatDisplayDate(hackathon.deadline)}
+            <span className={deadlineChipClass}>
+                Deadline: {deadlineDisplay.label}
             </span>
             <span className="inline-flex rounded-full border border-zinc-200 bg-zinc-50 px-3 py-1 dark:border-zinc-700 dark:bg-zinc-800/55">
                 Location: {locationLabel}
