@@ -18,7 +18,7 @@ const dashboardMetrics = [
 
 const bestTeamMetric = {
   label: "Best Team",
-  value: "ByteCoders",
+  value: "Esc(matrix);",
   icon: Users,
 };
 

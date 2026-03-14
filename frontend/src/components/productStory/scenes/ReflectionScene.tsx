@@ -3,14 +3,18 @@ import { MessageSquareText } from "lucide-react";
 import HackathonCard from "../shared/HackathonCard";
 
 const reflections = [
-  {
-    author: "Rahul",
-    note: "We should have validated the problem earlier.",
+
+  { author: "Saman",
+    note: "Hum ache se convince nahi kar paye!",
+  },
+  { author: "Poorvaja",
+    note: "Hum core features fulfil nahi kar paye...",
   },
   {
-    author: "Priya",
-    note: "Our prototype needed better UX.",
+    author: "Twinkle",
+    note: "Unko realtime data chaiye tha...",
   },
+ 
 ];
 
 export default function ReflectionScene() {
@@ -23,7 +27,7 @@ export default function ReflectionScene() {
       </p>
 
       <div className="mt-4">
-        <HackathonCard name="Devfolio Hackathon" icon={MessageSquareText}>
+        <HackathonCard name="Odoo 2026 Hackathon" icon={MessageSquareText}>
           <p className="text-sm font-medium text-zinc-800 dark:text-zinc-200">Reflection Notes</p>
           <div className="mt-2 space-y-2">
             {reflections.map((reflection, index) => (

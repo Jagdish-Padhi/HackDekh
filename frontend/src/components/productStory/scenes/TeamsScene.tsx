@@ -3,9 +3,10 @@ import { Users } from "lucide-react";
 import TeamCard from "../shared/TeamCard";
 
 const teams = [
-  { teamName: "ByteCoders", leader: "Rahul", members: 4 },
-  { teamName: "HackNinjas", leader: "Priya", members: 3 },
-  { teamName: "CodeMonks", leader: "Arjun", members: 5 },
+  { teamName: "InnoBits", leader: "Twinkle", members: 4 },
+  { teamName: "Esc(reality);", leader: "Jagdish", members: 3 },
+  { teamName: "ETH", leader: "Saman", members: 5 },
+  { teamName: "RejectUs", leader: "Poorvaja", members: 4 },
 ];
 
 export default function TeamsScene() {

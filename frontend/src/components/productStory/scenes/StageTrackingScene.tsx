@@ -14,16 +14,18 @@ type HackathonProgress = {
 
 const stageCards: HackathonProgress[] = [
   {
-    name: "Devfolio Hackathon",
+    name: "Genesis Hackathon",
     stages: [
-      { name: "Stage 1", status: "qualified" },
-      { name: "Stage 2", status: "rejected" },
+      { name: "PPT", status: "qualified" },
+      { name: "Round 1", status: "qualified" },
+      { name: "Finale", status: "rejected" },
     ],
   },
   {
-    name: "Unstop Hackathon",
+    name: "Smart India Hackathon",
     stages: [
       { name: "Stage 1", status: "qualified" },
+      { name: "Stage 2", status: "qualified" },
       { name: "Stage 2", status: "pending" },
     ],
   },

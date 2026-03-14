@@ -13,7 +13,7 @@ type TeamParticipation = {
 
 const participationCards: TeamParticipation[] = [
   {
-    teamName: "ByteCoders",
+    teamName: "InnoBits",
     metrics: [
       { label: "Participated", value: 6, icon: ClipboardList },
       { label: "Won", value: 1, icon: Trophy },
@@ -21,11 +21,19 @@ const participationCards: TeamParticipation[] = [
     ],
   },
   {
-    teamName: "HackNinjas",
+    teamName: "ETH",
     metrics: [
       { label: "Participated", value: 4, icon: ClipboardList },
       { label: "Won", value: 0, icon: Trophy },
       { label: "Finalist", value: 1, icon: Award },
+    ],
+  },
+  {
+    teamName: "Esc(reality);",
+    metrics: [
+      { label: "Participated", value: 2, icon: ClipboardList },
+      { label: "Won", value: 1, icon: Trophy },
+      { label: "Finalist", value: 3, icon: Award },
     ],
   },
 ];
