@@ -3,6 +3,7 @@ import HackathonCard from './HackathonCard'
 import axiosInstance from '../utils/axiosInstance'
 import SearchBar from './SearchBar'
 import FilterPanel from './FilterPanel'
+import LoadingProgress from './LoadingProgress'
 
 type Hackathon = {
     _id: string
@@ -19,17 +20,94 @@ type Hackathon = {
 const HackathonList = () => {
     const [hackathons, setHackathons] = useState<Hackathon[]>([])
     const [loading, setLoading] = useState(true)
+    const [progressTarget, setProgressTarget] = useState(0)
+    const [progressDisplay, setProgressDisplay] = useState(0)
+    const [showResults, setShowResults] = useState(false)
     const [search, setSearch] = useState('')
     const [platform, setPlatform] = useState('')
     const [mode, setMode] = useState('')
 
     useEffect(() => {
-        axiosInstance.get('/hackathons')
-            .then(res => {
-                setHackathons(res.data)
-                setLoading(false)
+        const intervalId = window.setInterval(() => {
+            setProgressDisplay(previous => {
+                const nextStep = progressTarget - previous
+                if (Math.abs(nextStep) <= 0.2) {
+                    return progressTarget
+                }
+
+                const easedStep = Math.max(0.35, nextStep * 0.2)
+                return Math.min(progressTarget, previous + easedStep)
             })
-            .catch(() => setLoading(false))
+        }, 16)
+
+        return () => window.clearInterval(intervalId)
+    }, [progressTarget])
+
+    useEffect(() => {
+        if (loading) {
+            setShowResults(false)
+            return
+        }
+
+        const showDelay = window.setTimeout(() => setShowResults(true), 40)
+        return () => window.clearTimeout(showDelay)
+    }, [loading])
+
+    useEffect(() => {
+        let isMounted = true
+        let finishTimeout: number | undefined
+
+        const fallbackProgress = window.setInterval(() => {
+            setProgressTarget(previous => Math.max(previous, Math.min(previous + Math.random() * 6, 92)))
+        }, 220)
+
+        axiosInstance.get('/hackathons', {
+            onDownloadProgress: event => {
+                if (!isMounted || !event.total) {
+                    return
+                }
+
+                const networkProgress = (event.loaded / event.total) * 100
+                setProgressTarget(previous => Math.max(previous, Math.min(networkProgress, 99)))
+            },
+        })
+            .then(res => {
+                if (!isMounted) {
+                    return
+                }
+
+                window.clearInterval(fallbackProgress)
+                setHackathons(res.data)
+                setProgressTarget(100)
+                finishTimeout = window.setTimeout(() => {
+                    if (!isMounted) {
+                        return
+                    }
+                    setLoading(false)
+                }, 280)
+            })
+            .catch(() => {
+                if (!isMounted) {
+                    return
+                }
+
+                window.clearInterval(fallbackProgress)
+                setProgressTarget(100)
+                finishTimeout = window.setTimeout(() => {
+                    if (!isMounted) {
+                        return
+                    }
+                    setLoading(false)
+                }, 280)
+            })
+
+        return () => {
+            isMounted = false
+            window.clearInterval(fallbackProgress)
+            if (finishTimeout) {
+                window.clearTimeout(finishTimeout)
+            }
+        }
     }, [])
 
     // Filter logic (frontend for now)
@@ -53,17 +131,15 @@ const HackathonList = () => {
 
             <div className="space-y-6">
                 {loading ? (
-                    <div className="rounded-[1.8rem] border border-zinc-200/90 bg-white/90 px-6 py-16 text-center text-sm font-medium uppercase tracking-[0.18em] text-zinc-600 shadow-sm backdrop-blur-md transition-all duration-200 dark:border-zinc-800 dark:bg-zinc-900/78 dark:text-zinc-400 dark:shadow-md">
-                        Loading...
-                    </div>
+                    <LoadingProgress progress={progressDisplay} />
                 ) : filtered.length ? (
-                    <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 xl:grid-cols-3">
+                    <div className={`grid grid-cols-1 gap-6 transition-all duration-300 sm:grid-cols-2 xl:grid-cols-3 ${showResults ? 'translate-y-0 opacity-100' : 'translate-y-1 opacity-0'}`}>
                         {filtered.map(hack => (
                             <HackathonCard key={hack._id} hackathon={hack} />
                         ))}
                     </div>
                 ) : (
-                    <div className="rounded-[1.8rem] border border-zinc-200/90 bg-white/90 px-6 py-16 text-center text-base text-zinc-600 shadow-sm backdrop-blur-md transition-all duration-200 dark:border-zinc-800 dark:bg-zinc-900/78 dark:text-zinc-400 dark:shadow-md">
+                    <div className={`rounded-[1.8rem] border border-zinc-200/90 bg-white/90 px-6 py-16 text-center text-base text-zinc-600 shadow-sm backdrop-blur-md transition-all duration-300 dark:border-zinc-800 dark:bg-zinc-900/78 dark:text-zinc-400 dark:shadow-md ${showResults ? 'translate-y-0 opacity-100' : 'translate-y-1 opacity-0'}`}>
                         No hackathons found...
                     </div>
                 )}
