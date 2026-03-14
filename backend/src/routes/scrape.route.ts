@@ -1,7 +1,7 @@
 import { Router } from "express";
 import { scrapeDevfolio } from "../scrappers/devfolio.scraper.ts";
 import { scrapeUnstop } from "../scrappers/unstop.scraper.ts";
-aimport { runAllScrapers } from "../cron/runAllScrapers.ts";
+import { runAllScrapers } from "../cron/runAllScrapers.ts";
 
 const router = Router();
 
