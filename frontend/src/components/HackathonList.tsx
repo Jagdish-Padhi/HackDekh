@@ -42,27 +42,32 @@ const HackathonList = () => {
 
     return (
         <div className="space-y-6">
-            <div className="rounded-[1.8rem] border border-zinc-200/90 bg-zinc-50/90 p-4 shadow-sm backdrop-blur-md transition-all duration-200 sm:p-5 dark:border-zinc-800 dark:bg-zinc-900/80 dark:shadow-md">
-                <div className="flex flex-row gap-4 max-md:flex-col">
-                    <SearchBar value={search} onChange={setSearch} />
-                    <FilterPanel platform={platform} setPlatform={setPlatform} mode={mode} setMode={setMode} />
+            <div className="sticky top-26 z-30 bg-white/95 pb-4 backdrop-blur-md dark:bg-zinc-950/95">
+                <div className="rounded-[1.8rem] border border-zinc-200 bg-zinc-50 p-4 shadow-sm transition-all duration-200 sm:p-5 dark:border-zinc-800 dark:bg-zinc-900 dark:shadow-md">
+                    <div className="flex flex-row gap-4 max-md:flex-col">
+                        <SearchBar value={search} onChange={setSearch} />
+                        <FilterPanel platform={platform} setPlatform={setPlatform} mode={mode} setMode={setMode} />
+                    </div>
                 </div>
             </div>
-            {loading ? (
-                <div className="rounded-[1.8rem] border border-zinc-200/90 bg-white/90 px-6 py-16 text-center text-sm font-medium uppercase tracking-[0.18em] text-zinc-600 shadow-sm backdrop-blur-md transition-all duration-200 dark:border-zinc-800 dark:bg-zinc-900/78 dark:text-zinc-400 dark:shadow-md">
-                    Loading...
-                </div>
-            ) : filtered.length ? (
-                <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 xl:grid-cols-3">
-                    {filtered.map(hack => (
-                        <HackathonCard key={hack._id} hackathon={hack} />
-                    ))}
-                </div>
-            ) : (
-                <div className="rounded-[1.8rem] border border-zinc-200/90 bg-white/90 px-6 py-16 text-center text-base text-zinc-600 shadow-sm backdrop-blur-md transition-all duration-200 dark:border-zinc-800 dark:bg-zinc-900/78 dark:text-zinc-400 dark:shadow-md">
-                    No hackathons found...
-                </div>
-            )}
+
+            <div className="space-y-6">
+                {loading ? (
+                    <div className="rounded-[1.8rem] border border-zinc-200/90 bg-white/90 px-6 py-16 text-center text-sm font-medium uppercase tracking-[0.18em] text-zinc-600 shadow-sm backdrop-blur-md transition-all duration-200 dark:border-zinc-800 dark:bg-zinc-900/78 dark:text-zinc-400 dark:shadow-md">
+                        Loading...
+                    </div>
+                ) : filtered.length ? (
+                    <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 xl:grid-cols-3">
+                        {filtered.map(hack => (
+                            <HackathonCard key={hack._id} hackathon={hack} />
+                        ))}
+                    </div>
+                ) : (
+                    <div className="rounded-[1.8rem] border border-zinc-200/90 bg-white/90 px-6 py-16 text-center text-base text-zinc-600 shadow-sm backdrop-blur-md transition-all duration-200 dark:border-zinc-800 dark:bg-zinc-900/78 dark:text-zinc-400 dark:shadow-md">
+                        No hackathons found...
+                    </div>
+                )}
+            </div>
 
         </div>
     )
