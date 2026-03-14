@@ -26,32 +26,32 @@ const Navbar = () => {
     }
 
     return (
-        <nav className="mx-auto w-full max-w-7xl rounded-[1.4rem] border border-gray-200/80 bg-white/80 px-4 py-3 shadow-[0_16px_44px_rgba(15,23,42,0.08)] backdrop-blur-xl transition-colors duration-300 sm:px-5 sm:py-2.5 dark:border-[#1F1F22] dark:bg-[#121214]/80 dark:shadow-[0_24px_56px_rgba(0,0,0,0.45)]">
+        <nav className="mx-auto w-full max-w-7xl rounded-[1.4rem] border-b border-zinc-200 bg-white/70 px-4 py-3 shadow-sm backdrop-blur-md transition-all duration-200 sm:px-5 sm:py-2.5 dark:border-zinc-800 dark:bg-zinc-900/70 dark:shadow-md">
 
             {/* Top row: logo + desktop nav pill / mobile controls */}
             <div className="flex items-center justify-between">
 
                 {/* Logo + brand */}
                 <div className="flex items-center gap-3">
-                    <div className="rounded-2xl border border-gray-200 bg-white p-2 shadow-[0_12px_24px_rgba(15,23,42,0.08)] dark:border-[#2A2A30] dark:bg-white/5 dark:shadow-[0_12px_24px_rgba(0,0,0,0.35)]">
+                    <div className="rounded-2xl border border-zinc-200 bg-zinc-50 p-2 shadow-sm dark:border-zinc-800 dark:bg-zinc-900 dark:shadow-sm">
                         <img src="/HackDekhSVG.svg" alt="HackDekh Logo" className="h-9 w-9 object-contain" />
                     </div>
-                    <span className="text-xl font-semibold tracking-tight text-gray-900 dark:text-gray-100">
+                    <span className="text-xl font-semibold tracking-tight text-zinc-900 dark:text-zinc-100">
                         Hack
                         <span className="bg-linear-to-r from-blue-700 to-blue-500 bg-clip-text text-transparent dark:from-blue-300 dark:to-blue-500">Dekh</span>
                     </span>
                 </div>
 
                 {/* Desktop nav pill — hidden on mobile */}
-                <div className="hidden items-center gap-2 rounded-full border border-gray-200 bg-white/70 p-1.5 shadow-[inset_0_1px_0_rgba(255,255,255,0.8)] transition-colors duration-300 sm:flex dark:border-[#2A2A30] dark:bg-white/2 dark:shadow-[inset_0_1px_0_rgba(255,255,255,0.03)]">
+                <div className="hidden items-center gap-2 rounded-full border border-zinc-200 bg-zinc-50/80 p-1.5 shadow-sm transition-all duration-200 sm:flex dark:border-zinc-800 dark:bg-zinc-900/70 dark:shadow-sm">
                     {navItems.map((item) => (
                         <NavLink
                             key={item.name}
                             to={item.path}
                             className={({ isActive }) =>
                                 `rounded-full px-4 py-2 text-sm font-medium transition-all duration-200 ${isActive
-                                    ? 'bg-gray-900 text-white shadow-md dark:bg-blue-500 dark:text-white dark:shadow-[0_10px_30px_rgba(79,140,255,0.35)]'
-                                    : 'text-gray-600 hover:bg-gray-100 hover:text-gray-900 dark:text-gray-300 dark:hover:bg-white/10 dark:hover:text-white'
+                                    ? 'bg-zinc-900 text-white shadow-sm dark:bg-blue-500 dark:text-white dark:shadow-sm'
+                                    : 'text-zinc-600 hover:bg-zinc-100 hover:text-zinc-900 dark:text-zinc-300 dark:hover:bg-zinc-800/70 dark:hover:text-white'
                                 }`
                             }
                         >
@@ -61,7 +61,7 @@ const Navbar = () => {
                     <button
                         type="button"
                         onClick={handleThemeToggle}
-                        className="rounded-full border border-gray-200 bg-white px-4 py-2 text-sm font-medium text-gray-700 shadow-sm transition-all duration-200 hover:-translate-y-0.5 hover:bg-gray-100 hover:text-gray-900 dark:border-[#2A2A30] dark:bg-white/3 dark:text-gray-200 dark:hover:border-blue-400/40 dark:hover:bg-white/9 dark:hover:text-white"
+                        className="rounded-full border border-zinc-200 bg-white px-4 py-2 text-sm font-medium text-zinc-700 shadow-sm transition-all duration-200 hover:-translate-y-0.5 hover:bg-zinc-100 hover:text-zinc-900 hover:shadow-md dark:border-zinc-700 dark:bg-zinc-800/70 dark:text-zinc-200 dark:hover:border-zinc-600 dark:hover:bg-zinc-800 dark:hover:text-white dark:hover:shadow-md"
                         aria-label="Toggle theme"
                     >
                         {theme === 'dark' ? 'Light mode ☀️' : 'Dark mode 🌙'}
@@ -73,7 +73,7 @@ const Navbar = () => {
                     <button
                         type="button"
                         onClick={handleThemeToggle}
-                        className="rounded-full border border-gray-200 bg-white px-3 py-2 text-base leading-none text-gray-700 shadow-sm transition-all duration-200 hover:bg-gray-100 dark:border-[#2A2A30] dark:bg-white/3 dark:text-gray-200 dark:hover:bg-white/9"
+                        className="rounded-full border border-zinc-200 bg-white px-3 py-2 text-base leading-none text-zinc-700 shadow-sm transition-all duration-200 hover:bg-zinc-100 hover:shadow-md dark:border-zinc-700 dark:bg-zinc-800/70 dark:text-zinc-200 dark:hover:bg-zinc-800 dark:hover:shadow-md"
                         aria-label="Toggle theme"
                     >
                         {theme === 'dark' ? '☀️' : '🌙'}
@@ -81,7 +81,7 @@ const Navbar = () => {
                     <button
                         type="button"
                         onClick={() => setMenuOpen(prev => !prev)}
-                        className="rounded-full border border-gray-200 bg-white p-2.5 text-gray-700 shadow-sm transition-all duration-200 hover:bg-gray-100 dark:border-[#2A2A30] dark:bg-white/3 dark:text-gray-200 dark:hover:bg-white/9"
+                        className="rounded-full border border-zinc-200 bg-white p-2.5 text-zinc-700 shadow-sm transition-all duration-200 hover:bg-zinc-100 hover:shadow-md dark:border-zinc-700 dark:bg-zinc-800/70 dark:text-zinc-200 dark:hover:bg-zinc-800 dark:hover:shadow-md"
                         aria-label={menuOpen ? 'Close menu' : 'Open menu'}
                         aria-expanded={menuOpen}
                     >
@@ -100,7 +100,7 @@ const Navbar = () => {
 
             {/* Mobile dropdown menu */}
             {menuOpen && (
-                <div className="mt-3 flex flex-col gap-1 border-t border-gray-200/80 pt-3 sm:hidden dark:border-[#1F1F22]">
+                <div className="mt-3 flex flex-col gap-1 border-t border-zinc-200/90 pt-3 sm:hidden dark:border-zinc-800">
                     {navItems.map((item) => (
                         <NavLink
                             key={item.name}
@@ -108,8 +108,8 @@ const Navbar = () => {
                             onClick={() => setMenuOpen(false)}
                             className={({ isActive }) =>
                                 `rounded-2xl px-4 py-3 text-sm font-medium transition-all duration-200 ${isActive
-                                    ? 'bg-gray-900 text-white dark:bg-blue-500 dark:text-white'
-                                    : 'text-gray-700 hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-white/10 dark:hover:text-white'
+                                    ? 'bg-zinc-900 text-white dark:bg-blue-500 dark:text-white'
+                                    : 'text-zinc-700 hover:bg-zinc-100 dark:text-zinc-300 dark:hover:bg-zinc-800/70 dark:hover:text-white'
                                 }`
                             }
                         >

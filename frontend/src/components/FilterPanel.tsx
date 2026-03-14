@@ -33,13 +33,13 @@ const Dropdown = ({ value, onChange, options, placeholder }: DropdownProps) => {
             <button
                 type="button"
                 onClick={() => setOpen(prev => !prev)}
-                className={`flex w-full items-center justify-between gap-3 rounded-2xl border px-4 py-3 text-sm font-medium shadow-sm transition-all duration-200 focus:outline-none focus:ring-4 ${
+                className={`flex w-full items-center justify-between gap-3 rounded-2xl border px-4 py-3 text-sm font-medium shadow-sm transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md focus:outline-none focus:ring-4 ${
                     open
                         ? 'border-blue-500/45 ring-4 ring-blue-500/12 dark:border-blue-400/50 dark:ring-blue-400/20'
-                        : 'border-gray-200 dark:border-[#1F1F22]'
-                } bg-white text-gray-900 dark:bg-[#121214] dark:text-gray-100`}
+                        : 'border-zinc-200 dark:border-zinc-800'
+                } bg-white text-zinc-900 dark:bg-zinc-900 dark:text-zinc-100`}
             >
-                <span className={value ? 'text-gray-900 dark:text-gray-100' : 'text-gray-400 dark:text-gray-500'}>
+                <span className={value ? 'text-zinc-900 dark:text-zinc-100' : 'text-zinc-400 dark:text-zinc-500'}>
                     {label}
                 </span>
                 {/* Chevron */}
@@ -53,7 +53,7 @@ const Dropdown = ({ value, onChange, options, placeholder }: DropdownProps) => {
                     strokeWidth={2.5}
                     strokeLinecap="round"
                     strokeLinejoin="round"
-                    className={`shrink-0 text-gray-400 transition-transform duration-200 dark:text-gray-500 ${open ? 'rotate-180' : 'rotate-0'}`}
+                    className={`shrink-0 text-zinc-400 transition-transform duration-200 dark:text-zinc-500 ${open ? 'rotate-180' : 'rotate-0'}`}
                 >
                     <path d="M6 9l6 6 6-6" />
                 </svg>
@@ -61,7 +61,7 @@ const Dropdown = ({ value, onChange, options, placeholder }: DropdownProps) => {
 
             {/* Dropdown panel */}
             <div
-                className={`absolute left-0 z-50 mt-2 w-full min-w-full origin-top overflow-hidden rounded-2xl border border-gray-200/80 bg-white shadow-[0_16px_40px_rgba(15,23,42,0.12)] backdrop-blur-xl transition-all duration-200 dark:border-[#1F1F22] dark:bg-[#161618] dark:shadow-[0_20px_48px_rgba(0,0,0,0.5)] ${
+                className={`absolute left-0 z-50 mt-2 w-full min-w-full origin-top overflow-hidden rounded-2xl border border-zinc-200/90 bg-white shadow-sm backdrop-blur-md transition-all duration-200 dark:border-zinc-800 dark:bg-zinc-900 dark:shadow-md ${
                     open
                         ? 'pointer-events-auto scale-100 opacity-100'
                         : 'pointer-events-none scale-95 opacity-0'
@@ -76,7 +76,7 @@ const Dropdown = ({ value, onChange, options, placeholder }: DropdownProps) => {
                             className={`flex w-full items-center gap-2 rounded-xl px-3 py-2.5 text-sm transition-colors duration-150 ${
                                 value === opt.value
                                     ? 'bg-blue-600 font-medium text-white dark:bg-blue-500'
-                                    : 'text-gray-700 hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-white/8'
+                                    : 'text-zinc-700 hover:bg-zinc-100 dark:text-zinc-300 dark:hover:bg-zinc-800/70'
                             }`}
                         >
                             {value === opt.value && (
@@ -84,7 +84,7 @@ const Dropdown = ({ value, onChange, options, placeholder }: DropdownProps) => {
                                     <path d="M20 6L9 17l-5-5" />
                                 </svg>
                             )}
-                            <span className={value === opt.value ? '' : 'ml-[17px]'}>{opt.label}</span>
+                            <span className={value === opt.value ? '' : 'ml-4'}>{opt.label}</span>
                         </button>
                     ))}
                 </div>

@@ -9,7 +9,7 @@ type MainLayoutProps = {
 
 const MainLayout = ({ children }: MainLayoutProps) => {
     return (
-        <div className="relative flex min-h-screen flex-col bg-gray-50 text-gray-900 transition-colors duration-300 dark:bg-[#0A0A0A] dark:text-gray-100">
+        <div className="relative flex min-h-screen flex-col bg-white text-zinc-900 transition-colors duration-300 dark:bg-zinc-950 dark:text-zinc-100">
             <div className="pointer-events-none absolute inset-0 -z-10 app-background-light dark:hidden" />
             <div className="pointer-events-none absolute inset-0 -z-10 hidden app-background-dark dark:block" />
             <Header />
