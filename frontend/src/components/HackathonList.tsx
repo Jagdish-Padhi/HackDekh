@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react'
+import { Info } from 'lucide-react'
 import HackathonCard from './HackathonCard'
 import axiosInstance from '../utils/axiosInstance'
 import SearchBar from './SearchBar'
@@ -17,6 +18,9 @@ type Hackathon = {
     location?: string
 }
 
+const SAFE_DEADLINE_BUFFER_DAYS = 3
+const SAFE_DEADLINE_MIN_WINDOW_DAYS = 5
+
 const hasDeadlinePassed = (deadline?: string) => {
     if (!deadline?.trim()) {
         return false
@@ -32,6 +36,13 @@ const hasDeadlinePassed = (deadline?: string) => {
     // Treat date-only values as valid until the end of that local day.
     if (/^\d{4}-\d{2}-\d{2}$/.test(rawDeadline)) {
         parsed.setHours(23, 59, 59, 999)
+    }
+
+    const msPerDay = 1000 * 60 * 60 * 24
+    const daysUntilActualDeadline = Math.ceil((parsed.getTime() - Date.now()) / msPerDay)
+
+    if (daysUntilActualDeadline > SAFE_DEADLINE_MIN_WINDOW_DAYS) {
+        parsed.setDate(parsed.getDate() - SAFE_DEADLINE_BUFFER_DAYS)
     }
 
     return parsed.getTime() < Date.now()
@@ -142,10 +153,24 @@ const HackathonList = () => {
     return (
         <div className="space-y-6">
             <div className="sticky top-26 z-30 bg-white/95 pb-4 backdrop-blur-md dark:bg-zinc-950/95">
-                <div className="rounded-[1.8rem] border border-zinc-200 bg-zinc-50 p-4 shadow-sm transition-all duration-200 sm:p-5 dark:border-zinc-800 dark:bg-zinc-900 dark:shadow-md">
-                    <div className="flex flex-row gap-4 max-md:flex-col">
+                <div className="relative rounded-[1.8rem] border border-zinc-200 bg-zinc-50 p-4 shadow-sm transition-all duration-200 sm:p-5 dark:border-zinc-800 dark:bg-zinc-900 dark:shadow-md">
+                    <div className="flex flex-row gap-4 pr-10 max-md:flex-col sm:pr-12">
                         <SearchBar value={search} onChange={setSearch} />
                         <FilterPanel platform={platform} setPlatform={setPlatform} mode={mode} setMode={setMode} />
+                    </div>
+
+                    <div className="group absolute right-4 top-4 z-40">
+                        <button
+                            type="button"
+                            aria-label="How deadlines and prize pool are shown"
+                            className="inline-flex h-7 w-7 items-center justify-center rounded-full border border-zinc-200 bg-white text-zinc-500 shadow-sm transition-all duration-200 hover:border-zinc-300 hover:text-zinc-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500/25 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-400 dark:hover:border-zinc-600 dark:hover:text-zinc-200"
+                        >
+                            <Info className="h-3.5 w-3.5" strokeWidth={2.3} aria-hidden="true" />
+                        </button>
+
+                        <div className="pointer-events-none absolute right-0 top-9 w-80 translate-y-1 rounded-xl border border-zinc-200 bg-white/95 px-3 py-2 text-xs leading-5 text-zinc-600 opacity-0 shadow-md transition-all duration-200 group-hover:translate-y-0 group-hover:opacity-100 group-focus-within:translate-y-0 group-focus-within:opacity-100 dark:border-zinc-700 dark:bg-zinc-900/95 dark:text-zinc-300">
+                            To avoid missed applications, deadline tags use a 3-day safety buffer only when the actual deadline is more than 5 days away. For near deadlines (5 days or less), we show the exact deadline. Prize tags display normalized total prize pool when track-wise prizes are provided.
+                        </div>
                     </div>
                 </div>
             </div>
