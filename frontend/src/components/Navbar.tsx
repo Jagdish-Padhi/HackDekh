@@ -37,7 +37,7 @@ const Navbar = () => {
                             to={item.path}
                             className={({ isActive }) =>
                                 `rounded-full px-4 py-2 text-sm font-medium transition-all duration-200 ${isActive
-                                    ? 'bg-zinc-900 text-white shadow-sm dark:bg-blue-500 dark:text-white dark:shadow-sm'
+                                    ? 'bg-zinc-300 text-white shadow-sm dark:bg-blue-500 dark:text-white dark:shadow-sm'
                                     : 'text-zinc-600 hover:bg-zinc-100 hover:text-zinc-900 dark:text-zinc-300 dark:hover:bg-zinc-800/70 dark:hover:text-white'
                                 }`
                             }
