@@ -13,9 +13,12 @@
     "@tailwindcss/vite": "^4.1.18",
     "@types/react-router-dom": "^5.3.3",
     "axios": "^1.13.5",
+    "framer-motion": "^12.36.0",
+    "lucide-react": "^0.577.0",
     "react": "^19.2.0",
     "react-dom": "^19.2.0",
     "react-router-dom": "^7.13.0",
+    "styled-components": "^6.3.11",
     "tailwindcss": "^4.1.18"
   },
   "devDependencies": {
