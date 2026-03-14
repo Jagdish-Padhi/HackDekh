@@ -43,7 +43,7 @@ const HackathonList = () => {
     return (
         <div className="space-y-6">
             <div className="rounded-[1.8rem] border border-zinc-200/90 bg-zinc-50/90 p-4 shadow-sm backdrop-blur-md transition-all duration-200 sm:p-5 dark:border-zinc-800 dark:bg-zinc-900/80 dark:shadow-md">
-                <div className="flex flex-col gap-4">
+                <div className="flex flex-row gap-4 max-md:flex-col">
                     <SearchBar value={search} onChange={setSearch} />
                     <FilterPanel platform={platform} setPlatform={setPlatform} mode={mode} setMode={setMode} />
                 </div>
