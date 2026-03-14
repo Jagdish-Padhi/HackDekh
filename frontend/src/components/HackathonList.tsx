@@ -269,13 +269,17 @@ const HackathonList = () => {
                         <button
                             type="button"
                             aria-label="How deadlines and prize pool are shown"
-                            className="inline-flex h-7 w-7 items-center justify-center rounded-full border border-zinc-200 bg-white text-zinc-500 shadow-sm transition-all duration-200 hover:border-zinc-300 hover:text-zinc-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500/25 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-400 dark:hover:border-zinc-600 dark:hover:text-zinc-200"
+                            className="inline-flex h-9 w-9 items-center justify-center rounded-full border border-zinc-200 bg-white text-zinc-600 shadow-sm transition-all duration-200 hover:-translate-y-0.5 hover:border-zinc-300 hover:text-zinc-800 hover:shadow-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500/25 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-300 dark:hover:border-zinc-600 dark:hover:text-zinc-100"
                         >
-                            <Info className="h-3.5 w-3.5" strokeWidth={2.3} aria-hidden="true" />
+                            <Info className="h-5 w-5" strokeWidth={2.2} aria-hidden="true" />
                         </button>
 
-                        <div className="pointer-events-none absolute right-0 top-9 w-80 translate-y-1 rounded-xl border border-zinc-200 bg-white/95 px-3 py-2 text-xs leading-5 text-zinc-600 opacity-0 shadow-md transition-all duration-200 group-hover:translate-y-0 group-hover:opacity-100 group-focus-within:translate-y-0 group-focus-within:opacity-100 dark:border-zinc-700 dark:bg-zinc-900/95 dark:text-zinc-300">
-                            To avoid missed applications, deadline tags use a 3-day safety buffer only when the actual deadline is more than 5 days away. For near deadlines (5 days or less), we show the exact deadline. Prize tags display normalized total prize pool when track-wise prizes are provided.
+                        <div className="pointer-events-none absolute right-0 top-11 w-80 translate-y-1 rounded-xl border border-zinc-200 bg-white/95 px-3 py-3 text-xs leading-5 text-zinc-600 opacity-0 shadow-md transition-all duration-200 group-hover:translate-y-0 group-hover:opacity-100 group-focus-within:translate-y-0 group-focus-within:opacity-100 dark:border-zinc-700 dark:bg-zinc-900/95 dark:text-zinc-300">
+                            <ul className="list-disc space-y-1.5 pl-4">
+                                <li>Deadlines use a 3-day safety buffer only when the actual date is more than 5 days away.</li>
+                                <li>When a deadline is within 5 days, the exact date is shown.</li>
+                                <li>Prize values are normalized to a total amount when source data is track-wise.</li>
+                            </ul>
                         </div>
                     </div>
                 </div>
