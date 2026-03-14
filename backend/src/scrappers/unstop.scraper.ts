@@ -2,20 +2,13 @@ import axios from "axios";
 import hackathon from "../models/hackathon.model.ts";
 import * as cheerio from "cheerio";
 import { universalFormatter } from "../formatters/universalFormatter.ts";
+import { asyncHandler } from "../utils/asyncHandler.ts";
+import { ApiResponse } from "../utils/apiResponse.ts";
+import { ApiError } from "../utils/apiError.ts";
 
-export const scrapeUnstop = async (req: any, res: any) => {
-
-  try {
-    const data = await scrapeUnstopData();
-    return res.json({ ok: true, count: data.length });
-  } catch (err: any) {
-    console.error(
-      "API might be blocked. Approach 1 failed, switching to fallback...",
-      err.message
-    );
-    return res.status(500).json({ error: err.message || "Internal server error" });
-
-  }
+export const scrapeUnstop = asyncHandler(async (req: any, res: any) => {
+  const data = await scrapeUnstopData();
+  return res.status(200).json(new ApiResponse(200, { ok: true, count: data.length }, "Unstop hackathons scraped successfully!"));
 
   // Approach 2: HTML scraping
   // try {
@@ -26,7 +19,7 @@ export const scrapeUnstop = async (req: any, res: any) => {
   //   const rawJson = $("#__NEXT_DATA__").html();
 
   //   if (!rawJson) {
-  //     throw new Error("Critical issue: No __NEXt_DATA__ found");
+  //     throw new ApiError(500, "Critical issue: No __NEXt_DATA__ found");
   //   }
 
   //   const json = JSON.parse(rawJson);
@@ -36,17 +29,15 @@ export const scrapeUnstop = async (req: any, res: any) => {
   //     json?.props?.pageProps?.seo_data?.opportunities;
 
   //   if (!hacks || hacks.length === 0) {
-  //     return res
-  //       .status(400)
-  //       .json({ error: "No hackathons found via HTML scraping too..." });
+  //     throw new ApiError(400, "No hackathons found via HTML scraping too...");
   //   }
 
-  //   return res.json({ ok: true, source: "html", count: hacks.length });
+  //   return res.status(200).json(new ApiResponse(200, { ok: true, source: "html", count: hacks.length }, "Unstop HTML scraping successful!"));
   // } catch (err) {
   //   console.error("Both Approaches failed...", err);
-  //   return res.status(500).json({ error: "Scraper failed completely!" });
+  //   throw new ApiError(500, "Scraper failed completely!");
   // }
-};
+});
 
 export async function scrapeUnstopData() {
 

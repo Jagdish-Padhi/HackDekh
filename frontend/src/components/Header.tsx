@@ -1,9 +1,8 @@
 import Navbar from "./Navbar";
 
 const Header = () => (
-    <header className="bg-background-elevated border-b border-background-border shadow-none py-4">
-            <Navbar />
-       
+    <header className="sticky top-0 z-40 px-4 pt-4 sm:px-6 lg:px-8">
+        <Navbar />
     </header>
 )
 
