@@ -20,7 +20,7 @@ const Navbar = () => {
 
                 {/* Logo + brand */}
                 <div className="flex items-center gap-3">
-                    <div className="rounded-2xl border border-zinc-200 bg-zinc-50 p-2 shadow-sm dark:border-zinc-800 dark:bg-zinc-900 dark:shadow-sm">
+                    <div className="rounded-2xl border border-zinc-200 bg-zinc-50 p-2 shadow-sm dark:shadow-sm">
                         <img src="/HackDekhSVG.svg" alt="HackDekh Logo" className="h-9 w-9 object-contain" />
                     </div>
                     <span className="text-xl font-semibold tracking-tight text-zinc-900 dark:text-zinc-100">
