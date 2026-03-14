@@ -20,6 +20,7 @@ type Hackathon = {
 const HackathonList = () => {
     const [hackathons, setHackathons] = useState<Hackathon[]>([])
     const [loading, setLoading] = useState(true)
+    const [isRefreshing, setIsRefreshing] = useState(false)
     const [progressTarget, setProgressTarget] = useState(0)
     const [progressDisplay, setProgressDisplay] = useState(0)
     const [showResults, setShowResults] = useState(false)
@@ -117,6 +118,23 @@ const HackathonList = () => {
         (mode ? h.mode === mode : true)
     )
 
+    const handleManualRefresh = async () => {
+        if (isRefreshing) {
+            return
+        }
+
+        try {
+            setIsRefreshing(true)
+            await axiosInstance.post('/scrape/refresh')
+            const refreshed = await axiosInstance.get('/hackathons')
+            setHackathons(refreshed.data)
+        } catch (error) {
+            console.error('Failed to refresh hackathons manually', error)
+        } finally {
+            setIsRefreshing(false)
+        }
+    }
+
 
     return (
         <div className="space-y-6">
@@ -124,7 +142,17 @@ const HackathonList = () => {
                 <div className="rounded-[1.8rem] border border-zinc-200 bg-zinc-50 p-4 shadow-sm transition-all duration-200 sm:p-5 dark:border-zinc-800 dark:bg-zinc-900 dark:shadow-md">
                     <div className="flex flex-row gap-4 max-md:flex-col">
                         <SearchBar value={search} onChange={setSearch} />
-                        <FilterPanel platform={platform} setPlatform={setPlatform} mode={mode} setMode={setMode} />
+                        <div className="flex flex-wrap items-center gap-3">
+                            <FilterPanel platform={platform} setPlatform={setPlatform} mode={mode} setMode={setMode} />
+                            <button
+                                type="button"
+                                onClick={handleManualRefresh}
+                                disabled={isRefreshing}
+                                className="inline-flex h-13 items-center justify-center rounded-2xl border border-blue-500/35 bg-blue-600 px-5 text-sm font-semibold text-white shadow-sm transition-all duration-200 hover:-translate-y-0.5 hover:bg-blue-500 hover:shadow-md disabled:cursor-not-allowed disabled:opacity-70 dark:border-blue-400/40 dark:bg-blue-500 dark:hover:bg-blue-400"
+                            >
+                                {isRefreshing ? 'Refreshing...' : 'Re-fetch'}
+                            </button>
+                        </div>
                     </div>
                 </div>
             </div>
