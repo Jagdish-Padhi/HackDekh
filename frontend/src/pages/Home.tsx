@@ -1,4 +1,12 @@
 import FeatureCard from "../components/FeatureCard";
+import {
+    BarChart3,
+    ClipboardCheck,
+    Lightbulb,
+    Search,
+    Users,
+    Workflow,
+} from "lucide-react";
 import ProductStoryAnimation from "../components/productStory/ProductStoryAnimation";
 
 const HomePage = () => (
@@ -40,22 +48,51 @@ const HomePage = () => (
             </div>
         </div>
 
-        <div className="grid w-full max-w-6xl grid-cols-1 gap-6 md:grid-cols-3 lg:gap-8">
-            <FeatureCard
-                emoji="🕸️"
-                title="Aggregated Hackathons"
-                desc="All top platforms, one place. No more endless searching."
-            />
-            <FeatureCard
-                emoji="👥"
-                title="Team Management"
-                desc="Create teams, save hackathons, track registrations, wins, and learning."
-            />
-            <FeatureCard
-                emoji="🕒"
-                title="Auto Updates"
-                desc="Daily cron jobs keep hackathons fresh and up-to-date."
-            />
+        <div className="w-full max-w-6xl space-y-7">
+            <div className="mx-auto max-w-3xl text-center">
+                <span className="inline-flex rounded-full border border-zinc-200 bg-zinc-50 px-4 py-1.5 text-[0.72rem] font-semibold uppercase tracking-[0.18em] text-zinc-600 dark:border-zinc-700 dark:bg-zinc-800/70 dark:text-zinc-300">
+                    Core Capabilities
+                </span>
+                <h2 className="mt-4 text-3xl font-bold tracking-[-0.02em] text-zinc-900 sm:text-4xl dark:text-zinc-100">
+                    Built for Hackathon Team Performance
+                </h2>
+                <p className="mt-3 text-sm leading-7 text-zinc-600 sm:text-base dark:text-zinc-400">
+                    Discover hackathons, run team workflows, and improve results from one unified system.
+                </p>
+            </div>
+
+            <div className="grid w-full grid-cols-1 gap-6 md:grid-cols-3 lg:gap-8">
+                <FeatureCard
+                    icon={Search}
+                    title="Discover Hackathons in One Place"
+                    desc="Automatically aggregate hackathons from Devfolio, Unstop, and more so you never miss an opportunity."
+                />
+                <FeatureCard
+                    icon={Users}
+                    title="Organize Multiple Hackathon Teams"
+                    desc="Create and manage different teams, assign leaders, and track members across participations."
+                />
+                <FeatureCard
+                    icon={ClipboardCheck}
+                    title="Track Every Hackathon Journey"
+                    desc="Record which teams participated in which hackathons and monitor progress across stages."
+                />
+                <FeatureCard
+                    icon={Workflow}
+                    title="Track Every Stage"
+                    desc="Keep a record of each stage: applied, qualified, rejected, finalist, or winner."
+                />
+                <FeatureCard
+                    icon={Lightbulb}
+                    title="Capture Reflections After Every Hackathon"
+                    desc="Teams can record learnings, mistakes, and insights to improve future performance."
+                />
+                <FeatureCard
+                    icon={BarChart3}
+                    title="Team Performance Dashboard"
+                    desc="View participations, wins, finalist counts, and identify your most successful teams."
+                />
+            </div>
         </div>
     </section>
 );
