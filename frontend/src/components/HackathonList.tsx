@@ -18,22 +18,26 @@ type Hackathon = {
     location?: string
 }
 
+type SortBy = '' | 'deadline-asc' | 'deadline-desc' | 'prize-desc' | 'prize-asc'
+
 const SAFE_DEADLINE_BUFFER_DAYS = 3
 const SAFE_DEADLINE_MIN_WINDOW_DAYS = 5
 
-const hasDeadlinePassed = (deadline?: string) => {
+const isUnavailablePrize = (value: string) =>
+    /^(?:tbd|na|n\/a|none|null|undefined|not\s*(?:announced|disclosed)|to\s*be\s*announced|--?)$/i.test(value.trim())
+
+const getComparableDeadlineDate = (deadline?: string) => {
     if (!deadline?.trim()) {
-        return false
+        return null
     }
 
     const rawDeadline = deadline.trim()
     const parsed = new Date(rawDeadline)
 
     if (Number.isNaN(parsed.getTime())) {
-        return false
+        return null
     }
 
-    // Treat date-only values as valid until the end of that local day.
     if (/^\d{4}-\d{2}-\d{2}$/.test(rawDeadline)) {
         parsed.setHours(23, 59, 59, 999)
     }
@@ -45,7 +49,72 @@ const hasDeadlinePassed = (deadline?: string) => {
         parsed.setDate(parsed.getDate() - SAFE_DEADLINE_BUFFER_DAYS)
     }
 
-    return parsed.getTime() < Date.now()
+    return Number.isNaN(parsed.getTime()) ? null : parsed
+}
+
+const getPrizeAmount = (prize?: string) => {
+    if (!prize?.trim()) {
+        return null
+    }
+
+    const cleanedPrize = prize
+        .replace(/^\s*(?:total\s+)?prize\s*pool\s*[:\-–]?\s*/i, '')
+        .replace(/^\s*prizes?\s*[:\-–]?\s*/i, '')
+        .trim()
+
+    if (!cleanedPrize || isUnavailablePrize(cleanedPrize)) {
+        return null
+    }
+
+    const amountRegex = /(\d[\d,]*(?:\.\d+)?)\s*(crore|cr|lakh|lac|k)?/gi
+    let totalAmount = 0
+    let hasValue = false
+
+    for (const match of cleanedPrize.matchAll(amountRegex)) {
+        const rawAmount = Number(match[1].replace(/,/g, ''))
+        if (!Number.isFinite(rawAmount) || rawAmount <= 0) {
+            continue
+        }
+
+        const unit = (match[2] || '').toLowerCase()
+        const multiplier = unit === 'crore' || unit === 'cr'
+            ? 10000000
+            : unit === 'lakh' || unit === 'lac'
+                ? 100000
+                : unit === 'k'
+                    ? 1000
+                    : 1
+
+        totalAmount += rawAmount * multiplier
+        hasValue = true
+    }
+
+    return hasValue ? totalAmount : null
+}
+
+const compareNullableNumbers = (a: number | null, b: number | null, direction: 'asc' | 'desc') => {
+    if (a === null && b === null) {
+        return 0
+    }
+
+    if (a === null) {
+        return 1
+    }
+
+    if (b === null) {
+        return -1
+    }
+
+    return direction === 'asc' ? a - b : b - a
+}
+
+const hasDeadlinePassed = (deadline?: string) => {
+    const comparableDeadline = getComparableDeadlineDate(deadline)
+    if (!comparableDeadline) {
+        return false
+    }
+
+    return comparableDeadline.getTime() < Date.now()
 }
 
 const HackathonList = () => {
@@ -57,6 +126,7 @@ const HackathonList = () => {
     const [search, setSearch] = useState('')
     const [platform, setPlatform] = useState('')
     const [mode, setMode] = useState('')
+    const [sortBy, setSortBy] = useState<SortBy>('')
 
     useEffect(() => {
         const intervalId = window.setInterval(() => {
@@ -141,7 +211,6 @@ const HackathonList = () => {
         }
     }, [])
 
-    // Filter logic (frontend for now)
     const filtered = hackathons.filter(h =>
         !hasDeadlinePassed(h.deadline) &&
         h.title.toLowerCase().includes(search.toLowerCase()) &&
@@ -149,14 +218,51 @@ const HackathonList = () => {
         (mode ? h.mode === mode : true)
     )
 
+    const filteredAndSorted = sortBy
+        ? [...filtered].sort((a, b) => {
+            if (sortBy === 'deadline-asc') {
+                return compareNullableNumbers(
+                    getComparableDeadlineDate(a.deadline)?.getTime() ?? null,
+                    getComparableDeadlineDate(b.deadline)?.getTime() ?? null,
+                    'asc'
+                )
+            }
+
+            if (sortBy === 'deadline-desc') {
+                return compareNullableNumbers(
+                    getComparableDeadlineDate(a.deadline)?.getTime() ?? null,
+                    getComparableDeadlineDate(b.deadline)?.getTime() ?? null,
+                    'desc'
+                )
+            }
+
+            if (sortBy === 'prize-asc') {
+                return compareNullableNumbers(getPrizeAmount(a.prize), getPrizeAmount(b.prize), 'asc')
+            }
+
+            if (sortBy === 'prize-desc') {
+                return compareNullableNumbers(getPrizeAmount(a.prize), getPrizeAmount(b.prize), 'desc')
+            }
+
+            return 0
+        })
+        : filtered
+
 
     return (
         <div className="space-y-6">
             <div className="sticky top-26 z-30 bg-white/95 pb-4 backdrop-blur-md dark:bg-zinc-950/95">
                 <div className="relative rounded-[1.8rem] border border-zinc-200 bg-zinc-50 p-4 shadow-sm transition-all duration-200 sm:p-5 dark:border-zinc-800 dark:bg-zinc-900 dark:shadow-md">
-                    <div className="flex flex-row gap-4 pr-10 max-md:flex-col sm:pr-12">
+                    <div className="flex flex-wrap items-center gap-2 pr-10 sm:pr-12 lg:flex-nowrap">
                         <SearchBar value={search} onChange={setSearch} />
-                        <FilterPanel platform={platform} setPlatform={setPlatform} mode={mode} setMode={setMode} />
+                        <FilterPanel
+                            platform={platform}
+                            setPlatform={setPlatform}
+                            mode={mode}
+                            setMode={setMode}
+                            sortBy={sortBy}
+                            setSortBy={value => setSortBy(value as SortBy)}
+                        />
                     </div>
 
                     <div className="group absolute right-4 top-4 z-40">
@@ -178,9 +284,9 @@ const HackathonList = () => {
             <div className="space-y-6">
                 {loading ? (
                     <LoadingProgress progress={progressDisplay} />
-                ) : filtered.length ? (
+                ) : filteredAndSorted.length ? (
                     <div className={`grid grid-cols-1 gap-6 transition-all duration-300 sm:grid-cols-2 xl:grid-cols-3 ${showResults ? 'translate-y-0 opacity-100' : 'translate-y-1 opacity-0'}`}>
-                        {filtered.map(hack => (
+                        {filteredAndSorted.map(hack => (
                             <HackathonCard key={hack._id} hackathon={hack} />
                         ))}
                     </div>

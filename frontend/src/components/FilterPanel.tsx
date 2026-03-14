@@ -28,18 +28,18 @@ const Dropdown = ({ value, onChange, options, placeholder }: DropdownProps) => {
     const label = selected ? selected.label : placeholder
 
     return (
-        <div ref={ref} className="relative w-full sm:w-auto sm:min-w-48">
+        <div ref={ref} className="relative w-full sm:w-43 sm:shrink-0">
             {/* Trigger button */}
             <button
                 type="button"
                 onClick={() => setOpen(prev => !prev)}
-                className={`flex w-full items-center justify-between gap-3 rounded-2xl border px-4 py-3 text-sm font-medium shadow-sm transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md focus:outline-none focus:ring-4 ${
+                className={`flex h-12 w-full items-center justify-between gap-3 whitespace-nowrap rounded-2xl border px-4 py-3 text-sm font-medium shadow-sm transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md focus:outline-none focus:ring-4 ${
                     open
                         ? 'border-blue-500/45 ring-4 ring-blue-500/12 dark:border-blue-400/50 dark:ring-blue-400/20'
                         : 'border-zinc-200 dark:border-zinc-800'
                 } bg-white text-zinc-900 dark:bg-zinc-900 dark:text-zinc-100`}
             >
-                <span className={value ? 'text-zinc-900 dark:text-zinc-100' : 'text-zinc-400 dark:text-zinc-500'}>
+                <span className={`truncate ${value ? 'text-zinc-900 dark:text-zinc-100' : 'text-zinc-400 dark:text-zinc-500'}`}>
                     {label}
                 </span>
                 {/* Chevron */}
@@ -84,7 +84,7 @@ const Dropdown = ({ value, onChange, options, placeholder }: DropdownProps) => {
                                     <path d="M20 6L9 17l-5-5" />
                                 </svg>
                             )}
-                            <span className={value === opt.value ? '' : 'ml-4'}>{opt.label}</span>
+                            <span className={`${value === opt.value ? '' : 'ml-4'} truncate`}>{opt.label}</span>
                         </button>
                     ))}
                 </div>
@@ -100,6 +100,8 @@ type FilterPanelProps = {
     setPlatform: (value: string) => void
     mode: string
     setMode: (value: string) => void
+    sortBy: string
+    setSortBy: (value: string) => void
 }
 
 const platformOptions: Option[] = [
@@ -114,8 +116,16 @@ const modeOptions: Option[] = [
     { label: 'Offline', value: 'Offline' },
 ]
 
-const FilterPanel = ({ platform, setPlatform, mode, setMode }: FilterPanelProps) => (
-    <div className="flex flex-wrap gap-3">
+const sortOptions: Option[] = [
+    { label: 'Default Order', value: '' },
+    { label: 'Deadline (Ascending)', value: 'deadline-asc' },
+    { label: 'Deadline (Descending)', value: 'deadline-desc' },
+    { label: 'Prize (Descending)', value: 'prize-desc' },
+    { label: 'Prize (Ascending)', value: 'prize-asc' },
+]
+
+const FilterPanel = ({ platform, setPlatform, mode, setMode, sortBy, setSortBy }: FilterPanelProps) => (
+    <div className="flex w-full flex-wrap items-center gap-2 sm:w-auto lg:shrink-0 lg:flex-nowrap">
         <Dropdown
             value={platform}
             onChange={setPlatform}
@@ -127,6 +137,12 @@ const FilterPanel = ({ platform, setPlatform, mode, setMode }: FilterPanelProps)
             onChange={setMode}
             options={modeOptions}
             placeholder="All Modes"
+        />
+        <Dropdown
+            value={sortBy}
+            onChange={setSortBy}
+            options={sortOptions}
+            placeholder="Sort By"
         />
     </div>
 )
