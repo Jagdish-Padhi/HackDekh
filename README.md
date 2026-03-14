@@ -1,82 +1,99 @@
-# HackDekh – Hackathon Management Platform 🚀
 
-![HackDekh Banner](public/hackdekh-banner.png)
+![HackDekh Banner](frontend/public/BrandImages/HackDekhBanner.png)
 
-## Premium, Developer-First Hackathon Discovery
-
-HackDekh is a centralized web platform that automatically collects hackathon data from multiple platforms (Devfolio, Unstop, Devpost, MLH, and more) and displays them in one place with powerful filtering, tracking, and team management features.
+HackDekh is a platform that helps developers **discover hackathons and manage their entire participation workflow in one place**.
+Instead of just listing hackathons, HackDekh focuses on helping teams **organize, track, and learn from every hackathon they participate in.**
 
 ---
 
-## ✨ Features
+## ✨ Core features
 
-- 🕸️ **Automated Scraping**: Aggregates hackathons from top platforms
-- 🗂️ **Unified Listing**: All hackathons, one elegant interface
-- 🔍 **Smart Filtering & Search**: Find the right hackathon fast
-- 🕒 **Auto-Update (Cron Jobs)**: Always fresh, no manual refresh
-- 👥 **Team Management**: Create teams, track registrations, wins, and learning
-- 📦 **Team Buckets**: Save and organize hackathons for your team
-- 📊 **Progress Tracking**: Registered, participated, won, and more
-- 🎨 **Dark Elegant Theme**: Premium, late-night coding friendly UI
-- 📱 **Mobile-Ready**: Responsive and future-proof for mobile apps
+**🔎 Hackathon Discovery**  
+Aggregate open hackathons from platforms like Devfolio and Unstop in one searchable interface.
+
+**👥 Team Management**  
+Create and manage hackathon teams, track members, and organize participation.
+
+**📍 Stage Tracking**  
+Record each stage of a hackathon journey — applied, qualified, rejected, finalist, or winner.
+
+**🧠 Reflection System**  
+Capture team learnings after every hackathon to improve future performance.
+
+**📊 Performance Dashboard**  
+Track participation statistics, wins, finalists, and best-performing teams.
+
+**🎯 Smart Listing Experience**  
+Filter live opportunities, sort by deadline or prize, and surface urgent deadlines clearly.
+
+**🎨 Clean Developer UI**  
+Modern dark/light theme interface with polished cards, fallback media, and focused workflows.
 
 ---
 
 ## 🏗️ Tech Stack
 
-- **Frontend**: React (Vite) + Tailwind CSS
-- **Backend**: Node.js + Express
-- **Database**: MongoDB
-- **Scraping**: Cheerio / Puppeteer
+- **Frontend**: React 19 + TypeScript + Vite + Tailwind CSS + React Router
+- **UI / Motion**: Framer Motion + Lucide React
+- **Backend**: Node.js + Express + TypeScript
+- **Database**: MongoDB + Mongoose
+- **Authentication**: JWT + bcrypt
+- **Scraping**: Axios + Cheerio
 - **Scheduler**: node-cron
 
 ---
 
-## 🚦 MVP Status
+## ⚙️ Environment Variables
 
-- [x] Devfolio & Unstop scrapers
-- [x] Hackathon listing & details
-- [x] REST API
-- [x] Elegant dark theme
-- [x] Basic filtering
-- [ ] Cron job automation
-- [ ] More platforms (Devpost, MLH...)
-- [ ] Team management & tracking
+Create a `.env` file inside `backend/` and configure the following values:
 
----
+```env
+PORT=3000
+MONGO_URI=mongodb://localhost:27017
+ACCESS_TOKEN_SECRET=your_access_token_secret
+ACCESS_TOKEN_EXPIRY=1d
+REFRESH_TOKEN_SECRET=your_refresh_token_secret
+REFRESH_TOKEN_EXPIRY=7d
+```
 
-## 📈 Roadmap
+**📌 Note**  
+The frontend currently targets `http://localhost:3000/api/v1`, so keeping the backend on `PORT=3000` is the easiest local setup.
 
-- [ ] Add more hackathon platforms
-- [ ] Full cron-based automation
-- [ ] User authentication & dashboard
-- [ ] Team creation, invites, and buckets
-- [ ] Hackathon status tracking (registered, participated, won)
-- [ ] Personalized recommendations & reminders
-- [ ] Notifications (email, Telegram, WhatsApp)
-- [ ] Mobile app & calendar view
-- [ ] Admin panel
-
----
 
 ## 🛠️ Local Development
 
 ```bash
-# Install dependencies
+# Terminal 1: start backend
+cd backend
 npm install
+npm run dev
 
-# Start backend
-cd backend && npm install && npm run dev
+# Terminal 2: start frontend
+cd frontend
+npm install
+npm run dev
+```
 
-# Start frontend
-cd ../frontend && npm install && npm run dev
+---
+
+## 📦 Useful Scripts
+
+```bash
+# Build backend
+cd backend && npm run build
+
+# Build frontend
+cd frontend && npm run build
+
+# Lint frontend
+cd frontend && npm run lint
 ```
 
 ---
 
 ## 🤝 Contributing
 
-Pull requests, issues, and feedback are welcome! See [CONTRIBUTING.md](CONTRIBUTING.md) for guidelines.
+Pull requests, issues, and feedback are welcome if they improve product quality, developer workflow, or user experience.
 
 ---
 
@@ -86,4 +103,4 @@ MIT License © 2026 HackDekh
 
 ---
 
-> Made with 💜 by *Jagdish Padhi* for Hackathon Hunters.
+> Made with 🩵 by *Jagdish Padhi* for all Hackathon Hunters.
