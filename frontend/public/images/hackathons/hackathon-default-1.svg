@@ -1,0 +1,50 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 675" role="img" aria-label="Hackathon placeholder image one">
+  <defs>
+    <linearGradient id="bg1" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#f5f5f5" />
+      <stop offset="100%" stop-color="#d4d4d8" />
+    </linearGradient>
+    <linearGradient id="card1" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#ffffff" />
+      <stop offset="100%" stop-color="#e4e4e7" />
+    </linearGradient>
+    <linearGradient id="accent1" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#52525b" />
+      <stop offset="100%" stop-color="#71717a" />
+    </linearGradient>
+  </defs>
+
+  <rect width="1200" height="675" fill="url(#bg1)" />
+  <rect width="1200" height="675" fill="#18181b" opacity="0.08" />
+
+  <circle cx="1020" cy="120" r="180" fill="#fafafa" opacity="0.35" />
+  <circle cx="180" cy="560" r="140" fill="#27272a" opacity="0.1" />
+
+  <g>
+    <rect x="130" y="145" width="300" height="385" rx="28" fill="url(#card1)" stroke="#a1a1aa" stroke-opacity="0.55" />
+    <text x="185" y="188" fill="#52525b" font-size="15" font-weight="700" font-family="Segoe UI, Arial, sans-serif">Team Snapshot</text>
+    <rect x="185" y="205" width="190" height="18" rx="9" fill="#71717a" opacity="0.45" />
+    <rect x="185" y="245" width="150" height="12" rx="6" fill="#a1a1aa" opacity="0.65" />
+    <rect x="185" y="273" width="170" height="12" rx="6" fill="#a1a1aa" opacity="0.45" />
+    <rect x="185" y="355" width="95" height="95" rx="20" fill="#27272a" opacity="0.16" />
+    <rect x="295" y="355" width="95" height="95" rx="20" fill="#27272a" opacity="0.1" />
+  </g>
+
+  <g>
+    <rect x="450" y="110" width="620" height="455" rx="32" fill="#ffffff" fill-opacity="0.65" stroke="#a1a1aa" stroke-opacity="0.45" />
+    <rect x="505" y="145" width="315" height="34" rx="17" fill="url(#accent1)" opacity="0.9" />
+    <text x="531" y="168" fill="#ffffff" font-size="16" font-weight="700" font-family="Segoe UI, Arial, sans-serif">HackDekh Team Workspace</text>
+
+    <text x="505" y="205" fill="#52525b" font-size="14" font-family="Segoe UI, Arial, sans-serif">Centralized team and stage updates</text>
+    <rect x="505" y="170" width="280" height="22" rx="11" fill="#3f3f46" opacity="0.4" />
+    <rect x="505" y="210" width="520" height="14" rx="7" fill="#71717a" opacity="0.4" />
+    <rect x="505" y="238" width="390" height="14" rx="7" fill="#71717a" opacity="0.25" />
+
+    <rect x="505" y="295" width="520" height="210" rx="22" fill="#27272a" opacity="0.1" />
+    <rect x="540" y="335" width="150" height="130" rx="16" fill="#ffffff" fill-opacity="0.62" />
+    <rect x="715" y="335" width="150" height="130" rx="16" fill="#ffffff" fill-opacity="0.5" />
+    <rect x="890" y="335" width="100" height="130" rx="16" fill="#ffffff" fill-opacity="0.42" />
+  </g>
+
+  <text x="864" y="610" fill="#52525b" fill-opacity="0.55" font-size="14" font-family="Segoe UI, Arial, sans-serif">HackDekh Placeholder</text>
+</svg>
