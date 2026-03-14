@@ -49,6 +49,124 @@ const sanitizePrizeText = (value: unknown): string | null => {
   return cleaned.length ? cleaned : null;
 };
 
+const sanitizeLocationText = (value: unknown): string | null => {
+  const text = normalizeText(value);
+  if (!text) {
+    return null;
+  }
+
+  const cleaned = text.replace(/\s+/g, " ").trim();
+  if (!cleaned.length) {
+    return null;
+  }
+
+  if (/^(?:tbd|na|n\/a|null|undefined|not\s*(?:disclosed|mentioned)|city|all)$/i.test(cleaned)) {
+    return null;
+  }
+
+  return cleaned;
+};
+
+const normalizeCountryName = (value: unknown): string | null => {
+  if (!value) {
+    return null;
+  }
+
+  if (typeof value === "string") {
+    return sanitizeLocationText(value);
+  }
+
+  if (typeof value === "object") {
+    const objectValue = value as any;
+    return (
+      sanitizeLocationText(objectValue?.name) ||
+      sanitizeLocationText(objectValue?.country_name) ||
+      null
+    );
+  }
+
+  return null;
+};
+
+const composeLocationParts = (parts: Array<string | null | undefined>): string | null => {
+  const output: string[] = [];
+
+  for (const part of parts) {
+    if (!part) {
+      continue;
+    }
+
+    const normalized = part.trim();
+    if (!normalized.length) {
+      continue;
+    }
+
+    if (output.some((item) => item.toLowerCase() === normalized.toLowerCase())) {
+      continue;
+    }
+
+    output.push(normalized);
+  }
+
+  return output.length ? output.join(", ") : null;
+};
+
+const extractLocationFromAddressObject = (value: unknown): string | null => {
+  if (!value || typeof value !== "object") {
+    return null;
+  }
+
+  const addressObject = value as any;
+  const city = sanitizeLocationText(addressObject?.city);
+  const state = sanitizeLocationText(addressObject?.state);
+  const country = normalizeCountryName(addressObject?.country);
+  const address = sanitizeLocationText(addressObject?.address);
+
+  const cityStateCountry = composeLocationParts([city, state, country]);
+  if (cityStateCountry) {
+    return cityStateCountry;
+  }
+
+  return composeLocationParts([address, city, state, country]);
+};
+
+const extractLocationFromLocationsArray = (locations: unknown): string | null => {
+  if (!Array.isArray(locations) || !locations.length) {
+    return null;
+  }
+
+  for (const item of locations) {
+    if (typeof item === "string") {
+      const direct = sanitizeLocationText(item);
+      if (direct) {
+        return direct;
+      }
+
+      continue;
+    }
+
+    if (!item || typeof item !== "object") {
+      continue;
+    }
+
+    const objectItem = item as any;
+    const composed = composeLocationParts([
+      sanitizeLocationText(objectItem?.city),
+      sanitizeLocationText(objectItem?.state),
+      normalizeCountryName(objectItem?.country),
+      sanitizeLocationText(objectItem?.name),
+      sanitizeLocationText(objectItem?.location),
+      sanitizeLocationText(objectItem?.address),
+    ]);
+
+    if (composed) {
+      return composed;
+    }
+  }
+
+  return null;
+};
+
 const extractUnstopPrize = (h: any): string | null => {
   if (Array.isArray(h?.prizes) && h.prizes.length > 0) {
     const totalCash = h.prizes.reduce((sum: number, prize: any) => {
@@ -81,26 +199,57 @@ const extractUnstopPrize = (h: any): string | null => {
 };
 
 const extractUnstopLocation = (h: any): string | null => {
+  const addressLocation = extractLocationFromAddressObject(h?.address_with_country_logo);
+  if (addressLocation) {
+    return addressLocation;
+  }
+
+  const locationsArrayLocation = extractLocationFromLocationsArray(h?.locations);
+  if (locationsArrayLocation) {
+    return locationsArrayLocation;
+  }
+
   const explicitLocation =
-    normalizeText(h?.location) ||
-    normalizeText(h?.venue) ||
-    normalizeText(h?.address);
+    sanitizeLocationText(h?.location) ||
+    sanitizeLocationText(h?.venue) ||
+    sanitizeLocationText(h?.address);
 
   if (explicitLocation) {
     return explicitLocation;
   }
 
-  const city = normalizeText(h?.city) || normalizeText(h?.organization?.city) || normalizeText(h?.organisation?.city);
-  const country = normalizeText(h?.country) || normalizeText(h?.organization?.country) || normalizeText(h?.organisation?.country);
-  const composed = [city, country].filter(Boolean).join(", ");
+  const city =
+    sanitizeLocationText(h?.city) ||
+    sanitizeLocationText(h?.organization?.city) ||
+    sanitizeLocationText(h?.organisation?.city);
+  const state =
+    sanitizeLocationText(h?.state) ||
+    sanitizeLocationText(h?.organization?.state) ||
+    sanitizeLocationText(h?.organisation?.state);
+  const country =
+    normalizeCountryName(h?.country) ||
+    normalizeCountryName(h?.organization?.country) ||
+    normalizeCountryName(h?.organisation?.country);
+  const composed = composeLocationParts([city, state, country]);
 
   if (composed) {
     return composed;
   }
 
-  const region = normalizeText(h?.region);
+  const region = sanitizeLocationText(h?.region);
   if (region) {
-    return region.charAt(0).toUpperCase() + region.slice(1);
+    if (/^online$/i.test(region)) {
+      return "Online";
+    }
+
+    if (!/^offline$/i.test(region)) {
+      return region.charAt(0).toUpperCase() + region.slice(1);
+    }
+  }
+
+  const workLocationType = sanitizeLocationText(h?.regnRequirements?.work_location_type);
+  if (workLocationType && /^(?:remote|online|virtual|wfh)$/i.test(workLocationType)) {
+    return "Online";
   }
 
   return null;

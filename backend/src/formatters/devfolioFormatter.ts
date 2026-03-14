@@ -49,6 +49,103 @@ const sanitizePrizeText = (value: unknown): string | null => {
     return cleaned.length ? cleaned : null;
 };
 
+const sanitizeLocationText = (value: unknown): string | null => {
+    const text = normalizeText(value);
+    if (!text) {
+        return null;
+    }
+
+    const cleaned = text.replace(/\s+/g, " ").trim();
+    if (!cleaned.length) {
+        return null;
+    }
+
+    if (/^(?:tbd|na|n\/a|null|undefined|not\s*(?:disclosed|mentioned)|city|all)$/i.test(cleaned)) {
+        return null;
+    }
+
+    return cleaned;
+};
+
+const normalizeCountryName = (value: unknown): string | null => {
+    if (!value) {
+        return null;
+    }
+
+    if (typeof value === "string") {
+        return sanitizeLocationText(value);
+    }
+
+    if (typeof value === "object") {
+        const objectValue = value as any;
+        return (
+            sanitizeLocationText(objectValue?.name) ||
+            sanitizeLocationText(objectValue?.country_name) ||
+            null
+        );
+    }
+
+    return null;
+};
+
+const composeLocationParts = (parts: Array<string | null | undefined>): string | null => {
+    const output: string[] = [];
+
+    for (const part of parts) {
+        if (!part) {
+            continue;
+        }
+
+        const normalized = part.trim();
+        if (!normalized.length) {
+            continue;
+        }
+
+        if (output.some((item) => item.toLowerCase() === normalized.toLowerCase())) {
+            continue;
+        }
+
+        output.push(normalized);
+    }
+
+    return output.length ? output.join(", ") : null;
+};
+
+const extractFromGeographies = (value: unknown): string | null => {
+    if (!Array.isArray(value) || !value.length) {
+        return null;
+    }
+
+    const parts: string[] = [];
+
+    for (const item of value) {
+        if (typeof item === "string") {
+            const direct = sanitizeLocationText(item);
+            if (direct) {
+                parts.push(direct);
+            }
+            continue;
+        }
+
+        if (!item || typeof item !== "object") {
+            continue;
+        }
+
+        const objectItem = item as any;
+        const locationPart =
+            sanitizeLocationText(objectItem?.name) ||
+            sanitizeLocationText(objectItem?.label) ||
+            sanitizeLocationText(objectItem?.value) ||
+            null;
+
+        if (locationPart) {
+            parts.push(locationPart);
+        }
+    }
+
+    return composeLocationParts(parts.slice(0, 2));
+};
+
 const extractDevfolioPrize = (settings: any): string | null => {
     const rawPrize = settings?.prize_pool ?? settings?.prize ?? settings?.prizes ?? null;
 
@@ -87,16 +184,37 @@ const extractDevfolioPrize = (settings: any): string | null => {
 const extractDevfolioLocation = (h: any): string | null => {
     const settings = h?.settings ?? {};
 
-    const directLocation = normalizeText(settings?.location) || normalizeText(h?.location);
+    const directLocation =
+        sanitizeLocationText(settings?.event_location) ||
+        sanitizeLocationText(settings?.venue) ||
+        sanitizeLocationText(settings?.address) ||
+        sanitizeLocationText(settings?.location) ||
+        sanitizeLocationText(h?.location) ||
+        sanitizeLocationText(h?.venue) ||
+        sanitizeLocationText(h?.address);
     if (directLocation) {
         return directLocation;
     }
 
-    const city = normalizeText(settings?.city) || normalizeText(h?.city);
-    const country = normalizeText(settings?.country) || normalizeText(h?.country);
-    const composed = [city, country].filter(Boolean).join(", ");
+    const geographies = extractFromGeographies(settings?.geographies ?? h?.geographies);
+    if (geographies) {
+        return geographies;
+    }
 
-    return composed || null;
+    const city = sanitizeLocationText(settings?.city) || sanitizeLocationText(h?.city);
+    const state = sanitizeLocationText(settings?.state) || sanitizeLocationText(h?.state);
+    const country = normalizeCountryName(settings?.country) || normalizeCountryName(h?.country);
+    const composed = composeLocationParts([city, state, country]);
+
+    if (composed) {
+        return composed;
+    }
+
+    if (h?.is_online === true) {
+        return "Online";
+    }
+
+    return null;
 };
 
 export default function formatDevfolio(rawData: any) {
