@@ -9,18 +9,22 @@ const navItems = [
 ];
 
 const Navbar = () => (
-    <nav className="bg-background-elevated border-b border-background-border px-4 py-2 flex items-center justify-between shadow-md">
+    <nav className="theme-panel mx-auto flex w-full max-w-7xl flex-col gap-4 rounded-[1.4rem] px-4 py-4 sm:flex-row sm:items-center sm:justify-between sm:px-5">
         <div className="flex items-center gap-3">
-            <img src="/HackDekhSVG.svg" alt="HackDekh Logo" className="rounded-full h-12 w-12" />
-            <span className="text-xl font-bold text-violet-brand font-sans tracking-tight">HackDekh</span>
+            <div className="rounded-2xl border border-white/10 bg-white/5 p-2 shadow-[0_16px_36px_rgba(0,0,0,0.24)]">
+                <img src="/HackDekhSVG.svg" alt="HackDekh Logo" className="h-9 w-9 object-contain" />
+            </div>
+            <span className="text-xl font-semibold tracking-tight text-text-primary">Hack<span className="accent-text">Dekh</span></span>
         </div>
-        <div className="flex gap-4">
+        <div className="flex flex-wrap items-center gap-2 rounded-full border border-white/8 bg-white/[0.02] p-1.5 shadow-[inset_0_1px_0_rgba(255,255,255,0.03)]">
             {navItems.map((item) => (
                 <NavLink
                     key={item.name}
                     to={item.path}
                     className={({ isActive }) =>
-                        `px-3 py-1 rounded-md font-medium transition-colors text-text-secondary hover:text-violet-brand hover:bg-background-card ${isActive ? 'bg-violet-brand text-white shadow-violet' : ''
+                        `rounded-full px-4 py-2 text-sm font-medium transition-all duration-200 ${isActive
+                            ? 'theme-button-primary border-transparent px-4 py-2 text-white'
+                            : 'text-text-secondary hover:border-white/10 hover:bg-white/[0.05] hover:text-text-primary'
                         }`
                     }
                 >

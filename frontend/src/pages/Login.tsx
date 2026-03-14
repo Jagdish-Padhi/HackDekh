@@ -26,25 +26,31 @@ const LoginPage = () => {
   };
 
   return (
-    <div className="flex flex-col items-center justify-center min-h-screen bg-background-main">
-      <form onSubmit={handleSubmit} className="bg-background-card p-8 rounded-lg shadow-md w-full max-w-sm">
-        <h2 className="text-2xl font-bold mb-6 text-center">Login</h2>
-        {error && <div className="text-red-500 mb-4">{error}</div>}
+    <div className="flex min-h-[76vh] flex-col items-center justify-center py-6">
+      <form onSubmit={handleSubmit} className="theme-panel w-full max-w-md rounded-[1.8rem] p-7 sm:p-9">
+        <div className="mb-7 text-center">
+          <span className="theme-pill rounded-full px-4 py-1.5 text-[0.7rem] font-medium uppercase tracking-[0.2em]">Welcome Back</span>
+          <h2 className="mt-4 text-3xl font-semibold tracking-tight text-text-primary">Login</h2>
+          <p className="mt-2 text-sm text-text-secondary">Access your dashboard and track every hackathon.</p>
+        </div>
+
+        {error && <div className="mb-4 rounded-xl border border-red-400/25 bg-red-500/10 px-4 py-3 text-sm text-red-300">{error}</div>}
+
         <div className="mb-4">
-          <label className="block mb-1 font-medium">Email</label>
+          <label className="mb-1.5 block text-sm font-medium text-text-secondary">Email</label>
           <input
             type="email"
-            className="w-full px-3 py-2 border rounded-md bg-background-elevated text-text-primary"
+            className="theme-field rounded-2xl px-4 py-3"
             value={email}
             onChange={e => setEmail(e.target.value)}
             required
           />
         </div>
         <div className="mb-6">
-          <label className="block mb-1 font-medium">Password</label>
+          <label className="mb-1.5 block text-sm font-medium text-text-secondary">Password</label>
           <input
             type="password"
-            className="w-full px-3 py-2 border rounded-md bg-background-elevated text-text-primary"
+            className="theme-field rounded-2xl px-4 py-3"
             value={password}
             onChange={e => setPassword(e.target.value)}
             required
@@ -52,15 +58,15 @@ const LoginPage = () => {
         </div>
         <button
           type="submit"
-          className="w-full bg-violet-brand text-white py-2 rounded-md font-semibold hover:bg-violet-accent transition"
+          className="theme-button-primary w-full px-5 py-3 text-sm font-semibold"
           disabled={loading}
         >
           {loading ? 'Logging in...' : 'Login'}
         </button>
       </form>
-      <div className="mt-4 text-center">
-        <span className="text-sm">Don't have an account? </span>
-        <a href="/signup" className="text-violet-brand hover:underline">Sign Up</a>
+      <div className="mt-5 text-center text-sm text-text-secondary">
+        <span>Don't have an account? </span>
+        <a href="/signup" className="font-medium text-violet-accent transition hover:text-white">Sign Up</a>
       </div>
     </div>
   );

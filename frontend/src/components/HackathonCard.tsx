@@ -14,48 +14,50 @@ type Hackathon = {
 
 
 const HackathonCard = ({ hackathon }: { hackathon: Hackathon }) => (
-    <div
-        className="relative border border-[#23233A] rounded-lg p-6 flex flex-col transition hover:shadow-cyan-glow hover:border-cyan-neon overflow-hidden"
-        style={{ background: 'radial-gradient(ellipse at 60% 0%, rgba(124,58,237,0.08) 0%, rgba(34,211,238,0.06) 40%, #181825 100%)' }}
-    >
+    <div className="theme-card flex h-full flex-col rounded-[1.8rem] p-5 sm:p-6">
         {hackathon.coverImage && (
             <img
                 src={hackathon.coverImage}
                 alt={hackathon.title}
-                className="h-32 w-full object-cover rounded-lg mb-4"
+                className="mb-5 h-40 w-full rounded-[1.25rem] border border-white/10 object-cover"
             />
         )}
-        <h2 className="font-sans font-semibold text-lg text-text-primary mb-1 tracking-tight">
-            {hackathon.title}
-        </h2>
-        <div className="text-sm text-text-secondary mb-2 font-mono">
-            {hackathon.platform}
-        </div>
-        <div className="flex flex-wrap gap-3 text-xs text-text-muted mb-3 font-mono">
-            <span>Start: {hackathon.startDate?.slice(0, 10)}</span>
-            <span>Deadline: {hackathon.deadline?.slice(0, 10)}</span>
-        </div>
-        <div className="flex justify-between items-center mt-auto gap-2">
-            <span className="font-semibold text-text-secondary">
-                {hackathon.mode}
+        <div className="mb-5 flex flex-wrap gap-2">
+            <span className="inline-flex rounded-full border border-[rgba(79,140,255,0.18)] bg-[rgba(79,140,255,0.10)] px-3 py-1 text-[0.72rem] font-medium uppercase tracking-[0.18em] text-violet-accent">
+                {hackathon.platform}
             </span>
-            {hackathon.prize && (
-                <span className="bg-yellow-400/10 text-yellow-400 px-2 py-1 rounded-md text-xs font-mono">
-                    {hackathon.prize}
+            {hackathon.mode && (
+                <span className="theme-pill rounded-full px-3 py-1 text-[0.72rem] font-medium uppercase tracking-[0.18em]">
+                    {hackathon.mode}
                 </span>
             )}
         </div>
+        <h2 className="text-xl font-semibold tracking-tight text-text-primary">
+            {hackathon.title}
+        </h2>
+        <div className="mt-4 flex flex-wrap gap-2 text-xs font-mono text-text-muted">
+            <span className="theme-pill rounded-full px-3 py-1">Start: {hackathon.startDate?.slice(0, 10)}</span>
+            <span className="theme-pill rounded-full px-3 py-1">Deadline: {hackathon.deadline?.slice(0, 10)}</span>
+        </div>
+        <div className="mt-5 flex items-end justify-between gap-3">
+            <div className="min-h-10">
+                {hackathon.prize && (
+                    <span className="inline-flex rounded-full border border-yellow-400/20 bg-yellow-400/10 px-3 py-1 text-xs font-medium text-yellow-300">
+                        {hackathon.prize}
+                    </span>
+                )}
+            </div>
         {hackathon.applyLink && (
             <a
                 href={hackathon.applyLink}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="absolute bottom-5 right-5 px-5 py-2 rounded-md bg-violet-brand text-text-primary font-semibold text-sm shadow-sm transition hover:shadow-cyan-glow hover:bg-violet-deep focus:outline-none focus:ring-2 focus:ring-cyan-neon z-10"
-                style={{ minWidth: 72 }}
+                className="theme-button-primary min-w-[9rem] px-5 py-3 text-sm font-semibold"
             >
                 View Details
             </a>
         )}
+        </div>
     </div>
 );
 

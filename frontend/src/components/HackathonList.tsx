@@ -41,19 +41,27 @@ const HackathonList = () => {
 
 
     return (
-        <div>
-            <SearchBar value={search} onChange={setSearch} />
-            <FilterPanel platform={platform} setPlatform={setPlatform} mode={mode} setMode={setMode} />
+        <div className="space-y-6">
+            <div className="theme-panel rounded-[1.8rem] p-4 sm:p-5">
+                <div className="flex flex-col gap-4">
+                    <SearchBar value={search} onChange={setSearch} />
+                    <FilterPanel platform={platform} setPlatform={setPlatform} mode={mode} setMode={setMode} />
+                </div>
+            </div>
             {loading ? (
-                <div> Loading... </div>
+                <div className="theme-panel rounded-[1.8rem] px-6 py-16 text-center text-sm font-medium tracking-[0.18em] text-text-secondary uppercase">
+                    Loading...
+                </div>
             ) : filtered.length ? (
-                <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6">
+                <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 xl:grid-cols-3">
                     {filtered.map(hack => (
                         <HackathonCard key={hack._id} hackathon={hack} />
                     ))}
                 </div>
             ) : (
-                <div>No hackathons found...</div>
+                <div className="theme-panel rounded-[1.8rem] px-6 py-16 text-center text-base text-text-secondary">
+                    No hackathons found...
+                </div>
             )}
 
         </div>

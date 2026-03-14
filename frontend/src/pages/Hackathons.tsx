@@ -1,7 +1,7 @@
 import HackathonList from '../components/HackathonList';
 
 const HackathonsPage = () => (
-  <section className="max-w-6xl mx-auto py-8">
+  <section className="w-full py-4 sm:py-8">
     <HackathonList />
   </section>
 );

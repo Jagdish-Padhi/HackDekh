@@ -1,6 +1,6 @@
 const Footer = () => (
-    <footer className="bg-background-elevated border-t border-background-border py-4 mt-8">
-        <div className="container mx-auto text-center text-text-muted text-sm">
+    <footer className="px-4 pb-6 pt-2 sm:px-6 lg:px-8">
+        <div className="theme-panel mx-auto max-w-7xl rounded-[1.4rem] px-6 py-4 text-center text-sm text-text-muted">
             &copy; {new Date().getFullYear()} HackDekh. All rights reserved.
         </div>
     </footer>
