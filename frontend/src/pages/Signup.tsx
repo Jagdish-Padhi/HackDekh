@@ -14,7 +14,7 @@ const SignupPage = () => {
         setError('');
         setLoading(true);
         try {
-            await axiosInstance.post('/user/register', {
+            await axiosInstance.post('/users/register', {
                 username,
                 email,
                 fullName,
