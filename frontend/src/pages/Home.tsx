@@ -69,7 +69,7 @@ const HomePage = () => (
                 />
                 <FeatureCard
                     icon={Users}
-                    title="Organize Multiple Hackathon Teams"
+                    title="Manage Multiple Hackathon Teams"
                     desc="Create and manage different teams, assign leaders, and track members across participations."
                 />
                 <FeatureCard
