@@ -1,10 +1,21 @@
 import { Types } from 'mongoose';
 import Team from '../models/team.model.ts';
 import User from '../models/user.model.ts';
+import TeamInvitation from '../models/teamInvitation.model.ts';
+import crypto from 'crypto';
 
 interface CreateTeamInput {
     name: string;
-    invites?: string[] | undefined;
+}
+
+function generateInvitationToken(): string {
+    return crypto.randomBytes(32).toString('hex');
+}
+
+function getExpirationDate(daysFromNow: number = 7): Date {
+    const date = new Date();
+    date.setDate(date.getDate() + daysFromNow);
+    return date;
 }
 
 function asObjectIdStrings(ids: string[]) {
@@ -38,12 +49,8 @@ function includesUserId(list: unknown[], userId: Types.ObjectId): boolean {
 }
 
 export async function createTeam(teamData: CreateTeamInput, ownerId: Types.ObjectId) {
-    const existingInvites = await keepExistingUsers(teamData.invites || []);
-    const sanitizedInvites = existingInvites.filter((inviteId) => String(inviteId) !== String(ownerId));
-
     const team = new Team({
         name: teamData.name.trim(),
-        invites: sanitizedInvites,
         owner: ownerId,
         members: [ownerId],
     });
@@ -51,15 +58,13 @@ export async function createTeam(teamData: CreateTeamInput, ownerId: Types.Objec
     await team.save();
     return Team.findById(team._id)
         .populate('owner', 'username fullName email')
-        .populate('members', 'username fullName email')
-        .populate('invites', 'username fullName email');
+        .populate('members', 'username fullName email');
 }
 
 export async function getUserTeams(userId: Types.ObjectId) {
     return Team.find({ members: userId })
         .populate('owner', 'username fullName email')
-        .populate('members', 'username fullName email')
-        .populate('invites', 'username fullName email')
+    .populate('members', 'username fullName email')
         .sort({ createdAt: -1 });
 }
 
@@ -70,8 +75,7 @@ export async function getTeamById(teamId: string, userId: Types.ObjectId) {
 
     const team = await Team.findById(teamId)
         .populate('owner', 'username fullName email')
-        .populate('members', 'username fullName email')
-        .populate('invites', 'username fullName email');
+        .populate('members', 'username fullName email');
 
     if (!team) {
         return null;
@@ -98,56 +102,7 @@ export async function updateTeamName(teamId: string, ownerId: Types.ObjectId, na
         { new: true }
     )
         .populate('owner', 'username fullName email')
-        .populate('members', 'username fullName email')
-        .populate('invites', 'username fullName email');
-
-    return updatedTeam;
-}
-
-export async function addInvites(teamId: string, ownerId: Types.ObjectId, inviteIds: string[]) {
-    if (!Types.ObjectId.isValid(teamId)) {
-        return null;
-    }
-
-    const team = await Team.findOne({ _id: teamId, owner: ownerId });
-    if (!team) {
-        return null;
-    }
-
-    const validInvites = await keepExistingUsers(inviteIds);
-    const memberIds = (team.members as unknown[]).map((id) => toIdString(id));
-    const ownerAsString = String(ownerId);
-
-    const newInviteIds = validInvites
-        .map((id) => String(id))
-        .filter((id) => id !== ownerAsString && !memberIds.includes(id));
-
-    if (newInviteIds.length) {
-        await Team.updateOne(
-            { _id: team._id },
-            { $addToSet: { invites: { $each: newInviteIds.map((id) => new Types.ObjectId(id)) } } }
-        );
-    }
-
-    return Team.findById(team._id)
-        .populate('owner', 'username fullName email')
-        .populate('members', 'username fullName email')
-        .populate('invites', 'username fullName email');
-}
-
-export async function removeInvite(teamId: string, ownerId: Types.ObjectId, userId: string) {
-    if (!Types.ObjectId.isValid(teamId) || !Types.ObjectId.isValid(userId)) {
-        return null;
-    }
-
-    const updatedTeam = await Team.findOneAndUpdate(
-        { _id: teamId, owner: ownerId },
-        { $pull: { invites: new Types.ObjectId(userId) } },
-        { new: true }
-    )
-        .populate('owner', 'username fullName email')
-        .populate('members', 'username fullName email')
-        .populate('invites', 'username fullName email');
+        .populate('members', 'username fullName email');
 
     return updatedTeam;
 }
@@ -172,17 +127,13 @@ export async function addMembers(teamId: string, ownerId: Types.ObjectId, member
     if (newMemberIds.length) {
         await Team.updateOne(
             { _id: team._id },
-            {
-                $addToSet: { members: { $each: newMemberIds.map((id) => new Types.ObjectId(id)) } },
-                $pull: { invites: { $in: newMemberIds.map((id) => new Types.ObjectId(id)) } },
-            }
+            { $addToSet: { members: { $each: newMemberIds.map((id) => new Types.ObjectId(id)) } } }
         );
     }
 
     return Team.findById(team._id)
         .populate('owner', 'username fullName email')
-        .populate('members', 'username fullName email')
-        .populate('invites', 'username fullName email');
+        .populate('members', 'username fullName email');
 }
 
 export async function removeMember(teamId: string, ownerId: Types.ObjectId, memberId: string) {
@@ -200,8 +151,179 @@ export async function removeMember(teamId: string, ownerId: Types.ObjectId, memb
         { new: true }
     )
         .populate('owner', 'username fullName email')
-        .populate('members', 'username fullName email')
-        .populate('invites', 'username fullName email');
+        .populate('members', 'username fullName email');
 
     return updatedTeam;
+}
+
+export async function generateInvitationLink(
+    teamId: string,
+    ownerId: Types.ObjectId,
+    invitedEmail: string,
+    frontendBaseUrl: string
+) {
+    if (!Types.ObjectId.isValid(teamId)) {
+        return null;
+    }
+
+    const team = await Team.findOne({ _id: teamId, owner: ownerId }).populate('owner', 'username fullName email');
+    if (!team) {
+        return null;
+    }
+
+    const normalizedEmail = invitedEmail.trim().toLowerCase();
+
+    // Revoke any pending invitations for this email
+    await TeamInvitation.deleteMany({
+        team: teamId,
+        invitedEmail: normalizedEmail,
+        status: 'pending',
+    });
+
+    const token = generateInvitationToken();
+    const expiresAt = getExpirationDate(7);
+
+    const invitation = new TeamInvitation({
+        team: teamId,
+        invitedBy: ownerId,
+        invitedEmail: normalizedEmail,
+        token,
+        expiresAt,
+    });
+
+    await invitation.save();
+
+    const invitationLink = `${frontendBaseUrl}/accept-invitation?token=${token}`;
+
+    return {
+        _id: invitation._id,
+        token,
+        invitedEmail: normalizedEmail,
+        invitationLink,
+        expiresAt,
+        team: {
+            _id: String(team._id),
+            name: String(team.name),
+            owner: team.owner,
+        },
+    };
+}
+
+export async function getInvitationPreview(token: string) {
+    if (!token || token.length !== 64) {
+        return null;
+    }
+
+    const invitation = await TeamInvitation.findOne({ token })
+        .populate({
+            path: 'team',
+            populate: {
+                path: 'owner',
+                select: 'username fullName email',
+            },
+        })
+        .lean();
+
+    if (!invitation || !invitation.team) {
+        return null;
+    }
+
+    if (invitation.status === 'pending' && new Date() > invitation.expiresAt) {
+        await TeamInvitation.updateOne({ _id: invitation._id }, { $set: { status: 'expired' } });
+        invitation.status = 'expired';
+    }
+
+    const teamDoc = invitation.team as unknown as {
+        _id: Types.ObjectId;
+        name: string;
+        owner: { _id: Types.ObjectId; username?: string; fullName?: string; email?: string };
+        members?: Types.ObjectId[];
+    };
+
+    return {
+        invitationId: String(invitation._id),
+        invitedEmail: invitation.invitedEmail,
+        status: invitation.status,
+        expiresAt: invitation.expiresAt,
+        team: {
+            _id: String(teamDoc._id),
+            name: teamDoc.name,
+            owner: teamDoc.owner,
+            memberCount: Array.isArray(teamDoc.members) ? teamDoc.members.length : 0,
+        },
+    };
+}
+
+export async function acceptInvitationLink(
+    token: string,
+    userId: Types.ObjectId,
+    userEmail: string
+) {
+    if (!token || token.length !== 64) {
+        return null;
+    }
+
+    const invitation = await TeamInvitation.findOne({ token, status: 'pending' });
+    if (!invitation) {
+        return null;
+    }
+
+    // Check if invitation has expired
+    if (new Date() > invitation.expiresAt) {
+        invitation.status = 'expired';
+        await invitation.save();
+        return null;
+    }
+
+    // Email should match the invited email
+    if (userEmail.toLowerCase() !== String(invitation.invitedEmail).toLowerCase()) {
+        return null;
+    }
+
+    const team = await Team.findById(invitation.team);
+    if (!team) {
+        return null;
+    }
+
+    // Check if user is already a member
+    const isMember = includesUserId(team.members as unknown[], userId);
+    if (isMember) {
+        invitation.status = 'accepted';
+        invitation.acceptedBy = userId;
+        invitation.acceptedAt = new Date();
+        await invitation.save();
+        return team;
+    }
+
+    // Remove from invites if present, add to members
+    await Team.updateOne(
+        { _id: team._id },
+        { $addToSet: { members: userId } }
+    );
+
+    // Mark invitation as accepted
+    invitation.status = 'accepted';
+    invitation.acceptedBy = userId;
+    invitation.acceptedAt = new Date();
+    await invitation.save();
+
+    return Team.findById(team._id)
+        .populate('owner', 'username fullName email')
+        .populate('members', 'username fullName email');
+}
+
+export async function getTeamInvitations(teamId: string, ownerId: Types.ObjectId) {
+    if (!Types.ObjectId.isValid(teamId)) {
+        return null;
+    }
+
+    const team = await Team.findOne({ _id: teamId, owner: ownerId });
+    if (!team) {
+        return null;
+    }
+
+    return TeamInvitation.find({ team: teamId })
+        .populate('invitedBy', 'username fullName email')
+        .populate('acceptedBy', 'username fullName email')
+        .sort({ createdAt: -1 });
 }
