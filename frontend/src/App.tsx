@@ -8,6 +8,7 @@ import SignupPage from './pages/Signup';
 import TeamsPage from './pages/Teams';
 import AcceptInvitationPage from './pages/AcceptInvitation';
 import DashboardPage from './pages/Dashboard';
+import SettingsPage from './pages/Settings';
 
 function App() {
   return (
@@ -21,6 +22,7 @@ function App() {
           <Route path="/teams" element={<TeamsPage />} />
           <Route path="/accept-invitation" element={<AcceptInvitationPage />} />
           <Route path="/dashboard" element={<DashboardPage />} />
+          <Route path="/settings" element={<SettingsPage />} />
           {/* Add more routes here as you build more pages */}
         </Routes>
       </MainLayout>
