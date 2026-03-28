@@ -1,27 +1,31 @@
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import axiosInstance from '../utils/axiosInstance';
 
 const SignupPage = () => {
+    const [searchParams] = useSearchParams();
+    const navigate = useNavigate();
     const [username, setUsername] = useState('');
-    const [email, setEmail] = useState('');
+    const [email, setEmail] = useState(searchParams.get('email') || '');
     const [fullName, setFullName] = useState('');
     const [password, setPassword] = useState('');
     const [error, setError] = useState('');
     const [loading, setLoading] = useState(false);
+
+    const returnTo = useMemo(() => searchParams.get('returnTo') || '/', [searchParams]);
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
         setError('');
         setLoading(true);
         try {
-            await axiosInstance.post('/user/register', {
+            await axiosInstance.post('/users/register', {
                 username,
                 email,
                 fullName,
                 password,
             });
-            // Optionally auto-login or redirect
-            window.location.href = '/login';
+            navigate(`/login?returnTo=${encodeURIComponent(returnTo)}&email=${encodeURIComponent(email)}`);
         } catch (err: any) {
             setError(err.response?.data?.message || 'Signup failed');
         } finally {
@@ -89,7 +93,7 @@ const SignupPage = () => {
             </form>
             <div className="mt-5 text-center text-sm text-zinc-600 dark:text-zinc-400">
                 <span>Already have an account? </span>
-                <a href="/login" className="font-medium text-blue-600 transition hover:text-blue-500 dark:text-blue-300 dark:hover:text-blue-200">Login</a>
+                <a href={`/login?returnTo=${encodeURIComponent(returnTo)}${email ? `&email=${encodeURIComponent(email)}` : ''}`} className="font-medium text-blue-600 transition hover:text-blue-500 dark:text-blue-300 dark:hover:text-blue-200">Login</a>
             </div>
         </div>
     );
