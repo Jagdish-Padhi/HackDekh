@@ -123,6 +123,8 @@ type FilterPanelProps = {
     setMode: (value: string) => void
     sortBy: string
     setSortBy: (value: string) => void
+    locationFilter: string
+    setLocationFilter: (value: string) => void
 }
 
 const platformOptions: Option[] = [
@@ -145,7 +147,30 @@ const sortOptions: Option[] = [
     { label: 'Prize', value: 'prize-asc', icon: 'up' },
 ]
 
-const FilterPanel = ({ platform, setPlatform, mode, setMode, sortBy, setSortBy }: FilterPanelProps) => (
+const locationOptions: Option[] = [
+    { label: 'All Cities', value: '' },
+    { label: 'Bengaluru', value: 'bengaluru' },
+    { label: 'Delhi NCR', value: 'delhi-ncr' },
+    { label: 'Mumbai', value: 'mumbai' },
+    { label: 'Pune', value: 'pune' },
+    { label: 'Hyderabad', value: 'hyderabad' },
+    { label: 'Chennai', value: 'chennai' },
+    { label: 'Kolkata', value: 'kolkata' },
+    { label: 'Ahmedabad', value: 'ahmedabad' },
+    { label: 'Jaipur', value: 'jaipur' },
+    { label: 'Kochi', value: 'kochi' },
+]
+
+const FilterPanel = ({
+    platform,
+    setPlatform,
+    mode,
+    setMode,
+    sortBy,
+    setSortBy,
+    locationFilter,
+    setLocationFilter,
+}: FilterPanelProps) => (
     <div className="flex w-full flex-wrap items-center gap-2 sm:w-auto lg:shrink-0 lg:flex-nowrap">
         <Dropdown
             value={platform}
@@ -164,6 +189,12 @@ const FilterPanel = ({ platform, setPlatform, mode, setMode, sortBy, setSortBy }
             onChange={setSortBy}
             options={sortOptions}
             placeholder="Sort By"
+        />
+        <Dropdown
+            value={locationFilter}
+            onChange={setLocationFilter}
+            options={locationOptions}
+            placeholder="City"
         />
     </div>
 )
