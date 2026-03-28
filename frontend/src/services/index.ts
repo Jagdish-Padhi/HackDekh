@@ -1,5 +1,5 @@
 import axiosInstance from '../utils/axiosInstance';
-import type { Team, TeamInvitation, GeneratedInvitationLink } from '../types';
+import type { Team, TeamInvitation, GeneratedInvitationLink, InvitationPreview } from '../types';
 
 interface ApiResponse<T> {
   statusCode: number;
@@ -52,6 +52,13 @@ export const teamApi = {
       '/teams/invitations/accept',
       { token }
     );
+    return unwrap(response);
+  },
+
+  getInvitationPreview: async (token: string): Promise<InvitationPreview> => {
+    const response = await axiosInstance.get<ApiResponse<InvitationPreview>>('/teams/invitations/preview', {
+      params: { token },
+    });
     return unwrap(response);
   },
 

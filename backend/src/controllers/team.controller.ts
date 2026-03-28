@@ -4,6 +4,7 @@ import * as teamService from '../services/team.service.ts';
 import { ApiResponse } from '../utils/apiResponse.ts';
 import { ApiError } from '../utils/apiError.ts';
 import { asyncHandler } from '../utils/asyncHandler.ts';
+import { sendTeamInvitationEmail } from '../utils/email.ts';
 
 interface CreateTeamRequestBody {
     name: string;
@@ -129,7 +130,31 @@ export const generateInvitationLink = asyncHandler(async (
         throw new ApiError(404, 'Team not found or unauthorized');
     }
 
-    return res.status(200).json(new ApiResponse(200, result, 'Invitation link generated successfully'));
+    const owner = (result as { team?: { owner?: { fullName?: string; username?: string } } }).team?.owner;
+    const ownerName = owner?.fullName || owner?.username || 'Team owner';
+    await sendTeamInvitationEmail({
+        to: result.invitedEmail,
+        invitationLink: result.invitationLink,
+        teamName: result.team?.name || 'your team',
+        ownerName,
+        expiresAt: result.expiresAt,
+    });
+
+    return res.status(200).json(new ApiResponse(200, result, 'Invitation link generated and email sent successfully'));
+});
+
+export const getInvitationPreview = asyncHandler(async (
+    req: Request,
+    res: Response
+) => {
+    const token = String(req.query.token || '');
+    const preview = await teamService.getInvitationPreview(token);
+
+    if (!preview) {
+        throw new ApiError(404, 'Invitation not found');
+    }
+
+    return res.status(200).json(new ApiResponse(200, preview, 'Invitation preview fetched successfully'));
 });
 
 export const acceptInvitationLink = asyncHandler(async (

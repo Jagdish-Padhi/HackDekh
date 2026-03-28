@@ -34,5 +34,23 @@ export interface GeneratedInvitationLink {
   invitedEmail: string;
   invitationLink: string;
   expiresAt: string;
+  team?: {
+    _id: string;
+    name: string;
+    owner: UserLite;
+  };
+}
+
+export interface InvitationPreview {
+  invitationId: string;
+  invitedEmail: string;
+  status: 'pending' | 'accepted' | 'declined' | 'expired';
+  expiresAt: string;
+  team: {
+    _id: string;
+    name: string;
+    owner: UserLite;
+    memberCount: number;
+  };
 }
 

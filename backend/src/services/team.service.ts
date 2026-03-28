@@ -166,7 +166,7 @@ export async function generateInvitationLink(
         return null;
     }
 
-    const team = await Team.findOne({ _id: teamId, owner: ownerId });
+    const team = await Team.findOne({ _id: teamId, owner: ownerId }).populate('owner', 'username fullName email');
     if (!team) {
         return null;
     }
@@ -201,6 +201,56 @@ export async function generateInvitationLink(
         invitedEmail: normalizedEmail,
         invitationLink,
         expiresAt,
+        team: {
+            _id: String(team._id),
+            name: String(team.name),
+            owner: team.owner,
+        },
+    };
+}
+
+export async function getInvitationPreview(token: string) {
+    if (!token || token.length !== 64) {
+        return null;
+    }
+
+    const invitation = await TeamInvitation.findOne({ token })
+        .populate({
+            path: 'team',
+            populate: {
+                path: 'owner',
+                select: 'username fullName email',
+            },
+        })
+        .lean();
+
+    if (!invitation || !invitation.team) {
+        return null;
+    }
+
+    if (invitation.status === 'pending' && new Date() > invitation.expiresAt) {
+        await TeamInvitation.updateOne({ _id: invitation._id }, { $set: { status: 'expired' } });
+        invitation.status = 'expired';
+    }
+
+    const teamDoc = invitation.team as unknown as {
+        _id: Types.ObjectId;
+        name: string;
+        owner: { _id: Types.ObjectId; username?: string; fullName?: string; email?: string };
+        members?: Types.ObjectId[];
+    };
+
+    return {
+        invitationId: String(invitation._id),
+        invitedEmail: invitation.invitedEmail,
+        status: invitation.status,
+        expiresAt: invitation.expiresAt,
+        team: {
+            _id: String(teamDoc._id),
+            name: teamDoc.name,
+            owner: teamDoc.owner,
+            memberCount: Array.isArray(teamDoc.members) ? teamDoc.members.length : 0,
+        },
     };
 }
 

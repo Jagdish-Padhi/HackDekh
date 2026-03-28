@@ -8,6 +8,7 @@ import {
 	updateTeam,
 	generateInvitationLink,
 	acceptInvitationLink,
+  getInvitationPreview,
   getTeamInvitations,
 } from "../controllers/team.controller.ts";
 import { verifyJWT } from "../middlewares/auth.middleware.ts";
@@ -16,6 +17,7 @@ const router = Router();
 
 // Public route for accepting invitation via token
 router.route("/invitations/accept").post(verifyJWT, acceptInvitationLink);
+router.route("/invitations/preview").get(getInvitationPreview);
 
 // Protected routes
 router.use(verifyJWT);
