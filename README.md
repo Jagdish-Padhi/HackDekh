@@ -4,9 +4,11 @@
 HackDekh is a platform that helps developers **discover hackathons and manage their entire participation workflow in one place**.
 Instead of just listing hackathons, HackDekh focuses on helping teams **organize, track, and learn from every hackathon they participate in.**
 
+## 🎯 MVP  Will be live soon! Stay Tuned...
+
 ---
 
-## ✨ Core features
+<!-- ## ✨ Core features
 
 **🔎 Hackathon Discovery**  
 Aggregate open hackathons from platforms like Devfolio and Unstop in one searchable interface.
@@ -89,7 +91,7 @@ cd frontend && npm run build
 cd frontend && npm run lint
 ```
 
----
+--- -->
 
 ## 🤝 Contributing
 
