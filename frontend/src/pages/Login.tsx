@@ -1,11 +1,16 @@
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import axiosInstance from '../utils/axiosInstance';
 
 const LoginPage = () => {
-  const [email, setEmail] = useState('');
+  const [searchParams] = useSearchParams();
+  const navigate = useNavigate();
+  const [email, setEmail] = useState(searchParams.get('email') || '');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
+
+  const returnTo = useMemo(() => searchParams.get('returnTo') || '/', [searchParams]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -16,8 +21,7 @@ const LoginPage = () => {
       // Save tokens to localStorage or cookies as needed
       localStorage.setItem('accessToken', res.data.data.accessToken);
       localStorage.setItem('refreshToken', res.data.data.refreshToken);
-      // Redirect or update UI as needed
-      window.location.href = '/';
+      navigate(returnTo);
     } catch (err: any) {
       setError(err.response?.data?.message || 'Login failed');
     } finally {
@@ -66,7 +70,7 @@ const LoginPage = () => {
       </form>
       <div className="mt-5 text-center text-sm text-zinc-600 dark:text-zinc-400">
         <span>Don't have an account? </span>
-        <a href="/signup" className="font-medium text-blue-600 transition hover:text-blue-500 dark:text-blue-300 dark:hover:text-blue-200">Sign Up</a>
+        <a href={`/signup?returnTo=${encodeURIComponent(returnTo)}${email ? `&email=${encodeURIComponent(email)}` : ''}`} className="font-medium text-blue-600 transition hover:text-blue-500 dark:text-blue-300 dark:hover:text-blue-200">Sign Up</a>
       </div>
     </div>
   );
