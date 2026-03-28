@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
+import { Check, Copy, Mail, Users } from 'lucide-react';
 import { teamApi } from '../services';
-import type { Team, UserLite, GeneratedInvitationLink, TeamInvitation } from '../types';
-import { Copy, Check, Mail, Users } from 'lucide-react';
+import type { GeneratedInvitationLink, Team, TeamInvitation, UserLite } from '../types';
 
 const parseIds = (value: string) =>
   [...new Set(value.split(',').map((id) => id.trim()).filter(Boolean))];
@@ -15,20 +15,17 @@ const TeamsPage = () => {
   const [teams, setTeams] = useState<Team[]>([]);
   const [selectedTeamId, setSelectedTeamId] = useState<string>('');
   const [loading, setLoading] = useState(true);
+  const [loadingInvitations, setLoadingInvitations] = useState(false);
+  const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
 
   const [newTeamName, setNewTeamName] = useState('');
-  const [newTeamInvites, setNewTeamInvites] = useState('');
   const [editTeamName, setEditTeamName] = useState('');
-  const [inviteInput, setInviteInput] = useState('');
   const [memberInput, setMemberInput] = useState('');
-  const [saving, setSaving] = useState(false);
 
-  // New state for invitation links
   const [invitationEmail, setInvitationEmail] = useState('');
   const [generatedInvitation, setGeneratedInvitation] = useState<GeneratedInvitationLink | null>(null);
   const [teamInvitations, setTeamInvitations] = useState<TeamInvitation[]>([]);
-  const [loadingInvitations, setLoadingInvitations] = useState(false);
   const [copiedLinkId, setCopiedLinkId] = useState<string | null>(null);
 
   const selectedTeam = useMemo(
@@ -83,9 +80,10 @@ const TeamsPage = () => {
     };
   }, []);
 
-  // Load invitations when team is selected
   useEffect(() => {
-    if (!selectedTeamId) return;
+    if (!selectedTeamId) {
+      return;
+    }
 
     let isMounted = true;
 
@@ -97,9 +95,9 @@ const TeamsPage = () => {
           setTeamInvitations(invitations);
           setGeneratedInvitation(null);
         }
-      } catch (err: any) {
+      } catch {
         if (isMounted) {
-          // Silently fail for now, show error in section
+          setTeamInvitations([]);
         }
       } finally {
         if (isMounted) {
@@ -124,13 +122,9 @@ const TeamsPage = () => {
     try {
       setSaving(true);
       setError('');
-      const createdTeam = await teamApi.createTeam({
-        name: newTeamName.trim(),
-        invites: parseIds(newTeamInvites),
-      });
+      const createdTeam = await teamApi.createTeam({ name: newTeamName.trim() });
       upsertTeam(createdTeam);
       setNewTeamName('');
-      setNewTeamInvites('');
     } catch (err: any) {
       setError(err?.response?.data?.message || 'Failed to create team');
     } finally {
@@ -160,33 +154,11 @@ const TeamsPage = () => {
     }
   };
 
-  const handleAddInvites = async () => {
-    if (!selectedTeam) {
-      return;
-    }
-    const ids = parseIds(inviteInput);
-    if (!ids.length) {
-      setError('Enter at least one user ID for invite');
-      return;
-    }
-
-    try {
-      setSaving(true);
-      setError('');
-      const updated = await teamApi.addInvites(selectedTeam._id, ids);
-      upsertTeam(updated);
-      setInviteInput('');
-    } catch (err: any) {
-      setError(err?.response?.data?.message || 'Failed to add invites');
-    } finally {
-      setSaving(false);
-    }
-  };
-
   const handleAddMembers = async () => {
     if (!selectedTeam) {
       return;
     }
+
     const ids = parseIds(memberInput);
     if (!ids.length) {
       setError('Enter at least one user ID to add member');
@@ -206,26 +178,11 @@ const TeamsPage = () => {
     }
   };
 
-  const handleRemoveInvite = async (userId: string) => {
-    if (!selectedTeam) {
-      return;
-    }
-    try {
-      setSaving(true);
-      setError('');
-      const updated = await teamApi.removeInvite(selectedTeam._id, userId);
-      upsertTeam(updated);
-    } catch (err: any) {
-      setError(err?.response?.data?.message || 'Failed to remove invite');
-    } finally {
-      setSaving(false);
-    }
-  };
-
   const handleRemoveMember = async (userId: string) => {
     if (!selectedTeam) {
       return;
     }
+
     try {
       setSaving(true);
       setError('');
@@ -253,7 +210,6 @@ const TeamsPage = () => {
       const generated = await teamApi.generateInvitationLink(selectedTeam._id, invitationEmail.trim());
       setGeneratedInvitation(generated);
       setInvitationEmail('');
-      // Refresh invitations list
       const invitations = await teamApi.getTeamInvitations(selectedTeam._id);
       setTeamInvitations(invitations);
     } catch (err: any) {
@@ -268,7 +224,7 @@ const TeamsPage = () => {
       await navigator.clipboard.writeText(link);
       setCopiedLinkId(linkId);
       setTimeout(() => setCopiedLinkId(null), 2000);
-    } catch (err) {
+    } catch {
       setError('Failed to copy to clipboard');
     }
   };
@@ -290,22 +246,15 @@ const TeamsPage = () => {
       <div className="rounded-3xl border border-zinc-200/90 bg-white p-6 shadow-sm dark:border-zinc-800 dark:bg-zinc-900/85">
         <h1 className="text-2xl font-bold text-zinc-900 dark:text-zinc-100">Team Management</h1>
         <p className="mt-2 text-sm text-zinc-600 dark:text-zinc-400">
-          Create teams, add invites, and move invited users into active members.
+          Create teams, generate invitation links, and manage active members.
         </p>
 
-        <form onSubmit={handleCreateTeam} className="mt-5 grid gap-3 md:grid-cols-[1fr_1fr_auto]">
+        <form onSubmit={handleCreateTeam} className="mt-5 grid gap-3 md:grid-cols-[1fr_auto]">
           <input
             type="text"
             value={newTeamName}
             onChange={(event) => setNewTeamName(event.target.value)}
             placeholder="Team name"
-            className="rounded-2xl border border-zinc-200 bg-white px-4 py-3 text-sm text-zinc-900 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-100"
-          />
-          <input
-            type="text"
-            value={newTeamInvites}
-            onChange={(event) => setNewTeamInvites(event.target.value)}
-            placeholder="Invite user IDs (comma separated)"
             className="rounded-2xl border border-zinc-200 bg-white px-4 py-3 text-sm text-zinc-900 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-100"
           />
           <button
@@ -347,7 +296,7 @@ const TeamsPage = () => {
                     }`}
                 >
                   <p className="font-semibold">{team.name}</p>
-                  <p className="mt-1 text-xs text-zinc-500 dark:text-zinc-400">{team.members.length} members • {team.invites.length} invites</p>
+                  <p className="mt-1 text-xs text-zinc-500 dark:text-zinc-400">{team.members.length} members</p>
                 </button>
               ))}
               {!teams.length && (
@@ -378,7 +327,6 @@ const TeamsPage = () => {
                   </div>
                 </form>
 
-                {/* New Invitation Link Section */}
                 <div className="rounded-2xl border border-blue-200/50 bg-blue-50/40 p-4 dark:border-blue-900/40 dark:bg-blue-900/20">
                   <div className="mb-3 flex items-center gap-2">
                     <Mail className="h-4 w-4 text-blue-600 dark:text-blue-400" />
@@ -405,22 +353,17 @@ const TeamsPage = () => {
                     </button>
                   </div>
 
-                  {/* Display generated invitation link */}
                   {generatedInvitation && (
                     <div className="mt-3 rounded-xl border border-blue-300/60 bg-white p-3 dark:border-blue-800/60 dark:bg-zinc-900">
-                      <p className="mb-2 text-xs font-medium text-blue-700 dark:text-blue-300">✓ Invitation link generated</p>
+                      <p className="mb-2 text-xs font-medium text-blue-700 dark:text-blue-300">Invitation link generated</p>
                       <div className="flex items-center gap-2 rounded-lg bg-zinc-50 p-2 text-xs font-mono text-zinc-700 dark:bg-zinc-800 dark:text-zinc-300">
                         <span className="truncate">{generatedInvitation.invitationLink}</span>
                         <button
                           type="button"
                           onClick={() => handleCopyLink(generatedInvitation.invitationLink, generatedInvitation._id)}
-                          className="flex-shrink-0 rounded-lg bg-blue-600 p-1.5 text-white hover:bg-blue-700 transition"
+                          className="flex-shrink-0 rounded-lg bg-blue-600 p-1.5 text-white transition hover:bg-blue-700"
                         >
-                          {copiedLinkId === generatedInvitation._id ? (
-                            <Check className="h-3 w-3" />
-                          ) : (
-                            <Copy className="h-3 w-3" />
-                          )}
+                          {copiedLinkId === generatedInvitation._id ? <Check className="h-3 w-3" /> : <Copy className="h-3 w-3" />}
                         </button>
                       </div>
                       <p className="mt-2 text-xs text-blue-600 dark:text-blue-300">
@@ -430,7 +373,6 @@ const TeamsPage = () => {
                   )}
                 </div>
 
-                {/* Pending Invitations List */}
                 {loadingInvitations ? (
                   <div className="rounded-2xl border border-zinc-200 bg-zinc-50 p-3 text-sm text-zinc-600 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-400">
                     Loading invitations...
@@ -444,23 +386,21 @@ const TeamsPage = () => {
                       </h3>
                     </div>
                     <div className="space-y-2">
-                      {teamInvitations.filter(inv => inv.status === 'pending').length === 0 ? (
+                      {teamInvitations.filter((inv) => inv.status === 'pending').length === 0 ? (
                         <p className="rounded-xl border border-zinc-200 px-3 py-3 text-sm text-zinc-500 dark:border-zinc-700 dark:text-zinc-400">
                           No pending invitations.
                         </p>
                       ) : (
                         teamInvitations
-                          .filter(inv => inv.status === 'pending')
+                          .filter((inv) => inv.status === 'pending')
                           .map((invitation) => (
                             <div
                               key={invitation._id}
                               className="flex items-center justify-between gap-2 rounded-xl border border-amber-200/40 bg-amber-50/30 px-3 py-2 text-sm dark:border-amber-900/40 dark:bg-amber-900/20"
                             >
-                              <div className="flex-1 min-w-0">
+                              <div className="min-w-0 flex-1">
                                 <p className="font-medium text-amber-900 dark:text-amber-100">{invitation.invitedEmail}</p>
-                                <p className="text-xs text-amber-700 dark:text-amber-200">
-                                  {formatExpiryDate(invitation.expiresAt)}
-                                </p>
+                                <p className="text-xs text-amber-700 dark:text-amber-200">{formatExpiryDate(invitation.expiresAt)}</p>
                               </div>
                               <span className="flex-shrink-0 rounded-full bg-amber-100 px-2 py-1 text-xs font-medium text-amber-700 dark:bg-amber-900/50 dark:text-amber-200">
                                 Pending
@@ -470,15 +410,14 @@ const TeamsPage = () => {
                       )}
                     </div>
 
-                    {/* Accepted Invitations */}
-                    {teamInvitations.filter(inv => inv.status === 'accepted').length > 0 && (
+                    {teamInvitations.filter((inv) => inv.status === 'accepted').length > 0 && (
                       <div className="mt-4">
                         <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-zinc-500 dark:text-zinc-400">
                           Accepted
                         </p>
                         <div className="space-y-2">
                           {teamInvitations
-                            .filter(inv => inv.status === 'accepted')
+                            .filter((inv) => inv.status === 'accepted')
                             .map((invitation) => (
                               <div
                                 key={invitation._id}
@@ -487,7 +426,7 @@ const TeamsPage = () => {
                                 <div>
                                   <p className="font-medium text-green-900 dark:text-green-100">{invitation.invitedEmail}</p>
                                   <p className="text-xs text-green-700 dark:text-green-200">
-                                    Accepted {new Date(invitation.acceptedAt!).toLocaleDateString()}
+                                    Accepted {invitation.acceptedAt ? new Date(invitation.acceptedAt).toLocaleDateString() : ''}
                                   </p>
                                 </div>
                               </div>
@@ -498,87 +437,43 @@ const TeamsPage = () => {
                   </div>
                 )}
 
-                <div className="grid gap-3 md:grid-cols-2">
-                  <div className="space-y-2">
-                    <label className="text-sm font-medium text-zinc-600 dark:text-zinc-400">Add Invites (user IDs)</label>
-                    <div className="flex gap-2">
-                      <input
-                        type="text"
-                        value={inviteInput}
-                        onChange={(event) => setInviteInput(event.target.value)}
-                        placeholder="id1,id2"
-                        className="w-full rounded-2xl border border-zinc-200 bg-white px-4 py-3 text-sm text-zinc-900 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-100"
-                      />
-                      <button type="button" onClick={handleAddInvites} disabled={saving} className="rounded-full border border-blue-500/35 bg-blue-600 px-4 py-2 text-sm font-semibold text-white">
-                        Add
-                      </button>
-                    </div>
-                  </div>
-
-                  <div className="space-y-2">
-                    <label className="text-sm font-medium text-zinc-600 dark:text-zinc-400">Add Members (user IDs)</label>
-                    <div className="flex gap-2">
-                      <input
-                        type="text"
-                        value={memberInput}
-                        onChange={(event) => setMemberInput(event.target.value)}
-                        placeholder="id1,id2"
-                        className="w-full rounded-2xl border border-zinc-200 bg-white px-4 py-3 text-sm text-zinc-900 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-100"
-                      />
-                      <button type="button" onClick={handleAddMembers} disabled={saving} className="rounded-full border border-blue-500/35 bg-blue-600 px-4 py-2 text-sm font-semibold text-white">
-                        Add
-                      </button>
-                    </div>
+                <div className="space-y-2">
+                  <label className="text-sm font-medium text-zinc-600 dark:text-zinc-400">Add Members (user IDs)</label>
+                  <div className="flex gap-2">
+                    <input
+                      type="text"
+                      value={memberInput}
+                      onChange={(event) => setMemberInput(event.target.value)}
+                      placeholder="id1,id2"
+                      className="w-full rounded-2xl border border-zinc-200 bg-white px-4 py-3 text-sm text-zinc-900 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-100"
+                    />
+                    <button type="button" onClick={handleAddMembers} disabled={saving} className="rounded-full border border-blue-500/35 bg-blue-600 px-4 py-2 text-sm font-semibold text-white">
+                      Add
+                    </button>
                   </div>
                 </div>
 
-                <div className="grid gap-6 md:grid-cols-2">
-                  <div>
-                    <h3 className="mb-2 text-sm font-semibold uppercase tracking-wide text-zinc-500 dark:text-zinc-400">Members</h3>
-                    <div className="space-y-2">
-                      {selectedTeam.members.map((member) => {
-                        const isOwner = member._id === selectedTeam.owner._id;
-                        return (
-                          <div key={member._id} className="flex items-center justify-between rounded-xl border border-zinc-200 px-3 py-2 text-sm dark:border-zinc-700">
-                            <span>{formatUser(member)}{isOwner ? ' • Owner' : ''}</span>
-                            {!isOwner && (
-                              <button
-                                type="button"
-                                onClick={() => handleRemoveMember(member._id)}
-                                disabled={saving}
-                                className="text-xs font-semibold text-red-600 dark:text-red-300"
-                              >
-                                Remove
-                              </button>
-                            )}
-                          </div>
-                        );
-                      })}
-                    </div>
-                  </div>
-
-                  <div>
-                    <h3 className="mb-2 text-sm font-semibold uppercase tracking-wide text-zinc-500 dark:text-zinc-400">Invites</h3>
-                    <div className="space-y-2">
-                      {selectedTeam.invites.map((invite) => (
-                        <div key={invite._id} className="flex items-center justify-between rounded-xl border border-zinc-200 px-3 py-2 text-sm dark:border-zinc-700">
-                          <span>{formatUser(invite)}</span>
-                          <button
-                            type="button"
-                            onClick={() => handleRemoveInvite(invite._id)}
-                            disabled={saving}
-                            className="text-xs font-semibold text-red-600 dark:text-red-300"
-                          >
-                            Remove
-                          </button>
+                <div>
+                  <h3 className="mb-2 text-sm font-semibold uppercase tracking-wide text-zinc-500 dark:text-zinc-400">Members</h3>
+                  <div className="space-y-2">
+                    {selectedTeam.members.map((member) => {
+                      const isOwner = member._id === selectedTeam.owner._id;
+                      return (
+                        <div key={member._id} className="flex items-center justify-between rounded-xl border border-zinc-200 px-3 py-2 text-sm dark:border-zinc-700">
+                          <span>{formatUser(member)}{isOwner ? ' • Owner' : ''}</span>
+                          {!isOwner && (
+                            <button
+                              type="button"
+                              onClick={() => handleRemoveMember(member._id)}
+                              disabled={saving}
+                              className="text-xs font-semibold text-red-600 dark:text-red-300"
+                            >
+                              Remove
+                            </button>
+                          )}
                         </div>
-                      ))}
-                      {!selectedTeam.invites.length && (
-                        <p className="rounded-xl border border-zinc-200 px-3 py-3 text-sm text-zinc-500 dark:border-zinc-700 dark:text-zinc-400">
-                          No pending invites.
-                        </p>
-                      )}
-                    </div>
+                      );
+                    })}
                   </div>
                 </div>
               </div>

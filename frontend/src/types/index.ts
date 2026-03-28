@@ -10,7 +10,6 @@ export interface Team {
 	name: string;
 	owner: UserLite;
 	members: UserLite[];
-	invites: UserLite[];
 	createdAt: string;
 	updatedAt: string;
 }

@@ -7,7 +7,6 @@ import { asyncHandler } from '../utils/asyncHandler.ts';
 
 interface CreateTeamRequestBody {
     name: string;
-    invites?: string[];
 }
 
 interface UpdateTeamRequestBody {
@@ -30,18 +29,22 @@ interface GenerateInviteLinkBody {
     email: string;
 }
 
+interface AcceptInvitationBody {
+    token: string;
+}
+
 interface AuthRequest extends Request {
     user: { _id: Types.ObjectId };
     body: CreateTeamRequestBody;
 }
 
 export const createTeam = asyncHandler(async (req: AuthRequest, res: Response) => {
-    const { name, invites } = req.body;
+    const { name } = req.body;
     if (!name || typeof name !== 'string' || name.trim() === '') {
         return res.status(400).json(new ApiResponse(400, null, 'Team name is required'));
     }
     // Optionally: check for duplicate team name for this user here
-    const team = await teamService.createTeam({ name, invites }, req.user._id);
+    const team = await teamService.createTeam({ name }, req.user._id);
     return res.status(201).json(new ApiResponse(201, team, "Team Created Successfully"));
 });
 
@@ -74,35 +77,6 @@ export const updateTeam = asyncHandler(async (
     }
 
     return res.status(200).json(new ApiResponse(200, updatedTeam, 'Team updated successfully'));
-});
-
-export const addTeamInvites = asyncHandler(async (
-    req: AuthRequest & Request<TeamIdParams, unknown, UserIdListRequestBody>,
-    res: Response
-) => {
-    const userIds = Array.isArray(req.body.userIds) ? req.body.userIds : [];
-    if (!userIds.length) {
-        return res.status(400).json(new ApiResponse(400, null, 'At least one userId is required'));
-    }
-
-    const updatedTeam = await teamService.addInvites(req.params.id, req.user._id, userIds);
-    if (!updatedTeam) {
-        return res.status(404).json(new ApiResponse(404, null, 'Team not found or unauthorized'));
-    }
-
-    return res.status(200).json(new ApiResponse(200, updatedTeam, 'Invites added successfully'));
-});
-
-export const removeTeamInvite = asyncHandler(async (
-    req: AuthRequest & Request<TeamUserIdParams>,
-    res: Response
-) => {
-    const updatedTeam = await teamService.removeInvite(req.params.id, req.user._id, req.params.userId);
-    if (!updatedTeam) {
-        return res.status(404).json(new ApiResponse(404, null, 'Team not found, unauthorized, or invalid userId'));
-    }
-
-    return res.status(200).json(new ApiResponse(200, updatedTeam, 'Invite removed successfully'));
 });
 
 export const addTeamMembers = asyncHandler(async (
@@ -159,10 +133,10 @@ export const generateInvitationLink = asyncHandler(async (
 });
 
 export const acceptInvitationLink = asyncHandler(async (
-    req: Request & { user?: { _id: Types.ObjectId; email: string } },
+    req: Request<unknown, unknown, AcceptInvitationBody> & { user?: { _id: Types.ObjectId; email: string } },
     res: Response
 ) => {
-    const { token } = req.query;
+    const { token } = req.body;
     if (!token || typeof token !== 'string') {
         throw new ApiError(400, 'Valid invitation token is required');
     }

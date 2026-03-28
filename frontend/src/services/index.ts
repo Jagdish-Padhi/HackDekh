@@ -21,7 +21,7 @@ export const teamApi = {
     return unwrap(response);
   },
 
-  createTeam: async (payload: { name: string; invites?: string[] }): Promise<Team> => {
+  createTeam: async (payload: { name: string }): Promise<Team> => {
     const response = await axiosInstance.post<ApiResponse<Team>>('/teams', payload);
     return unwrap(response);
   },
@@ -52,17 +52,6 @@ export const teamApi = {
       '/teams/invitations/accept',
       { token }
     );
-    return unwrap(response);
-  },
-
-  // Deprecated: old user ID-based methods (kept for backward compatibility)
-  addInvites: async (teamId: string, userIds: string[]): Promise<Team> => {
-    const response = await axiosInstance.post<ApiResponse<Team>>(`/teams/${teamId}/invites`, { userIds });
-    return unwrap(response);
-  },
-
-  removeInvite: async (teamId: string, userId: string): Promise<Team> => {
-    const response = await axiosInstance.delete<ApiResponse<Team>>(`/teams/${teamId}/invites/${userId}`);
     return unwrap(response);
   },
 

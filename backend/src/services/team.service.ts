@@ -6,7 +6,6 @@ import crypto from 'crypto';
 
 interface CreateTeamInput {
     name: string;
-    invites?: string[] | undefined;
 }
 
 function generateInvitationToken(): string {
@@ -50,12 +49,8 @@ function includesUserId(list: unknown[], userId: Types.ObjectId): boolean {
 }
 
 export async function createTeam(teamData: CreateTeamInput, ownerId: Types.ObjectId) {
-    const existingInvites = await keepExistingUsers(teamData.invites || []);
-    const sanitizedInvites = existingInvites.filter((inviteId) => String(inviteId) !== String(ownerId));
-
     const team = new Team({
         name: teamData.name.trim(),
-        invites: sanitizedInvites,
         owner: ownerId,
         members: [ownerId],
     });
@@ -63,15 +58,13 @@ export async function createTeam(teamData: CreateTeamInput, ownerId: Types.Objec
     await team.save();
     return Team.findById(team._id)
         .populate('owner', 'username fullName email')
-        .populate('members', 'username fullName email')
-        .populate('invites', 'username fullName email');
+        .populate('members', 'username fullName email');
 }
 
 export async function getUserTeams(userId: Types.ObjectId) {
     return Team.find({ members: userId })
         .populate('owner', 'username fullName email')
-        .populate('members', 'username fullName email')
-        .populate('invites', 'username fullName email')
+    .populate('members', 'username fullName email')
         .sort({ createdAt: -1 });
 }
 
@@ -82,8 +75,7 @@ export async function getTeamById(teamId: string, userId: Types.ObjectId) {
 
     const team = await Team.findById(teamId)
         .populate('owner', 'username fullName email')
-        .populate('members', 'username fullName email')
-        .populate('invites', 'username fullName email');
+        .populate('members', 'username fullName email');
 
     if (!team) {
         return null;
@@ -110,56 +102,7 @@ export async function updateTeamName(teamId: string, ownerId: Types.ObjectId, na
         { new: true }
     )
         .populate('owner', 'username fullName email')
-        .populate('members', 'username fullName email')
-        .populate('invites', 'username fullName email');
-
-    return updatedTeam;
-}
-
-export async function addInvites(teamId: string, ownerId: Types.ObjectId, inviteIds: string[]) {
-    if (!Types.ObjectId.isValid(teamId)) {
-        return null;
-    }
-
-    const team = await Team.findOne({ _id: teamId, owner: ownerId });
-    if (!team) {
-        return null;
-    }
-
-    const validInvites = await keepExistingUsers(inviteIds);
-    const memberIds = (team.members as unknown[]).map((id) => toIdString(id));
-    const ownerAsString = String(ownerId);
-
-    const newInviteIds = validInvites
-        .map((id) => String(id))
-        .filter((id) => id !== ownerAsString && !memberIds.includes(id));
-
-    if (newInviteIds.length) {
-        await Team.updateOne(
-            { _id: team._id },
-            { $addToSet: { invites: { $each: newInviteIds.map((id) => new Types.ObjectId(id)) } } }
-        );
-    }
-
-    return Team.findById(team._id)
-        .populate('owner', 'username fullName email')
-        .populate('members', 'username fullName email')
-        .populate('invites', 'username fullName email');
-}
-
-export async function removeInvite(teamId: string, ownerId: Types.ObjectId, userId: string) {
-    if (!Types.ObjectId.isValid(teamId) || !Types.ObjectId.isValid(userId)) {
-        return null;
-    }
-
-    const updatedTeam = await Team.findOneAndUpdate(
-        { _id: teamId, owner: ownerId },
-        { $pull: { invites: new Types.ObjectId(userId) } },
-        { new: true }
-    )
-        .populate('owner', 'username fullName email')
-        .populate('members', 'username fullName email')
-        .populate('invites', 'username fullName email');
+        .populate('members', 'username fullName email');
 
     return updatedTeam;
 }
@@ -184,17 +127,13 @@ export async function addMembers(teamId: string, ownerId: Types.ObjectId, member
     if (newMemberIds.length) {
         await Team.updateOne(
             { _id: team._id },
-            {
-                $addToSet: { members: { $each: newMemberIds.map((id) => new Types.ObjectId(id)) } },
-                $pull: { invites: { $in: newMemberIds.map((id) => new Types.ObjectId(id)) } },
-            }
+            { $addToSet: { members: { $each: newMemberIds.map((id) => new Types.ObjectId(id)) } } }
         );
     }
 
     return Team.findById(team._id)
         .populate('owner', 'username fullName email')
-        .populate('members', 'username fullName email')
-        .populate('invites', 'username fullName email');
+        .populate('members', 'username fullName email');
 }
 
 export async function removeMember(teamId: string, ownerId: Types.ObjectId, memberId: string) {
@@ -212,8 +151,7 @@ export async function removeMember(teamId: string, ownerId: Types.ObjectId, memb
         { new: true }
     )
         .populate('owner', 'username fullName email')
-        .populate('members', 'username fullName email')
-        .populate('invites', 'username fullName email');
+        .populate('members', 'username fullName email');
 
     return updatedTeam;
 }
@@ -310,10 +248,7 @@ export async function acceptInvitationLink(
     // Remove from invites if present, add to members
     await Team.updateOne(
         { _id: team._id },
-        {
-            $addToSet: { members: userId },
-            $pull: { invites: userId },
-        }
+        { $addToSet: { members: userId } }
     );
 
     // Mark invitation as accepted
@@ -324,8 +259,7 @@ export async function acceptInvitationLink(
 
     return Team.findById(team._id)
         .populate('owner', 'username fullName email')
-        .populate('members', 'username fullName email')
-        .populate('invites', 'username fullName email');
+        .populate('members', 'username fullName email');
 }
 
 export async function getTeamInvitations(teamId: string, ownerId: Types.ObjectId) {
