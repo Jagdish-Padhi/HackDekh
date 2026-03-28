@@ -15,7 +15,7 @@ import type { GeneratedInvitationLink, Team, TeamInvitation, UserLite } from '..
 
 const formatUser = (user: UserLite) => {
   const primary = user.fullName || user.username || user.email || user._id;
-  return `${primary} (${user._id})`;
+  return `${primary}`;
 };
 
 const TeamsPage = () => {
