@@ -12,7 +12,7 @@ const LoginPage = () => {
     setError('');
     setLoading(true);
     try {
-      const res = await axiosInstance.post('/user/login', { email, password });
+      const res = await axiosInstance.post('/users/login', { email, password });
       // Save tokens to localStorage or cookies as needed
       localStorage.setItem('accessToken', res.data.data.accessToken);
       localStorage.setItem('refreshToken', res.data.data.refreshToken);

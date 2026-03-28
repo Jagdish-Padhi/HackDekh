@@ -1,0 +1,40 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 675" role="img" aria-label="Hackathon placeholder image four">
+  <defs>
+    <linearGradient id="bg4" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#eceef2" />
+      <stop offset="100%" stop-color="#babdc6" />
+    </linearGradient>
+    <linearGradient id="accent4" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#3f3f46" />
+      <stop offset="100%" stop-color="#71717a" />
+    </linearGradient>
+  </defs>
+
+  <rect width="1200" height="675" fill="url(#bg4)" />
+  <rect width="1200" height="675" fill="#18181b" opacity="0.11" />
+
+  <rect x="120" y="115" width="960" height="445" rx="34" fill="#ffffff" fill-opacity="0.52" stroke="#a1a1aa" stroke-opacity="0.42" />
+
+  <rect x="430" y="145" width="345" height="36" rx="18" fill="url(#accent4)" opacity="0.9" />
+  <text x="503" y="169" fill="#ffffff" font-size="16" font-weight="700" font-family="Segoe UI, Arial, sans-serif">Performance Overview</text>
+  <text x="438" y="205" fill="#52525b" font-size="14" font-family="Segoe UI, Arial, sans-serif">Win-rate trend and outcome distribution</text>
+
+  <g>
+    <line x1="190" y1="500" x2="1010" y2="500" stroke="#52525b" stroke-opacity="0.32" stroke-width="6" stroke-linecap="round" />
+    <rect x="250" y="360" width="95" height="140" rx="16" fill="#27272a" opacity="0.22" />
+    <rect x="390" y="315" width="95" height="185" rx="16" fill="#27272a" opacity="0.26" />
+    <rect x="530" y="270" width="95" height="230" rx="16" fill="#27272a" opacity="0.3" />
+    <rect x="670" y="335" width="95" height="165" rx="16" fill="#27272a" opacity="0.24" />
+    <rect x="810" y="290" width="95" height="210" rx="16" fill="#27272a" opacity="0.28" />
+  </g>
+
+  <path d="M250 300l140-30 140 35 140-55 140 40" fill="none" stroke="#fafafa" stroke-opacity="0.7" stroke-width="10" stroke-linecap="round" stroke-linejoin="round" />
+  <circle cx="250" cy="300" r="11" fill="#fafafa" fill-opacity="0.9" />
+  <circle cx="390" cy="270" r="11" fill="#fafafa" fill-opacity="0.9" />
+  <circle cx="530" cy="305" r="11" fill="#fafafa" fill-opacity="0.9" />
+  <circle cx="670" cy="250" r="11" fill="#fafafa" fill-opacity="0.9" />
+  <circle cx="810" cy="290" r="11" fill="#fafafa" fill-opacity="0.9" />
+
+  <rect x="440" y="165" width="320" height="24" rx="12" fill="#3f3f46" opacity="0.38" />
+  <text x="850" y="610" fill="#52525b" fill-opacity="0.55" font-size="14" font-family="Segoe UI, Arial, sans-serif">HackDekh Placeholder</text>
+</svg>
