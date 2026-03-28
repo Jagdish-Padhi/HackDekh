@@ -1,10 +1,22 @@
 import { Types } from 'mongoose';
 import Team from '../models/team.model.ts';
 import User from '../models/user.model.ts';
+import TeamInvitation from '../models/teamInvitation.model.ts';
+import crypto from 'crypto';
 
 interface CreateTeamInput {
     name: string;
     invites?: string[] | undefined;
+}
+
+function generateInvitationToken(): string {
+    return crypto.randomBytes(32).toString('hex');
+}
+
+function getExpirationDate(daysFromNow: number = 7): Date {
+    const date = new Date();
+    date.setDate(date.getDate() + daysFromNow);
+    return date;
 }
 
 function asObjectIdStrings(ids: string[]) {
@@ -204,4 +216,130 @@ export async function removeMember(teamId: string, ownerId: Types.ObjectId, memb
         .populate('invites', 'username fullName email');
 
     return updatedTeam;
+}
+
+export async function generateInvitationLink(
+    teamId: string,
+    ownerId: Types.ObjectId,
+    invitedEmail: string,
+    frontendBaseUrl: string
+) {
+    if (!Types.ObjectId.isValid(teamId)) {
+        return null;
+    }
+
+    const team = await Team.findOne({ _id: teamId, owner: ownerId });
+    if (!team) {
+        return null;
+    }
+
+    const normalizedEmail = invitedEmail.trim().toLowerCase();
+
+    // Revoke any pending invitations for this email
+    await TeamInvitation.deleteMany({
+        team: teamId,
+        invitedEmail: normalizedEmail,
+        status: 'pending',
+    });
+
+    const token = generateInvitationToken();
+    const expiresAt = getExpirationDate(7);
+
+    const invitation = new TeamInvitation({
+        team: teamId,
+        invitedBy: ownerId,
+        invitedEmail: normalizedEmail,
+        token,
+        expiresAt,
+    });
+
+    await invitation.save();
+
+    const invitationLink = `${frontendBaseUrl}/accept-invitation?token=${token}`;
+
+    return {
+        _id: invitation._id,
+        token,
+        invitedEmail: normalizedEmail,
+        invitationLink,
+        expiresAt,
+    };
+}
+
+export async function acceptInvitationLink(
+    token: string,
+    userId: Types.ObjectId,
+    userEmail: string
+) {
+    if (!token || token.length !== 64) {
+        return null;
+    }
+
+    const invitation = await TeamInvitation.findOne({ token, status: 'pending' });
+    if (!invitation) {
+        return null;
+    }
+
+    // Check if invitation has expired
+    if (new Date() > invitation.expiresAt) {
+        invitation.status = 'expired';
+        await invitation.save();
+        return null;
+    }
+
+    // Email should match the invited email
+    if (userEmail.toLowerCase() !== String(invitation.invitedEmail).toLowerCase()) {
+        return null;
+    }
+
+    const team = await Team.findById(invitation.team);
+    if (!team) {
+        return null;
+    }
+
+    // Check if user is already a member
+    const isMember = includesUserId(team.members as unknown[], userId);
+    if (isMember) {
+        invitation.status = 'accepted';
+        invitation.acceptedBy = userId;
+        invitation.acceptedAt = new Date();
+        await invitation.save();
+        return team;
+    }
+
+    // Remove from invites if present, add to members
+    await Team.updateOne(
+        { _id: team._id },
+        {
+            $addToSet: { members: userId },
+            $pull: { invites: userId },
+        }
+    );
+
+    // Mark invitation as accepted
+    invitation.status = 'accepted';
+    invitation.acceptedBy = userId;
+    invitation.acceptedAt = new Date();
+    await invitation.save();
+
+    return Team.findById(team._id)
+        .populate('owner', 'username fullName email')
+        .populate('members', 'username fullName email')
+        .populate('invites', 'username fullName email');
+}
+
+export async function getTeamInvitations(teamId: string, ownerId: Types.ObjectId) {
+    if (!Types.ObjectId.isValid(teamId)) {
+        return null;
+    }
+
+    const team = await Team.findOne({ _id: teamId, owner: ownerId });
+    if (!team) {
+        return null;
+    }
+
+    return TeamInvitation.find({ team: teamId })
+        .populate('invitedBy', 'username fullName email')
+        .populate('acceptedBy', 'username fullName email')
+        .sort({ createdAt: -1 });
 }

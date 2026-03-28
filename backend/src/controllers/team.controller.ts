@@ -2,6 +2,7 @@ import type { Request, Response } from 'express';
 import type { Types } from 'mongoose';
 import * as teamService from '../services/team.service.ts';
 import { ApiResponse } from '../utils/apiResponse.ts';
+import { ApiError } from '../utils/apiError.ts';
 import { asyncHandler } from '../utils/asyncHandler.ts';
 
 interface CreateTeamRequestBody {
@@ -23,6 +24,10 @@ interface TeamIdParams {
 
 interface TeamUserIdParams extends TeamIdParams {
     userId: string;
+}
+
+interface GenerateInviteLinkBody {
+    email: string;
 }
 
 interface AuthRequest extends Request {
@@ -127,5 +132,51 @@ export const removeTeamMember = asyncHandler(async (
     }
 
     return res.status(200).json(new ApiResponse(200, updatedTeam, 'Member removed successfully'));
+});
+
+export const generateInvitationLink = asyncHandler(async (
+    req: AuthRequest & Request<TeamIdParams, unknown, GenerateInviteLinkBody>,
+    res: Response
+) => {
+    const { email } = req.body;
+    if (!email || typeof email !== 'string' || !email.trim()) {
+        throw new ApiError(400, 'Valid email is required');
+    }
+
+    const frontendBaseUrl = process.env.FRONTEND_URL || 'http://localhost:5173';
+    const result = await teamService.generateInvitationLink(
+        req.params.id,
+        req.user._id,
+        email.trim(),
+        frontendBaseUrl
+    );
+
+    if (!result) {
+        throw new ApiError(404, 'Team not found or unauthorized');
+    }
+
+    return res.status(200).json(new ApiResponse(200, result, 'Invitation link generated successfully'));
+});
+
+export const acceptInvitationLink = asyncHandler(async (
+    req: Request & { user?: { _id: Types.ObjectId; email: string } },
+    res: Response
+) => {
+    const { token } = req.query;
+    if (!token || typeof token !== 'string') {
+        throw new ApiError(400, 'Valid invitation token is required');
+    }
+
+    // Check if user is authenticated
+    if (!req.user || !req.user._id) {
+        throw new ApiError(401, 'Authentication required to accept invitation');
+    }
+
+    const team = await teamService.acceptInvitationLink(token, req.user._id, req.user.email);
+    if (!team) {
+        throw new ApiError(400, 'Invalid, expired, or already accepted invitation token');
+    }
+
+    return res.status(200).json(new ApiResponse(200, team, 'Invitation accepted successfully'));
 });
 
