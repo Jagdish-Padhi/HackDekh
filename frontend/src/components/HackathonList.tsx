@@ -20,6 +20,19 @@ type Hackathon = {
 
 type SortBy = '' | 'deadline-asc' | 'deadline-desc' | 'prize-desc' | 'prize-asc'
 
+const CITY_LOCATION_ALIASES: Record<string, string[]> = {
+    bengaluru: ['bengaluru', 'bangalore', 'karnataka', 'mysuru', 'tumakuru', 'tumkur', 'hosur'],
+    'delhi-ncr': ['delhi', 'new delhi', 'ncr', 'gurgaon', 'gurugram', 'noida', 'ghaziabad', 'faridabad'],
+    mumbai: ['mumbai', 'navi mumbai', 'thane', 'powai', 'maharashtra'],
+    pune: ['pune', 'pimpri', 'chinchwad', 'maharashtra'],
+    hyderabad: ['hyderabad', 'telangana', 'secunderabad', 'gachibowli'],
+    chennai: ['chennai', 'tamil nadu', 'tambaram', 'chengalpattu'],
+    kolkata: ['kolkata', 'calcutta', 'west bengal', 'howrah'],
+    ahmedabad: ['ahmedabad', 'gujarat', 'gandhinagar'],
+    jaipur: ['jaipur', 'rajasthan'],
+    kochi: ['kochi', 'cochin', 'ernakulam', 'kerala'],
+}
+
 const SAFE_DEADLINE_BUFFER_DAYS = 3
 const SAFE_DEADLINE_MIN_WINDOW_DAYS = 5
 
@@ -117,6 +130,21 @@ const hasDeadlinePassed = (deadline?: string) => {
     return comparableDeadline.getTime() < Date.now()
 }
 
+const matchesLocationFilter = (location: string | undefined, selectedCity: string) => {
+    if (!selectedCity) {
+        return true
+    }
+
+    if (!location?.trim()) {
+        return false
+    }
+
+    const normalizedLocation = location.toLowerCase()
+    const aliases = CITY_LOCATION_ALIASES[selectedCity] || [selectedCity]
+
+    return aliases.some(alias => normalizedLocation.includes(alias))
+}
+
 const HackathonList = () => {
     const [hackathons, setHackathons] = useState<Hackathon[]>([])
     const [loading, setLoading] = useState(true)
@@ -127,6 +155,7 @@ const HackathonList = () => {
     const [platform, setPlatform] = useState('')
     const [mode, setMode] = useState('')
     const [sortBy, setSortBy] = useState<SortBy>('')
+    const [locationFilter, setLocationFilter] = useState('')
 
     useEffect(() => {
         const intervalId = window.setInterval(() => {
@@ -215,7 +244,8 @@ const HackathonList = () => {
         !hasDeadlinePassed(h.deadline) &&
         h.title.toLowerCase().includes(search.toLowerCase()) &&
         (platform ? h.platform === platform : true) &&
-        (mode ? h.mode === mode : true)
+        (mode ? h.mode === mode : true) &&
+        matchesLocationFilter(h.location, locationFilter)
     )
 
     const filteredAndSorted = sortBy
@@ -262,6 +292,8 @@ const HackathonList = () => {
                             setMode={setMode}
                             sortBy={sortBy}
                             setSortBy={value => setSortBy(value as SortBy)}
+                            locationFilter={locationFilter}
+                            setLocationFilter={setLocationFilter}
                         />
                     </div>
 
