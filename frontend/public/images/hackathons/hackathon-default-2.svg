@@ -1,0 +1,56 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 675" role="img" aria-label="Hackathon placeholder image two">
+  <defs>
+    <linearGradient id="bg2" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#eef2f7" />
+      <stop offset="100%" stop-color="#cfd4dc" />
+    </linearGradient>
+    <linearGradient id="accent2" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#3f3f46" />
+      <stop offset="100%" stop-color="#71717a" />
+    </linearGradient>
+  </defs>
+
+  <rect width="1200" height="675" fill="url(#bg2)" />
+  <rect width="1200" height="675" fill="#18181b" opacity="0.09" />
+
+  <rect x="90" y="120" width="1020" height="435" rx="34" fill="#ffffff" fill-opacity="0.58" stroke="#a1a1aa" stroke-opacity="0.42" />
+
+  <rect x="430" y="155" width="340" height="36" rx="18" fill="url(#accent2)" opacity="0.9" />
+  <text x="487" y="179" fill="#ffffff" font-size="16" font-weight="700" font-family="Segoe UI, Arial, sans-serif">Participation Timeline</text>
+  <text x="435" y="215" fill="#52525b" font-size="14" font-family="Segoe UI, Arial, sans-serif">Track progress from registration to final results</text>
+
+  <line x1="180" y1="345" x2="1020" y2="345" stroke="#52525b" stroke-opacity="0.4" stroke-width="8" stroke-linecap="round" />
+
+  <g>
+    <circle cx="240" cy="345" r="34" fill="#fafafa" stroke="#71717a" stroke-opacity="0.6" stroke-width="8" />
+    <path d="M225 345l10 10 20-20" stroke="#3f3f46" stroke-width="7" stroke-linecap="round" stroke-linejoin="round" />
+    <rect x="190" y="245" width="100" height="58" rx="14" fill="#27272a" opacity="0.14" />
+  </g>
+
+  <g>
+    <circle cx="450" cy="345" r="34" fill="#fafafa" stroke="#71717a" stroke-opacity="0.6" stroke-width="8" />
+    <path d="M435 345l10 10 20-20" stroke="#3f3f46" stroke-width="7" stroke-linecap="round" stroke-linejoin="round" />
+    <rect x="400" y="388" width="100" height="58" rx="14" fill="#27272a" opacity="0.14" />
+  </g>
+
+  <g>
+    <circle cx="660" cy="345" r="34" fill="#fafafa" stroke="#71717a" stroke-opacity="0.6" stroke-width="8" />
+    <line x1="648" y1="345" x2="672" y2="345" stroke="#3f3f46" stroke-width="7" stroke-linecap="round" />
+    <rect x="610" y="245" width="100" height="58" rx="14" fill="#27272a" opacity="0.14" />
+  </g>
+
+  <g>
+    <circle cx="870" cy="345" r="34" fill="#fafafa" stroke="#71717a" stroke-opacity="0.6" stroke-width="8" />
+    <line x1="856" y1="331" x2="884" y2="359" stroke="#3f3f46" stroke-width="7" stroke-linecap="round" />
+    <line x1="884" y1="331" x2="856" y2="359" stroke="#3f3f46" stroke-width="7" stroke-linecap="round" />
+    <rect x="820" y="388" width="100" height="58" rx="14" fill="#27272a" opacity="0.14" />
+  </g>
+
+  <text x="183" y="230" fill="#3f3f46" fill-opacity="0.75" font-size="13" font-weight="600" font-family="Segoe UI, Arial, sans-serif">Registration</text>
+  <text x="420" y="478" fill="#3f3f46" fill-opacity="0.75" font-size="13" font-weight="600" font-family="Segoe UI, Arial, sans-serif">Prototype</text>
+  <text x="630" y="230" fill="#3f3f46" fill-opacity="0.75" font-size="13" font-weight="600" font-family="Segoe UI, Arial, sans-serif">Semifinal</text>
+  <text x="851" y="478" fill="#3f3f46" fill-opacity="0.75" font-size="13" font-weight="600" font-family="Segoe UI, Arial, sans-serif">Final Review</text>
+
+  <rect x="445" y="170" width="310" height="24" rx="12" fill="#3f3f46" opacity="0.42" />
+  <text x="860" y="610" fill="#52525b" fill-opacity="0.55" font-size="14" font-family="Segoe UI, Arial, sans-serif">HackDekh Placeholder</text>
+</svg>
