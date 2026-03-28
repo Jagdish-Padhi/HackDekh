@@ -180,3 +180,15 @@ export const acceptInvitationLink = asyncHandler(async (
     return res.status(200).json(new ApiResponse(200, team, 'Invitation accepted successfully'));
 });
 
+export const getTeamInvitations = asyncHandler(async (
+    req: AuthRequest & Request<TeamIdParams>,
+    res: Response
+) => {
+    const invitations = await teamService.getTeamInvitations(req.params.id, req.user._id);
+    if (invitations === null) {
+        throw new ApiError(404, 'Team not found or unauthorized');
+    }
+
+    return res.status(200).json(new ApiResponse(200, invitations, 'Team invitations fetched successfully'));
+});
+

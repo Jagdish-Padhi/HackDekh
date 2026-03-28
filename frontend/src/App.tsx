@@ -6,6 +6,7 @@ import HackathonsPage from './pages/Hackathons';
 import LoginPage from './pages/Login';
 import SignupPage from './pages/Signup';
 import TeamsPage from './pages/Teams';
+import AcceptInvitationPage from './pages/AcceptInvitation';
 import DashboardPage from './pages/Dashboard';
 
 function App() {
@@ -18,6 +19,7 @@ function App() {
           <Route path="/signup" element={<SignupPage />} />
           <Route path="/hackathons" element={<HackathonsPage />} />
           <Route path="/teams" element={<TeamsPage />} />
+          <Route path="/accept-invitation" element={<AcceptInvitationPage />} />
           <Route path="/dashboard" element={<DashboardPage />} />
           {/* Add more routes here as you build more pages */}
         </Routes>
