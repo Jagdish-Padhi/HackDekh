@@ -20,8 +20,12 @@ const Navbar = () => {
 
                 {/* Logo + brand */}
                 <div className="flex items-center gap-3.5">
-                    <div className="rounded-2xl border border-zinc-200/80 bg-white p-2.5 shadow-sm ring-1 ring-blue-100/70 dark:border-zinc-700 dark:bg-zinc-900 dark:ring-blue-500/15">
-                        <img src="/BrandImages/HackDekh.png" alt="HackDekh Logo" className="h-11 w-11 object-contain sm:h-12 sm:w-12" />
+                        <div className="h-14 w-14 overflow-hidden rounded-2xl border border-zinc-200/80 bg-zinc-50 p-1.5 shadow-sm ring-1 ring-blue-100/70 dark:border-zinc-700 dark:bg-zinc-900 dark:ring-blue-500/15">
+                            <img
+                                src="/BrandImages/HackDekh.png"
+                                alt="HackDekh Logo"
+                                className="h-full w-full rounded-xl object-cover"
+                            />
                     </div>
                     <span className="text-2xl font-semibold leading-none tracking-tight text-zinc-900 dark:text-zinc-100">
                         Hack
