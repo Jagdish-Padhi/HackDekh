@@ -148,6 +148,7 @@ const matchesLocationFilter = (location: string | undefined, selectedCity: strin
 const HackathonList = () => {
     const [hackathons, setHackathons] = useState<Hackathon[]>([])
     const [loading, setLoading] = useState(true)
+    const [hasLoadedFromServer, setHasLoadedFromServer] = useState(false)
     const [progressTarget, setProgressTarget] = useState(0)
     const [progressDisplay, setProgressDisplay] = useState(0)
     const [showResults, setShowResults] = useState(false)
@@ -186,59 +187,75 @@ const HackathonList = () => {
     useEffect(() => {
         let isMounted = true
         let finishTimeout: number | undefined
+        let retryTimeout: number | undefined
+        let activeRequestAbort: AbortController | null = null
+        let retryAttempt = 0
 
         const fallbackProgress = window.setInterval(() => {
             setProgressTarget(previous => Math.max(previous, Math.min(previous + Math.random() * 6, 92)))
         }, 220)
 
-        axiosInstance.get('/hackathons', {
-            onDownloadProgress: event => {
-                if (!isMounted || !event.total) {
-                    return
-                }
+        const fetchHackathons = () => {
+            activeRequestAbort = new AbortController()
 
-                const networkProgress = (event.loaded / event.total) * 100
-                setProgressTarget(previous => Math.max(previous, Math.min(networkProgress, 99)))
-            },
-        })
-            .then(res => {
-                if (!isMounted) {
-                    return
-                }
+            axiosInstance.get('/hackathons', {
+                signal: activeRequestAbort.signal,
+                onDownloadProgress: event => {
+                    if (!isMounted || !event.total) {
+                        return
+                    }
 
-                window.clearInterval(fallbackProgress)
-                setHackathons(res.data)
-                setProgressTarget(100)
-                finishTimeout = window.setTimeout(() => {
+                    const networkProgress = (event.loaded / event.total) * 100
+                    setProgressTarget(previous => Math.max(previous, Math.min(networkProgress, 99)))
+                },
+            })
+                .then(res => {
                     if (!isMounted) {
                         return
                     }
-                    setLoading(false)
-                }, 280)
-            })
-            .catch(() => {
-                if (!isMounted) {
-                    return
-                }
 
-                window.clearInterval(fallbackProgress)
-                setProgressTarget(100)
-                finishTimeout = window.setTimeout(() => {
+                    const responseData = Array.isArray(res.data) ? res.data : []
+                    window.clearInterval(fallbackProgress)
+                    setHackathons(responseData)
+                    setHasLoadedFromServer(true)
+                    setProgressTarget(100)
+                    finishTimeout = window.setTimeout(() => {
+                        if (!isMounted) {
+                            return
+                        }
+                        setLoading(false)
+                    }, 280)
+                })
+                .catch(() => {
                     if (!isMounted) {
                         return
                     }
-                    setLoading(false)
-                }, 280)
-            })
+
+                    // Keep loading visible during cold starts/transient failures and retry.
+                    retryAttempt += 1
+                    setProgressTarget(previous => Math.max(25, Math.min(previous, 85)))
+                    retryTimeout = window.setTimeout(fetchHackathons, Math.min(2500 + retryAttempt * 1000, 10000))
+                })
+        }
+
+        fetchHackathons()
 
         return () => {
             isMounted = false
+            activeRequestAbort?.abort()
             window.clearInterval(fallbackProgress)
+            if (retryTimeout) {
+                window.clearTimeout(retryTimeout)
+            }
             if (finishTimeout) {
                 window.clearTimeout(finishTimeout)
             }
         }
     }, [])
+
+    const loadingLabel = hasLoadedFromServer
+        ? 'Loading hackathons'
+        : 'Connecting to server and loading hackathons'
 
     const filtered = hackathons.filter(h =>
         !hasDeadlinePassed(h.deadline) &&
@@ -277,6 +294,12 @@ const HackathonList = () => {
             return 0
         })
         : filtered
+
+    const isStillLoading = loading || !hasLoadedFromServer
+
+    const emptyStateMessage = hackathons.length === 0
+        ? 'No hackathons found...'
+        : 'No hackathons found for current filters.'
 
 
     return (
@@ -318,8 +341,8 @@ const HackathonList = () => {
             </div>
 
             <div className="space-y-6">
-                {loading ? (
-                    <LoadingProgress progress={progressDisplay} />
+                {isStillLoading ? (
+                    <LoadingProgress progress={progressDisplay} label={loadingLabel} />
                 ) : filteredAndSorted.length ? (
                     <div className={`grid grid-cols-1 gap-6 transition-all duration-300 sm:grid-cols-2 xl:grid-cols-3 ${showResults ? 'translate-y-0 opacity-100' : 'translate-y-1 opacity-0'}`}>
                         {filteredAndSorted.map(hack => (
@@ -328,7 +351,7 @@ const HackathonList = () => {
                     </div>
                 ) : (
                     <div className={`rounded-[1.8rem] border border-zinc-200/90 bg-white/90 px-6 py-16 text-center text-base text-zinc-600 shadow-sm backdrop-blur-md transition-all duration-300 dark:border-zinc-800 dark:bg-zinc-900/78 dark:text-zinc-400 dark:shadow-md ${showResults ? 'translate-y-0 opacity-100' : 'translate-y-1 opacity-0'}`}>
-                        No hackathons found...
+                        {emptyStateMessage}
                     </div>
                 )}
             </div>
