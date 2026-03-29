@@ -32,12 +32,12 @@ function getTransportConfig() {
 }
 
 export function isEmailDeliveryConfigured(): boolean {
-  return Boolean(getTransportConfig() && process.env.SMTP_FROM);
+  return Boolean(getTransportConfig() && (process.env.SMTP_FROM || process.env.SMTP_USER));
 }
 
 export async function sendTeamInvitationEmail(input: SendTeamInvitationEmailInput): Promise<void> {
   const transportConfig = getTransportConfig();
-  const from = process.env.SMTP_FROM;
+  const from = process.env.SMTP_FROM || process.env.SMTP_USER;
 
   if (!transportConfig || !from) {
     throw new Error('Email delivery is not configured. Please set SMTP_HOST, SMTP_PORT, SMTP_USER, SMTP_PASS, and SMTP_FROM.');

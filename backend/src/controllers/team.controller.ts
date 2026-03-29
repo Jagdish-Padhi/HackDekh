@@ -132,15 +132,30 @@ export const generateInvitationLink = asyncHandler(async (
 
     const owner = (result as { team?: { owner?: { fullName?: string; username?: string } } }).team?.owner;
     const ownerName = owner?.fullName || owner?.username || 'Team owner';
-    await sendTeamInvitationEmail({
-        to: result.invitedEmail,
-        invitationLink: result.invitationLink,
-        teamName: result.team?.name || 'your team',
-        ownerName,
-        expiresAt: result.expiresAt,
-    });
+    let emailSent = true;
 
-    return res.status(200).json(new ApiResponse(200, result, 'Invitation link generated and email sent successfully'));
+    try {
+        await sendTeamInvitationEmail({
+            to: result.invitedEmail,
+            invitationLink: result.invitationLink,
+            teamName: result.team?.name || 'your team',
+            ownerName,
+            expiresAt: result.expiresAt,
+        });
+    } catch (emailError) {
+        emailSent = false;
+        console.error('Team invitation email delivery failed:', emailError);
+    }
+
+    return res.status(200).json(
+        new ApiResponse(
+            200,
+            { ...result, emailSent },
+            emailSent
+                ? 'Invitation link generated and email sent successfully'
+                : 'Invitation link generated, but email could not be sent. Please share the link manually.'
+        )
+    );
 });
 
 export const getInvitationPreview = asyncHandler(async (
