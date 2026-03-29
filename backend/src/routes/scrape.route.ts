@@ -41,5 +41,4 @@ router.route("/cron/trigger").post(async (req, res) => {
 		timestamp: new Date(),
 	});
 });
-
 export default router;
