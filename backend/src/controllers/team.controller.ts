@@ -119,6 +119,8 @@ export const generateInvitationLink = asyncHandler(async (
     }
 
     const frontendBaseUrl = process.env.FRONTEND_URL || 'http://localhost:5173';
+    console.log('[DEBUG] FRONTEND_URL env var:', process.env.FRONTEND_URL);
+    console.log('[DEBUG] Using frontendBaseUrl:', frontendBaseUrl);
     const result = await teamService.generateInvitationLink(
         req.params.id,
         req.user._id,
