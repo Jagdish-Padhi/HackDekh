@@ -216,7 +216,11 @@ const TeamsPage = () => {
       await generateInviteForEmail();
       setInvitationEmail('');
     } catch (err: any) {
-      setError(err?.response?.data?.message || 'Failed to send invitation email');
+      if (err?.code === 'ECONNABORTED') {
+        setError('Invitation request timed out. The link may still be generated, please refresh invitations and try again.');
+      } else {
+        setError(err?.response?.data?.message || 'Failed to send invitation email');
+      }
     } finally {
       setSaving(false);
     }

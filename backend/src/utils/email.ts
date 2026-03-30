@@ -24,6 +24,9 @@ function getTransportConfig() {
     host,
     port,
     secure: port === 465,
+    connectionTimeout: 6000,
+    greetingTimeout: 6000,
+    socketTimeout: 8000,
     auth: {
       user,
       pass,
