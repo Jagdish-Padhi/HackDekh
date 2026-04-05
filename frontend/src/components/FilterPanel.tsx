@@ -1,4 +1,4 @@
-import { ArrowDown, ArrowUp, ChevronLeft, ChevronRight } from 'lucide-react'
+import { ArrowDown, ArrowUp } from 'lucide-react'
 import { useEffect, useRef, useState } from 'react'
 
 type Option = {
@@ -45,14 +45,14 @@ const Dropdown = ({ value, onChange, options, placeholder }: DropdownProps) => {
     }
 
     return (
-        <div ref={ref} className="relative w-full sm:w-36 sm:shrink-0 xl:w-40">
+        <div ref={ref} className="relative w-full sm:w-36 sm:shrink-0 xl:w-44">
             {/* Trigger button */}
             <button
                 type="button"
                 onClick={() => setOpen(prev => !prev)}
-                className={`flex h-12 w-full items-center justify-between gap-3 whitespace-nowrap rounded-2xl border px-4 py-3 text-sm font-medium shadow-sm transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md focus:outline-none focus:ring-4 ${
+                className={`flex h-10 w-full items-center justify-between gap-2 whitespace-nowrap rounded-xl border px-3 py-2 text-[0.82rem] font-medium shadow-sm transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md focus:outline-none focus:ring-3 ${
                     open
-                        ? 'border-blue-500/45 ring-4 ring-blue-500/12 dark:border-blue-400/50 dark:ring-blue-400/20'
+                        ? 'border-blue-500/45 ring-3 ring-blue-500/12 dark:border-blue-400/50 dark:ring-blue-400/20'
                         : 'border-zinc-200 dark:border-zinc-800'
                 } bg-white text-zinc-900 dark:bg-zinc-900 dark:text-zinc-100`}
             >
@@ -79,7 +79,7 @@ const Dropdown = ({ value, onChange, options, placeholder }: DropdownProps) => {
 
             {/* Dropdown panel */}
             <div
-                className={`absolute left-0 z-50 mt-2 w-full min-w-full origin-top overflow-hidden rounded-2xl border border-zinc-200/90 bg-white shadow-sm backdrop-blur-md transition-all duration-200 dark:border-zinc-800 dark:bg-zinc-900 dark:shadow-md ${
+                className={`absolute left-0 z-60 mt-2 w-full min-w-full origin-top overflow-hidden rounded-2xl border border-zinc-200/90 bg-white shadow-sm backdrop-blur-md transition-all duration-200 dark:border-zinc-800 dark:bg-zinc-900 dark:shadow-md ${
                     open
                         ? 'pointer-events-auto scale-100 opacity-100'
                         : 'pointer-events-none scale-95 opacity-0'
@@ -125,11 +125,6 @@ type FilterPanelProps = {
     setSortBy: (value: string) => void
     locationFilter: string
     setLocationFilter: (value: string) => void
-    showPaginationControls?: boolean
-    currentPage?: number
-    totalPages?: number
-    onPrevPage?: () => void
-    onNextPage?: () => void
 }
 
 const platformOptions: Option[] = [
@@ -175,13 +170,8 @@ const FilterPanel = ({
     setSortBy,
     locationFilter,
     setLocationFilter,
-    showPaginationControls = false,
-    currentPage = 1,
-    totalPages = 1,
-    onPrevPage,
-    onNextPage,
 }: FilterPanelProps) => (
-    <div className="flex w-full flex-wrap items-center gap-2 sm:w-auto lg:w-full lg:shrink">
+    <div className="flex w-auto shrink-0 flex-nowrap items-center gap-2">
         <Dropdown
             value={platform}
             onChange={setPlatform}
@@ -206,31 +196,6 @@ const FilterPanel = ({
             options={locationOptions}
             placeholder="City"
         />
-        {showPaginationControls && (
-            <div className="ml-auto hidden items-center gap-2 lg:flex">
-                <button
-                    type="button"
-                    onClick={onPrevPage}
-                    disabled={currentPage <= 1}
-                    aria-label="Go to previous page"
-                    className="inline-flex h-10 w-10 items-center justify-center rounded-full border border-zinc-300 bg-white text-zinc-700 shadow-sm transition-all duration-200 hover:-translate-y-0.5 hover:border-blue-400 hover:text-blue-700 hover:shadow-md disabled:cursor-not-allowed disabled:opacity-45 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-200 dark:hover:border-blue-400 dark:hover:text-blue-300"
-                >
-                    <ChevronLeft className="h-4 w-4" strokeWidth={2.5} aria-hidden="true" />
-                </button>
-                <span className="rounded-full border border-blue-200 bg-blue-50 px-3 py-2 text-xs font-semibold text-blue-700 shadow-[0_0_0_1px_rgba(59,130,246,0.12)] dark:border-blue-400/35 dark:bg-blue-500/12 dark:text-blue-300">
-                    Page {currentPage} / {totalPages}
-                </span>
-                <button
-                    type="button"
-                    onClick={onNextPage}
-                    disabled={currentPage >= totalPages}
-                    aria-label="Go to next page"
-                    className="inline-flex h-10 w-10 items-center justify-center rounded-full border border-zinc-300 bg-white text-zinc-700 shadow-sm transition-all duration-200 hover:-translate-y-0.5 hover:border-blue-400 hover:text-blue-700 hover:shadow-md disabled:cursor-not-allowed disabled:opacity-45 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-200 dark:hover:border-blue-400 dark:hover:text-blue-300"
-                >
-                    <ChevronRight className="h-4 w-4" strokeWidth={2.5} aria-hidden="true" />
-                </button>
-            </div>
-        )}
     </div>
 )
 

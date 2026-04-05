@@ -21,8 +21,20 @@ const defaultImages = [
     "/images/hackathons/hackathon-default-4.svg",
 ];
 
-const getRandomDefaultImage = () =>
-    defaultImages[Math.floor(Math.random() * defaultImages.length)];
+const IMAGE_LOAD_TIMEOUT_MS = 7000;
+const CARD_REVEAL_ROOT_MARGIN = "0px 0px -8% 0px";
+const loadedImageSourceCache = new Set<string>();
+const revealedCardCache = new Set<string>();
+
+const getStableDefaultImage = (seed: string) => {
+    let hash = 0;
+
+    for (let index = 0; index < seed.length; index += 1) {
+        hash = (hash * 31 + seed.charCodeAt(index)) >>> 0;
+    }
+
+    return defaultImages[hash % defaultImages.length];
+};
 
 const SAFE_DEADLINE_BUFFER_DAYS = 3;
 const SAFE_DEADLINE_MIN_WINDOW_DAYS = 5;
@@ -94,31 +106,87 @@ const getDeadlineDisplay = (deadline?: string): DeadlineDisplay => {
     };
 };
 
-const HackathonCard = ({ hackathon }: { hackathon: Hackathon }) => {
-    const fallbackImageRef = useRef<string>(getRandomDefaultImage());
+const HackathonCard = ({ hackathon, displayIndex }: { hackathon: Hackathon; displayIndex: number }) => {
+    const cardRef = useRef<HTMLDivElement | null>(null);
+    const hasBeenRevealed = revealedCardCache.has(hackathon._id);
+    const fallbackImageRef = useRef<string>(getStableDefaultImage(`${hackathon._id}:${hackathon.title}`));
     const fallbackImage = fallbackImageRef.current;
     const primaryImage = hackathon.coverImage?.trim() || "";
-    const [imageSource, setImageSource] = useState(primaryImage || fallbackImage);
-    const [imageLoaded, setImageLoaded] = useState(false);
+    const initialImageSource = primaryImage || fallbackImage;
+    const [imageSource, setImageSource] = useState(initialImageSource);
+    const [imageLoaded, setImageLoaded] = useState(() => loadedImageSourceCache.has(initialImageSource));
+    const [isVisible, setIsVisible] = useState(hasBeenRevealed);
 
     useEffect(() => {
-        setImageSource(primaryImage || fallbackImage);
-        setImageLoaded(false);
+        const nextSource = primaryImage || fallbackImage;
+        setImageSource(nextSource);
+        setImageLoaded(loadedImageSourceCache.has(nextSource));
     }, [primaryImage, fallbackImage]);
+
+    useEffect(() => {
+        if (isVisible || !cardRef.current) {
+            return;
+        }
+
+        const observer = new IntersectionObserver(
+            entries => {
+                const [entry] = entries;
+                if (!entry?.isIntersecting) {
+                    return;
+                }
+
+                setIsVisible(true);
+                revealedCardCache.add(hackathon._id);
+                observer.disconnect();
+            },
+            {
+                threshold: 0.15,
+                rootMargin: CARD_REVEAL_ROOT_MARGIN,
+            }
+        );
+
+        observer.observe(cardRef.current);
+        return () => observer.disconnect();
+    }, [hackathon._id, isVisible]);
+
+    useEffect(() => {
+        if (imageLoaded) {
+            return;
+        }
+
+        // Some third-party image URLs never resolve nor error; force fallback after timeout.
+        const timeoutId = window.setTimeout(() => {
+            setImageSource(currentSource => {
+                if (currentSource === fallbackImage) {
+                    setImageLoaded(true);
+                    return currentSource;
+                }
+
+                return fallbackImage;
+            });
+        }, IMAGE_LOAD_TIMEOUT_MS);
+
+        return () => window.clearTimeout(timeoutId);
+    }, [imageLoaded, fallbackImage, imageSource]);
 
     const deadlineDisplay = getDeadlineDisplay(hackathon.deadline);
     const locationLabel = hackathon.location?.trim() || "TBD";
     const prizeDisplay = getPrizeDisplay(hackathon.prize);
     const deadlineChipClass = deadlineDisplay.isUrgent
-        ? "inline-flex rounded-full border border-rose-300/80 bg-gradient-to-r from-rose-50 via-red-50 to-orange-50 px-3 py-1 text-xs font-semibold text-rose-700 shadow-[0_0_0_1px_rgba(244,63,94,0.12),0_10px_20px_-14px_rgba(225,29,72,0.9)] dark:border-rose-400/35 dark:bg-gradient-to-r dark:from-rose-500/18 dark:via-red-500/16 dark:to-orange-500/14 dark:text-rose-200"
-        : "inline-flex rounded-full border border-zinc-200 bg-zinc-50 px-3 py-1 dark:border-zinc-700 dark:bg-zinc-800/55";
+        ? "inline-flex rounded-full border border-rose-300/80 bg-gradient-to-r from-rose-50 via-red-50 to-orange-50 px-2.5 py-1 text-[0.72rem] font-semibold text-rose-700 shadow-[0_0_0_1px_rgba(244,63,94,0.12),0_10px_20px_-14px_rgba(225,29,72,0.9)] dark:border-rose-400/35 dark:bg-gradient-to-r dark:from-rose-500/18 dark:via-red-500/16 dark:to-orange-500/14 dark:text-rose-200"
+        : "inline-flex rounded-full border border-zinc-200 bg-zinc-50 px-2.5 py-1 text-[0.72rem] dark:border-zinc-700 dark:bg-zinc-800/55";
     const prizeChipClass = prizeDisplay.isTbd
-        ? "inline-flex items-center gap-2 rounded-full border border-amber-300 bg-amber-50 px-3 py-1.5 text-xs font-semibold text-amber-700 shadow-[0_0_0_1px_rgba(251,191,36,0.1),0_10px_20px_-16px_rgba(245,158,11,0.95)] dark:border-amber-400/30 dark:bg-amber-500/12 dark:text-amber-300 dark:shadow-[0_0_0_1px_rgba(251,191,36,0.2),0_10px_20px_-14px_rgba(245,158,11,0.8)]"
-        : "inline-flex items-center gap-2 rounded-full border border-emerald-300/80 bg-emerald-50 px-3 py-1.5 text-xs font-semibold text-emerald-700 shadow-[0_0_0_1px_rgba(16,185,129,0.08),0_12px_24px_-16px_rgba(5,150,105,0.9)] dark:border-emerald-400/35 dark:bg-emerald-500/12 dark:text-emerald-300 dark:shadow-[0_0_0_1px_rgba(52,211,153,0.2),0_10px_20px_-14px_rgba(16,185,129,0.8)]";
+        ? "inline-flex items-center gap-1.5 rounded-full border border-amber-300 bg-amber-50 px-2.5 py-1 text-[0.72rem] font-semibold text-amber-700 shadow-[0_0_0_1px_rgba(251,191,36,0.1),0_10px_20px_-16px_rgba(245,158,11,0.95)] dark:border-amber-400/30 dark:bg-amber-500/12 dark:text-amber-300 dark:shadow-[0_0_0_1px_rgba(251,191,36,0.2),0_10px_20px_-14px_rgba(245,158,11,0.8)]"
+        : "inline-flex items-center gap-1.5 rounded-full border border-emerald-300/80 bg-emerald-50 px-2.5 py-1 text-[0.72rem] font-semibold text-emerald-700 shadow-[0_0_0_1px_rgba(16,185,129,0.08),0_12px_24px_-16px_rgba(5,150,105,0.9)] dark:border-emerald-400/35 dark:bg-emerald-500/12 dark:text-emerald-300 dark:shadow-[0_0_0_1px_rgba(52,211,153,0.2),0_10px_20px_-14px_rgba(16,185,129,0.8)]";
+    const revealDelay = (displayIndex % 4) * 65;
 
     return (
-        <div className="group relative flex h-full flex-col overflow-hidden rounded-3xl border border-zinc-200/90 bg-white p-5 shadow-sm transition-all duration-200 hover:-translate-y-1 hover:border-zinc-300 hover:shadow-lg dark:border-zinc-800 dark:bg-zinc-900 dark:shadow-md dark:hover:border-zinc-700 dark:hover:shadow-lg">
-            <div className="relative mb-5 h-40 w-full overflow-hidden rounded-xl border border-zinc-200 bg-zinc-100 dark:border-zinc-800 dark:bg-zinc-900/60">
+        <div
+            ref={cardRef}
+            className={`group relative flex h-full flex-col overflow-hidden rounded-3xl border border-zinc-200/90 bg-white p-3.5 shadow-sm transition-[opacity,transform,border-color,box-shadow] duration-500 ease-out hover:-translate-y-1 hover:border-zinc-300 hover:shadow-lg dark:border-zinc-800 dark:bg-zinc-900 dark:shadow-md dark:hover:border-zinc-700 dark:hover:shadow-lg ${isVisible ? "translate-x-0 translate-y-0 opacity-100" : "-translate-x-3 translate-y-2 opacity-0"}`}
+            style={{ transitionDelay: isVisible ? `${revealDelay}ms` : "0ms" }}
+        >
+            <div className="relative mb-3 h-28 w-full overflow-hidden rounded-xl border border-zinc-200 bg-zinc-100 dark:border-zinc-800 dark:bg-zinc-900/60">
                 {!imageLoaded && (
                     <div
                         aria-hidden="true"
@@ -130,7 +198,10 @@ const HackathonCard = ({ hackathon }: { hackathon: Hackathon }) => {
                     alt={hackathon.title}
                     loading="lazy"
                     decoding="async"
-                    onLoad={() => setImageLoaded(true)}
+                    onLoad={() => {
+                        loadedImageSourceCache.add(imageSource);
+                        setImageLoaded(true);
+                    }}
                     onError={(event) => {
                         const imageElement = event.currentTarget;
                         if (imageElement.src.includes("/images/hackathons/")) {
@@ -144,35 +215,35 @@ const HackathonCard = ({ hackathon }: { hackathon: Hackathon }) => {
                     className={`h-full w-full object-cover transition-opacity duration-500 ${imageLoaded ? "opacity-100" : "opacity-0"}`}
                 />
             </div>
-        <div className="mb-5 flex flex-wrap gap-2">
-            <span className="inline-flex rounded-full border border-blue-300/80 bg-blue-50 px-3 py-1 text-[0.72rem] font-medium uppercase tracking-[0.18em] text-blue-700 dark:border-blue-400/25 dark:bg-blue-500/12 dark:text-blue-300">
+        <div className="mb-3 flex flex-wrap gap-1.5">
+            <span className="inline-flex rounded-full border border-blue-300/80 bg-blue-50 px-2.5 py-0.5 text-[0.65rem] font-medium uppercase tracking-[0.15em] text-blue-700 dark:border-blue-400/25 dark:bg-blue-500/12 dark:text-blue-300">
                 {hackathon.platform}
             </span>
             {hackathon.mode && (
-                <span className="inline-flex rounded-full border border-zinc-200 bg-zinc-50 px-3 py-1 text-[0.72rem] font-medium uppercase tracking-[0.18em] text-zinc-600 dark:border-zinc-700 dark:bg-zinc-800/60 dark:text-zinc-400">
+                <span className="inline-flex rounded-full border border-zinc-200 bg-zinc-50 px-2.5 py-0.5 text-[0.65rem] font-medium uppercase tracking-[0.15em] text-zinc-600 dark:border-zinc-700 dark:bg-zinc-800/60 dark:text-zinc-400">
                     {hackathon.mode}
                 </span>
             )}
         </div>
-        <h2 className="text-xl font-semibold tracking-tight text-zinc-900 dark:text-zinc-100">
+        <h2 className="line-clamp-2 text-lg font-semibold tracking-tight text-zinc-900 dark:text-zinc-100">
             {hackathon.title}
         </h2>
-        <div className="mt-4 flex flex-wrap gap-2 text-xs text-zinc-500 dark:text-zinc-400">
+        <div className="mt-2.5 flex flex-wrap gap-1.5 text-[0.72rem] text-zinc-500 dark:text-zinc-400">
             <span className={deadlineChipClass}>
                 Deadline: {deadlineDisplay.label}
             </span>
-            <span className="inline-flex rounded-full border border-zinc-200 bg-zinc-50 px-3 py-1 dark:border-zinc-700 dark:bg-zinc-800/55">
+            <span className="inline-flex rounded-full border border-zinc-200 bg-zinc-50 px-2.5 py-1 text-[0.72rem] dark:border-zinc-700 dark:bg-zinc-800/55">
                 Location: {locationLabel}
             </span>
         </div>
-        <div className="mt-5 flex items-end justify-between gap-3">
-            <div className="min-h-10">
+        <div className="mt-3.5 flex items-end justify-between gap-2">
+            <div className="min-h-8">
                 <span className={prizeChipClass}>
                     <img
                         src="/prizeSvg.svg"
                         alt=""
                         aria-hidden="true"
-                        className={`h-4 w-4 shrink-0 ${prizeDisplay.isTbd ? "opacity-85" : ""}`}
+                        className={`h-3.5 w-3.5 shrink-0 ${prizeDisplay.isTbd ? "opacity-85" : ""}`}
                     />
                     {prizeDisplay.label}
                 </span>
@@ -182,7 +253,7 @@ const HackathonCard = ({ hackathon }: { hackathon: Hackathon }) => {
                     href={hackathon.applyLink}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="inline-flex min-w-36 items-center justify-center rounded-full border border-blue-500/35 bg-blue-600 px-5 py-3 text-sm font-semibold text-white shadow-sm transition-all duration-200 hover:-translate-y-0.5 hover:bg-blue-500 hover:shadow-md dark:border-blue-400/40 dark:bg-blue-500 dark:hover:bg-blue-400 dark:hover:shadow-md"
+                    className="inline-flex min-w-30 items-center justify-center rounded-full border border-blue-500/35 bg-blue-600 px-4 py-2 text-sm font-semibold text-white shadow-sm transition-all duration-200 hover:-translate-y-0.5 hover:bg-blue-500 hover:shadow-md dark:border-blue-400/40 dark:bg-blue-500 dark:hover:bg-blue-400 dark:hover:shadow-md"
                 >
                     View Details
                 </a>

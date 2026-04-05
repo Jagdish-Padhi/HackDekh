@@ -17,6 +17,16 @@ body,
 	min-height: 100%;
 }
 
+/* Optimized sidebar toggle animation */
+.sidebar-transition {
+	will-change: width, transform;
+	transition:
+		width 320ms cubic-bezier(0.4, 0, 0.2, 1),
+		transform 320ms cubic-bezier(0.4, 0, 0.2, 1),
+		box-shadow 320ms cubic-bezier(0.4, 0, 0.2, 1);
+	contain: layout style paint;
+}
+
 body {
 	margin: 0;
 	font-family: "Inter", "Segoe UI", sans-serif;
