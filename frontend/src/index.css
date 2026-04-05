@@ -91,3 +91,12 @@ html.dark body::-webkit-scrollbar-thumb {
 		radial-gradient(circle at 84% 8%, rgba(121, 168, 255, 0.08), transparent 22%),
 		linear-gradient(180deg, #09090B 0%, #111113 52%, #09090B 100%);
 }
+
+@keyframes shimmer {
+	0% {
+		background-position: 200% 0;
+	}
+	100% {
+		background-position: -200% 0;
+	}
+}

@@ -1,4 +1,4 @@
-import { useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 
 type Hackathon = {
     _id: string
@@ -98,6 +98,14 @@ const HackathonCard = ({ hackathon }: { hackathon: Hackathon }) => {
     const fallbackImageRef = useRef<string>(getRandomDefaultImage());
     const fallbackImage = fallbackImageRef.current;
     const primaryImage = hackathon.coverImage?.trim() || "";
+    const [imageSource, setImageSource] = useState(primaryImage || fallbackImage);
+    const [imageLoaded, setImageLoaded] = useState(false);
+
+    useEffect(() => {
+        setImageSource(primaryImage || fallbackImage);
+        setImageLoaded(false);
+    }, [primaryImage, fallbackImage]);
+
     const deadlineDisplay = getDeadlineDisplay(hackathon.deadline);
     const locationLabel = hackathon.location?.trim() || "TBD";
     const prizeDisplay = getPrizeDisplay(hackathon.prize);
@@ -110,20 +118,32 @@ const HackathonCard = ({ hackathon }: { hackathon: Hackathon }) => {
 
     return (
         <div className="group relative flex h-full flex-col overflow-hidden rounded-3xl border border-zinc-200/90 bg-white p-5 shadow-sm transition-all duration-200 hover:-translate-y-1 hover:border-zinc-300 hover:shadow-lg dark:border-zinc-800 dark:bg-zinc-900 dark:shadow-md dark:hover:border-zinc-700 dark:hover:shadow-lg">
-            <img
-                src={primaryImage || fallbackImage}
-                alt={hackathon.title}
-                onError={(event) => {
-                    const imageElement = event.currentTarget;
-                    if (imageElement.src.includes("/images/hackathons/")) {
-                        return;
-                    }
+            <div className="relative mb-5 h-40 w-full overflow-hidden rounded-xl border border-zinc-200 bg-zinc-100 dark:border-zinc-800 dark:bg-zinc-900/60">
+                {!imageLoaded && (
+                    <div
+                        aria-hidden="true"
+                        className="absolute inset-0 bg-[linear-gradient(110deg,rgba(228,228,231,0.65),rgba(250,250,250,0.95),rgba(228,228,231,0.65))] bg-size-[200%_100%] animate-[shimmer_1.4s_linear_infinite] dark:bg-[linear-gradient(110deg,rgba(39,39,42,0.9),rgba(63,63,70,0.95),rgba(39,39,42,0.9))]"
+                    />
+                )}
+                <img
+                    src={imageSource}
+                    alt={hackathon.title}
+                    loading="lazy"
+                    decoding="async"
+                    onLoad={() => setImageLoaded(true)}
+                    onError={(event) => {
+                        const imageElement = event.currentTarget;
+                        if (imageElement.src.includes("/images/hackathons/")) {
+                            setImageLoaded(true);
+                            return;
+                        }
 
-                    imageElement.onerror = null;
-                    imageElement.src = fallbackImage;
-                }}
-                className="mb-5 h-40 w-full rounded-xl border border-zinc-200 object-cover dark:border-zinc-800"
-            />
+                        imageElement.onerror = null;
+                        setImageSource(fallbackImage);
+                    }}
+                    className={`h-full w-full object-cover transition-opacity duration-500 ${imageLoaded ? "opacity-100" : "opacity-0"}`}
+                />
+            </div>
         <div className="mb-5 flex flex-wrap gap-2">
             <span className="inline-flex rounded-full border border-blue-300/80 bg-blue-50 px-3 py-1 text-[0.72rem] font-medium uppercase tracking-[0.18em] text-blue-700 dark:border-blue-400/25 dark:bg-blue-500/12 dark:text-blue-300">
                 {hackathon.platform}
