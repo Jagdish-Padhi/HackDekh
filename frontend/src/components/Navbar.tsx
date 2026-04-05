@@ -64,22 +64,6 @@ const Navbar = () => {
     setProfileOpen(false);
   }, [location.pathname]);
 
-  const handleLogout = async () => {
-    try {
-      if (isLoggedIn) {
-        await axiosInstance.post('/users/logout');
-      }
-    } catch {
-      // Even if API logout fails, clear local auth and continue.
-    } finally {
-      localStorage.removeItem('accessToken');
-      localStorage.removeItem('refreshToken');
-      setUser(null);
-      setProfileOpen(false);
-      navigate('/login');
-    }
-  };
-
   return (
     <nav className="w-full border-b border-zinc-200/80 bg-white/82 px-3 py-3 shadow-sm backdrop-blur-xl transition-all duration-200 dark:border-zinc-800 dark:bg-zinc-950/82 dark:shadow-md sm:px-4 lg:px-5">
       <div className="flex items-center justify-end gap-2.5">
