@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { NavLink, useLocation, useNavigate } from 'react-router-dom'
-import { BarChart3, Home, LogOut, Moon, PanelLeftClose, PanelLeftOpen, Settings, Sun, Trophy, Users, X } from 'lucide-react'
+import { BarChart3, Home, LogOut, Moon, PanelLeftClose, PanelLeftOpen, Sun, Trophy, Users, X } from 'lucide-react'
 import axiosInstance from '../utils/axiosInstance'
 import { usePageChrome } from '../context/pageChrome'
 
@@ -8,8 +8,8 @@ const navItems = [
     { name: 'Home', path: '/', icon: Home },
     { name: 'Hackathons', path: '/hackathons', icon: Trophy },
     { name: 'Teams', path: '/teams', icon: Users },
-    { name: 'My Dashboard', path: '/dashboard', icon: BarChart3 },
-    { name: 'Settings', path: '/settings', icon: Settings },
+    { name: 'Dashboard', path: '/dashboard', icon: BarChart3 },
+    // { name: 'Settings', path: '/settings', icon: Settings },
 ]
 
 const Sidebar = () => {
