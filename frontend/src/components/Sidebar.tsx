@@ -86,7 +86,7 @@ const Sidebar = () => {
     return (
         <>
             {/* Mobile logo header - fixed at top, visible on mobile */}
-            <div className="fixed inset-x-0 top-0 z-40 flex items-center justify-between border-b border-zinc-200 bg-white/95 px-4 py-4 backdrop-blur-xl dark:border-zinc-800 dark:bg-zinc-950/95 lg:hidden">
+            <div className="fixed inset-x-0 top-0 z-90 flex items-center justify-between border-b border-zinc-200 bg-white/95 px-4 py-4 backdrop-blur-xl dark:border-zinc-800 dark:bg-zinc-950/95 lg:hidden">
                 <div className="flex items-center gap-3">
                     <img src="/BrandImages/HackDekh.png" alt="HackDekh Logo" className="h-10 w-10 rounded-2xl object-contain" />
                     <span className="text-lg font-semibold tracking-tight text-zinc-900 dark:text-zinc-100">HackDekh</span>
@@ -145,7 +145,7 @@ const Sidebar = () => {
 
             {/* Sidebar - starts below logo header */}
             <aside
-                className={`fixed left-0 top-20 z-50 flex w-full flex-col border-r border-zinc-200 bg-white/95 shadow-xl backdrop-blur-xl sidebar-transition max-h-[calc(100vh-80px)] lg:sticky lg:top-16 lg:z-30 lg:max-h-[calc(100vh-64px)] lg:shadow-none dark:border-zinc-800 dark:bg-zinc-950/95 ${sidebarWidthClass} ${mobileVisibilityClass}`}
+                className={`fixed left-0 top-20 z-80 flex w-full flex-col border-r border-zinc-200 bg-white/95 shadow-xl backdrop-blur-xl sidebar-transition max-h-[calc(100vh-80px)] lg:sticky lg:top-16 lg:z-30 lg:max-h-[calc(100vh-64px)] lg:shadow-none dark:border-zinc-800 dark:bg-zinc-950/95 ${sidebarWidthClass} ${mobileVisibilityClass}`}
                 aria-label="Primary navigation"
             >
                 <nav className="flex flex-1 flex-col gap-1 px-3 py-4 sm:px-4">
@@ -207,7 +207,7 @@ const Sidebar = () => {
             </aside>
 
             {isMobile && sidebarExpanded && (
-                <div className="fixed inset-0 z-40 bg-black/20 backdrop-blur-[1px] lg:hidden" onClick={closeSidebar} aria-hidden="true" />
+                <div className="fixed inset-0 z-70 bg-black/20 backdrop-blur-[1px] lg:hidden" onClick={closeSidebar} aria-hidden="true" />
             )}
         </>
     )
