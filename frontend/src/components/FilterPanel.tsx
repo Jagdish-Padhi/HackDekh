@@ -45,7 +45,7 @@ const Dropdown = ({ value, onChange, options, placeholder }: DropdownProps) => {
     }
 
     return (
-        <div ref={ref} className="relative w-full sm:w-36 sm:shrink-0 xl:w-44">
+        <div ref={ref} className={`relative w-full sm:w-36 sm:shrink-0 xl:w-44 ${open ? 'z-60' : 'z-0'}`}>
             {/* Trigger button */}
             <button
                 type="button"
@@ -171,7 +171,7 @@ const FilterPanel = ({
     locationFilter,
     setLocationFilter,
 }: FilterPanelProps) => (
-    <div className="flex w-auto shrink-0 flex-nowrap items-center gap-2">
+    <div className="flex w-full flex-col gap-2 overflow-visible sm:flex-row sm:flex-wrap sm:items-center lg:w-auto lg:flex-nowrap">
         <Dropdown
             value={platform}
             onChange={setPlatform}
