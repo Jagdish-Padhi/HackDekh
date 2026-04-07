@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { NavLink, useLocation, useNavigate } from 'react-router-dom'
-import { BarChart3, Home, LogOut, Moon, PanelLeftClose, PanelLeftOpen, Sun, Trophy, Users, X } from 'lucide-react'
+import { BarChart3, Home, LogOut, Menu, Moon, PanelLeftClose, PanelLeftOpen, Sun, Trophy, Users, X } from 'lucide-react'
 import axiosInstance from '../utils/axiosInstance'
 import { usePageChrome } from '../context/pageChrome'
 
@@ -102,11 +102,11 @@ const Sidebar = () => {
                     </button>
                     <button
                         type="button"
-                        onClick={closeSidebar}
-                        className="rounded-full border border-zinc-200 bg-white p-2 text-zinc-600 shadow-sm dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-300"
-                        aria-label="Close sidebar"
+                        onClick={toggleSidebar}
+                        className="inline-flex h-9 w-9 items-center justify-center rounded-full border border-zinc-200 bg-white text-zinc-600 shadow-sm transition hover:border-blue-400 hover:text-blue-700 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-300 dark:hover:border-blue-400 dark:hover:text-blue-300"
+                        aria-label={sidebarExpanded ? 'Close sidebar' : 'Open sidebar'}
                     >
-                        <X className="h-4 w-4" />
+                        {sidebarExpanded ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
                     </button>
                 </div>
             </div>
@@ -145,10 +145,10 @@ const Sidebar = () => {
 
             {/* Sidebar - starts below logo header */}
             <aside
-                className={`fixed left-0 top-20 z-50 flex w-72 flex-col border-r border-zinc-200 bg-white/95 shadow-xl backdrop-blur-xl sidebar-transition max-h-[calc(100vh-80px)] lg:sticky lg:top-16 lg:z-30 lg:max-h-[calc(100vh-64px)] lg:shadow-none dark:border-zinc-800 dark:bg-zinc-950/95 ${sidebarWidthClass} ${mobileVisibilityClass}`}
+                className={`fixed left-0 top-20 z-50 flex w-full flex-col border-r border-zinc-200 bg-white/95 shadow-xl backdrop-blur-xl sidebar-transition max-h-[calc(100vh-80px)] lg:sticky lg:top-16 lg:z-30 lg:max-h-[calc(100vh-64px)] lg:shadow-none dark:border-zinc-800 dark:bg-zinc-950/95 ${sidebarWidthClass} ${mobileVisibilityClass}`}
                 aria-label="Primary navigation"
             >
-                <nav className="flex flex-1 flex-col gap-1 px-2.5 py-4">
+                <nav className="flex flex-1 flex-col gap-1 px-3 py-4 sm:px-4">
                     {navItems.map((item) => {
                         const Icon = item.icon
                         const active = location.pathname === item.path
@@ -177,7 +177,7 @@ const Sidebar = () => {
                     })}
                 </nav>
 
-                <div className="space-y-2 border-t border-zinc-200 p-2.5 dark:border-zinc-800">
+                <div className="space-y-2 border-t border-zinc-200 p-3 sm:p-2.5 dark:border-zinc-800">
                     {isLoggedIn ? (
                         <button
                             type="button"
