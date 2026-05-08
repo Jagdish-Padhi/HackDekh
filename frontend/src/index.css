@@ -110,3 +110,90 @@ html.dark body::-webkit-scrollbar-thumb {
 		background-position: -200% 0;
 	}
 }
+
+/* Registering the angle property for professional border-following animation */
+@property --border-angle {
+	syntax: "<angle>";
+	initial-value: 0deg;
+	inherits: false;
+}
+
+@keyframes border-angle-rotate {
+	from {
+		--border-angle: 0deg;
+	}
+	to {
+		--border-angle: 360deg;
+	}
+}
+
+.premium-border-card {
+	position: relative;
+}
+
+/* The sharp shining beam - now follows the rectangular path */
+.premium-border-card::before {
+	content: "";
+	position: absolute;
+	inset: -1px;
+	padding: 1.5px;
+	border-radius: inherit;
+	background: conic-gradient(
+		from var(--border-angle),
+		transparent 80%,
+		var(--border-glow-1) 88%,
+		#ffffff 92%,
+		var(--border-glow-2) 96%,
+		transparent 100%
+	);
+	-webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+	mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+	-webkit-mask-composite: xor;
+	mask-composite: exclude;
+	opacity: 0;
+	transition: opacity 0.5s ease;
+	pointer-events: none;
+	z-index: 20;
+}
+
+/* Soft glowing trail that also follows the rectangular path */
+.premium-border-card::after {
+	content: "";
+	position: absolute;
+	inset: -1px;
+	padding: 4px;
+	border-radius: inherit;
+	background: conic-gradient(
+		from var(--border-angle),
+		transparent 75%,
+		var(--border-glow-1) 85%,
+		var(--border-glow-2) 95%,
+		transparent 100%
+	);
+	-webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+	mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+	-webkit-mask-composite: xor;
+	mask-composite: exclude;
+	filter: blur(12px);
+	opacity: 0;
+	transition: opacity 0.5s ease;
+	pointer-events: none;
+	z-index: 10;
+}
+
+.premium-border-card:hover::before,
+.premium-border-card:hover::after {
+	opacity: 1;
+	animation: border-angle-rotate 4s linear infinite;
+}
+
+/* Professional Color Palette */
+:root {
+	--border-glow-1: #3b82f6;
+	--border-glow-2: #06b6d4;
+}
+
+html.dark {
+	--border-glow-1: #6366f1;
+	--border-glow-2: #38bdf8;
+}

@@ -12,7 +12,7 @@ import ProductStoryAnimation from "../components/productStory/ProductStoryAnimat
 const HomePage = () => (
     <section className="flex min-h-[76vh] flex-col items-center justify-center gap-14 py-6 sm:py-10">
         <div className="w-full max-w-6xl">
-            <div className="relative overflow-hidden rounded-4xl border border-zinc-200/90 bg-white px-6 py-10 shadow-sm backdrop-blur-md transition-all duration-200 sm:px-10 sm:py-14 md:px-14 dark:border-zinc-800 dark:bg-zinc-900/82 dark:shadow-md">
+            <div className="group premium-border-card relative overflow-hidden rounded-4xl border border-zinc-200/90 bg-white px-6 py-10 shadow-sm backdrop-blur-md transition-all duration-200 sm:px-10 sm:py-14 md:px-14 dark:border-zinc-800 dark:bg-zinc-900/82 dark:shadow-md">
                 <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_top_center,rgba(59,130,246,0.16),transparent_38%)] dark:bg-[radial-gradient(circle_at_top_center,rgba(79,140,255,0.22),transparent_36%)]" />
                 <div className="mx-auto grid w-full max-w-6xl items-center gap-10 lg:grid-cols-[1.1fr_0.9fr] lg:gap-14">
                     <div className="relative text-center lg:pl-3 lg:text-left">
