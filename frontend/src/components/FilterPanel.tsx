@@ -131,6 +131,9 @@ const platformOptions: Option[] = [
     { label: 'All Platforms', value: '' },
     { label: 'Devfolio', value: 'Devfolio' },
     { label: 'Unstop', value: 'Unstop' },
+    { label: 'Devpost', value: 'Devpost' },
+    { label: 'MLH', value: 'MLH' },
+    { label: 'Hack2Skill', value: 'Hack2Skill' },
 ]
 
 const modeOptions: Option[] = [
