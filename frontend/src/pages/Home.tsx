@@ -1,4 +1,5 @@
 import FeatureCard from "../components/FeatureCard";
+import Footer from "../components/Footer";
 import {
     BarChart3,
     ClipboardCheck,
@@ -10,6 +11,7 @@ import {
 import ProductStoryAnimation from "../components/productStory/ProductStoryAnimation";
 
 const HomePage = () => (
+    <>
     <section className="flex min-h-[76vh] flex-col items-center justify-center gap-14 py-6 sm:py-10">
         <div className="w-full max-w-6xl">
             <div className="group premium-border-card relative overflow-hidden rounded-4xl border border-zinc-200/90 bg-white px-6 py-10 shadow-sm backdrop-blur-md transition-all duration-200 sm:px-10 sm:py-14 md:px-14 dark:border-zinc-800 dark:bg-zinc-900/82 dark:shadow-md">
@@ -95,6 +97,8 @@ const HomePage = () => (
             </div>
         </div>
     </section>
+    <Footer />
+    </>
 );
 
 

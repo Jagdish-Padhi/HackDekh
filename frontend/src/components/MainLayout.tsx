@@ -1,5 +1,4 @@
 import { useEffect, useState } from 'react'
-import Footer from './Footer'
 import React from 'react'
 import Sidebar from './Sidebar'
 import { PageChromeProvider } from '../context/pageChrome'
@@ -66,7 +65,6 @@ const Shell = ({ children }: MainLayoutProps) => {
                     <main className="flex w-full flex-1 flex-col px-3 py-4 sm:px-4 lg:px-6 lg:py-5">
                         <div className="w-full">{children}</div>
                     </main>
-                    <Footer />
                 </div>
             </div>
         </div>
