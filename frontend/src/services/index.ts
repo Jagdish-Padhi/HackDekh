@@ -1,5 +1,12 @@
 import axiosInstance from '../utils/axiosInstance';
-import type { Team, TeamInvitation, GeneratedInvitationLink, InvitationPreview } from '../types';
+import type {
+  Team,
+  TeamInvitation,
+  GeneratedInvitationLink,
+  InvitationPreview,
+  TeamHackathon,
+  Stage,
+} from '../types';
 
 interface ApiResponse<T> {
   statusCode: number;
@@ -28,6 +35,67 @@ export const teamApi = {
 
   updateTeam: async (teamId: string, payload: { name: string }): Promise<Team> => {
     const response = await axiosInstance.put<ApiResponse<Team>>(`/teams/${teamId}`, payload);
+    return unwrap(response);
+  },
+
+  linkHackathon: async (
+    teamId: string,
+    hackathonId: string,
+    firstStage?: { name: string; deadline?: string }
+  ): Promise<TeamHackathon> => {
+    const response = await axiosInstance.post<ApiResponse<TeamHackathon>>(`/teams/${teamId}/hackathons`, {
+      hackathonId,
+      firstStage,
+    });
+    return unwrap(response);
+  },
+
+  getTeamHackathons: async (teamId: string): Promise<TeamHackathon[]> => {
+    const response = await axiosInstance.get<ApiResponse<TeamHackathon[]>>(`/teams/${teamId}/hackathons`);
+    return unwrap(response);
+  },
+
+  updateStatus: async (teamId: string, thId: string, status: TeamHackathon['status']): Promise<TeamHackathon> => {
+    const response = await axiosInstance.patch<ApiResponse<TeamHackathon>>(`/teams/${teamId}/hackathons/${thId}/status`, {
+      status,
+    });
+    return unwrap(response);
+  },
+
+  addStage: async (
+    teamId: string,
+    thId: string,
+    payload: { name: string; deadline?: string }
+  ): Promise<Stage> => {
+    const response = await axiosInstance.post<ApiResponse<Stage>>(`/teams/${teamId}/hackathons/${thId}/stages`, payload);
+    return unwrap(response);
+  },
+
+  updateStage: async (
+    teamId: string,
+    thId: string,
+    stageId: string,
+    payload: { name?: string; deadline?: string | null; result?: Stage['result']; notes?: string }
+  ): Promise<Stage> => {
+    const response = await axiosInstance.put<ApiResponse<Stage>>(`/teams/${teamId}/hackathons/${thId}/stages/${stageId}`, payload);
+    return unwrap(response);
+  },
+
+  deleteStage: async (teamId: string, thId: string, stageId: string): Promise<{ stageId: string }> => {
+    const response = await axiosInstance.delete<ApiResponse<{ stageId: string }>>(`/teams/${teamId}/hackathons/${thId}/stages/${stageId}`);
+    return unwrap(response);
+  },
+
+  addReflection: async (
+    teamId: string,
+    thId: string,
+    stageId: string,
+    note: string
+  ): Promise<Stage> => {
+    const response = await axiosInstance.post<ApiResponse<Stage>>(
+      `/teams/${teamId}/hackathons/${thId}/stages/${stageId}/reflections`,
+      { note }
+    );
     return unwrap(response);
   },
 
@@ -70,6 +138,13 @@ export const teamApi = {
 
   removeMember: async (teamId: string, userId: string): Promise<Team> => {
     const response = await axiosInstance.delete<ApiResponse<Team>>(`/teams/${teamId}/members/${userId}`);
+    return unwrap(response);
+  },
+};
+
+export const userApi = {
+  getPendingReflections: async (): Promise<Stage[]> => {
+    const response = await axiosInstance.get<ApiResponse<Stage[]>>('/users/pending-reflections');
     return unwrap(response);
   },
 };
