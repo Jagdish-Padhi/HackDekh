@@ -16,23 +16,37 @@ const stageSchema = new mongoose.Schema({
     deadline: {
         type: Date,
     },
+
     result: {
         type: String,
         enum: ['pending', 'qualified', 'rejected'],
-        default: 'pending'
+        default: 'pending',
     },
+
     notes: {
         type: String,
+        default: '',
     },
+
     reflections: [
         {
             user: {
-                type: mongoose.Schema.Types.ObjectId, ref: 'User',
-                required: true
+                type: mongoose.Schema.Types.ObjectId,
+                ref: 'User',
+                required: true,
             },
-            note: { type: String }
-
+            note: { type: String, default: '' },
         },
+    ],
 
-    ]
+    // Users who need to write a reflection after this stage was resolved
+    pendingReflectionFor: [
+        {
+            type: mongoose.Schema.Types.ObjectId,
+            ref: 'User',
+        },
+    ],
+
 }, { timestamps: true });
+
+export default mongoose.model('Stage', stageSchema);

@@ -3,6 +3,7 @@ import { ApiError } from "../utils/apiError.ts";
 import User from "../models/user.model.ts";
 import { ApiResponse } from "../utils/apiResponse.ts";
 import jwt from "jsonwebtoken";
+import { getPendingReflections as fetchPendingReflections } from "../services/stage.service.ts";
 
 const generateAccessAndRefreshTokens = async (userId: string) => {
   try {
@@ -414,6 +415,14 @@ const getUserApplications = asyncHandler(async (req: any, res: any) => {
     );
 });
 
+
+const getPendingReflections = asyncHandler(async (req: any, res: any) => {
+  const stages = await fetchPendingReflections(req.user._id);
+  return res
+    .status(200)
+    .json(new ApiResponse(200, stages, 'Pending reflections fetched successfully'));
+});
+
 export {
   registerUser,
   loginUser,
@@ -428,4 +437,5 @@ export {
   updateApplication,
   removeApplication,
   getUserApplications,
+  getPendingReflections,
 };

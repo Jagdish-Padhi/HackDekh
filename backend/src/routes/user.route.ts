@@ -12,7 +12,8 @@ import {
 	addApplication,
 	updateApplication,
 	removeApplication,
-	getUserApplications
+	getUserApplications,
+	getPendingReflections,
 } from "../controllers/user.controller.ts";
 import { verifyJWT } from "../middlewares/auth.middleware.ts";
 
@@ -30,10 +31,13 @@ router.put("/update", verifyJWT, updateAccountDetails);
 router.post("/saved/:hackathonId", verifyJWT, toggleSaveHackathon);
 router.get("/saved", verifyJWT, getSavedHackathons);
 
-// Application Tracker
+// Application Tracker (user-level, individual tracking)
 router.post("/applications", verifyJWT, addApplication);
 router.put("/applications/:applicationId", verifyJWT, updateApplication);
 router.delete("/applications/:applicationId", verifyJWT, removeApplication);
 router.get("/applications", verifyJWT, getUserApplications);
+
+// Pending stage reflections (team hackathon system)
+router.get("/pending-reflections", verifyJWT, getPendingReflections);
 
 export default router;
