@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { Link, useSearchParams } from "react-router-dom";
 import { AnimatePresence, motion } from "framer-motion";
 import {
@@ -117,53 +117,48 @@ export default function DashboardPage() {
     }
   }, [user]);
 
-  useEffect(() => {
-    let isMounted = true;
+  const loadDashboardData = useCallback(async () => {
+    setLoadingData(true);
+    try {
+      const [savedRes, teamsRes, pendingRes] = await Promise.all([
+        axiosInstance.get("/users/saved"),
+        teamApi.getUserTeams(),
+        userApi.getPendingReflections(),
+      ]);
 
-    const fetchData = async () => {
-      setLoadingData(true);
-      try {
-        const [savedRes, teamsRes, pendingRes] = await Promise.all([
-          axiosInstance.get("/users/saved"),
-          teamApi.getUserTeams(),
-          userApi.getPendingReflections(),
-        ]);
+      setSavedHackathons(savedRes.data?.data || savedRes.data || []);
+      setPendingReflections(pendingRes);
 
-        if (!isMounted) return;
+      const teamParticipations = await Promise.all(
+        teamsRes.map(async (team) => {
+          try {
+            const teamItems = await teamApi.getTeamHackathons(team._id);
+            return teamItems.map((participation) => ({ ...participation, teamInfo: team }));
+          } catch (error) {
+            console.error(`Failed to fetch hackathons for team ${team._id}`, error);
+            return [] as Participation[];
+          }
+        })
+      );
 
-        setSavedHackathons(savedRes.data?.data || savedRes.data || []);
-        setPendingReflections(pendingRes);
-
-        const teamParticipations = await Promise.all(
-          teamsRes.map(async (team) => {
-            try {
-              const teamItems = await teamApi.getTeamHackathons(team._id);
-              return teamItems.map((participation) => ({ ...participation, teamInfo: team }));
-            } catch (error) {
-              console.error(`Failed to fetch hackathons for team ${team._id}`, error);
-              return [] as Participation[];
-            }
-          })
-        );
-
-        if (!isMounted) return;
-
-        const flattened = teamParticipations.flat();
-        setParticipations(flattened);
-      } catch (error) {
-        console.error("Failed to load dashboard data", error);
-      } finally {
-        if (isMounted) {
-          setLoadingData(false);
-        }
-      }
-    };
-
-    fetchData();
-    return () => {
-      isMounted = false;
-    };
+      setParticipations(teamParticipations.flat());
+    } catch (error) {
+      console.error("Failed to load dashboard data", error);
+    } finally {
+      setLoadingData(false);
+    }
   }, []);
+
+  useEffect(() => {
+    loadDashboardData();
+
+    const onFocus = () => loadDashboardData();
+    window.addEventListener("focus", onFocus);
+
+    return () => {
+      window.removeEventListener("focus", onFocus);
+    };
+  }, [loadDashboardData]);
 
   useEffect(() => {
     if (!selectedParticipationId && participations.length > 0) {
@@ -504,14 +499,12 @@ export default function DashboardPage() {
                 <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 xl:grid-cols-4">
                   {savedHackathons.map((hackathon, index) => (
                     <div key={hackathon._id} className="relative group">
-                      <HackathonCard hackathon={hackathon} displayIndex={index} />
-                      <button
-                        onClick={() => handleRemoveBookmark(hackathon._id)}
-                        className="absolute right-6 top-6 z-20 flex h-8 w-8 items-center justify-center rounded-xl border border-rose-400/20 bg-rose-500/90 text-white shadow-md transition-all duration-200 hover:scale-105 hover:bg-rose-600"
-                        title="Remove Bookmark"
-                      >
-                        <Trash2 className="h-4.5 w-4.5" />
-                      </button>
+                      <HackathonCard
+                        hackathon={hackathon}
+                        displayIndex={index}
+                        isBookmarked
+                        onToggleBookmark={() => handleRemoveBookmark(hackathon._id)}
+                      />
                     </div>
                   ))}
                 </div>

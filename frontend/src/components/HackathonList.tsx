@@ -1,11 +1,13 @@
 import { RefreshCw } from 'lucide-react'
 import { useCallback, useDeferredValue, useEffect, useMemo, useState } from 'react'
+import { useNavigate } from 'react-router-dom'
 import HackathonCard from './HackathonCard'
 import axiosInstance from '../utils/axiosInstance'
 import SearchBar from './SearchBar'
 import FilterPanel from './FilterPanel'
 import LoadingProgress from './LoadingProgress'
 import { usePageChrome } from '../context/pageChrome'
+import { useAuth } from '../context/AuthContext'
 
 type Hackathon = {
     _id: string
@@ -26,6 +28,7 @@ type SortBy = '' | 'deadline-asc' | 'deadline-desc' | 'prize-desc' | 'prize-asc'
 const DESKTOP_MEDIA_QUERY = '(min-width: 1024px)'
 
 const HackathonList = () => {
+    const navigate = useNavigate()
     const [hackathons, setHackathons] = useState<Hackathon[]>([])
     const [loading, setLoading] = useState(true)
     const [isRefreshing, setIsRefreshing] = useState(false)
@@ -39,6 +42,7 @@ const HackathonList = () => {
     const [mode, setMode] = useState('')
     const [sortBy, setSortBy] = useState<SortBy>('')
     const [locationFilter, setLocationFilter] = useState('')
+    const { user, isAuthenticated, updateUser } = useAuth()
     const [isDesktopView, setIsDesktopView] = useState<boolean>(() => {
         if (typeof window === 'undefined') {
             return false
@@ -188,6 +192,26 @@ const HackathonList = () => {
         setRefreshNonce(previous => previous + 1)
     }, [isStillLoading])
 
+    const handleToggleBookmark = useCallback(async (hackathonId: string) => {
+        if (!isAuthenticated) {
+            navigate(`/login?returnTo=${encodeURIComponent(window.location.pathname)}`)
+            return
+        }
+
+        try {
+            const res = await axiosInstance.post(`/users/saved/${hackathonId}`)
+            if (res.data?.success && res.data?.data) {
+                const nextSavedHackathons = res.data.data.savedHackathons || []
+                updateUser({
+                    ...user!,
+                    savedHackathons: nextSavedHackathons,
+                })
+            }
+        } catch (error) {
+            console.error('Failed to toggle bookmark', error)
+        }
+    }, [isAuthenticated, navigate, updateUser, user])
+
     const loadingLabel = hasLoadedFromServer
         ? 'Loading hackathons'
         : 'Connecting to server and loading hackathons'
@@ -297,7 +321,13 @@ const HackathonList = () => {
                 ) : visibleHackathons.length ? (
                     <div className={`grid grid-cols-1 gap-4 transition-all duration-300 sm:grid-cols-2 xl:grid-cols-4 ${showResults ? 'translate-y-0 opacity-100' : 'translate-y-1 opacity-0'}`}>
                         {visibleHackathons.map((hack, index) => (
-                            <HackathonCard key={hack._id} hackathon={hack} displayIndex={index} />
+                            <HackathonCard
+                                key={hack._id}
+                                hackathon={hack}
+                                displayIndex={index}
+                                isBookmarked={!!user?.savedHackathons?.includes(hack._id)}
+                                onToggleBookmark={() => handleToggleBookmark(hack._id)}
+                            />
                         ))}
                     </div>
                 ) : (

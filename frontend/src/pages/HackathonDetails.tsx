@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
 import { AnimatePresence, motion } from "framer-motion";
 import {
@@ -129,7 +129,7 @@ export default function HackathonDetailsPage() {
     navigate("/hackathons");
   };
 
-  const refreshParticipationState = async () => {
+  const refreshParticipationState = useCallback(async () => {
     if (!isAuthenticated) {
       setUserTeams([]);
       setParticipations([]);
@@ -161,7 +161,7 @@ export default function HackathonDetailsPage() {
     } finally {
       setRegistrationDataLoading(false);
     }
-  };
+  }, [isAuthenticated]);
 
   useEffect(() => {
     let isMounted = true;
@@ -206,6 +206,22 @@ export default function HackathonDetailsPage() {
 
     refreshParticipationState();
   }, [isAuthenticated, id]);
+
+  useEffect(() => {
+    const handleVisibilityRefresh = () => {
+      if (document.visibilityState === "visible" && isAuthenticated) {
+        refreshParticipationState();
+      }
+    };
+
+    window.addEventListener("focus", refreshParticipationState);
+    document.addEventListener("visibilitychange", handleVisibilityRefresh);
+
+    return () => {
+      window.removeEventListener("focus", refreshParticipationState);
+      document.removeEventListener("visibilitychange", handleVisibilityRefresh);
+    };
+  }, [isAuthenticated, refreshParticipationState]);
 
   useEffect(() => {
     if (!registrationModalOpen) {

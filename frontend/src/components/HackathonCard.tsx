@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { Link } from "react-router-dom";
+import { Bookmark, Copy, EllipsisVertical, ExternalLink } from "lucide-react";
 
 type Hackathon = {
     _id: string
@@ -14,6 +15,20 @@ type Hackathon = {
     applyLink?: string
 
 }
+
+type CardAction = {
+    label: string
+    onClick: () => void
+    destructive?: boolean
+};
+
+type HackathonCardProps = {
+    hackathon: Hackathon;
+    displayIndex: number;
+    isBookmarked?: boolean;
+    onToggleBookmark?: () => void;
+    extraActions?: CardAction[];
+};
 
 const defaultImages = [
     "/images/hackathons/hackathon-default-1.svg",
@@ -107,8 +122,9 @@ const getDeadlineDisplay = (deadline?: string): DeadlineDisplay => {
     };
 };
 
-const HackathonCard = ({ hackathon, displayIndex }: { hackathon: Hackathon; displayIndex: number }) => {
+const HackathonCard = ({ hackathon, displayIndex, isBookmarked = false, onToggleBookmark, extraActions = [] }: HackathonCardProps) => {
     const cardRef = useRef<HTMLDivElement | null>(null);
+    const menuRef = useRef<HTMLDivElement | null>(null);
     const hasBeenRevealed = revealedCardCache.has(hackathon._id);
     const fallbackImageRef = useRef<string>(getStableDefaultImage(`${hackathon._id}:${hackathon.title}`));
     const fallbackImage = fallbackImageRef.current;
@@ -117,6 +133,7 @@ const HackathonCard = ({ hackathon, displayIndex }: { hackathon: Hackathon; disp
     const [imageSource, setImageSource] = useState(initialImageSource);
     const [imageLoaded, setImageLoaded] = useState(() => loadedImageSourceCache.has(initialImageSource));
     const [isVisible, setIsVisible] = useState(hasBeenRevealed);
+    const [isMenuOpen, setIsMenuOpen] = useState(false);
 
     useEffect(() => {
         const nextSource = primaryImage || fallbackImage;
@@ -170,6 +187,64 @@ const HackathonCard = ({ hackathon, displayIndex }: { hackathon: Hackathon; disp
         return () => window.clearTimeout(timeoutId);
     }, [imageLoaded, fallbackImage, imageSource]);
 
+    useEffect(() => {
+        const handleDismissMenu = (event: MouseEvent) => {
+            if (menuRef.current && !menuRef.current.contains(event.target as Node)) {
+                setIsMenuOpen(false);
+            }
+        };
+
+        const handleEscape = (event: KeyboardEvent) => {
+            if (event.key === "Escape") {
+                setIsMenuOpen(false);
+            }
+        };
+
+        window.addEventListener("mousedown", handleDismissMenu);
+        window.addEventListener("keydown", handleEscape);
+
+        return () => {
+            window.removeEventListener("mousedown", handleDismissMenu);
+            window.removeEventListener("keydown", handleEscape);
+        };
+    }, []);
+
+    const handleCopyLink = async () => {
+        await navigator.clipboard.writeText(`${window.location.origin}/hackathons/${hackathon._id}`);
+        setIsMenuOpen(false);
+    };
+
+    const handleToggleBookmark = () => {
+        onToggleBookmark?.();
+        setIsMenuOpen(false);
+    };
+
+    const menuActions: CardAction[] = [
+        {
+            label: "View details",
+            onClick: () => {
+                window.location.href = `/hackathons/${hackathon._id}`;
+            },
+        },
+        {
+            label: "Copy link",
+            onClick: handleCopyLink,
+        },
+        ...(onToggleBookmark ? [{
+            label: isBookmarked ? "Remove bookmark" : "Bookmark",
+            onClick: handleToggleBookmark,
+            destructive: isBookmarked,
+        }] : []),
+        ...(hackathon.applyLink ? [{
+            label: "Open apply link",
+            onClick: () => {
+                window.open(hackathon.applyLink, "_blank", "noopener,noreferrer");
+                setIsMenuOpen(false);
+            },
+        }] : []),
+        ...extraActions,
+    ];
+
     const deadlineDisplay = getDeadlineDisplay(hackathon.deadline);
     const locationLabel = hackathon.location?.trim() || "TBD";
     const prizeDisplay = getPrizeDisplay(hackathon.prize);
@@ -184,6 +259,35 @@ const HackathonCard = ({ hackathon, displayIndex }: { hackathon: Hackathon; disp
             className={`group premium-border-card relative flex h-full flex-col overflow-hidden rounded-[1.75rem] border border-zinc-200/80 bg-white p-4 shadow-sm transition-all duration-500 ease-out hover:-translate-y-1 hover:border-zinc-300 hover:shadow-lg dark:border-zinc-800 dark:bg-zinc-900 dark:shadow-md dark:hover:border-zinc-700 dark:hover:shadow-lg ${isVisible ? "translate-x-0 translate-y-0 opacity-100" : "-translate-x-3 translate-y-2 opacity-0"}`}
             style={{ transitionDelay: isVisible ? `${revealDelay}ms` : "0ms" }}
         >
+            <div ref={menuRef} className="absolute right-3 top-3 z-20">
+                <button
+                    type="button"
+                    onClick={() => setIsMenuOpen((current) => !current)}
+                    className="inline-flex h-9 w-9 items-center justify-center rounded-full border border-zinc-200 bg-white/95 text-zinc-500 shadow-sm backdrop-blur-md transition hover:border-blue-400 hover:text-blue-700 dark:border-zinc-800 dark:bg-zinc-950/90 dark:text-zinc-300 dark:hover:border-blue-400 dark:hover:text-blue-300"
+                    aria-label="Card actions"
+                >
+                    <EllipsisVertical className="h-4.5 w-4.5" />
+                </button>
+
+                {isMenuOpen && (
+                    <div className="absolute right-0 mt-2 w-48 overflow-hidden rounded-2xl border border-zinc-200 bg-white py-1 shadow-2xl dark:border-zinc-800 dark:bg-zinc-950">
+                        {menuActions.map((action) => (
+                            <button
+                                key={action.label}
+                                type="button"
+                                onClick={action.onClick}
+                                className={`flex w-full items-center gap-2 px-4 py-2.5 text-left text-sm transition hover:bg-zinc-50 dark:hover:bg-zinc-900 ${
+                                    action.destructive ? "text-rose-600 dark:text-rose-400" : "text-zinc-700 dark:text-zinc-200"
+                                }`}
+                            >
+                                {action.label === "Bookmark" || action.label === "Remove bookmark" ? <Bookmark className="h-4 w-4" /> : action.label === "Copy link" ? <Copy className="h-4 w-4" /> : <ExternalLink className="h-4 w-4" />}
+                                {action.label}
+                            </button>
+                        ))}
+                    </div>
+                )}
+            </div>
+
             <Link to={`/hackathons/${hackathon._id}`} className="relative mb-3.5 block h-28 w-full overflow-hidden rounded-xl border border-zinc-200 bg-zinc-100 dark:border-zinc-800 dark:bg-zinc-900/60">
                 {/* Floating Tags Overlay */}
                 <div className="absolute left-2 top-2 z-10 flex flex-wrap gap-1">
