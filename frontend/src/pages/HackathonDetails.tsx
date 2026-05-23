@@ -1,9 +1,10 @@
 import { useEffect, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
-import { ArrowLeft, Calendar, MapPin, Award, ExternalLink, Clock, Building, Tag, Compass } from "lucide-react";
+import { ArrowLeft, Calendar, MapPin, Award, ExternalLink, Clock, Building, Tag, Compass, Bookmark, CheckCircle2 } from "lucide-react";
 import axiosInstance from "../utils/axiosInstance";
 import LoadingProgress from "../components/LoadingProgress";
+import { useAuth } from "../context/AuthContext";
 
 type Hackathon = {
   _id: string;
@@ -63,6 +64,64 @@ export default function HackathonDetailsPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [imageLoaded, setImageLoaded] = useState(false);
+
+  const { user, isAuthenticated, updateUser } = useAuth();
+  const [isBookmarkLoading, setIsBookmarkLoading] = useState(false);
+  const [isTrackLoading, setIsTrackLoading] = useState(false);
+
+  const isBookmarked = user?.savedHackathons?.includes(id || "") || false;
+  const appliedEntry = user?.applications?.find(
+    (app) => (typeof app.hackathon === "object" && app.hackathon ? app.hackathon._id : app.hackathon) === id
+  );
+
+  const handleToggleBookmark = async () => {
+    if (!isAuthenticated) {
+      navigate(`/login?returnTo=${encodeURIComponent(window.location.pathname)}`);
+      return;
+    }
+    setIsBookmarkLoading(true);
+    try {
+      const res = await axiosInstance.post(`/users/saved/${id}`);
+      if (res.data?.success && res.data?.data) {
+        updateUser({
+          ...user!,
+          savedHackathons: res.data.data.savedHackathons,
+        });
+      }
+    } catch (err) {
+      console.error("Failed to toggle bookmark", err);
+    } finally {
+      setIsBookmarkLoading(false);
+    }
+  };
+
+  const handleTrackApplication = async () => {
+    if (!isAuthenticated) {
+      navigate(`/login?returnTo=${encodeURIComponent(window.location.pathname)}`);
+      return;
+    }
+    setIsTrackLoading(true);
+    try {
+      if (appliedEntry) {
+        navigate("/dashboard?tab=tracker");
+      } else {
+        const res = await axiosInstance.post(`/users/applications`, {
+          hackathonId: id,
+          status: "Applied",
+        });
+        if (res.data?.success && res.data?.data) {
+          updateUser({
+            ...user!,
+            applications: [...user!.applications, res.data.data],
+          });
+        }
+      }
+    } catch (err) {
+      console.error("Failed to track application", err);
+    } finally {
+      setIsTrackLoading(false);
+    }
+  };
 
   useEffect(() => {
     let isMounted = true;
@@ -192,14 +251,29 @@ export default function HackathonDetailsPage() {
         {/* Content Info */}
         <div className="p-6 md:p-10">
           {/* Title and host */}
-          <div className="space-y-2">
-            <h1 className="text-2xl md:text-4xl font-extrabold tracking-tight text-zinc-900 dark:text-zinc-100">
-              {hackathon.title}
-            </h1>
-            <div className="flex flex-wrap items-center gap-2 text-zinc-600 dark:text-zinc-400">
-              <Building className="h-4.5 w-4.5 text-zinc-400" />
-              <span className="text-sm font-medium">Hosted by <strong className="font-semibold">{hackathon.organization || "Unknown Organizer"}</strong></span>
+          <div className="flex flex-col md:flex-row justify-between items-start gap-4">
+            <div className="space-y-2 flex-1">
+              <h1 className="text-2xl md:text-4xl font-extrabold tracking-tight text-zinc-900 dark:text-zinc-100">
+                {hackathon.title}
+              </h1>
+              <div className="flex flex-wrap items-center gap-2 text-zinc-600 dark:text-zinc-400">
+                <Building className="h-4.5 w-4.5 text-zinc-400" />
+                <span className="text-sm font-medium">Hosted by <strong className="font-semibold">{hackathon.organization || "Unknown Organizer"}</strong></span>
+              </div>
             </div>
+
+            <button
+              onClick={handleToggleBookmark}
+              disabled={isBookmarkLoading}
+              className={`flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl border transition-all duration-200 ${
+                isBookmarked
+                  ? "bg-amber-500/10 border-amber-500/30 text-amber-500 dark:text-amber-400"
+                  : "border-zinc-200 hover:bg-zinc-50 dark:border-zinc-800 dark:hover:bg-zinc-800 text-zinc-500 hover:text-zinc-900 dark:hover:text-zinc-100 bg-white dark:bg-zinc-900"
+              }`}
+              title={isBookmarked ? "Remove Bookmark" : "Save Hackathon"}
+            >
+              <Bookmark className={`h-5 w-5 ${isBookmarked ? "fill-current" : ""}`} />
+            </button>
           </div>
 
           <hr className="my-6 border-zinc-200 dark:border-zinc-800" />
@@ -348,22 +422,42 @@ export default function HackathonDetailsPage() {
           <hr className="my-8 border-zinc-200 dark:border-zinc-800" />
 
           {/* CTA Action button */}
-          <div className="flex flex-col sm:flex-row gap-4 justify-between items-center bg-zinc-50 dark:bg-zinc-950/20 p-5 rounded-3xl border border-zinc-100 dark:border-zinc-800/40">
-            <div className="text-center sm:text-left space-y-1">
-              <h4 className="text-sm font-bold text-zinc-800 dark:text-zinc-200">Ready to participate?</h4>
+          <div className="flex flex-col md:flex-row gap-4 justify-between items-center bg-zinc-50 dark:bg-zinc-950/20 p-5 rounded-3xl border border-zinc-100 dark:border-zinc-800/40">
+            <div className="text-center md:text-left space-y-1">
+              <h4 className="text-sm font-bold text-zinc-800 dark:text-zinc-200 font-semibold">Ready to participate?</h4>
               <p className="text-xs text-zinc-500 dark:text-zinc-400">This link takes you directly to the registration page on {hackathon.platform}.</p>
             </div>
-            {hackathon.applyLink && (
-              <a
-                href={hackathon.applyLink}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="w-full sm:w-auto inline-flex items-center justify-center gap-2 rounded-2xl bg-blue-600 px-6 py-3.5 text-base font-bold text-white shadow-lg shadow-blue-500/20 hover:shadow-blue-500/35 hover:-translate-y-0.5 hover:bg-blue-500 transition-all duration-200"
+            <div className="flex flex-col sm:flex-row gap-3 w-full md:w-auto">
+              <button
+                onClick={handleTrackApplication}
+                disabled={isTrackLoading}
+                className={`inline-flex items-center justify-center gap-2 rounded-2xl px-5 py-3 text-sm font-semibold border transition-all duration-200 ${
+                  appliedEntry
+                    ? "bg-emerald-500/10 border-emerald-500/30 text-emerald-600 dark:text-emerald-400 hover:bg-emerald-500/20"
+                    : "bg-white dark:bg-zinc-900 border-zinc-200 dark:border-zinc-800 text-zinc-700 dark:text-zinc-200 hover:bg-zinc-50 dark:hover:bg-zinc-800"
+                }`}
               >
-                Apply on {hackathon.platform}
-                <ExternalLink className="h-4.5 w-4.5" />
-              </a>
-            )}
+                {appliedEntry ? (
+                  <>
+                    <CheckCircle2 className="h-4 w-4 text-emerald-500" />
+                    Tracking: {appliedEntry.status}
+                  </>
+                ) : (
+                  "Track Application"
+                )}
+              </button>
+              {hackathon.applyLink && (
+                <a
+                  href={hackathon.applyLink}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-flex items-center justify-center gap-2 rounded-2xl bg-blue-600 px-6 py-3 text-sm font-semibold text-white shadow-lg shadow-blue-500/20 hover:shadow-blue-500/35 hover:-translate-y-0.5 hover:bg-blue-500 transition-all duration-200"
+                >
+                  Apply on {hackathon.platform}
+                  <ExternalLink className="h-4.5 w-4.5" />
+                </a>
+              )}
+            </div>
           </div>
 
         </div>
