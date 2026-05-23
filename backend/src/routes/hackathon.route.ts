@@ -1,15 +1,9 @@
 import { Router } from "express";
-import hackathon from "../models/hackathon.model.ts";
+import { getHackathons, getHackathonById } from "../controllers/hackathon.controller.ts";
 
 const router = Router();
 
-router.get("/", async (req, res) => {
-  try {
-    const hacks = await hackathon.find({});
-    res.json(hacks);
-  } catch (err) {
-    res.status(500).json({ error: "Failed to fetch hackathons" });
-  }
-});
+router.get("/", getHackathons);
+router.get("/:id", getHackathonById);
 
 export default router;

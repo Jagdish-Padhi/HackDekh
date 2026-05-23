@@ -102,6 +102,8 @@ export async function scrapeUnstopData() {
   );
 
   //save in the DB
+  console.log(`[Unstop Scraper] Saving ${uniqueHackathons.length} unique hackathons to DB...`);
+  let saveCount = 0;
   for (const hack of uniqueHackathons as any[]) {
     try {
       await hackathon.findOneAndUpdate(
@@ -110,16 +112,18 @@ export async function scrapeUnstopData() {
           platform: hack.platform,
         },
         { $set: hack },
-        { upsert: true, new: true }
+        { upsert: true, returnDocument: 'after' }
       );
+      saveCount++;
     } catch (err: any) {
       if (err.code === 11000) {
-        console.log(`skipped duplicate hackathon: ${hack.slug}`);
+        console.log(`[Unstop Scraper] Skipped duplicate hackathon: ${hack.slug}`);
       } else {
-        console.error(`DB Error for ${hack.slug}: `, err);
+        console.error(`[Unstop Scraper] DB Error for ${hack.slug}: `, err);
       }
     }
   }
+  console.log(`[Unstop Scraper] Successfully saved ${saveCount} Unstop hackathons.`);
 
   return normalizedList;
 

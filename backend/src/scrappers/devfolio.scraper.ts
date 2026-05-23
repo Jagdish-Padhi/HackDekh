@@ -7,7 +7,7 @@ import { ApiResponse } from "../utils/apiResponse.ts";
 import { ApiError } from "../utils/apiError.ts";
 
 const DEVFOLIO_LIST_URL = "https://devfolio.co/hackathons";
-const DEVFOLIO_DETAIL_CONCURRENCY = 5;
+const DEVFOLIO_DETAIL_CONCURRENCY = 15;
 
 const parseNextData = (html: string): any => {
   const $ = cheerio.load(html);
@@ -182,7 +182,7 @@ export const scrapeDevfolio = asyncHandler(async (req: any, res: any) => {
 
 export async function scrapeDevfolioData() {
   try {
-    //1. Fetch HTML from main page
+    console.log(`[Devfolio Scraper] Fetching lists...`);
     const html = await axios.get(DEVFOLIO_LIST_URL, { timeout: 15000 });
     const json = parseNextData(html.data);
     const hackathons =
@@ -193,26 +193,26 @@ export async function scrapeDevfolioData() {
       throw new Error("No Hackathons found...");
     }
 
-    // Devfolio list payload misses prize/image fields for many hackathons.
-    // Enrich each card with overview-page data before formatting.
+    console.log(`[Devfolio Scraper] Found ${hackathons.length} open hackathons. Enriching details & images...`);
     const enrichedHackathons = await enrichDevfolioHackathons(hackathons);
 
-    //2. Pass Raw Data to universal formatter
+    console.log(`[Devfolio Scraper] Enrichment completed. Formatting...`);
     const normalizedList = universalFormatter(enrichedHackathons, "devfolio");
 
-    //3. Save each hackathon in DB.
-    //To avoid duplicate insert checking if hackathon
-    //already existing then update else insert using upsert true.
+    console.log(`[Devfolio Scraper] Upserting ${normalizedList.length} items to database...`);
+    let upsertCount = 0;
     for (const hack of normalizedList as any[]) {
       await hackathon.findOneAndUpdate(
         { slug: hack.slug, platform: hack.platform },
         { $set: hack },
-        { upsert: true, new: true }
+        { upsert: true, returnDocument: 'after' }
       );
+      upsertCount++;
     }
+    console.log(`[Devfolio Scraper] Successfully upserted ${upsertCount} Devfolio hackathons.`);
     return normalizedList;
   } catch (error) {
-    console.log("Devfolio Scraper Error: ", error);
+    console.error("[Devfolio Scraper Error] Failed:", error);
     throw error;
   }
 }
