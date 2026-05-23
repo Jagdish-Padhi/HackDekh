@@ -1,64 +1,19 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { ChevronDown, Settings, UserCircle2 } from 'lucide-react';
-import axiosInstance from '../utils/axiosInstance';
 import { usePageChrome } from '../context/pageChrome';
-
-type CurrentUser = {
-  _id: string;
-  username?: string;
-  fullName?: string;
-  email?: string;
-};
+import { useAuth } from '../context/AuthContext';
 
 const Navbar = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const { sidebarExpanded } = usePageChrome();
   const [profileOpen, setProfileOpen] = useState(false);
-  const [user, setUser] = useState<CurrentUser | null>(null);
-  const [loadingUser, setLoadingUser] = useState(false);
-
-  const token = localStorage.getItem('accessToken');
-  const isLoggedIn = Boolean(token);
-
-  useEffect(() => {
-    let isMounted = true;
-
-    const loadCurrentUser = async () => {
-      if (!isLoggedIn) {
-        setUser(null);
-        return;
-      }
-
-      try {
-        setLoadingUser(true);
-        const response = await axiosInstance.get('/users/me');
-        if (!isMounted) {
-          return;
-        }
-        setUser(response.data?.data || null);
-      } catch {
-        if (isMounted) {
-          setUser(null);
-        }
-      } finally {
-        if (isMounted) {
-          setLoadingUser(false);
-        }
-      }
-    };
-
-    loadCurrentUser();
-
-    return () => {
-      isMounted = false;
-    };
-  }, [isLoggedIn]);
+  const { user, isAuthenticated, isLoading } = useAuth();
 
   const displayName = useMemo(() => {
-    return user?.fullName || user?.username || (loadingUser ? 'Loading...' : 'Account');
-  }, [user, loadingUser]);
+    return user?.fullName || user?.username || (isLoading ? 'Loading...' : 'Account');
+  }, [user, isLoading]);
 
   useEffect(() => {
     setProfileOpen(false);
@@ -69,7 +24,7 @@ const Navbar = () => {
       <div className="flex items-center justify-end gap-2.5">
         <div className="flex shrink-0 items-center gap-2.5">
 
-          {isLoggedIn && (
+          {isAuthenticated && (
             <div
               className="relative"
               onMouseEnter={() => setProfileOpen(true)}
@@ -103,7 +58,7 @@ const Navbar = () => {
                     type="button"
                     onClick={() => {
                       setProfileOpen(false)
-                      navigate('/settings')
+                      navigate('/dashboard?tab=settings')
                     }}
                     className="flex w-full items-center gap-2 rounded-xl px-3 py-2 text-sm text-zinc-700 transition hover:bg-zinc-100 dark:text-zinc-200 dark:hover:bg-zinc-800"
                   >

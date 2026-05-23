@@ -9,25 +9,42 @@ import SignupPage from './pages/Signup';
 import TeamsPage from './pages/Teams';
 import AcceptInvitationPage from './pages/AcceptInvitation';
 import DashboardPage from './pages/Dashboard';
-// import SettingsPage from './pages/Settings';
+import ProtectedRoute from './components/ProtectedRoute';
+import { AuthProvider } from './context/AuthContext';
 
 function App() {
   return (
     <Router>
-      <MainLayout>
-        <Routes>
-          <Route path="/" element={<HomePage />} />
-          <Route path="/login" element={<LoginPage />} />
-          <Route path="/signup" element={<SignupPage />} />
-          <Route path="/hackathons" element={<HackathonsPage />} />
-          <Route path="/hackathons/:id" element={<HackathonDetailsPage />} />
-          <Route path="/teams" element={<TeamsPage />} />
-          <Route path="/accept-invitation" element={<AcceptInvitationPage />} />
-          <Route path="/dashboard" element={<DashboardPage />} />
-          {/* <Route path="/settings" element={<SettingsPage />} /> */}
-          {/* Add more routes here as you build more pages */}
-        </Routes>
-      </MainLayout>
+      <AuthProvider>
+        <MainLayout>
+          <Routes>
+            <Route path="/" element={<HomePage />} />
+            <Route path="/login" element={<LoginPage />} />
+            <Route path="/signup" element={<SignupPage />} />
+            <Route path="/hackathons" element={<HackathonsPage />} />
+            <Route path="/hackathons/:id" element={<HackathonDetailsPage />} />
+            <Route path="/accept-invitation" element={<AcceptInvitationPage />} />
+            
+            {/* Protected Routes */}
+            <Route 
+              path="/teams" 
+              element={
+                <ProtectedRoute>
+                  <TeamsPage />
+                </ProtectedRoute>
+              } 
+            />
+            <Route 
+              path="/dashboard" 
+              element={
+                <ProtectedRoute>
+                  <DashboardPage />
+                </ProtectedRoute>
+              } 
+            />
+          </Routes>
+        </MainLayout>
+      </AuthProvider>
     </Router>
   );
 }
