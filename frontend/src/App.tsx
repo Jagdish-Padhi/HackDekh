@@ -3,6 +3,7 @@ import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 import MainLayout from './components/MainLayout';
 import HomePage from './pages/Home';
 import HackathonsPage from './pages/Hackathons';
+import HackathonDetailsPage from './pages/HackathonDetails';
 import LoginPage from './pages/Login';
 import SignupPage from './pages/Signup';
 import TeamsPage from './pages/Teams';
@@ -19,6 +20,7 @@ function App() {
           <Route path="/login" element={<LoginPage />} />
           <Route path="/signup" element={<SignupPage />} />
           <Route path="/hackathons" element={<HackathonsPage />} />
+          <Route path="/hackathons/:id" element={<HackathonDetailsPage />} />
           <Route path="/teams" element={<TeamsPage />} />
           <Route path="/accept-invitation" element={<AcceptInvitationPage />} />
           <Route path="/dashboard" element={<DashboardPage />} />

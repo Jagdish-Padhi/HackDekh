@@ -172,21 +172,34 @@ const HackathonCard = ({ hackathon, displayIndex }: { hackathon: Hackathon; disp
     const deadlineDisplay = getDeadlineDisplay(hackathon.deadline);
     const locationLabel = hackathon.location?.trim() || "TBD";
     const prizeDisplay = getPrizeDisplay(hackathon.prize);
-    const deadlineChipClass = deadlineDisplay.isUrgent
-        ? "inline-flex rounded-full border border-rose-300/80 bg-gradient-to-r from-rose-50 via-red-50 to-orange-50 px-2.5 py-1 text-[0.72rem] font-semibold text-rose-700 shadow-[0_0_0_1px_rgba(244,63,94,0.12),0_10px_20px_-14px_rgba(225,29,72,0.9)] dark:border-rose-400/35 dark:bg-gradient-to-r dark:from-rose-500/18 dark:via-red-500/16 dark:to-orange-500/14 dark:text-rose-200"
-        : "inline-flex rounded-full border border-zinc-200 bg-zinc-50 px-2.5 py-1 text-[0.72rem] dark:border-zinc-700 dark:bg-zinc-800/55";
     const prizeChipClass = prizeDisplay.isTbd
-        ? "inline-flex items-center gap-1.5 rounded-full border border-amber-300 bg-amber-50 px-2.5 py-1 text-[0.72rem] font-semibold text-amber-700 shadow-[0_0_0_1px_rgba(251,191,36,0.1),0_10px_20px_-16px_rgba(245,158,11,0.95)] dark:border-amber-400/30 dark:bg-amber-500/12 dark:text-amber-300 dark:shadow-[0_0_0_1px_rgba(251,191,36,0.2),0_10px_20px_-14px_rgba(245,158,11,0.8)]"
-        : "inline-flex items-center gap-1.5 rounded-full border border-emerald-300/80 bg-emerald-50 px-2.5 py-1 text-[0.72rem] font-semibold text-emerald-700 shadow-[0_0_0_1px_rgba(16,185,129,0.08),0_12px_24px_-16px_rgba(5,150,105,0.9)] dark:border-emerald-400/35 dark:bg-emerald-500/12 dark:text-emerald-300 dark:shadow-[0_0_0_1px_rgba(52,211,153,0.2),0_10px_20px_-14px_rgba(16,185,129,0.8)]";
+        ? "inline-flex items-center gap-1.5 rounded-lg border border-zinc-200 bg-zinc-50 px-2 py-0.5 text-[0.7rem] font-semibold text-zinc-500 dark:border-zinc-850 dark:bg-zinc-800/40 dark:text-zinc-400"
+        : "inline-flex items-center gap-1.5 rounded-lg border border-emerald-200/80 bg-emerald-50/60 px-2 py-0.5 text-[0.72rem] font-bold text-emerald-700 dark:border-emerald-500/20 dark:bg-emerald-500/10 dark:text-emerald-400";
     const revealDelay = (displayIndex % 4) * 65;
 
     return (
         <div
             ref={cardRef}
-            className={`group premium-border-card relative flex h-full flex-col overflow-hidden rounded-3xl border border-zinc-200/90 bg-white p-3.5 shadow-sm transition-[opacity,transform,border-color,box-shadow] duration-500 ease-out hover:-translate-y-1 hover:border-zinc-300 hover:shadow-lg dark:border-zinc-800 dark:bg-zinc-900 dark:shadow-md dark:hover:border-zinc-700 dark:hover:shadow-lg ${isVisible ? "translate-x-0 translate-y-0 opacity-100" : "-translate-x-3 translate-y-2 opacity-0"}`}
+            className={`group premium-border-card relative flex h-full flex-col overflow-hidden rounded-[1.75rem] border border-zinc-200/80 bg-white p-4 shadow-sm transition-all duration-500 ease-out hover:-translate-y-1 hover:border-zinc-300 hover:shadow-lg dark:border-zinc-800 dark:bg-zinc-900 dark:shadow-md dark:hover:border-zinc-700 dark:hover:shadow-lg ${isVisible ? "translate-x-0 translate-y-0 opacity-100" : "-translate-x-3 translate-y-2 opacity-0"}`}
             style={{ transitionDelay: isVisible ? `${revealDelay}ms` : "0ms" }}
         >
-            <div className="relative mb-3 h-28 w-full overflow-hidden rounded-xl border border-zinc-200 bg-zinc-100 dark:border-zinc-800 dark:bg-zinc-900/60">
+            <div className="relative mb-3.5 h-28 w-full overflow-hidden rounded-xl border border-zinc-200 bg-zinc-100 dark:border-zinc-800 dark:bg-zinc-900/60">
+                {/* Floating Tags Overlay */}
+                <div className="absolute left-2 top-2 z-10 flex flex-wrap gap-1">
+                    <span className="inline-flex items-center rounded-md bg-zinc-900/80 backdrop-blur-md px-2 py-0.5 text-[0.62rem] font-bold uppercase tracking-wider text-white border border-white/10">
+                        {hackathon.platform}
+                    </span>
+                    {hackathon.mode && (
+                        <span className={`inline-flex items-center rounded-md backdrop-blur-md px-2 py-0.5 text-[0.62rem] font-bold uppercase tracking-wider text-white border ${
+                            /^online$/i.test(hackathon.mode)
+                                ? "bg-emerald-600/85 border-emerald-500/20"
+                                : "bg-indigo-600/85 border-indigo-500/20"
+                        }`}>
+                            {hackathon.mode}
+                        </span>
+                    )}
+                </div>
+
                 {!imageLoaded && (
                     <div
                         aria-hidden="true"
@@ -212,53 +225,67 @@ const HackathonCard = ({ hackathon, displayIndex }: { hackathon: Hackathon; disp
                         imageElement.onerror = null;
                         setImageSource(fallbackImage);
                     }}
-                    className={`h-full w-full object-cover transition-opacity duration-500 ${imageLoaded ? "opacity-100" : "opacity-0"}`}
+                    className={`h-full w-full object-cover transition-transform duration-500 ease-out group-hover:scale-105 ${imageLoaded ? "opacity-100" : "opacity-0"}`}
                 />
             </div>
-        <div className="mb-3 flex flex-wrap gap-1.5">
-            <span className="inline-flex rounded-full border border-blue-300/80 bg-blue-50 px-2.5 py-0.5 text-[0.65rem] font-medium uppercase tracking-[0.15em] text-blue-700 dark:border-blue-400/25 dark:bg-blue-500/12 dark:text-blue-300">
-                {hackathon.platform}
-            </span>
-            {hackathon.mode && (
-                <span className="inline-flex rounded-full border border-zinc-200 bg-zinc-50 px-2.5 py-0.5 text-[0.65rem] font-medium uppercase tracking-[0.15em] text-zinc-600 dark:border-zinc-700 dark:bg-zinc-800/60 dark:text-zinc-400">
-                    {hackathon.mode}
-                </span>
-            )}
-        </div>
-        <h2 className="line-clamp-2 text-lg font-semibold tracking-tight text-zinc-900 dark:text-zinc-100">
-            {hackathon.title}
-        </h2>
-        <div className="mt-2.5 flex flex-wrap gap-1.5 text-[0.72rem] text-zinc-500 dark:text-zinc-400">
-            <span className={deadlineChipClass}>
-                Deadline: {deadlineDisplay.label}
-            </span>
-            <span className="inline-flex rounded-full border border-zinc-200 bg-zinc-50 px-2.5 py-1 text-[0.72rem] dark:border-zinc-700 dark:bg-zinc-800/55">
-                Location: {locationLabel}
-            </span>
-        </div>
-        <div className="mt-3.5 flex items-end justify-between gap-2">
-            <div className="min-h-8">
-                <span className={prizeChipClass}>
-                    <img
-                        src="/prizeSvg.svg"
-                        alt=""
-                        aria-hidden="true"
-                        className={`h-3.5 w-3.5 shrink-0 ${prizeDisplay.isTbd ? "opacity-85" : ""}`}
-                    />
-                    {prizeDisplay.label}
-                </span>
+
+            <h2 className="line-clamp-2 h-11 text-[0.92rem] font-bold leading-5 text-zinc-900 dark:text-zinc-100 group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors duration-200">
+                {hackathon.title}
+            </h2>
+
+            {/* Vertical structured metadata list */}
+            <div className="mt-3.5 space-y-2 border-t border-zinc-100 pt-3 dark:border-zinc-800/80">
+                <div className="flex items-center gap-2 text-[0.72rem] text-zinc-500 dark:text-zinc-400">
+                    <svg className="h-3.5 w-3.5 shrink-0 text-zinc-400 dark:text-zinc-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                    </svg>
+                    <span className="font-medium whitespace-nowrap">
+                        Deadline:{" "}
+                        <span className={deadlineDisplay.isUrgent ? "text-rose-600 font-semibold dark:text-rose-400" : "text-zinc-700 dark:text-zinc-300 font-semibold"}>
+                            {deadlineDisplay.label}
+                        </span>
+                    </span>
+                </div>
+                <div className="flex items-center gap-2 text-[0.72rem] text-zinc-500 dark:text-zinc-400">
+                    <svg className="h-3.5 w-3.5 shrink-0 text-zinc-400 dark:text-zinc-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
+                    </svg>
+                    <span className="font-medium truncate" title={locationLabel}>
+                        Location: <span className="text-zinc-700 dark:text-zinc-300 font-semibold">{locationLabel}</span>
+                    </span>
+                </div>
             </div>
-            {hackathon.applyLink && (
-                <a
-                    href={hackathon.applyLink}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="inline-flex min-w-30 items-center justify-center rounded-full border border-blue-500/35 bg-blue-600 px-4 py-2 text-sm font-semibold text-white shadow-sm transition-all duration-200 hover:-translate-y-0.5 hover:bg-blue-500 hover:shadow-md dark:border-blue-400/40 dark:bg-blue-500 dark:hover:bg-blue-400 dark:hover:shadow-md"
-                >
-                    View Details
-                </a>
-            )}
-        </div>
+
+            {/* Footer with Prize & Button */}
+            <div className="mt-auto pt-4 flex items-center justify-between gap-3">
+                <div className="flex items-center">
+                    <span className={prizeChipClass}>
+                        <img
+                            src="/prizeSvg.svg"
+                            alt=""
+                            aria-hidden="true"
+                            className={`h-3.5 w-3.5 shrink-0 ${prizeDisplay.isTbd ? "opacity-80" : ""}`}
+                        />
+                        <span className="truncate max-w-[170px]" title={prizeDisplay.label}>
+                            {prizeDisplay.label}
+                        </span>
+                    </span>
+                </div>
+                {hackathon.applyLink && (
+                    <a
+                        href={hackathon.applyLink}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="inline-flex items-center justify-center rounded-xl bg-blue-600 px-3.5 py-1.5 text-xs font-semibold text-white shadow-sm transition-all duration-200 hover:-translate-y-0.5 hover:bg-blue-500 hover:shadow-md dark:bg-blue-500 dark:hover:bg-blue-400"
+                    >
+                        View Details
+                        <svg className="ml-1 h-3 w-3 transition-transform duration-200 group-hover:translate-x-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2.5">
+                            <path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" />
+                        </svg>
+                    </a>
+                )}
+            </div>
         </div>
     );
 };

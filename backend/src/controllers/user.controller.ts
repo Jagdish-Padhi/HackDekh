@@ -133,7 +133,7 @@ const logoutUser = asyncHandler(async (req: any, res: any) => {
   await User.findByIdAndUpdate(
     req.user._id,
     { $set: { refreshToken: undefined } },
-    { new: true }
+    { returnDocument: 'after' }
   );
   const options = { httpOnly: true, secure: true };
   return res
@@ -230,7 +230,7 @@ const updateAccountDetails = asyncHandler(async (req: any, res: any) => {
         email,
       },
     },
-    { new: true }
+    { returnDocument: 'after' }
   ).select("-password");
 
   return res

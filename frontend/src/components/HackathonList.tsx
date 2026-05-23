@@ -21,162 +21,9 @@ type Hackathon = {
 
 type SortBy = '' | 'deadline-asc' | 'deadline-desc' | 'prize-desc' | 'prize-asc'
 
-const CITY_LOCATION_ALIASES: Record<string, string[]> = {
-    bengaluru: ['bengaluru', 'bangalore', 'karnataka', 'mysuru', 'tumakuru', 'tumkur', 'hosur'],
-    'delhi-ncr': ['delhi', 'new delhi', 'ncr', 'gurgaon', 'gurugram', 'noida', 'ghaziabad', 'faridabad'],
-    mumbai: ['mumbai', 'navi mumbai', 'thane', 'powai', 'maharashtra'],
-    pune: ['pune', 'pimpri', 'chinchwad', 'maharashtra'],
-    hyderabad: ['hyderabad', 'telangana', 'secunderabad', 'gachibowli'],
-    chennai: ['chennai', 'tamil nadu', 'tambaram', 'chengalpattu'],
-    kolkata: ['kolkata', 'calcutta', 'west bengal', 'howrah'],
-    ahmedabad: ['ahmedabad', 'gujarat', 'gandhinagar'],
-    jaipur: ['jaipur', 'rajasthan'],
-    kochi: ['kochi', 'cochin', 'ernakulam', 'kerala'],
-}
 
-const SAFE_DEADLINE_BUFFER_DAYS = 3
-const SAFE_DEADLINE_MIN_WINDOW_DAYS = 5
+
 const DESKTOP_MEDIA_QUERY = '(min-width: 1024px)'
-
-const isUnavailablePrize = (value: string) =>
-    /^(?:tbd|na|n\/a|none|null|undefined|not\s*(?:announced|disclosed)|to\s*be\s*announced|--?)$/i.test(value.trim())
-
-const getComparableDeadlineDate = (deadline?: string) => {
-    if (!deadline?.trim()) {
-        return null
-    }
-
-    const rawDeadline = deadline.trim()
-    const parsed = new Date(rawDeadline)
-
-    if (Number.isNaN(parsed.getTime())) {
-        return null
-    }
-
-    if (/^\d{4}-\d{2}-\d{2}$/.test(rawDeadline)) {
-        parsed.setHours(23, 59, 59, 999)
-    }
-
-    const msPerDay = 1000 * 60 * 60 * 24
-    const daysUntilActualDeadline = Math.ceil((parsed.getTime() - Date.now()) / msPerDay)
-
-    if (daysUntilActualDeadline > SAFE_DEADLINE_MIN_WINDOW_DAYS) {
-        parsed.setDate(parsed.getDate() - SAFE_DEADLINE_BUFFER_DAYS)
-    }
-
-    return Number.isNaN(parsed.getTime()) ? null : parsed
-}
-
-const getPrizeAmount = (prize?: string) => {
-    if (!prize?.trim()) {
-        return null
-    }
-
-    const cleanedPrize = prize
-        .replace(/^\s*(?:total\s+)?prize\s*pool\s*[:\-–]?\s*/i, '')
-        .replace(/^\s*prizes?\s*[:\-–]?\s*/i, '')
-        .trim()
-
-    if (!cleanedPrize || isUnavailablePrize(cleanedPrize)) {
-        return null
-    }
-
-    const amountRegex = /(\d[\d,]*(?:\.\d+)?)\s*(crore|cr|lakh|lac|k)?/gi
-    let totalAmount = 0
-    let hasValue = false
-
-    for (const match of cleanedPrize.matchAll(amountRegex)) {
-        const rawAmount = Number(match[1].replace(/,/g, ''))
-        if (!Number.isFinite(rawAmount) || rawAmount <= 0) {
-            continue
-        }
-
-        const unit = (match[2] || '').toLowerCase()
-        const multiplier = unit === 'crore' || unit === 'cr'
-            ? 10000000
-            : unit === 'lakh' || unit === 'lac'
-                ? 100000
-                : unit === 'k'
-                    ? 1000
-                    : 1
-
-        totalAmount += rawAmount * multiplier
-        hasValue = true
-    }
-
-    return hasValue ? totalAmount : null
-}
-
-const compareNullableNumbers = (a: number | null, b: number | null, direction: 'asc' | 'desc') => {
-    if (a === null && b === null) {
-        return 0
-    }
-
-    if (a === null) {
-        return 1
-    }
-
-    if (b === null) {
-        return -1
-    }
-
-    return direction === 'asc' ? a - b : b - a
-}
-
-const hasDeadlinePassed = (deadline?: string) => {
-    const comparableDeadline = getComparableDeadlineDate(deadline)
-    if (!comparableDeadline) {
-        return false
-    }
-
-    return comparableDeadline.getTime() < Date.now()
-}
-
-const matchesLocationFilter = (location: string | undefined, selectedCity: string) => {
-    if (!selectedCity) {
-        return true
-    }
-
-    if (!location?.trim()) {
-        return false
-    }
-
-    const normalizedLocation = location.toLowerCase()
-    const aliases = CITY_LOCATION_ALIASES[selectedCity] || [selectedCity]
-
-    return aliases.some(alias => normalizedLocation.includes(alias))
-}
-
-const normalizePlatform = (value?: string) =>
-    value?.trim().toLowerCase().replace(/\s+/g, ' ') || ''
-
-const matchesPlatformFilter = (hackathonPlatform: string | undefined, selectedPlatform: string) => {
-    if (!selectedPlatform) {
-        return true
-    }
-
-    const normalizedSelected = normalizePlatform(selectedPlatform)
-    const normalizedHackathonPlatform = normalizePlatform(hackathonPlatform)
-
-    if (!normalizedHackathonPlatform) {
-        return false
-    }
-
-    if (normalizedHackathonPlatform === normalizedSelected) {
-        return true
-    }
-
-    // Be tolerant to minor API value variations such as "UnStop" / "unstop.com".
-    if (normalizedSelected === 'unstop') {
-        return normalizedHackathonPlatform.includes('unstop')
-    }
-
-    if (normalizedSelected === 'devfolio') {
-        return normalizedHackathonPlatform.includes('devfolio')
-    }
-
-    return false
-}
 
 const HackathonList = () => {
     const [hackathons, setHackathons] = useState<Hackathon[]>([])
@@ -249,6 +96,8 @@ const HackathonList = () => {
         let activeRequestAbort: AbortController | null = null
         let retryAttempt = 0
 
+        setLoading(true)
+
         const fallbackProgress = window.setInterval(() => {
             setProgressTarget(previous => Math.max(previous, Math.min(previous + Math.random() * 6, 92)))
         }, 220)
@@ -258,6 +107,13 @@ const HackathonList = () => {
 
             axiosInstance.get('/hackathons', {
                 signal: activeRequestAbort.signal,
+                params: {
+                    search: deferredSearch,
+                    platform,
+                    mode,
+                    location: locationFilter,
+                    sortBy
+                },
                 onDownloadProgress: event => {
                     if (!isMounted || !event.total) {
                         return
@@ -272,7 +128,11 @@ const HackathonList = () => {
                         return
                     }
 
-                    const responseData = Array.isArray(res.data) ? res.data : []
+                    const responseData = Array.isArray(res.data?.data)
+                        ? res.data.data
+                        : Array.isArray(res.data)
+                            ? res.data
+                            : []
                     window.clearInterval(fallbackProgress)
                     setHackathons(responseData)
                     setHasLoadedFromServer(true)
@@ -310,7 +170,7 @@ const HackathonList = () => {
                 window.clearTimeout(finishTimeout)
             }
         }
-    }, [refreshNonce])
+    }, [refreshNonce, deferredSearch, platform, mode, locationFilter, sortBy])
 
     const isStillLoading = loading || !hasLoadedFromServer
 
@@ -332,53 +192,7 @@ const HackathonList = () => {
         ? 'Loading hackathons'
         : 'Connecting to server and loading hackathons'
 
-    const filtered = useMemo(() => {
-        const normalizedSearch = deferredSearch.trim().toLowerCase()
-
-        return hackathons.filter(h =>
-            !hasDeadlinePassed(h.deadline) &&
-            h.title.toLowerCase().includes(normalizedSearch) &&
-            matchesPlatformFilter(h.platform, platform) &&
-            (mode ? h.mode === mode : true) &&
-            matchesLocationFilter(h.location, locationFilter)
-        )
-    }, [hackathons, deferredSearch, platform, mode, locationFilter])
-
-    const filteredAndSorted = useMemo(() => {
-        if (!sortBy) {
-            return filtered
-        }
-
-        return [...filtered].sort((a, b) => {
-            if (sortBy === 'deadline-asc') {
-                return compareNullableNumbers(
-                    getComparableDeadlineDate(a.deadline)?.getTime() ?? null,
-                    getComparableDeadlineDate(b.deadline)?.getTime() ?? null,
-                    'asc'
-                )
-            }
-
-            if (sortBy === 'deadline-desc') {
-                return compareNullableNumbers(
-                    getComparableDeadlineDate(a.deadline)?.getTime() ?? null,
-                    getComparableDeadlineDate(b.deadline)?.getTime() ?? null,
-                    'desc'
-                )
-            }
-
-            if (sortBy === 'prize-asc') {
-                return compareNullableNumbers(getPrizeAmount(a.prize), getPrizeAmount(b.prize), 'asc')
-            }
-
-            if (sortBy === 'prize-desc') {
-                return compareNullableNumbers(getPrizeAmount(a.prize), getPrizeAmount(b.prize), 'desc')
-            }
-
-            return 0
-        })
-    }, [filtered, sortBy])
-
-    const visibleHackathons = filteredAndSorted
+    const visibleHackathons = hackathons
 
     const emptyStateMessage = hackathons.length === 0
         ? 'No hackathons found...'
@@ -480,7 +294,7 @@ const HackathonList = () => {
                             ))}
                         </div>
                     </div>
-                ) : filteredAndSorted.length ? (
+                ) : visibleHackathons.length ? (
                     <div className={`grid grid-cols-1 gap-4 transition-all duration-300 sm:grid-cols-2 xl:grid-cols-4 ${showResults ? 'translate-y-0 opacity-100' : 'translate-y-1 opacity-0'}`}>
                         {visibleHackathons.map((hack, index) => (
                             <HackathonCard key={hack._id} hackathon={hack} displayIndex={index} />

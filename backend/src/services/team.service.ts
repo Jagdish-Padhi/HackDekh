@@ -99,7 +99,7 @@ export async function updateTeamName(teamId: string, ownerId: Types.ObjectId, na
     const updatedTeam = await Team.findOneAndUpdate(
         { _id: teamId, owner: ownerId },
         { $set: { name: name.trim() } },
-        { new: true }
+        { returnDocument: 'after' }
     )
         .populate('owner', 'username fullName email')
         .populate('members', 'username fullName email');
@@ -148,7 +148,7 @@ export async function removeMember(teamId: string, ownerId: Types.ObjectId, memb
     const updatedTeam = await Team.findOneAndUpdate(
         { _id: teamId, owner: ownerId },
         { $pull: { members: new Types.ObjectId(memberId) } },
-        { new: true }
+        { returnDocument: 'after' }
     )
         .populate('owner', 'username fullName email')
         .populate('members', 'username fullName email');
