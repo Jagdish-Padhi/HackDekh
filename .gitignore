@@ -5,9 +5,8 @@ node_modules/
 dist/
 build/
 *.tsbuildinfo
-*.js
-*.js.map
-*.d.ts
+# Only ignore compiled TS output, NOT source JS files (e.g., vite.config.js, etc.)
+# Scoped to dist/build output folders above — don't add bare *.js here
 
 # ======================
 # Environment files
