@@ -35,7 +35,8 @@ export const teamApi = {
   generateInvitationLink: async (teamId: string, email: string): Promise<GeneratedInvitationLink> => {
     const response = await axiosInstance.post<ApiResponse<GeneratedInvitationLink>>(
       `/teams/${teamId}/generate-invite-link`,
-      { email }
+      { email },
+      { timeout: 20000 }
     );
     return unwrap(response);
   },

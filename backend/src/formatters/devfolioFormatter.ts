@@ -7,12 +7,17 @@ const normalizeText = (value: unknown): string | null => {
     return trimmed.length ? trimmed : null;
 };
 
-const formatCurrency = (amount: unknown): string | null => {
+const formatCurrency = (amount: unknown, currencyCode: unknown = "INR"): string | null => {
     if (typeof amount !== "number" || !Number.isFinite(amount) || amount <= 0) {
         return null;
     }
 
-    return `Rs ${amount.toLocaleString("en-IN")}`;
+    const code = typeof currencyCode === "string" ? currencyCode.trim().toUpperCase() : "INR";
+    if (code === "INR") {
+        return `Rs ${amount.toLocaleString("en-IN")}`;
+    }
+
+    return `${code} ${amount.toLocaleString("en-IN")}`;
 };
 
 const extractAmountFromValue = (value: unknown): number => {
@@ -147,10 +152,42 @@ const extractFromGeographies = (value: unknown): string | null => {
 };
 
 const extractDevfolioPrize = (settings: any): string | null => {
+    const aggregatePrizeValue = settings?.aggregatePrizeValue;
+    const aggregatePrizeCurrency = settings?.aggregatePrizeCurrency;
+    const formattedAggregate = formatCurrency(aggregatePrizeValue, aggregatePrizeCurrency);
+    if (formattedAggregate) {
+        return formattedAggregate;
+    }
+
+    const prizeDetails = Array.isArray(settings?.prizeDetails) ? settings.prizeDetails : [];
+    if (prizeDetails.length) {
+        let totalAmount = 0;
+        let detectedCurrency: string | null = null;
+
+        for (const detail of prizeDetails) {
+            const prizes = Array.isArray(detail?.prizes) ? detail.prizes : [];
+            for (const prize of prizes) {
+                const quantity = typeof prize?.quantity === "number" && Number.isFinite(prize.quantity)
+                    ? Math.max(prize.quantity, 1)
+                    : 1;
+                totalAmount += extractAmountFromValue(prize?.amount) * quantity;
+
+                if (!detectedCurrency && typeof prize?.currency === "string" && prize.currency.trim().length) {
+                    detectedCurrency = prize.currency;
+                }
+            }
+        }
+
+        const formattedFromDetails = formatCurrency(totalAmount, detectedCurrency || "INR");
+        if (formattedFromDetails) {
+            return formattedFromDetails;
+        }
+    }
+
     const rawPrize = settings?.prize_pool ?? settings?.prize ?? settings?.prizes ?? null;
 
     const directAmount = extractAmountFromValue(rawPrize);
-    const formattedDirectAmount = formatCurrency(directAmount);
+    const formattedDirectAmount = formatCurrency(directAmount, "INR");
     if (formattedDirectAmount) {
         return formattedDirectAmount;
     }
@@ -172,7 +209,7 @@ const extractDevfolioPrize = (settings: any): string | null => {
             );
         }, 0);
 
-        const formattedTotalAmount = formatCurrency(totalAmount);
+        const formattedTotalAmount = formatCurrency(totalAmount, "INR");
         if (formattedTotalAmount) {
             return formattedTotalAmount;
         }
@@ -228,10 +265,15 @@ export default function formatDevfolio(rawData: any) {
         applyLink: `https://${h.slug}.devfolio.co/overview`,
         organization: h.settings?.organization_name ?? null,
         tags: h.settings?.themes ?? [],
-        prize: extractDevfolioPrize(h.settings),
+        prize: extractDevfolioPrize({
+            ...(h.settings ?? {}),
+            aggregatePrizeValue: h.aggregatePrizeValue,
+            aggregatePrizeCurrency: h.aggregatePrizeCurrency,
+            prizeDetails: h.prizeDetails,
+        }),
         location: extractDevfolioLocation(h),
         // Use featured_cover_img_v2, then featured_cover_img, then fallback to other fields
-        coverImage: h.settings?.featured_cover_img_v2 || h.settings?.featured_cover_img || h.settings?.cover_img || h.settings?.og_img || h.logo || h.settings?.logo || null,
+        coverImage: h.settings?.featured_cover_img_v2 || h.settings?.featured_cover_img || h.cover_img || h.settings?.cover_img || h.settings?.og_img || h.logo || h.settings?.logo || null,
         scrapedFromURL: "https://devfolio.co/hackathons"
     }));
     return formatedData;

@@ -45,14 +45,14 @@ const Dropdown = ({ value, onChange, options, placeholder }: DropdownProps) => {
     }
 
     return (
-        <div ref={ref} className="relative w-full sm:w-43 sm:shrink-0">
+        <div ref={ref} className={`relative w-full sm:w-36 sm:shrink-0 xl:w-44 ${open ? 'z-60' : 'z-0'}`}>
             {/* Trigger button */}
             <button
                 type="button"
                 onClick={() => setOpen(prev => !prev)}
-                className={`flex h-12 w-full items-center justify-between gap-3 whitespace-nowrap rounded-2xl border px-4 py-3 text-sm font-medium shadow-sm transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md focus:outline-none focus:ring-4 ${
+                className={`flex h-10 w-full items-center justify-between gap-2 whitespace-nowrap rounded-xl border px-3 py-2 text-[0.82rem] font-medium shadow-sm transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md focus:outline-none focus:ring-3 ${
                     open
-                        ? 'border-blue-500/45 ring-4 ring-blue-500/12 dark:border-blue-400/50 dark:ring-blue-400/20'
+                        ? 'border-blue-500/45 ring-3 ring-blue-500/12 dark:border-blue-400/50 dark:ring-blue-400/20'
                         : 'border-zinc-200 dark:border-zinc-800'
                 } bg-white text-zinc-900 dark:bg-zinc-900 dark:text-zinc-100`}
             >
@@ -79,7 +79,7 @@ const Dropdown = ({ value, onChange, options, placeholder }: DropdownProps) => {
 
             {/* Dropdown panel */}
             <div
-                className={`absolute left-0 z-50 mt-2 w-full min-w-full origin-top overflow-hidden rounded-2xl border border-zinc-200/90 bg-white shadow-sm backdrop-blur-md transition-all duration-200 dark:border-zinc-800 dark:bg-zinc-900 dark:shadow-md ${
+                className={`absolute left-0 z-60 mt-2 w-full min-w-full origin-top overflow-hidden rounded-2xl border border-zinc-200/90 bg-white shadow-sm backdrop-blur-md transition-all duration-200 dark:border-zinc-800 dark:bg-zinc-900 dark:shadow-md ${
                     open
                         ? 'pointer-events-auto scale-100 opacity-100'
                         : 'pointer-events-none scale-95 opacity-0'
@@ -171,7 +171,7 @@ const FilterPanel = ({
     locationFilter,
     setLocationFilter,
 }: FilterPanelProps) => (
-    <div className="flex w-full flex-wrap items-center gap-2 sm:w-auto lg:shrink-0 lg:flex-nowrap">
+    <div className="flex w-full flex-col gap-2 overflow-visible sm:flex-row sm:flex-wrap sm:items-center lg:w-auto lg:flex-nowrap">
         <Dropdown
             value={platform}
             onChange={setPlatform}
