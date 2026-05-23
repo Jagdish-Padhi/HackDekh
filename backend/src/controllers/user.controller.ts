@@ -240,6 +240,180 @@ const updateAccountDetails = asyncHandler(async (req: any, res: any) => {
 
 
 
+// Toggle Bookmark (Save / Unsave) a Hackathon
+const toggleSaveHackathon = asyncHandler(async (req: any, res: any) => {
+  const { hackathonId } = req.params;
+  const user = await User.findById(req.user?._id);
+
+  if (!user) {
+    throw new ApiError(404, "User not found");
+  }
+
+  const index = user.savedHackathons.indexOf(hackathonId as any);
+  if (index === -1) {
+    user.savedHackathons.push(hackathonId as any);
+  } else {
+    user.savedHackathons.splice(index, 1);
+  }
+
+  await user.save({ validateBeforeSave: false });
+
+  return res
+    .status(200)
+    .json(
+      new ApiResponse(
+        200,
+        { savedHackathons: user.savedHackathons },
+        "Hackathon bookmark toggled successfully!"
+      )
+    );
+});
+
+// Fetch Populated Saved Hackathons
+const getSavedHackathons = asyncHandler(async (req: any, res: any) => {
+  const user = await User.findById(req.user?._id).populate("savedHackathons");
+  if (!user) {
+    throw new ApiError(404, "User not found");
+  }
+
+  return res
+    .status(200)
+    .json(
+      new ApiResponse(
+        200,
+        user.savedHackathons,
+        "Saved hackathons fetched successfully!"
+      )
+    );
+});
+
+// Add a Hackathon Application
+const addApplication = asyncHandler(async (req: any, res: any) => {
+  const { hackathonId, status, notes } = req.body;
+
+  if (!hackathonId) {
+    throw new ApiError(400, "Hackathon ID is required!");
+  }
+
+  const user = await User.findById(req.user?._id);
+  if (!user) {
+    throw new ApiError(404, "User not found");
+  }
+
+  const existingApp = user.applications.find(
+    (app) => app.hackathon.toString() === hackathonId
+  );
+  if (existingApp) {
+    throw new ApiError(400, "Application for this hackathon already exists!");
+  }
+
+  user.applications.push({
+    hackathon: hackathonId,
+    status: status || "Applied",
+    notes: notes || "",
+    appliedAt: new Date()
+  } as any);
+
+  await user.save({ validateBeforeSave: false });
+
+  const updatedUser = await User.findById(req.user?._id).populate("applications.hackathon");
+  const newApp = updatedUser?.applications.find(
+    (app) => app.hackathon._id.toString() === hackathonId
+  );
+
+  return res
+    .status(201)
+    .json(
+      new ApiResponse(
+        201,
+        newApp,
+        "Application added successfully!"
+      )
+    );
+});
+
+// Update an Application (Status / Notes)
+const updateApplication = asyncHandler(async (req: any, res: any) => {
+  const { applicationId } = req.params;
+  const { status, notes } = req.body;
+
+  const user = await User.findById(req.user?._id);
+  if (!user) {
+    throw new ApiError(404, "User not found");
+  }
+
+  const app = user.applications.id(applicationId);
+  if (!app) {
+    throw new ApiError(404, "Application entry not found");
+  }
+
+  if (status) app.status = status;
+  if (notes !== undefined) app.notes = notes;
+
+  await user.save({ validateBeforeSave: false });
+
+  const updatedUser = await User.findById(req.user?._id).populate("applications.hackathon");
+  const updatedApp = updatedUser?.applications.id(applicationId);
+
+  return res
+    .status(200)
+    .json(
+      new ApiResponse(
+        200,
+        updatedApp,
+        "Application updated successfully!"
+      )
+    );
+});
+
+// Remove an Application Entry
+const removeApplication = asyncHandler(async (req: any, res: any) => {
+  const { applicationId } = req.params;
+
+  const user = await User.findById(req.user?._id);
+  if (!user) {
+    throw new ApiError(404, "User not found");
+  }
+
+  const appIndex = user.applications.findIndex(
+    (app) => app._id.toString() === applicationId
+  );
+  if (appIndex === -1) {
+    throw new ApiError(404, "Application entry not found");
+  }
+
+  user.applications.splice(appIndex, 1);
+  await user.save({ validateBeforeSave: false });
+
+  return res
+    .status(200)
+    .json(
+      new ApiResponse(
+        200,
+        { applicationId },
+        "Application removed successfully!"
+      )
+    );
+});
+
+// Fetch Populated Applications
+const getUserApplications = asyncHandler(async (req: any, res: any) => {
+  const user = await User.findById(req.user?._id).populate("applications.hackathon");
+  if (!user) {
+    throw new ApiError(404, "User not found");
+  }
+
+  return res
+    .status(200)
+    .json(
+      new ApiResponse(
+        200,
+        user.applications,
+        "User applications fetched successfully!"
+      )
+    );
+});
+
 export {
   registerUser,
   loginUser,
@@ -248,4 +422,10 @@ export {
   changeCurrentPassword,
   getCurrentUser,
   updateAccountDetails,
+  toggleSaveHackathon,
+  getSavedHackathons,
+  addApplication,
+  updateApplication,
+  removeApplication,
+  getUserApplications,
 };
