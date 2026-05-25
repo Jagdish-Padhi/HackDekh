@@ -1,11 +1,10 @@
 import { useEffect, useState } from 'react'
 import { NavLink, useLocation, useNavigate } from 'react-router-dom'
-import { BarChart3, Home, LogOut, Menu, Moon, PanelLeftClose, PanelLeftOpen, Sun, Trophy, Users, X } from 'lucide-react'
+import { BarChart3, LogOut, Menu, Moon, PanelLeftClose, PanelLeftOpen, Sun, Trophy, Users, X } from 'lucide-react'
 import { usePageChrome } from '../context/pageChrome'
 import { useAuth } from '../context/AuthContext'
 
 const navItems = [
-    { name: 'Home', path: '/', icon: Home },
     { name: 'Hackathons', path: '/hackathons', icon: Trophy },
     { name: 'Teams', path: '/teams', icon: Users },
     { name: 'Dashboard', path: '/dashboard', icon: BarChart3 },
@@ -109,7 +108,7 @@ const Sidebar = () => {
             </div>
 
             {/* Desktop logo header - fixed at top, always visible */}
-            <div className="hidden fixed inset-x-0 top-0 z-30 items-center gap-4 border-b border-zinc-200 bg-white/95 px-4 py-4 backdrop-blur-xl dark:border-zinc-800 dark:bg-zinc-950/95 lg:flex lg:h-16">
+            <div className="hidden fixed inset-x-0 top-0 z-40 items-center gap-4 border-b border-zinc-200 bg-white/95 px-4 py-4 backdrop-blur-xl dark:border-zinc-800 dark:bg-zinc-950/95 lg:flex lg:h-16">
                 <div className="flex shrink-0 items-center gap-3">
                     <img src="/BrandImages/HackDekh.png" alt="HackDekh Logo" className="h-10 w-10 rounded-2xl object-contain" />
                     <div>

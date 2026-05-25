@@ -1,6 +1,6 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useState, useRef } from 'react';
 import { Link, Navigate, useNavigate, useSearchParams, useLocation } from 'react-router-dom';
-import { ArrowLeft, ShieldCheck, Sparkles } from 'lucide-react';
+import { ArrowLeft, ShieldCheck, Eye, EyeOff } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import LogoTransition from '../components/LogoAnimation';
 import axiosInstance from '../utils/axiosInstance';
@@ -23,6 +23,11 @@ const LoginPage = () => {
   const [password, setPassword] = useState('');
   const [username, setUsername] = useState('');
   const [fullName, setFullName] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
+
+  // Focus refs
+  const usernameRef = useRef<HTMLInputElement>(null);
+  const emailRef = useRef<HTMLInputElement>(null);
 
   // Status states
   const [error, setError] = useState('');
@@ -30,6 +35,8 @@ const LoginPage = () => {
   const [loading, setLoading] = useState(false);
   const [transitioning, setTransitioning] = useState(false);
   const [pendingDestination, setPendingDestination] = useState<string | null>(null);
+  const [apiCompleted, setApiCompleted] = useState(false);
+  const [animationCompleted, setAnimationCompleted] = useState(false);
 
   const returnTo = useMemo(() => searchParams.get('returnTo') || '/', [searchParams]);
 
@@ -43,15 +50,67 @@ const LoginPage = () => {
   }, [location.pathname]);
 
   useEffect(() => {
-    if (!isLoading && isAuthenticated && !transitioning) {
+    if (!isLoading && isAuthenticated && !transitioning && !loading) {
       navigate(returnTo, { replace: true });
     }
-  }, [isAuthenticated, isLoading, navigate, returnTo, transitioning]);
+  }, [isAuthenticated, isLoading, navigate, returnTo, transitioning, loading]);
+
+  // Sync animation + API parallel completions for seamless page landing
+  useEffect(() => {
+    if (apiCompleted && animationCompleted) {
+      if (pendingDestination === 'login-mode') {
+        setTransitioning(false);
+        setPendingDestination(null);
+        setIsLogin(true);
+        setDirection(-1);
+        setSuccessMessage('Account created successfully! Please sign in.');
+        setLoading(false);
+        setApiCompleted(false);
+        setAnimationCompleted(false);
+        navigate('/login', { replace: true });
+      } else {
+        const destination = pendingDestination || returnTo;
+        setTransitioning(false);
+        setPendingDestination(null);
+        setLoading(false);
+        setApiCompleted(false);
+        setAnimationCompleted(false);
+        navigate(destination, { replace: true });
+      }
+    }
+  }, [apiCompleted, animationCompleted, pendingDestination, returnTo, navigate]);
+
+  // Auto-focus first empty field on mode toggling
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      if (isLogin) {
+        emailRef.current?.focus();
+      } else {
+        usernameRef.current?.focus();
+      }
+    }, 120);
+    return () => clearTimeout(timer);
+  }, [isLogin]);
+
+  const handleForgotPassword = () => {
+    setError('');
+    setSuccessMessage('');
+    if (!email) {
+      setError('Please enter your email address first to reset your password.');
+      return;
+    }
+    setSuccessMessage(`A password reset link has been sent to ${email} (mocked).`);
+  };
+
+  const handleGoogleLogin = () => {
+    setError('');
+    setSuccessMessage('Google authentication process initialized (mocked).');
+  };
 
   if (isLoading) {
     return (
       <div className="relative flex min-h-screen w-screen items-center justify-center overflow-hidden px-4 py-8 bg-zinc-50 dark:bg-zinc-950">
-        <div className="relative w-full max-w-md rounded-[2rem] border border-zinc-200/80 bg-white/90 p-6 shadow-[0_24px_80px_-30px_rgba(15,23,42,0.26)] backdrop-blur-xl dark:border-zinc-800 dark:bg-zinc-950/85 sm:p-8">
+        <div className="relative w-full max-w-md rounded-[2rem] border border-zinc-200/80 bg-white/90 p-6 shadow-[0_24px_80px_-30px_rgba(15,23,42,0.22)] backdrop-blur-xl dark:border-zinc-800 dark:bg-zinc-950/85 sm:p-8">
           <div className="mb-5 flex items-center gap-3">
             <div className="flex h-11 w-11 items-center justify-center rounded-2xl border border-blue-500/20 bg-blue-500/10 text-blue-600 dark:text-blue-300">
               <ShieldCheck className="h-5 w-5" />
@@ -78,17 +137,24 @@ const LoginPage = () => {
     setError('');
     setSuccessMessage('');
     setLoading(true);
+    setApiCompleted(false);
+    setAnimationCompleted(false);
 
     if (isLogin) {
+      setPendingDestination(returnTo);
+      setTransitioning(true);
       try {
         await login(email, password);
-        setPendingDestination(returnTo);
-        setTransitioning(true);
+        setApiCompleted(true);
       } catch (err: any) {
         setError(err.response?.data?.message || 'Login failed');
         setLoading(false);
+        setTransitioning(false);
+        setPendingDestination(null);
       }
     } else {
+      setPendingDestination('login-mode');
+      setTransitioning(true);
       try {
         await axiosInstance.post('/users/register', {
           username,
@@ -96,34 +162,24 @@ const LoginPage = () => {
           fullName,
           password,
         });
-        setPendingDestination('login-mode');
-        setTransitioning(true);
+        setApiCompleted(true);
       } catch (err: any) {
         setError(err.response?.data?.message || 'Signup failed');
         setLoading(false);
+        setTransitioning(false);
+        setPendingDestination(null);
       }
     }
   };
 
   const handleTransitionComplete = () => {
-    if (pendingDestination === 'login-mode') {
-      setTransitioning(false);
-      setPendingDestination(null);
-      setIsLogin(true);
-      setDirection(-1);
-      setSuccessMessage('Account created successfully! Please sign in.');
-      navigate('/login', { replace: true });
-    } else {
-      const destination = pendingDestination || returnTo;
-      setTransitioning(false);
-      setPendingDestination(null);
-      navigate(destination, { replace: true });
-    }
+    setAnimationCompleted(true);
   };
 
   const handleToggleMode = (targetLogin: boolean) => {
     setError('');
     setSuccessMessage('');
+    setShowPassword(false);
     setDirection(targetLogin ? -1 : 1);
     setIsLogin(targetLogin);
     navigate(targetLogin ? `/login?returnTo=${encodeURIComponent(returnTo)}` : `/signup?returnTo=${encodeURIComponent(returnTo)}`, { replace: true });
@@ -151,13 +207,24 @@ const LoginPage = () => {
       {transitioning && (
         <div className="fixed inset-0 z-50 flex flex-col items-center justify-center bg-white/60 dark:bg-zinc-950/60 backdrop-blur-xl">
           <LogoTransition width={550} height={330} onComplete={handleTransitionComplete} />
-          <div className="text-center mt-6">
+          <div className="text-center mt-6 flex flex-col items-center gap-2">
             <p className="text-lg font-bold text-zinc-900 dark:text-zinc-50 tracking-wide uppercase">
-              {pendingDestination === 'login-mode' ? 'Account Created' : "You're signed in"}
+              {apiCompleted 
+                ? (pendingDestination === 'login-mode' ? 'Account Created' : "You're signed in")
+                : (isLogin ? 'Authenticating' : 'Creating Account')
+              }
             </p>
-            <p className="mt-1.5 text-sm font-medium text-zinc-600 dark:text-zinc-400">
-              {pendingDestination === 'login-mode' ? 'Taking you to sign in…' : 'Preparing your workspace…'}
-            </p>
+            <div className="flex items-center gap-2 mt-1.5 justify-center">
+              {!apiCompleted && (
+                <span className="h-3.5 w-3.5 animate-spin rounded-full border-2 border-blue-600/30 border-t-blue-600" />
+              )}
+              <p className="text-sm font-medium text-zinc-600 dark:text-zinc-400">
+                {apiCompleted
+                  ? (pendingDestination === 'login-mode' ? 'Taking you to sign in…' : 'Preparing your workspace…')
+                  : (isLogin ? 'Verifying secure credentials…' : 'Setting up your profile…')
+                }
+              </p>
+            </div>
           </div>
         </div>
       )}
@@ -187,7 +254,7 @@ const LoginPage = () => {
         </div>
 
         {/* Right side: White/zinc form panel */}
-        <div className="w-full lg:w-[52%] bg-white dark:bg-zinc-900 flex flex-col justify-center p-8 sm:p-12 overflow-hidden relative">
+        <div className="w-full lg:w-[52%] bg-white dark:bg-zinc-900 flex flex-col justify-center p-6 sm:px-10 sm:py-8 lg:px-8 lg:py-6 xl:px-10 xl:py-8 overflow-hidden relative">
           <div className="mx-auto w-full max-w-[390px]">
             
             <AnimatePresence mode="wait" initial={false}>
@@ -201,10 +268,13 @@ const LoginPage = () => {
               >
                 {/* Form header */}
                 <div>
-                  <h2 className="text-3xl font-extrabold tracking-tight text-zinc-950 dark:text-white">
+                  <span className="inline-flex items-center gap-1 rounded-full border border-emerald-500/30 bg-emerald-500/10 dark:bg-emerald-500/20 px-3.5 py-1 text-[10px] font-black uppercase tracking-wider text-emerald-600 dark:text-emerald-400 shadow-xs animate-pulse-blink mb-2">
+                    100% Free • Built for us! ❤️
+                  </span>
+                  <h2 className="text-2xl font-black tracking-tight text-zinc-950 dark:text-white">
                     {isLogin ? 'Welcome back' : 'Create free account'}
                   </h2>
-                  <p className="mt-1 text-xs text-zinc-500 dark:text-zinc-400 leading-normal">
+                  <p className="mt-0.5 text-xs text-zinc-500 dark:text-zinc-400 leading-normal">
                     {isLogin 
                       ? 'Sign in to your HackDekh dashboard workspace'
                       : 'Join now to start managing your hackathon lifecycle'}
@@ -213,27 +283,28 @@ const LoginPage = () => {
 
                 {/* Feedback banners */}
                 {error && (
-                  <div className="mt-4 rounded-xl border border-red-500/25 bg-red-500/8 px-4 py-2.5 text-xs font-semibold text-red-600 dark:text-red-400">
+                  <div className="mt-3 rounded-xl border border-red-500/25 bg-red-500/8 px-3.5 py-2 text-xs font-semibold text-red-600 dark:text-red-400">
                     {error}
                   </div>
                 )}
 
                 {successMessage && (
-                  <div className="mt-4 rounded-xl border border-green-500/25 bg-green-500/8 px-4 py-2.5 text-xs font-semibold text-green-600 dark:text-green-400">
+                  <div className="mt-3 rounded-xl border border-green-500/25 bg-green-500/8 px-3.5 py-2 text-xs font-semibold text-green-600 dark:text-green-400">
                     {successMessage}
                   </div>
                 )}
 
                 {/* Form elements */}
-                <form onSubmit={handleSubmit} className="mt-5 space-y-3.5">
+                <form onSubmit={handleSubmit} className={`mt-4 ${isLogin ? 'space-y-3.5' : 'space-y-2'}`}>
                   {!isLogin && (
                     <>
                       <div>
-                        <label className="mb-1 block text-[10px] font-bold uppercase tracking-wider text-zinc-500 dark:text-zinc-400">Username</label>
+                        <label className="mb-0.5 block text-[10px] font-bold uppercase tracking-wider text-zinc-500 dark:text-zinc-400">Username</label>
                         <input
                           type="text"
+                          ref={usernameRef}
                           placeholder="dev_runner"
-                          className="w-full rounded-xl border border-zinc-200 bg-zinc-50/50 px-4 py-2.5 text-sm text-zinc-900 placeholder:text-zinc-400 shadow-xs transition duration-200 focus:border-blue-500 focus:bg-white focus:outline-none focus:ring-4 focus:ring-blue-500/10 dark:border-zinc-800 dark:bg-zinc-950 dark:text-zinc-100 dark:placeholder:text-zinc-500 dark:focus:border-blue-500 dark:focus:bg-zinc-900 dark:focus:ring-blue-500/20"
+                          className="w-full rounded-xl border border-zinc-200 bg-zinc-50/50 px-3.5 py-2 text-sm text-zinc-900 placeholder:text-zinc-400 shadow-xs transition duration-200 focus:border-blue-500 focus:bg-white focus:outline-none focus:ring-4 focus:ring-blue-500/10 dark:border-zinc-800 dark:bg-zinc-950 dark:text-zinc-100 dark:placeholder:text-zinc-500 dark:focus:border-blue-500 dark:focus:bg-zinc-900 dark:focus:ring-blue-500/20"
                           value={username}
                           onChange={e => setUsername(e.target.value)}
                           required
@@ -241,11 +312,11 @@ const LoginPage = () => {
                       </div>
                       
                       <div>
-                        <label className="mb-1 block text-[10px] font-bold uppercase tracking-wider text-zinc-500 dark:text-zinc-400">Full Name</label>
+                        <label className="mb-0.5 block text-[10px] font-bold uppercase tracking-wider text-zinc-500 dark:text-zinc-400">Full Name</label>
                         <input
                           type="text"
                           placeholder="Alex Johnson"
-                          className="w-full rounded-xl border border-zinc-200 bg-zinc-50/50 px-4 py-2.5 text-sm text-zinc-900 placeholder:text-zinc-400 shadow-xs transition duration-200 focus:border-blue-500 focus:bg-white focus:outline-none focus:ring-4 focus:ring-blue-500/10 dark:border-zinc-800 dark:bg-zinc-950 dark:text-zinc-100 dark:placeholder:text-zinc-500 dark:focus:border-blue-500 dark:focus:bg-zinc-900 dark:focus:ring-blue-500/20"
+                          className="w-full rounded-xl border border-zinc-200 bg-zinc-50/50 px-3.5 py-2 text-sm text-zinc-900 placeholder:text-zinc-400 shadow-xs transition duration-200 focus:border-blue-500 focus:bg-white focus:outline-none focus:ring-4 focus:ring-blue-500/10 dark:border-zinc-800 dark:bg-zinc-950 dark:text-zinc-100 dark:placeholder:text-zinc-500 dark:focus:border-blue-500 dark:focus:bg-zinc-900 dark:focus:ring-blue-500/20"
                           value={fullName}
                           onChange={e => setFullName(e.target.value)}
                           required
@@ -255,13 +326,14 @@ const LoginPage = () => {
                   )}
 
                   <div>
-                    <label className="mb-1 block text-[10px] font-bold uppercase tracking-wider text-zinc-500 dark:text-zinc-400">
+                    <label className="mb-0.5 block text-[10px] font-bold uppercase tracking-wider text-zinc-500 dark:text-zinc-400">
                       Email Address
                     </label>
                     <input
                       type="email"
+                      ref={emailRef}
                       placeholder="you@example.com"
-                      className="w-full rounded-xl border border-zinc-200 bg-zinc-50/50 px-4 py-2.5 text-sm text-zinc-900 placeholder:text-zinc-400 shadow-xs transition duration-200 focus:border-blue-500 focus:bg-white focus:outline-none focus:ring-4 focus:ring-blue-500/10 dark:border-zinc-800 dark:bg-zinc-950 dark:text-zinc-100 dark:placeholder:text-zinc-500 dark:focus:border-blue-500 dark:focus:bg-zinc-900 dark:focus:ring-blue-500/20"
+                      className="w-full rounded-xl border border-zinc-200 bg-zinc-50/50 px-3.5 py-2 text-sm text-zinc-900 placeholder:text-zinc-400 shadow-xs transition duration-200 focus:border-blue-500 focus:bg-white focus:outline-none focus:ring-4 focus:ring-blue-500/10 dark:border-zinc-800 dark:bg-zinc-950 dark:text-zinc-100 dark:placeholder:text-zinc-500 dark:focus:border-blue-500 dark:focus:bg-zinc-900 dark:focus:ring-blue-500/20"
                       value={email}
                       onChange={e => setEmail(e.target.value)}
                       autoComplete="email"
@@ -270,28 +342,46 @@ const LoginPage = () => {
                   </div>
 
                   <div>
-                    <div className="mb-1 flex items-center justify-between gap-3">
+                    <div className="mb-0.5 flex items-center justify-between gap-3">
                       <label className="block text-[10px] font-bold uppercase tracking-wider text-zinc-500 dark:text-zinc-400">Password</label>
                       {isLogin && (
-                        <button type="button" className="text-[10px] font-semibold text-zinc-500 hover:text-zinc-950 dark:text-zinc-400 dark:hover:text-white transition">
+                        <button
+                          type="button"
+                          onClick={handleForgotPassword}
+                          className="text-[10px] font-semibold text-zinc-500 hover:text-zinc-950 dark:text-zinc-400 dark:hover:text-white transition cursor-pointer"
+                        >
                           Forgot password?
                         </button>
                       )}
                     </div>
-                    <input
-                      type="password"
-                      placeholder="••••••••••••"
-                      className="w-full rounded-xl border border-zinc-200 bg-zinc-50/50 px-4 py-2.5 text-sm text-zinc-900 placeholder:text-zinc-400 shadow-xs transition duration-200 focus:border-blue-500 focus:bg-white focus:outline-none focus:ring-4 focus:ring-blue-500/10 dark:border-zinc-800 dark:bg-zinc-950 dark:text-zinc-100 dark:placeholder:text-zinc-500 dark:focus:border-blue-500 dark:focus:bg-zinc-900 dark:focus:ring-blue-500/20"
-                      value={password}
-                      onChange={e => setPassword(e.target.value)}
-                      autoComplete="current-password"
-                      required
-                    />
+                    <div className="relative">
+                      <input
+                        type={showPassword ? 'text' : 'password'}
+                        placeholder="••••••••••••"
+                        className="w-full rounded-xl border border-zinc-200 bg-zinc-50/50 pl-3.5 pr-10 py-2 text-sm text-zinc-900 placeholder:text-zinc-400 shadow-xs transition duration-200 focus:border-blue-500 focus:bg-white focus:outline-none focus:ring-4 focus:ring-blue-500/10 dark:border-zinc-800 dark:bg-zinc-950 dark:text-zinc-100 dark:placeholder:text-zinc-500 dark:focus:border-blue-500 dark:focus:bg-zinc-900 dark:focus:ring-blue-500/20"
+                        value={password}
+                        onChange={e => setPassword(e.target.value)}
+                        autoComplete="current-password"
+                        required
+                      />
+                      <button
+                        type="button"
+                        onClick={() => setShowPassword(!showPassword)}
+                        className="absolute right-3.5 top-1/2 -translate-y-1/2 text-zinc-400 hover:text-zinc-700 dark:hover:text-zinc-200 transition focus:outline-none cursor-pointer"
+                        aria-label={showPassword ? 'Hide password' : 'Show password'}
+                      >
+                        {showPassword ? (
+                          <EyeOff className="h-4 w-4" />
+                        ) : (
+                          <Eye className="h-4 w-4" />
+                        )}
+                      </button>
+                    </div>
                   </div>
 
                   <button
                     type="submit"
-                    className="inline-flex w-full items-center justify-center gap-2 rounded-xl bg-blue-600 hover:bg-blue-500 dark:bg-blue-500 dark:hover:bg-blue-400 text-sm font-bold text-white py-3 shadow-md hover:-translate-y-0.5 transition-all duration-200 disabled:cursor-not-allowed disabled:opacity-70 mt-1 cursor-pointer"
+                    className="inline-flex w-full items-center justify-center gap-2 rounded-xl bg-blue-600 hover:bg-blue-500 dark:bg-blue-500 dark:hover:bg-blue-400 text-sm font-bold text-white py-2.5 shadow-md hover:-translate-y-0.5 transition-all duration-200 disabled:cursor-not-allowed disabled:opacity-70 mt-1.5 cursor-pointer"
                     disabled={loading || transitioning}
                   >
                     {loading || transitioning ? (
@@ -308,7 +398,7 @@ const LoginPage = () => {
                 </form>
 
                 {/* Divider */}
-                <div className="relative my-4.5 flex items-center justify-center">
+                <div className="relative my-3 flex items-center justify-center">
                   <div className="absolute inset-0 flex items-center">
                     <div className="w-full border-t border-zinc-200 dark:border-zinc-800" />
                   </div>
@@ -318,8 +408,8 @@ const LoginPage = () => {
                 {/* Social Login Mock */}
                 <button
                   type="button"
-                  onClick={() => alert("Google Login is a mock integration for frontend presentation.")}
-                  className="w-full inline-flex items-center justify-center gap-2.5 rounded-xl border border-zinc-200 dark:border-zinc-800 hover:bg-zinc-50 dark:hover:bg-zinc-800/50 py-2.5 text-sm font-semibold text-zinc-700 dark:text-zinc-300 transition duration-200 cursor-pointer"
+                  onClick={handleGoogleLogin}
+                  className="w-full inline-flex items-center justify-center gap-2.5 rounded-xl border border-zinc-200 dark:border-zinc-800 hover:bg-zinc-50 dark:hover:bg-zinc-800/50 py-2 text-sm font-semibold text-zinc-700 dark:text-zinc-300 transition duration-200 cursor-pointer"
                 >
                   <svg className="h-4 w-4 shrink-0" viewBox="0 0 24 24">
                     <path
@@ -343,7 +433,7 @@ const LoginPage = () => {
                 </button>
 
                 {/* Footer toggle link */}
-                <div className="mt-5 text-center text-xs text-zinc-500 dark:text-zinc-400">
+                <div className="mt-3.5 text-center text-xs text-zinc-500 dark:text-zinc-400">
                   {isLogin ? (
                     <>
                       Don’t have an account?{' '}

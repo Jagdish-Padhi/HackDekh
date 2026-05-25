@@ -9,9 +9,18 @@ import {
     Workflow,
 } from "lucide-react";
 import ProductStoryAnimation from "../components/productStory/ProductStoryAnimation";
+import { Navigate, Link } from "react-router-dom";
+import { useAuth } from "../context/AuthContext";
 
-const HomePage = () => (
-    <>
+const HomePage = () => {
+    const { isAuthenticated } = useAuth();
+
+    if (isAuthenticated) {
+        return <Navigate to="/dashboard" replace />;
+    }
+
+    return (
+        <>
     <section className="relative flex flex-col items-center justify-center gap-20 pt-2 pb-10 sm:pt-4 sm:pb-16 lg:pt-6 lg:pb-20 sm:gap-28 lg:gap-32">
         <div className="relative w-full max-w-6xl px-1 sm:px-0">
             {/* Ambient background glows */}
@@ -33,18 +42,18 @@ const HomePage = () => (
                             HackDekh gives your team one place to discover hackathons, track each stage, capture reflections, and improve win rate with clear visibility.
                         </p>
                         <div className="relative mt-8 flex flex-col justify-center gap-4 sm:flex-row lg:justify-start">
-                <a
-                    href="/hackathons"
-                    className="inline-flex w-full items-center justify-center rounded-full border border-blue-500/35 bg-blue-600 px-7 py-3.5 text-base font-semibold text-white shadow-sm transition-all duration-200 hover:-translate-y-0.5 hover:bg-blue-500 hover:shadow-md dark:border-blue-400/40 dark:bg-blue-500 dark:hover:bg-blue-400 sm:w-auto"
-                >
-                    Explore Hackathons
-                </a>
-                <a
-                    href="/teams"
-                    className="inline-flex w-full items-center justify-center rounded-full border border-zinc-300 bg-zinc-50 px-7 py-3.5 text-base font-semibold text-zinc-700 shadow-sm transition-all duration-200 hover:-translate-y-0.5 hover:bg-white hover:text-zinc-900 hover:shadow-md dark:border-zinc-700 dark:bg-zinc-900/70 dark:text-zinc-200 dark:hover:border-zinc-600 dark:hover:bg-zinc-800/70 dark:hover:text-white sm:w-auto"
-                >
-                    Create Your Team
-                </a>
+                            <Link
+                                to="/hackathons"
+                                className="inline-flex w-full items-center justify-center rounded-full border border-blue-500/35 bg-blue-600 px-7 py-3.5 text-base font-semibold text-white shadow-sm transition-all duration-200 hover:-translate-y-0.5 hover:bg-blue-500 hover:shadow-md dark:border-blue-400/40 dark:bg-blue-500 dark:hover:bg-blue-400 sm:w-auto"
+                            >
+                                Explore Hackathons
+                            </Link>
+                            <Link
+                                to="/teams"
+                                className="inline-flex w-full items-center justify-center rounded-full border border-zinc-300 bg-zinc-50 px-7 py-3.5 text-base font-semibold text-zinc-700 shadow-sm transition-all duration-200 hover:-translate-y-0.5 hover:bg-white hover:text-zinc-900 hover:shadow-md dark:border-zinc-700 dark:bg-zinc-900/70 dark:text-zinc-200 dark:hover:border-zinc-600 dark:hover:bg-zinc-800/70 dark:hover:text-white sm:w-auto"
+                            >
+                                Create Your Team
+                            </Link>
                         </div>
                     </div>
 
@@ -104,7 +113,8 @@ const HomePage = () => (
     </section>
     <Footer />
     </>
-);
+    );
+};
 
 
 

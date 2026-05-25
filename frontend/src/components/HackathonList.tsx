@@ -1,4 +1,4 @@
-import { RefreshCw, Trophy, X, ArrowRight } from 'lucide-react'
+import { RefreshCw, ArrowRight } from 'lucide-react'
 import { useCallback, useDeferredValue, useEffect, useMemo, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { AnimatePresence, motion } from 'framer-motion'
@@ -364,8 +364,7 @@ const HackathonList = () => {
                         initial={{ opacity: 0 }}
                         animate={{ opacity: 1 }}
                         exit={{ opacity: 0 }}
-                        className="fixed inset-0 z-[100] flex items-center justify-center bg-zinc-950/65 backdrop-blur-sm px-4 py-8"
-                        onClick={handleDismissFunnel}
+                        className="fixed inset-0 z-[100] flex items-center justify-center bg-zinc-950/70 backdrop-blur-[4px] px-4 py-8"
                     >
                         <motion.div
                             initial={{ y: 24, scale: 0.96, opacity: 0 }}
@@ -375,13 +374,6 @@ const HackathonList = () => {
                             onClick={(e) => e.stopPropagation()}
                             className="w-full max-w-md rounded-[2.25rem] border border-zinc-200 bg-white p-6 shadow-2xl dark:border-zinc-800 dark:bg-zinc-950 relative overflow-hidden"
                         >
-                            {/* Close button */}
-                            <button
-                                onClick={handleDismissFunnel}
-                                className="absolute right-4 top-4 rounded-xl p-2 text-zinc-400 transition hover:bg-zinc-100 hover:text-zinc-700 dark:hover:bg-zinc-900 dark:hover:text-zinc-200"
-                            >
-                                <X className="h-5 w-5" />
-                            </button>
 
                             <div className="flex flex-col items-center text-center space-y-4 pt-3">
                                 <span className="inline-flex items-center gap-1.5 rounded-full border border-emerald-500/30 bg-emerald-500/10 dark:bg-emerald-500/20 px-6 py-2.5 text-xs font-black uppercase tracking-wider text-emerald-600 dark:text-emerald-400 shadow-xs animate-pulse-blink mb-2">

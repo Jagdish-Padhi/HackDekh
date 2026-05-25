@@ -6,7 +6,6 @@ import HomePage from './pages/Home';
 import HackathonsPage from './pages/Hackathons';
 import HackathonDetailsPage from './pages/HackathonDetails';
 import LoginPage from './pages/Login';
-import SignupPage from './pages/Signup';
 import TeamsPage from './pages/Teams';
 import AcceptInvitationPage from './pages/AcceptInvitation';
 import DashboardPage from './pages/Dashboard';
@@ -28,11 +27,14 @@ function AppContent() {
     );
   }
 
+  const isAuthRoute = location.pathname === '/login' || location.pathname === '/signup';
+  const pageTransitionKey = isAuthRoute ? '/auth' : location.pathname;
+
   return (
     <MainLayout>
       <AnimatePresence mode="wait">
         <motion.div
-          key={location.pathname}
+          key={pageTransitionKey}
           initial={{ opacity: 0, y: 10 }}
           animate={{ opacity: 1, y: 0 }}
           exit={{ opacity: 0, y: -10 }}
@@ -42,7 +44,7 @@ function AppContent() {
           <Routes location={location}>
             <Route path="/" element={<HomePage />} />
             <Route path="/login" element={<LoginPage />} />
-            <Route path="/signup" element={<SignupPage />} />
+            <Route path="/signup" element={<LoginPage />} />
             <Route path="/hackathons" element={<HackathonsPage />} />
             <Route path="/hackathons/:id" element={<HackathonDetailsPage />} />
             <Route path="/accept-invitation" element={<AcceptInvitationPage />} />
