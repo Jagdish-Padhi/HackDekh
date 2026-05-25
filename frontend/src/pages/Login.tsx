@@ -1,21 +1,46 @@
 import { useEffect, useMemo, useState } from 'react';
-import { Link, Navigate, useNavigate, useSearchParams } from 'react-router-dom';
-import { ArrowRight, CheckCircle2, ShieldCheck, Sparkles } from 'lucide-react';
+import { Link, Navigate, useNavigate, useSearchParams, useLocation } from 'react-router-dom';
+import { ArrowLeft, ShieldCheck, Sparkles } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import LogoTransition from '../components/LogoAnimation';
+import axiosInstance from '../utils/axiosInstance';
+import ProductStoryAnimation from '../components/productStory/ProductStoryAnimation';
+import { motion, AnimatePresence } from 'framer-motion';
+import DarkModeToggle from '../components/DarkModeToggle';
 
 const LoginPage = () => {
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
+  const location = useLocation();
   const { login, isAuthenticated, isLoading } = useAuth();
+
+  // Mode state: login or signup, synced with location path
+  const [isLogin, setIsLogin] = useState(location.pathname !== '/signup');
+  const [direction, setDirection] = useState(location.pathname === '/signup' ? 1 : -1);
+
+  // Input states
   const [email, setEmail] = useState(searchParams.get('email') || '');
   const [password, setPassword] = useState('');
+  const [username, setUsername] = useState('');
+  const [fullName, setFullName] = useState('');
+
+  // Status states
   const [error, setError] = useState('');
+  const [successMessage, setSuccessMessage] = useState('');
   const [loading, setLoading] = useState(false);
   const [transitioning, setTransitioning] = useState(false);
   const [pendingDestination, setPendingDestination] = useState<string | null>(null);
 
   const returnTo = useMemo(() => searchParams.get('returnTo') || '/', [searchParams]);
+
+  // Sync mode with route changes
+  useEffect(() => {
+    const isSignup = location.pathname === '/signup';
+    setIsLogin(!isSignup);
+    setDirection(isSignup ? 1 : -1);
+    setError('');
+    setSuccessMessage('');
+  }, [location.pathname]);
 
   useEffect(() => {
     if (!isLoading && isAuthenticated && !transitioning) {
@@ -25,8 +50,7 @@ const LoginPage = () => {
 
   if (isLoading) {
     return (
-      <div className="relative flex min-h-[78vh] items-center justify-center overflow-hidden px-4 py-8 sm:px-6 lg:px-8">
-        <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_left,_rgba(59,130,246,0.16),_transparent_32%),radial-gradient(circle_at_bottom_right,_rgba(14,165,233,0.10),_transparent_28%),linear-gradient(180deg,_rgba(248,250,252,1),_rgba(241,245,249,0.92))] dark:bg-[radial-gradient(circle_at_top_left,_rgba(59,130,246,0.16),_transparent_32%),radial-gradient(circle_at_bottom_right,_rgba(14,165,233,0.10),_transparent_28%),linear-gradient(180deg,_rgba(9,9,11,1),_rgba(24,24,27,0.96))]" />
+      <div className="relative flex min-h-screen w-screen items-center justify-center overflow-hidden px-4 py-8 bg-zinc-50 dark:bg-zinc-950">
         <div className="relative w-full max-w-md rounded-[2rem] border border-zinc-200/80 bg-white/90 p-6 shadow-[0_24px_80px_-30px_rgba(15,23,42,0.26)] backdrop-blur-xl dark:border-zinc-800 dark:bg-zinc-950/85 sm:p-8">
           <div className="mb-5 flex items-center gap-3">
             <div className="flex h-11 w-11 items-center justify-center rounded-2xl border border-blue-500/20 bg-blue-500/10 text-blue-600 dark:text-blue-300">
@@ -52,161 +76,302 @@ const LoginPage = () => {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
+    setSuccessMessage('');
     setLoading(true);
-    try {
-      await login(email, password);
-      setPendingDestination(returnTo);
-      setTransitioning(true);
-    } catch (err: any) {
-      setError(err.response?.data?.message || 'Login failed');
-      setLoading(false);
-    } finally {
-      if (pendingDestination === null) {
+
+    if (isLogin) {
+      try {
+        await login(email, password);
+        setPendingDestination(returnTo);
+        setTransitioning(true);
+      } catch (err: any) {
+        setError(err.response?.data?.message || 'Login failed');
+        setLoading(false);
+      }
+    } else {
+      try {
+        await axiosInstance.post('/users/register', {
+          username,
+          email,
+          fullName,
+          password,
+        });
+        setPendingDestination('login-mode');
+        setTransitioning(true);
+      } catch (err: any) {
+        setError(err.response?.data?.message || 'Signup failed');
         setLoading(false);
       }
     }
   };
 
   const handleTransitionComplete = () => {
-    const destination = pendingDestination || returnTo;
-    setTransitioning(false);
-    setPendingDestination(null);
-    navigate(destination, { replace: true });
+    if (pendingDestination === 'login-mode') {
+      setTransitioning(false);
+      setPendingDestination(null);
+      setIsLogin(true);
+      setDirection(-1);
+      setSuccessMessage('Account created successfully! Please sign in.');
+      navigate('/login', { replace: true });
+    } else {
+      const destination = pendingDestination || returnTo;
+      setTransitioning(false);
+      setPendingDestination(null);
+      navigate(destination, { replace: true });
+    }
+  };
+
+  const handleToggleMode = (targetLogin: boolean) => {
+    setError('');
+    setSuccessMessage('');
+    setDirection(targetLogin ? -1 : 1);
+    setIsLogin(targetLogin);
+    navigate(targetLogin ? `/login?returnTo=${encodeURIComponent(returnTo)}` : `/signup?returnTo=${encodeURIComponent(returnTo)}`, { replace: true });
   };
 
   return (
-    <div className="relative overflow-hidden px-4 py-6 sm:px-6 lg:px-8 lg:py-10">
-      <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_left,_rgba(59,130,246,0.14),_transparent_28%),radial-gradient(circle_at_right,_rgba(14,165,233,0.10),_transparent_26%),linear-gradient(180deg,_rgba(248,250,252,1),_rgba(241,245,249,0.94))] dark:bg-[radial-gradient(circle_at_top_left,_rgba(59,130,246,0.18),_transparent_28%),radial-gradient(circle_at_right,_rgba(14,165,233,0.12),_transparent_26%),linear-gradient(180deg,_rgba(9,9,11,1),_rgba(24,24,27,0.96))]" />
-      <div className="relative mx-auto grid min-h-[78vh] max-w-6xl items-center gap-8 lg:grid-cols-[1.05fr_0.95fr] lg:gap-10">
-        {transitioning && (
-          <div className="fixed inset-0 z-50 flex flex-col items-center justify-center bg-white/50 dark:bg-zinc-950/50 backdrop-blur-xl animate-fade-in">
-            <LogoTransition width={550} height={330} onComplete={handleTransitionComplete} />
-            <div className="text-center mt-6">
-              <p className="text-base font-bold text-zinc-900 dark:text-zinc-50 tracking-wide uppercase">You're signed in</p>
-              <p className="mt-1.5 text-sm font-medium text-zinc-600 dark:text-zinc-400">Taking you back to your workspace…</p>
-            </div>
-          </div>
-        )}
-        <section className="rounded-[2.25rem] border border-zinc-200/80 bg-white/80 p-8 shadow-[0_24px_80px_-34px_rgba(15,23,42,0.22)] backdrop-blur-xl dark:border-zinc-800 dark:bg-zinc-950/75 sm:p-10 lg:p-12">
-          <div className="inline-flex items-center gap-2 rounded-full border border-blue-500/15 bg-blue-500/8 px-4 py-1.5 text-[0.72rem] font-semibold uppercase tracking-[0.22em] text-blue-700 dark:text-blue-300">
-            <Sparkles className="h-3.5 w-3.5" />
-            Secure platform access
-          </div>
+    <div className="relative h-screen w-screen overflow-hidden flex items-center justify-center p-4 bg-gradient-to-tr from-slate-100 via-sky-50 to-blue-100 dark:from-zinc-950 dark:via-zinc-900 dark:to-zinc-950">
+      
+      {/* Absolute Header Controls */}
+      <div className="absolute top-4 left-4 sm:top-6 sm:left-6 z-45">
+        <Link
+          to="/"
+          className="group inline-flex items-center gap-2 text-sm font-semibold text-zinc-600 hover:text-zinc-900 dark:text-zinc-400 dark:hover:text-white transition duration-200"
+        >
+          <ArrowLeft className="h-4 w-4 transition-transform group-hover:-translate-x-1" />
+          Back to Home
+        </Link>
+      </div>
 
-          <h1 className="mt-6 max-w-xl text-4xl font-semibold tracking-tight text-zinc-950 dark:text-zinc-50 sm:text-5xl">
-            Sign in to keep your hackathon workflow moving.
-          </h1>
-          <p className="mt-4 max-w-2xl text-base leading-7 text-zinc-600 dark:text-zinc-400 sm:text-lg">
-            Return to your dashboard, saved hackathons, teams, and submission flow without breaking context.
-          </p>
+      <div className="absolute top-4 right-4 sm:top-6 sm:right-6 z-45">
+        <DarkModeToggle />
+      </div>
 
-          <div className="mt-8 grid gap-3 sm:grid-cols-2">
-            {[
-              'One session across dashboard, teams, and tracker',
-              'Secure token-based sign-in with return path support',
-              'Fast recovery after refresh or route changes',
-              'Built for a clean, product-grade experience',
-            ].map(feature => (
-              <div key={feature} className="flex items-start gap-3 rounded-2xl border border-zinc-200/80 bg-white/80 p-4 dark:border-zinc-800 dark:bg-zinc-900/60">
-                <CheckCircle2 className="mt-0.5 h-5 w-5 shrink-0 text-blue-600 dark:text-blue-400" />
-                <p className="text-sm leading-6 text-zinc-700 dark:text-zinc-300">{feature}</p>
-              </div>
-            ))}
+      {/* Success Redirect Transitions */}
+      {transitioning && (
+        <div className="fixed inset-0 z-50 flex flex-col items-center justify-center bg-white/60 dark:bg-zinc-950/60 backdrop-blur-xl">
+          <LogoTransition width={550} height={330} onComplete={handleTransitionComplete} />
+          <div className="text-center mt-6">
+            <p className="text-lg font-bold text-zinc-900 dark:text-zinc-50 tracking-wide uppercase">
+              {pendingDestination === 'login-mode' ? 'Account Created' : "You're signed in"}
+            </p>
+            <p className="mt-1.5 text-sm font-medium text-zinc-600 dark:text-zinc-400">
+              {pendingDestination === 'login-mode' ? 'Taking you to sign in…' : 'Preparing your workspace…'}
+            </p>
           </div>
+        </div>
+      )}
 
-          <div className="mt-8 rounded-3xl border border-zinc-200/80 bg-zinc-50/80 p-5 dark:border-zinc-800 dark:bg-zinc-900/60 sm:p-6">
-            <div className="flex items-center gap-3">
-              <div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-blue-600/10 text-blue-600 dark:bg-blue-400/10 dark:text-blue-300">
-                <ShieldCheck className="h-5 w-5" />
-              </div>
-              <div>
-                <p className="text-sm font-semibold text-zinc-900 dark:text-zinc-100">Designed for continuity</p>
-                <p className="text-sm text-zinc-500 dark:text-zinc-400">We preserve your return destination after login and after refresh.</p>
-              </div>
-            </div>
-          </div>
-        </section>
+      {/* Main Centered Auth Modal Card */}
+      <div className="relative w-full max-w-6xl h-[90vh] max-h-[640px] rounded-[2.5rem] overflow-hidden bg-white dark:bg-zinc-900 border border-zinc-200/60 dark:border-zinc-800 shadow-[0_32px_96px_-24px_rgba(15,23,42,0.22)] dark:shadow-[0_32px_96px_-24px_rgba(0,0,0,0.55)] flex flex-col lg:flex-row">
+        
+        {/* Left side: Premium theme-aware marketing panel (Product Story Only) */}
+        <div className="hidden lg:flex lg:w-[48%] relative bg-zinc-50/50 dark:bg-zinc-950 text-zinc-900 dark:text-white flex-col items-center justify-center p-8 xl:p-10 overflow-hidden border-r border-zinc-200/60 dark:border-zinc-800/20 gap-8">
+          {/* Ambient Glows - theme adaptive opacity */}
+          <div className="pointer-events-none absolute -top-40 -right-40 h-[600px] w-[600px] rounded-full bg-blue-500/6 dark:bg-blue-600/12 blur-[120px]" />
+          <div className="pointer-events-none absolute -bottom-40 -left-40 h-[600px] w-[600px] rounded-full bg-indigo-500/6 dark:bg-indigo-600/12 blur-[120px]" />
+          <div className="pointer-events-none absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 h-[500px] w-[500px] rounded-full bg-sky-500/4 dark:bg-sky-500/8 blur-[130px]" />
 
-        <section className="relative rounded-[2.25rem] border border-zinc-200/80 bg-white/90 p-6 shadow-[0_24px_80px_-34px_rgba(15,23,42,0.28)] backdrop-blur-xl dark:border-zinc-800 dark:bg-zinc-950/82 sm:p-8 lg:p-10">
-          <div className="mb-7 flex items-start justify-between gap-4">
-            <div>
-              <p className="text-sm font-semibold uppercase tracking-[0.2em] text-zinc-500 dark:text-zinc-400">Welcome back</p>
-              <h2 className="mt-2 text-3xl font-semibold tracking-tight text-zinc-950 dark:text-zinc-50">Login</h2>
-              <p className="mt-2 max-w-sm text-sm leading-6 text-zinc-600 dark:text-zinc-400">
-                Access your dashboard, saved work, and the next action you were heading toward.
-              </p>
-            </div>
-            <div className="hidden rounded-2xl border border-zinc-200/80 bg-zinc-50 px-3 py-2 text-right dark:border-zinc-800 dark:bg-zinc-900/70 sm:block">
-              <p className="text-[0.7rem] uppercase tracking-[0.18em] text-zinc-500 dark:text-zinc-500">Return to</p>
-              <p className="mt-1 max-w-32 truncate text-sm font-medium text-zinc-900 dark:text-zinc-100">{returnTo}</p>
+          {/* Centered Logo Branding Header */}
+          <div className="w-full relative z-10 flex flex-col items-center justify-center gap-2">
+            <img src="/BrandImages/HackDekh.png" alt="HackDekh Logo" className="h-10 w-10 rounded-2xl object-contain shadow-lg border border-zinc-200/50 dark:border-white/10" />
+            <div className="flex items-center">
+              <span className="text-xl font-extrabold tracking-tight text-zinc-900 dark:text-white font-logo">HackDekh</span>
             </div>
           </div>
 
-          {error && (
-            <div className="mb-5 rounded-2xl border border-red-500/20 bg-red-500/10 px-4 py-3 text-sm text-red-700 dark:text-red-300">
-              {error}
-            </div>
-          )}
+          {/* Product Story Animation Display - Direct layout, no nested border container */}
+          <div className="relative z-10 w-full max-w-[420px] mx-auto flex items-center justify-center">
+            <ProductStoryAnimation />
+          </div>
+        </div>
 
-          <form onSubmit={handleSubmit} className="space-y-4">
-            <div>
-              <label className="mb-1.5 block text-sm font-medium text-zinc-700 dark:text-zinc-300">Email</label>
-              <input
-                type="email"
-                className="w-full rounded-2xl border border-zinc-200 bg-white px-4 py-3 text-zinc-900 shadow-sm transition-all duration-200 placeholder:text-zinc-400 focus:border-blue-500/45 focus:outline-none focus:ring-4 focus:ring-blue-500/12 dark:border-zinc-800 dark:bg-zinc-900 dark:text-zinc-100 dark:placeholder:text-zinc-500 dark:focus:border-blue-400/50 dark:focus:ring-blue-400/20"
-                value={email}
-                onChange={e => setEmail(e.target.value)}
-                autoComplete="email"
-                required
-              />
-            </div>
+        {/* Right side: White/zinc form panel */}
+        <div className="w-full lg:w-[52%] bg-white dark:bg-zinc-900 flex flex-col justify-center p-8 sm:p-12 overflow-hidden relative">
+          <div className="mx-auto w-full max-w-[390px]">
+            
+            <AnimatePresence mode="wait" initial={false}>
+              <motion.div
+                key={isLogin ? 'login' : 'signup'}
+                initial={{ opacity: 0, x: direction === 1 ? 50 : -50 }}
+                animate={{ opacity: 1, x: 0 }}
+                exit={{ opacity: 0, x: direction === 1 ? -50 : 50 }}
+                transition={{ duration: 0.22, ease: 'easeInOut' }}
+                className="w-full"
+              >
+                {/* Form header */}
+                <div>
+                  <h2 className="text-3xl font-extrabold tracking-tight text-zinc-950 dark:text-white">
+                    {isLogin ? 'Welcome back' : 'Create free account'}
+                  </h2>
+                  <p className="mt-1 text-xs text-zinc-500 dark:text-zinc-400 leading-normal">
+                    {isLogin 
+                      ? 'Sign in to your HackDekh dashboard workspace'
+                      : 'Join now to start managing your hackathon lifecycle'}
+                  </p>
+                </div>
 
-            <div>
-              <div className="mb-1.5 flex items-center justify-between gap-3">
-                <label className="block text-sm font-medium text-zinc-700 dark:text-zinc-300">Password</label>
-                <button type="button" className="text-sm font-medium text-blue-600 transition hover:text-blue-500 dark:text-blue-300 dark:hover:text-blue-200">
-                  Forgot password?
+                {/* Feedback banners */}
+                {error && (
+                  <div className="mt-4 rounded-xl border border-red-500/25 bg-red-500/8 px-4 py-2.5 text-xs font-semibold text-red-600 dark:text-red-400">
+                    {error}
+                  </div>
+                )}
+
+                {successMessage && (
+                  <div className="mt-4 rounded-xl border border-green-500/25 bg-green-500/8 px-4 py-2.5 text-xs font-semibold text-green-600 dark:text-green-400">
+                    {successMessage}
+                  </div>
+                )}
+
+                {/* Form elements */}
+                <form onSubmit={handleSubmit} className="mt-5 space-y-3.5">
+                  {!isLogin && (
+                    <>
+                      <div>
+                        <label className="mb-1 block text-[10px] font-bold uppercase tracking-wider text-zinc-500 dark:text-zinc-400">Username</label>
+                        <input
+                          type="text"
+                          placeholder="dev_runner"
+                          className="w-full rounded-xl border border-zinc-200 bg-zinc-50/50 px-4 py-2.5 text-sm text-zinc-900 placeholder:text-zinc-400 shadow-xs transition duration-200 focus:border-blue-500 focus:bg-white focus:outline-none focus:ring-4 focus:ring-blue-500/10 dark:border-zinc-800 dark:bg-zinc-950 dark:text-zinc-100 dark:placeholder:text-zinc-500 dark:focus:border-blue-500 dark:focus:bg-zinc-900 dark:focus:ring-blue-500/20"
+                          value={username}
+                          onChange={e => setUsername(e.target.value)}
+                          required
+                        />
+                      </div>
+                      
+                      <div>
+                        <label className="mb-1 block text-[10px] font-bold uppercase tracking-wider text-zinc-500 dark:text-zinc-400">Full Name</label>
+                        <input
+                          type="text"
+                          placeholder="Alex Johnson"
+                          className="w-full rounded-xl border border-zinc-200 bg-zinc-50/50 px-4 py-2.5 text-sm text-zinc-900 placeholder:text-zinc-400 shadow-xs transition duration-200 focus:border-blue-500 focus:bg-white focus:outline-none focus:ring-4 focus:ring-blue-500/10 dark:border-zinc-800 dark:bg-zinc-950 dark:text-zinc-100 dark:placeholder:text-zinc-500 dark:focus:border-blue-500 dark:focus:bg-zinc-900 dark:focus:ring-blue-500/20"
+                          value={fullName}
+                          onChange={e => setFullName(e.target.value)}
+                          required
+                        />
+                      </div>
+                    </>
+                  )}
+
+                  <div>
+                    <label className="mb-1 block text-[10px] font-bold uppercase tracking-wider text-zinc-500 dark:text-zinc-400">
+                      Email Address
+                    </label>
+                    <input
+                      type="email"
+                      placeholder="you@example.com"
+                      className="w-full rounded-xl border border-zinc-200 bg-zinc-50/50 px-4 py-2.5 text-sm text-zinc-900 placeholder:text-zinc-400 shadow-xs transition duration-200 focus:border-blue-500 focus:bg-white focus:outline-none focus:ring-4 focus:ring-blue-500/10 dark:border-zinc-800 dark:bg-zinc-950 dark:text-zinc-100 dark:placeholder:text-zinc-500 dark:focus:border-blue-500 dark:focus:bg-zinc-900 dark:focus:ring-blue-500/20"
+                      value={email}
+                      onChange={e => setEmail(e.target.value)}
+                      autoComplete="email"
+                      required
+                    />
+                  </div>
+
+                  <div>
+                    <div className="mb-1 flex items-center justify-between gap-3">
+                      <label className="block text-[10px] font-bold uppercase tracking-wider text-zinc-500 dark:text-zinc-400">Password</label>
+                      {isLogin && (
+                        <button type="button" className="text-[10px] font-semibold text-zinc-500 hover:text-zinc-950 dark:text-zinc-400 dark:hover:text-white transition">
+                          Forgot password?
+                        </button>
+                      )}
+                    </div>
+                    <input
+                      type="password"
+                      placeholder="••••••••••••"
+                      className="w-full rounded-xl border border-zinc-200 bg-zinc-50/50 px-4 py-2.5 text-sm text-zinc-900 placeholder:text-zinc-400 shadow-xs transition duration-200 focus:border-blue-500 focus:bg-white focus:outline-none focus:ring-4 focus:ring-blue-500/10 dark:border-zinc-800 dark:bg-zinc-950 dark:text-zinc-100 dark:placeholder:text-zinc-500 dark:focus:border-blue-500 dark:focus:bg-zinc-900 dark:focus:ring-blue-500/20"
+                      value={password}
+                      onChange={e => setPassword(e.target.value)}
+                      autoComplete="current-password"
+                      required
+                    />
+                  </div>
+
+                  <button
+                    type="submit"
+                    className="inline-flex w-full items-center justify-center gap-2 rounded-xl bg-blue-600 hover:bg-blue-500 dark:bg-blue-500 dark:hover:bg-blue-400 text-sm font-bold text-white py-3 shadow-md hover:-translate-y-0.5 transition-all duration-200 disabled:cursor-not-allowed disabled:opacity-70 mt-1 cursor-pointer"
+                    disabled={loading || transitioning}
+                  >
+                    {loading || transitioning ? (
+                      <>
+                        <span className="h-4 w-4 animate-spin rounded-full border-2 border-white/30 border-t-white" />
+                        Please wait...
+                      </>
+                    ) : (
+                      <>
+                        {isLogin ? 'Sign In to Workspace' : 'Create Free Account'}
+                      </>
+                    )}
+                  </button>
+                </form>
+
+                {/* Divider */}
+                <div className="relative my-4.5 flex items-center justify-center">
+                  <div className="absolute inset-0 flex items-center">
+                    <div className="w-full border-t border-zinc-200 dark:border-zinc-800" />
+                  </div>
+                  <span className="relative bg-white dark:bg-zinc-900 px-3 text-[10px] font-bold uppercase tracking-widest text-zinc-400">OR</span>
+                </div>
+
+                {/* Social Login Mock */}
+                <button
+                  type="button"
+                  onClick={() => alert("Google Login is a mock integration for frontend presentation.")}
+                  className="w-full inline-flex items-center justify-center gap-2.5 rounded-xl border border-zinc-200 dark:border-zinc-800 hover:bg-zinc-50 dark:hover:bg-zinc-800/50 py-2.5 text-sm font-semibold text-zinc-700 dark:text-zinc-300 transition duration-200 cursor-pointer"
+                >
+                  <svg className="h-4 w-4 shrink-0" viewBox="0 0 24 24">
+                    <path
+                      fill="#4285F4"
+                      d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"
+                    />
+                    <path
+                      fill="#34A853"
+                      d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"
+                    />
+                    <path
+                      fill="#FBBC05"
+                      d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.06H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.94l3.66-2.85z"
+                    />
+                    <path
+                      fill="#EA4335"
+                      d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.06l3.66 2.85c.87-2.6 3.3-4.53 6.16-4.53z"
+                    />
+                  </svg>
+                  Continue with Google
                 </button>
-              </div>
-              <input
-                type="password"
-                className="w-full rounded-2xl border border-zinc-200 bg-white px-4 py-3 text-zinc-900 shadow-sm transition-all duration-200 placeholder:text-zinc-400 focus:border-blue-500/45 focus:outline-none focus:ring-4 focus:ring-blue-500/12 dark:border-zinc-800 dark:bg-zinc-900 dark:text-zinc-100 dark:placeholder:text-zinc-500 dark:focus:border-blue-400/50 dark:focus:ring-blue-400/20"
-                value={password}
-                onChange={e => setPassword(e.target.value)}
-                autoComplete="current-password"
-                required
-              />
-            </div>
 
-            <button
-              type="submit"
-              className="inline-flex w-full items-center justify-center gap-2 rounded-full border border-blue-500/35 bg-blue-600 px-5 py-3.5 text-sm font-semibold text-white shadow-sm transition-all duration-200 hover:-translate-y-0.5 hover:bg-blue-500 hover:shadow-md disabled:cursor-not-allowed disabled:opacity-70 disabled:hover:translate-y-0 dark:border-blue-400/40 dark:bg-blue-500 dark:hover:bg-blue-400 dark:hover:shadow-md"
-              disabled={loading || transitioning}
-            >
-              {loading || transitioning ? (
-                <>
-                  <span className="h-4 w-4 animate-spin rounded-full border-2 border-white/30 border-t-white" />
-                  Signing in...
-                </>
-              ) : (
-                <>
-                  Login
-                  <ArrowRight className="h-4 w-4" />
-                </>
-              )}
-            </button>
-          </form>
+                {/* Footer toggle link */}
+                <div className="mt-5 text-center text-xs text-zinc-500 dark:text-zinc-400">
+                  {isLogin ? (
+                    <>
+                      Don’t have an account?{' '}
+                      <button
+                        onClick={() => handleToggleMode(false)}
+                        className="font-bold text-blue-600 hover:text-blue-500 dark:text-blue-400 dark:hover:text-blue-300 transition"
+                      >
+                        Sign up
+                      </button>
+                    </>
+                  ) : (
+                    <>
+                      Already have an account?{' '}
+                      <button
+                        onClick={() => handleToggleMode(true)}
+                        className="font-bold text-blue-600 hover:text-blue-500 dark:text-blue-400 dark:hover:text-blue-300 transition"
+                      >
+                        Log in
+                      </button>
+                    </>
+                  )}
+                </div>
+              </motion.div>
+            </AnimatePresence>
 
-          <p className="mt-6 text-center text-sm text-zinc-600 dark:text-zinc-400">
-            Don’t have an account?{' '}
-            <Link
-              to={`/signup?returnTo=${encodeURIComponent(returnTo)}${email ? `&email=${encodeURIComponent(email)}` : ''}`}
-              className="font-medium text-blue-600 transition hover:text-blue-500 dark:text-blue-300 dark:hover:text-blue-200"
-            >
-              Sign up
-            </Link>
-          </p>
-        </section>
+          </div>
+        </div>
+
       </div>
     </div>
   );

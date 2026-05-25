@@ -197,3 +197,7 @@ html.dark {
 	--border-glow-1: #6366f1;
 	--border-glow-2: #38bdf8;
 }
+
+.font-logo {
+	font-family: 'Plus Jakarta Sans', 'Space Grotesk', sans-serif;
+}

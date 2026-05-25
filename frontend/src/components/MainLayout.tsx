@@ -62,8 +62,7 @@ const Shell = ({ children }: MainLayoutProps) => {
                 <Link to="/" className="flex items-center gap-3">
                     <img src="/BrandImages/HackDekh.png" alt="HackDekh Logo" className="h-9 w-9 rounded-xl object-contain" />
                     <div className="flex items-center">
-                        <span className="text-base font-extrabold tracking-tight text-zinc-900 dark:text-zinc-50">HackDekh</span>
-                        <span className="ml-2 text-[0.68rem] font-bold uppercase tracking-wider text-blue-600 bg-blue-500/10 px-1.5 py-0.5 rounded-md dark:text-blue-400">OS</span>
+                        <span className="text-base font-extrabold tracking-tight text-zinc-900 dark:text-zinc-50 font-logo">HackDekh</span>
                     </div>
                 </Link>
 
@@ -161,6 +160,20 @@ const Shell = ({ children }: MainLayoutProps) => {
     }
 
     if (!isAuthenticated) {
+        const isAuthPage = location.pathname === '/login' || location.pathname === '/signup';
+
+        if (isAuthPage) {
+            return (
+                <div className="relative flex min-h-screen w-screen flex-col bg-white text-zinc-900 transition-colors duration-300 dark:bg-zinc-950 dark:text-zinc-100">
+                    <div className="pointer-events-none absolute inset-0 -z-10 app-background-light dark:hidden" />
+                    <div className="pointer-events-none absolute inset-0 -z-10 hidden app-background-dark dark:block" />
+                    <main className="w-full flex-1 flex flex-col">
+                        {children}
+                    </main>
+                </div>
+            )
+        }
+
         return (
             <div className="relative flex min-h-screen flex-col bg-white text-zinc-900 transition-colors duration-300 dark:bg-zinc-950 dark:text-zinc-100">
                 <div className="pointer-events-none absolute inset-0 -z-10 app-background-light dark:hidden" />

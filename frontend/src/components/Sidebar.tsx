@@ -85,7 +85,7 @@ const Sidebar = () => {
             <div className="fixed inset-x-0 top-0 z-90 flex items-center justify-between border-b border-zinc-200 bg-white/95 px-4 py-4 backdrop-blur-xl dark:border-zinc-800 dark:bg-zinc-950/95 lg:hidden">
                 <div className="flex items-center gap-3">
                     <img src="/BrandImages/HackDekh.png" alt="HackDekh Logo" className="h-10 w-10 rounded-2xl object-contain" />
-                    <span className="text-lg font-semibold tracking-tight text-zinc-900 dark:text-zinc-100">HackDekh</span>
+                    <span className="text-lg font-semibold tracking-tight text-zinc-900 dark:text-zinc-100 font-logo">HackDekh</span>
                 </div>
                 <div className="flex items-center gap-2">
                     <button
@@ -112,7 +112,7 @@ const Sidebar = () => {
                 <div className="flex shrink-0 items-center gap-3">
                     <img src="/BrandImages/HackDekh.png" alt="HackDekh Logo" className="h-10 w-10 rounded-2xl object-contain" />
                     <div>
-                        <p className="text-base font-semibold text-zinc-900 dark:text-zinc-100">HackDekh</p>
+                        <p className="text-base font-semibold text-zinc-900 dark:text-zinc-100 font-logo">HackDekh</p>
                         <p className="text-xs text-zinc-500 dark:text-zinc-400">Hackathon OS</p>
                     </div>
                 </div>
