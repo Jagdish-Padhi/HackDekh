@@ -169,7 +169,7 @@ const Shell = ({ children }: MainLayoutProps) => {
                 {renderGuestNavbar()}
 
                 <div className="relative z-10 flex-1 pt-16">
-                    <main className="mx-auto w-full max-w-7xl px-3 py-6 sm:px-6 lg:px-8">
+                    <main className={`mx-auto w-full max-w-7xl px-3 sm:px-6 lg:px-8 ${location.pathname === '/' ? 'pt-4 pb-10 sm:pt-6 lg:pt-8' : 'py-6'}`}>
                         {children}
                     </main>
                 </div>

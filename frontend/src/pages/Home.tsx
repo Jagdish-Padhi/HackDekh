@@ -12,9 +12,14 @@ import ProductStoryAnimation from "../components/productStory/ProductStoryAnimat
 
 const HomePage = () => (
     <>
-    <section className="flex min-h-[76vh] flex-col items-center justify-center gap-14 py-6 sm:py-10">
-        <div className="w-full max-w-6xl">
-            <div className="group premium-border-card relative overflow-hidden rounded-4xl border border-zinc-200/90 bg-white px-6 py-10 shadow-sm backdrop-blur-md transition-all duration-200 sm:px-10 sm:py-14 md:px-14 dark:border-zinc-800 dark:bg-zinc-900/82 dark:shadow-md">
+    <section className="relative flex flex-col items-center justify-center gap-20 pt-2 pb-10 sm:pt-4 sm:pb-16 lg:pt-6 lg:pb-20 sm:gap-28 lg:gap-32">
+        <div className="relative w-full max-w-6xl px-1 sm:px-0">
+            {/* Ambient background glows */}
+            <div className="pointer-events-none absolute -top-24 -left-20 h-72 w-72 rounded-full bg-blue-500/10 blur-[80px] dark:bg-blue-500/15" />
+            <div className="pointer-events-none absolute -bottom-24 -right-20 h-72 w-72 rounded-full bg-indigo-500/10 blur-[80px] dark:bg-indigo-500/15" />
+            <div className="pointer-events-none absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 h-96 w-96 rounded-full bg-sky-500/5 blur-[100px] dark:bg-sky-500/10" />
+
+            <div className="group premium-border-card relative overflow-hidden rounded-4xl border border-zinc-200/90 bg-white/70 px-6 py-10 shadow-xl shadow-zinc-100/50 backdrop-blur-md transition-all duration-200 sm:px-10 sm:py-14 md:px-14 dark:border-zinc-800/90 dark:bg-zinc-900/70 dark:shadow-zinc-950/40">
                 <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_top_center,rgba(59,130,246,0.16),transparent_38%)] dark:bg-[radial-gradient(circle_at_top_center,rgba(79,140,255,0.22),transparent_36%)]" />
                 <div className="mx-auto grid w-full max-w-6xl items-center gap-10 lg:grid-cols-[1.1fr_0.9fr] lg:gap-14">
                     <div className="relative text-center lg:pl-3 lg:text-left">
