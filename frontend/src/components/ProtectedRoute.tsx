@@ -1,6 +1,6 @@
 import { Navigate, useLocation } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
-import LoadingProgress from "./LoadingProgress";
+import LogoTransition from "./LogoAnimation";
 
 export default function ProtectedRoute({ children }: { children: React.JSX.Element }) {
   const { isAuthenticated, isLoading } = useAuth();
@@ -8,10 +8,11 @@ export default function ProtectedRoute({ children }: { children: React.JSX.Eleme
 
   if (isLoading) {
     return (
-      <div className="flex min-h-[70vh] flex-col items-center justify-center p-6">
-        <div className="w-full max-w-md">
-          <LoadingProgress progress={70} label="Authenticating session..." />
-        </div>
+      <div className="fixed inset-0 z-50 flex flex-col items-center justify-center bg-white dark:bg-zinc-950 transition-colors duration-300">
+        <LogoTransition width={550} height={330} autoPlay={true} />
+        <p className="text-sm font-bold text-zinc-500 dark:text-zinc-400 tracking-widest uppercase animate-pulse mt-4">
+          Authenticating session...
+        </p>
       </div>
     );
   }

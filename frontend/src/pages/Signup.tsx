@@ -49,13 +49,11 @@ const SignupPage = () => {
     return (
         <div className="relative flex min-h-[76vh] flex-col items-center justify-center py-6">
             {transitioning && (
-                <div className="absolute inset-0 z-50 flex items-center justify-center bg-white/70 backdrop-blur-xl dark:bg-zinc-950/70">
-                    <div className="flex flex-col items-center gap-5 rounded-[2rem] border border-zinc-200/80 bg-white/80 px-8 py-7 shadow-[0_22px_70px_-28px_rgba(15,23,42,0.24)] dark:border-zinc-800 dark:bg-zinc-950/80">
-                        <LogoTransition width={300} height={180} onComplete={handleTransitionComplete} />
-                        <div className="text-center">
-                            <p className="text-sm font-semibold text-zinc-900 dark:text-zinc-100">Account created</p>
-                            <p className="mt-1 text-sm text-zinc-500 dark:text-zinc-400">Redirecting you to sign in…</p>
-                        </div>
+                <div className="fixed inset-0 z-50 flex flex-col items-center justify-center bg-white/50 dark:bg-zinc-950/50 backdrop-blur-xl animate-fade-in">
+                    <LogoTransition width={550} height={330} onComplete={handleTransitionComplete} />
+                    <div className="text-center mt-6">
+                        <p className="text-base font-bold text-zinc-900 dark:text-zinc-50 tracking-wide uppercase">Account created</p>
+                        <p className="mt-1.5 text-sm font-medium text-zinc-600 dark:text-zinc-400">Redirecting you to sign in…</p>
                     </div>
                 </div>
             )}
