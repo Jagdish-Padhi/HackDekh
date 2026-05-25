@@ -50,6 +50,7 @@ const Shell = ({ children }: MainLayoutProps) => {
 
     const renderGuestNavbar = () => {
         const guestTabs = [
+            { name: 'Home', path: '/' },
             { name: 'Hackathons', path: '/hackathons' },
             { name: 'Teams', path: '/teams' },
             { name: 'Dashboard', path: '/dashboard' }
@@ -69,7 +70,9 @@ const Shell = ({ children }: MainLayoutProps) => {
                 {/* Desktop Tabs */}
                 <nav className="hidden md:flex items-center gap-1.5">
                     {guestTabs.map((tab) => {
-                        const isActive = location.pathname === tab.path || (tab.path === '/hackathons' && location.pathname === '/');
+                        const isActive = tab.path === '/'
+                            ? location.pathname === '/'
+                            : location.pathname === tab.path || (tab.path !== '/' && location.pathname.startsWith(tab.path));
                         return (
                             <NavLink
                                 key={tab.name}
@@ -118,7 +121,9 @@ const Shell = ({ children }: MainLayoutProps) => {
                 {mobileMenuOpen && (
                     <div className="absolute top-16 left-0 right-0 border-b border-zinc-200 bg-white p-4 shadow-xl dark:border-zinc-800 dark:bg-zinc-950 flex flex-col gap-3 md:hidden z-30">
                         {guestTabs.map((tab) => {
-                            const isActive = location.pathname === tab.path || (tab.path === '/hackathons' && location.pathname === '/');
+                            const isActive = tab.path === '/'
+                                ? location.pathname === '/'
+                                : location.pathname === tab.path || (tab.path !== '/' && location.pathname.startsWith(tab.path));
                             return (
                                 <NavLink
                                     key={tab.name}
