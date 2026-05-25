@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { Link, Navigate, useNavigate, useSearchParams } from 'react-router-dom';
 import { ArrowRight, CheckCircle2, ShieldCheck, Sparkles } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
+import LogoTransition from '../components/LogoAnimation';
 
 const LoginPage = () => {
   const [searchParams] = useSearchParams();
@@ -11,14 +12,16 @@ const LoginPage = () => {
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
+  const [transitioning, setTransitioning] = useState(false);
+  const [pendingDestination, setPendingDestination] = useState<string | null>(null);
 
   const returnTo = useMemo(() => searchParams.get('returnTo') || '/', [searchParams]);
 
   useEffect(() => {
-    if (!isLoading && isAuthenticated) {
+    if (!isLoading && isAuthenticated && !transitioning) {
       navigate(returnTo, { replace: true });
     }
-  }, [isAuthenticated, isLoading, navigate, returnTo]);
+  }, [isAuthenticated, isLoading, navigate, returnTo, transitioning]);
 
   if (isLoading) {
     return (
@@ -42,7 +45,7 @@ const LoginPage = () => {
     );
   }
 
-  if (isAuthenticated) {
+  if (isAuthenticated && !transitioning) {
     return <Navigate to={returnTo} replace />;
   }
 
@@ -52,18 +55,40 @@ const LoginPage = () => {
     setLoading(true);
     try {
       await login(email, password);
-      navigate(returnTo, { replace: true });
+      setPendingDestination(returnTo);
+      setTransitioning(true);
     } catch (err: any) {
       setError(err.response?.data?.message || 'Login failed');
-    } finally {
       setLoading(false);
+    } finally {
+      if (pendingDestination === null) {
+        setLoading(false);
+      }
     }
+  };
+
+  const handleTransitionComplete = () => {
+    const destination = pendingDestination || returnTo;
+    setTransitioning(false);
+    setPendingDestination(null);
+    navigate(destination, { replace: true });
   };
 
   return (
     <div className="relative overflow-hidden px-4 py-6 sm:px-6 lg:px-8 lg:py-10">
       <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_left,_rgba(59,130,246,0.14),_transparent_28%),radial-gradient(circle_at_right,_rgba(14,165,233,0.10),_transparent_26%),linear-gradient(180deg,_rgba(248,250,252,1),_rgba(241,245,249,0.94))] dark:bg-[radial-gradient(circle_at_top_left,_rgba(59,130,246,0.18),_transparent_28%),radial-gradient(circle_at_right,_rgba(14,165,233,0.12),_transparent_26%),linear-gradient(180deg,_rgba(9,9,11,1),_rgba(24,24,27,0.96))]" />
       <div className="relative mx-auto grid min-h-[78vh] max-w-6xl items-center gap-8 lg:grid-cols-[1.05fr_0.95fr] lg:gap-10">
+        {transitioning && (
+          <div className="absolute inset-0 z-50 flex items-center justify-center rounded-[2.25rem] bg-white/70 backdrop-blur-xl dark:bg-zinc-950/70">
+            <div className="flex flex-col items-center gap-5 rounded-[2rem] border border-zinc-200/80 bg-white/80 px-8 py-7 shadow-[0_22px_70px_-28px_rgba(15,23,42,0.24)] dark:border-zinc-800 dark:bg-zinc-950/80">
+              <LogoTransition size={180} onComplete={handleTransitionComplete} />
+              <div className="text-center">
+                <p className="text-sm font-semibold text-zinc-900 dark:text-zinc-100">You're signed in</p>
+                <p className="mt-1 text-sm text-zinc-500 dark:text-zinc-400">Taking you back to your workspace…</p>
+              </div>
+            </div>
+          </div>
+        )}
         <section className="rounded-[2.25rem] border border-zinc-200/80 bg-white/80 p-8 shadow-[0_24px_80px_-34px_rgba(15,23,42,0.22)] backdrop-blur-xl dark:border-zinc-800 dark:bg-zinc-950/75 sm:p-10 lg:p-12">
           <div className="inline-flex items-center gap-2 rounded-full border border-blue-500/15 bg-blue-500/8 px-4 py-1.5 text-[0.72rem] font-semibold uppercase tracking-[0.22em] text-blue-700 dark:text-blue-300">
             <Sparkles className="h-3.5 w-3.5" />
@@ -158,9 +183,9 @@ const LoginPage = () => {
             <button
               type="submit"
               className="inline-flex w-full items-center justify-center gap-2 rounded-full border border-blue-500/35 bg-blue-600 px-5 py-3.5 text-sm font-semibold text-white shadow-sm transition-all duration-200 hover:-translate-y-0.5 hover:bg-blue-500 hover:shadow-md disabled:cursor-not-allowed disabled:opacity-70 disabled:hover:translate-y-0 dark:border-blue-400/40 dark:bg-blue-500 dark:hover:bg-blue-400 dark:hover:shadow-md"
-              disabled={loading}
+              disabled={loading || transitioning}
             >
-              {loading ? (
+              {loading || transitioning ? (
                 <>
                   <span className="h-4 w-4 animate-spin rounded-full border-2 border-white/30 border-t-white" />
                   Signing in...

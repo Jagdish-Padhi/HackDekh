@@ -1,5 +1,6 @@
 import { useMemo, useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
+import LogoTransition from '../components/LogoAnimation';
 import axiosInstance from '../utils/axiosInstance';
 
 const SignupPage = () => {
@@ -11,6 +12,8 @@ const SignupPage = () => {
     const [password, setPassword] = useState('');
     const [error, setError] = useState('');
     const [loading, setLoading] = useState(false);
+    const [transitioning, setTransitioning] = useState(false);
+    const [pendingDestination, setPendingDestination] = useState<string | null>(null);
 
     const returnTo = useMemo(() => searchParams.get('returnTo') || '/', [searchParams]);
 
@@ -25,16 +28,37 @@ const SignupPage = () => {
                 fullName,
                 password,
             });
-            navigate(`/login?returnTo=${encodeURIComponent(returnTo)}&email=${encodeURIComponent(email)}`);
+            setPendingDestination(`/login?returnTo=${encodeURIComponent(returnTo)}&email=${encodeURIComponent(email)}`);
+            setTransitioning(true);
         } catch (err: any) {
             setError(err.response?.data?.message || 'Signup failed');
-        } finally {
             setLoading(false);
+        } finally {
+            if (pendingDestination === null) {
+                setLoading(false);
+            }
+        }
+    };
+
+    const handleTransitionComplete = () => {
+        if (pendingDestination) {
+            navigate(pendingDestination, { replace: true });
         }
     };
 
     return (
-        <div className="flex min-h-[76vh] flex-col items-center justify-center py-6">
+        <div className="relative flex min-h-[76vh] flex-col items-center justify-center py-6">
+            {transitioning && (
+                <div className="absolute inset-0 z-50 flex items-center justify-center bg-white/70 backdrop-blur-xl dark:bg-zinc-950/70">
+                    <div className="flex flex-col items-center gap-5 rounded-[2rem] border border-zinc-200/80 bg-white/80 px-8 py-7 shadow-[0_22px_70px_-28px_rgba(15,23,42,0.24)] dark:border-zinc-800 dark:bg-zinc-950/80">
+                        <LogoTransition size={180} onComplete={handleTransitionComplete} />
+                        <div className="text-center">
+                            <p className="text-sm font-semibold text-zinc-900 dark:text-zinc-100">Account created</p>
+                            <p className="mt-1 text-sm text-zinc-500 dark:text-zinc-400">Redirecting you to sign in…</p>
+                        </div>
+                    </div>
+                </div>
+            )}
             <form onSubmit={handleSubmit} className="w-full max-w-md rounded-[1.8rem] border border-zinc-200/90 bg-white p-7 shadow-sm backdrop-blur-md transition-all duration-200 sm:p-9 dark:border-zinc-800 dark:bg-zinc-900/85 dark:shadow-md">
                 <div className="mb-7 text-center">
                     <span className="inline-flex rounded-full border border-zinc-200 bg-zinc-50 px-4 py-1.5 text-[0.7rem] font-medium uppercase tracking-[0.2em] text-zinc-600 dark:border-zinc-700 dark:bg-zinc-800/70 dark:text-zinc-400">Create Account</span>
@@ -86,9 +110,9 @@ const SignupPage = () => {
                 <button
                     type="submit"
                     className="inline-flex w-full items-center justify-center rounded-full border border-blue-500/35 bg-blue-600 px-5 py-3 text-sm font-semibold text-white shadow-sm transition-all duration-200 hover:-translate-y-0.5 hover:bg-blue-500 hover:shadow-md dark:border-blue-400/40 dark:bg-blue-500 dark:hover:bg-blue-400 dark:hover:shadow-md"
-                    disabled={loading}
+                    disabled={loading || transitioning}
                 >
-                    {loading ? 'Signing up...' : 'Sign Up'}
+                    {loading || transitioning ? 'Signing up...' : 'Sign Up'}
                 </button>
             </form>
             <div className="mt-5 text-center text-sm text-zinc-600 dark:text-zinc-400">
