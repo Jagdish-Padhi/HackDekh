@@ -71,6 +71,7 @@ const Sidebar = () => {
         } catch {
             // fallback
         } finally {
+            sessionStorage.removeItem("dismissedSignupFunnel")
             navigate('/login')
             closeSidebar()
         }

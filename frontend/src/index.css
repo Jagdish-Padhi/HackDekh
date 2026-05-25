@@ -201,3 +201,20 @@ html.dark {
 .font-logo {
 	font-family: 'Plus Jakarta Sans', 'Space Grotesk', sans-serif;
 }
+
+@keyframes pulse-blink {
+	0%, 100% {
+		opacity: 1;
+		transform: scale(1);
+		box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.4);
+	}
+	50% {
+		opacity: 0.78;
+		transform: scale(1.04);
+		box-shadow: 0 0 12px 2px rgba(16, 185, 129, 0.2);
+	}
+}
+
+.animate-pulse-blink {
+	animation: pulse-blink 1.8s infinite ease-in-out;
+}

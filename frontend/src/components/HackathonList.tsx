@@ -63,7 +63,7 @@ const HackathonList = () => {
 
         const timer = setTimeout(() => {
             setShowFunnelModal(true);
-        }, 20000);
+        }, 5000);
 
         return () => clearTimeout(timer);
     }, [isAuthenticated]);
@@ -383,18 +383,35 @@ const HackathonList = () => {
                                 <X className="h-5 w-5" />
                             </button>
 
-                            <div className="flex flex-col items-center text-center space-y-5 pt-3">
-                                <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-blue-600/10 text-blue-600 dark:bg-blue-500/15 dark:text-blue-400">
-                                    <Trophy className="h-7 w-7" />
-                                </div>
+                            <div className="flex flex-col items-center text-center space-y-4 pt-3">
+                                <span className="inline-flex items-center gap-1.5 rounded-full border border-emerald-500/30 bg-emerald-500/10 dark:bg-emerald-500/20 px-6 py-2.5 text-xs font-black uppercase tracking-wider text-emerald-600 dark:text-emerald-400 shadow-xs animate-pulse-blink mb-2">
+                                    100% Free • Built for us! ❤️
+                                </span>
 
-                                <div className="space-y-2">
-                                    <h3 className="text-xl font-extrabold text-zinc-900 dark:text-zinc-50">
-                                        Sign up quickly to continue for FREE!
+                                <div className="space-y-4 w-full">
+                                    <h3 className="text-xl font-extrabold text-zinc-900 dark:text-zinc-50 tracking-tight leading-snug">
+                                        Ready to Win Your Next Hackathon?
                                     </h3>
-                                    <p className="text-sm text-zinc-500 dark:text-zinc-400">
-                                        Unlock Hackathon OS: Create collaborative teams, track multiple milestones, and save learning reflections in one workspace.
-                                    </p>
+                                    
+                                    <div className="space-y-3.5 text-left bg-zinc-50 dark:bg-zinc-900/60 p-4 rounded-2xl border border-zinc-100 dark:border-zinc-800/80">
+                                        <p className="text-[10px] font-bold text-zinc-400 dark:text-zinc-500 uppercase tracking-widest mb-1">What you get instantly:</p>
+                                        {[
+                                            { title: 'Advanced Discover Filters', desc: 'Devfolio, Unstop, Devpost & more in one place.' },
+                                            { title: 'Collaborative Team Workspace', desc: 'Manage rosters, invite partners, and build together.' },
+                                            { title: 'Milestone Timeline Tracker', desc: 'Monitor stage deadlines and qualified states.' },
+                                            { title: 'Async Reflection Logs', desc: 'Turn rejections into winning insights and portfolios.' }
+                                        ].map((item, idx) => (
+                                            <div key={idx} className="flex items-start gap-2.5 text-sm">
+                                                <svg className="h-4.5 w-4.5 shrink-0 text-emerald-500 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="3">
+                                                    <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+                                                </svg>
+                                                <div>
+                                                    <span className="font-bold text-zinc-900 dark:text-zinc-100 text-xs leading-normal">{item.title}</span>
+                                                    <p className="text-[11px] text-zinc-500 dark:text-zinc-400 leading-normal">{item.desc}</p>
+                                                </div>
+                                            </div>
+                                        ))}
+                                    </div>
                                 </div>
 
                                 <div className="flex flex-col w-full gap-2.5 pt-2">
@@ -403,16 +420,19 @@ const HackathonList = () => {
                                             handleDismissFunnel();
                                             navigate("/signup?returnTo=/hackathons");
                                         }}
-                                        className="inline-flex w-full items-center justify-center gap-2 rounded-2xl bg-blue-600 px-5 py-3.5 text-sm font-bold text-white shadow-lg shadow-blue-500/10 transition hover:bg-blue-500 hover:-translate-y-0.5"
+                                        className="inline-flex w-full items-center justify-center gap-2 rounded-2xl bg-blue-600 px-5 py-3.5 text-sm font-bold text-white shadow-lg shadow-blue-500/10 transition hover:bg-blue-500 hover:-translate-y-0.5 cursor-pointer"
                                     >
-                                        Sign Up Free
+                                        Create Free Account
                                         <ArrowRight className="h-4 w-4" />
                                     </button>
                                     <button
-                                        onClick={handleDismissFunnel}
-                                        className="w-full text-center rounded-2xl border border-zinc-200 bg-white py-3.5 text-sm font-bold text-zinc-600 transition hover:bg-zinc-50 dark:border-zinc-800 dark:bg-zinc-950 dark:text-zinc-300 dark:hover:bg-zinc-900"
+                                        onClick={() => {
+                                            handleDismissFunnel();
+                                            navigate("/login?returnTo=/hackathons");
+                                        }}
+                                        className="w-full text-center rounded-2xl border border-zinc-200 bg-white py-3.5 text-sm font-bold text-zinc-700 transition hover:bg-zinc-50 dark:border-zinc-800 dark:bg-zinc-950 dark:text-zinc-300 dark:hover:bg-zinc-900 cursor-pointer"
                                     >
-                                        Maybe Later
+                                        Log In to Workspace
                                     </button>
                                 </div>
                             </div>
