@@ -1,6 +1,7 @@
-import { RefreshCw } from 'lucide-react'
+import { RefreshCw, Trophy, X, ArrowRight } from 'lucide-react'
 import { useCallback, useDeferredValue, useEffect, useMemo, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
+import { AnimatePresence, motion } from 'framer-motion'
 import HackathonCard from './HackathonCard'
 import axiosInstance from '../utils/axiosInstance'
 import SearchBar from './SearchBar'
@@ -52,6 +53,25 @@ const HackathonList = () => {
     })
     const deferredSearch = useDeferredValue(search)
     const { setPageActions } = usePageChrome()
+
+    const [showFunnelModal, setShowFunnelModal] = useState(false)
+
+    useEffect(() => {
+        if (isAuthenticated) return;
+        const dismissed = sessionStorage.getItem("dismissedSignupFunnel") === "true";
+        if (dismissed) return;
+
+        const timer = setTimeout(() => {
+            setShowFunnelModal(true);
+        }, 20000);
+
+        return () => clearTimeout(timer);
+    }, [isAuthenticated]);
+
+    const handleDismissFunnel = () => {
+        setShowFunnelModal(false);
+        sessionStorage.setItem("dismissedSignupFunnel", "true");
+    }
 
     useEffect(() => {
         if (typeof window === 'undefined') {
@@ -336,6 +356,70 @@ const HackathonList = () => {
                     </div>
                 )}
             </div>
+
+            {/* Guest funnel signup prompt popup modal */}
+            <AnimatePresence>
+                {showFunnelModal && (
+                    <motion.div
+                        initial={{ opacity: 0 }}
+                        animate={{ opacity: 1 }}
+                        exit={{ opacity: 0 }}
+                        className="fixed inset-0 z-[100] flex items-center justify-center bg-zinc-950/65 backdrop-blur-sm px-4 py-8"
+                        onClick={handleDismissFunnel}
+                    >
+                        <motion.div
+                            initial={{ y: 24, scale: 0.96, opacity: 0 }}
+                            animate={{ y: 0, scale: 1, opacity: 1 }}
+                            exit={{ y: 20, scale: 0.96, opacity: 0 }}
+                            transition={{ duration: 0.22, ease: "easeOut" }}
+                            onClick={(e) => e.stopPropagation()}
+                            className="w-full max-w-md rounded-[2.25rem] border border-zinc-200 bg-white p-6 shadow-2xl dark:border-zinc-800 dark:bg-zinc-950 relative overflow-hidden"
+                        >
+                            {/* Close button */}
+                            <button
+                                onClick={handleDismissFunnel}
+                                className="absolute right-4 top-4 rounded-xl p-2 text-zinc-400 transition hover:bg-zinc-100 hover:text-zinc-700 dark:hover:bg-zinc-900 dark:hover:text-zinc-200"
+                            >
+                                <X className="h-5 w-5" />
+                            </button>
+
+                            <div className="flex flex-col items-center text-center space-y-5 pt-3">
+                                <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-blue-600/10 text-blue-600 dark:bg-blue-500/15 dark:text-blue-400">
+                                    <Trophy className="h-7 w-7" />
+                                </div>
+
+                                <div className="space-y-2">
+                                    <h3 className="text-xl font-extrabold text-zinc-900 dark:text-zinc-50">
+                                        Sign up quickly to continue for FREE!
+                                    </h3>
+                                    <p className="text-sm text-zinc-500 dark:text-zinc-400">
+                                        Unlock Hackathon OS: Create collaborative teams, track multiple milestones, and save learning reflections in one workspace.
+                                    </p>
+                                </div>
+
+                                <div className="flex flex-col w-full gap-2.5 pt-2">
+                                    <button
+                                        onClick={() => {
+                                            handleDismissFunnel();
+                                            navigate("/signup?returnTo=/hackathons");
+                                        }}
+                                        className="inline-flex w-full items-center justify-center gap-2 rounded-2xl bg-blue-600 px-5 py-3.5 text-sm font-bold text-white shadow-lg shadow-blue-500/10 transition hover:bg-blue-500 hover:-translate-y-0.5"
+                                    >
+                                        Sign Up Free
+                                        <ArrowRight className="h-4 w-4" />
+                                    </button>
+                                    <button
+                                        onClick={handleDismissFunnel}
+                                        className="w-full text-center rounded-2xl border border-zinc-200 bg-white py-3.5 text-sm font-bold text-zinc-600 transition hover:bg-zinc-50 dark:border-zinc-800 dark:bg-zinc-950 dark:text-zinc-300 dark:hover:bg-zinc-900"
+                                    >
+                                        Maybe Later
+                                    </button>
+                                </div>
+                            </div>
+                        </motion.div>
+                    </motion.div>
+                )}
+            </AnimatePresence>
 
         </div>
     )
