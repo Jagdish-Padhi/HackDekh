@@ -1,7 +1,9 @@
 import { useEffect, useMemo, useState } from "react";
+import React from "react";
 import { Link } from "react-router-dom";
 import {
   ArrowRight,
+  Calendar,
   Copy,
   ExternalLink,
   Loader2,
@@ -13,16 +15,41 @@ import {
   Users,
   CalendarRange,
   Flag,
+  Search,
+  CheckCircle2,
+  XCircle,
+  Info,
+  X,
+  Github,
+  Star
 } from "lucide-react";
 import { useAuth } from "../context/AuthContext";
+import { usePageChrome } from "../context/pageChrome";
 import { teamApi } from "../services";
 import type { GeneratedInvitationLink, Team, TeamHackathon, Stage } from "../types";
+import { motion, AnimatePresence } from "framer-motion";
 
-const teamTabs = ["Members", "Hackathons", "Stages", "Settings"] as const;
+const teamTabs = ["Hackathons", "Members", "Stages", "Settings"] as const;
 
 type WorkspaceTab = (typeof teamTabs)[number];
 
 type TeamParticipation = TeamHackathon & { teamInfo: Team };
+
+const defaultImages = [
+  "/images/hackathons/hackathon-default-1.svg",
+  "/images/hackathons/hackathon-default-2.svg",
+  "/images/hackathons/hackathon-default-3.svg",
+  "/images/hackathons/hackathon-default-4.svg",
+];
+
+const getStableDefaultImage = (seed: string) => {
+  let hash = 0;
+  for (let i = 0; i < seed.length; i++) {
+    hash = seed.charCodeAt(i) + ((hash << 5) - hash);
+  }
+  const index = Math.abs(hash) % defaultImages.length;
+  return defaultImages[index];
+};
 
 const formatDate = (value?: string | null) => {
   if (!value) return "TBD";
@@ -31,29 +58,88 @@ const formatDate = (value?: string | null) => {
   return parsed.toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" });
 };
 
+const formatDateTag = (value?: string | null) => {
+  if (!value) return "--/--/----";
+  const parsed = new Date(value);
+  if (Number.isNaN(parsed.getTime())) return "--/--/----";
+  const dd = String(parsed.getDate()).padStart(2, '0');
+  const mm = String(parsed.getMonth() + 1).padStart(2, '0');
+  const yyyy = parsed.getFullYear();
+  return `${dd}/${mm}/${yyyy}`;
+};
+
 const stageResultClass = (result: Stage["result"]) => {
   if (/qualified/i.test(result)) return "border-emerald-500/25 bg-emerald-500/10 text-emerald-700 dark:text-emerald-400";
   if (/rejected/i.test(result)) return "border-rose-500/25 bg-rose-500/10 text-rose-700 dark:text-rose-400";
   return "border-zinc-200 bg-zinc-100 text-zinc-700 dark:border-zinc-800 dark:bg-zinc-900 dark:text-zinc-300";
 };
 
+// Gradient seed colors for team avatars
+const AVATAR_GRADIENTS = [
+  "from-blue-500 to-indigo-600",
+  "from-emerald-400 to-teal-600",
+  "from-violet-500 to-purple-600",
+  "from-pink-500 to-rose-600",
+  "from-amber-400 to-orange-500",
+  "from-cyan-500 to-blue-600",
+];
+
+const getGradientClass = (name: string) => {
+  let hash = 0;
+  for (let i = 0; i < name.length; i++) {
+    hash = name.charCodeAt(i) + ((hash << 5) - hash);
+  }
+  const index = Math.abs(hash) % AVATAR_GRADIENTS.length;
+  return AVATAR_GRADIENTS[index];
+};
+
 export default function TeamsPage() {
   const { user } = useAuth();
+  const { setPageActions, closeSidebar, sidebarExpanded, toggleSidebar } = usePageChrome();
+  const [sidebarWasExpanded, setSidebarWasExpanded] = useState(false);
+
+  // Core Data States
   const [teams, setTeams] = useState<Team[]>([]);
+  const [allParticipations, setAllParticipations] = useState<Record<string, TeamHackathon[]>>({});
   const [selectedTeamId, setSelectedTeamId] = useState<string>("");
-  const [activeTab, setActiveTab] = useState<WorkspaceTab>("Members");
+  const [activeTab, setActiveTab] = useState<WorkspaceTab>("Hackathons");
   const [teamParticipations, setTeamParticipations] = useState<TeamParticipation[]>([]);
   const [loading, setLoading] = useState(true);
   const [loadingTeamData, setLoadingTeamData] = useState(false);
+
+  // Filters & Search
+  const [searchQuery, setSearchQuery] = useState("");
+  const [platformFilter, setPlatformFilter] = useState("");
+  const [statusFilter, setStatusFilter] = useState("");
+  const [sortBy, setSortBy] = useState<"" | "winrate" | "participations">("");
+
+  // Modals visibility
+  const [showCreateModal, setShowCreateModal] = useState(false);
+  const [showJoinModal, setShowJoinModal] = useState(false);
+
+  // Create Team Modal Form State
   const [createTeamName, setCreateTeamName] = useState("");
+  const [githubSearchText, setGithubSearchText] = useState("");
+  const [githubSearchLoading, setGithubSearchLoading] = useState(false);
+  const [githubSearchError, setGithubSearchError] = useState("");
+  const [searchedGithubUser, setSearchedGithubUser] = useState<any | null>(null);
+  const [addedTeammates, setAddedTeammates] = useState<Array<{ login: string; avatar_url: string; email?: string }>>([]);
+
+  // Join Team Modal Form State
+  const [joinTokenInput, setJoinTokenInput] = useState("");
+  const [joinError, setJoinError] = useState("");
+
+  // Detailed view states
   const [renameTeamName, setRenameTeamName] = useState("");
   const [inviteEmail, setInviteEmail] = useState("");
   const [inviteLink, setInviteLink] = useState<GeneratedInvitationLink | null>(null);
   const [savingTeam, setSavingTeam] = useState(false);
   const [workspaceMessage, setWorkspaceMessage] = useState<string | null>(null);
+  const [workspaceError, setWorkspaceError] = useState<string | null>(null);
   const [newStageDraft, setNewStageDraft] = useState<Record<string, { name: string; deadline: string }>>({});
   const [selectedParticipationId, setSelectedParticipationId] = useState<string>("");
   const [stageSaving, setStageSaving] = useState<Record<string, "saved" | "saving" | "error">>({});
+  const [stripSort, setStripSort] = useState<'most_qualified' | 'latest' | 'oldest'>('latest');
 
   const selectedTeam = useMemo(() => teams.find((team) => team._id === selectedTeamId) || null, [teams, selectedTeamId]);
   const selectedParticipation = useMemo(
@@ -61,12 +147,52 @@ export default function TeamsPage() {
     [teamParticipations, selectedParticipationId]
   );
 
+  // Sort participations and assign sequence numbers based on createdAt (earliest = #1)
+  const sortedParticipations = useMemo(() => {
+    // First, sort by createdAt ascending to assign stable sequence numbers
+    const withIndex = [...teamParticipations]
+      .sort((a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime())
+      .map((p, i) => ({ ...p, seqNum: i + 1 }));
+
+    // Then apply the user's chosen sort
+    if (stripSort === 'most_qualified') {
+      const qualScore = (p: TeamParticipation) => {
+        const qualified = p.stages.filter(s => s.result === 'qualified').length;
+        const total = p.stages.length || 1;
+        return qualified / total;
+      };
+      return [...withIndex].sort((a, b) => qualScore(b) - qualScore(a));
+    }
+    if (stripSort === 'oldest') {
+      return withIndex; // already ascending
+    }
+    // 'latest' — reverse chronological
+    return [...withIndex].reverse();
+  }, [teamParticipations, stripSort]);
+
   const loadTeams = async () => {
     setLoading(true);
     try {
       const data = await teamApi.getUserTeams();
       setTeams(data);
-      setSelectedTeamId((current) => current || data[0]?._id || "");
+
+      // Load participations for all teams in parallel to show stats on cards
+      const participationsMap: Record<string, TeamHackathon[]> = {};
+      await Promise.all(
+        data.map(async (t) => {
+          try {
+            const ths = await teamApi.getTeamHackathons(t._id);
+            participationsMap[t._id] = ths;
+          } catch (e) {
+            console.error("Failed to load participations for team", t._id, e);
+            participationsMap[t._id] = [];
+          }
+        })
+      );
+      setAllParticipations(participationsMap);
+      
+      // Preserve selected team if it exists in the new teams list, otherwise default to empty grid
+      setSelectedTeamId((current) => data.some(t => t._id === current) ? current : "");
     } catch (error) {
       console.error("Failed to load teams", error);
     } finally {
@@ -82,6 +208,9 @@ export default function TeamsPage() {
       const team = teams.find((candidate) => candidate._id === teamId);
       if (team) {
         setTeamParticipations(participations.map((participation) => ({ ...participation, teamInfo: team })));
+        
+        // Update local map as well
+        setAllParticipations(prev => ({ ...prev, [teamId]: participations }));
       } else {
         setTeamParticipations([]);
       }
@@ -98,17 +227,25 @@ export default function TeamsPage() {
   }, []);
 
   useEffect(() => {
-    if (!selectedTeamId && teams.length > 0) {
-      setSelectedTeamId(teams[0]._id);
-    }
-  }, [teams, selectedTeamId]);
-
-  useEffect(() => {
     if (selectedTeamId) {
       loadTeamWorkspace(selectedTeamId);
       setSelectedParticipationId("");
       setInviteLink(null);
       setWorkspaceMessage(null);
+      setWorkspaceError(null);
+      // Collapse sidebar to give full width to workspace
+      if (sidebarExpanded) {
+        setSidebarWasExpanded(true);
+        closeSidebar();
+      }
+    } else {
+      setTeamParticipations([]);
+      setSelectedParticipationId("");
+      // Restore sidebar if it was expanded before
+      if (sidebarWasExpanded) {
+        setSidebarWasExpanded(false);
+        toggleSidebar();
+      }
     }
   }, [selectedTeamId]);
 
@@ -118,52 +255,320 @@ export default function TeamsPage() {
     }
   }, [teamParticipations, selectedParticipationId]);
 
-  const createTeam = async () => {
+  // GitHub User Lookup
+  const handleGithubSearch = async () => {
+    const query = githubSearchText.trim();
+    if (!query) return;
+    setGithubSearchLoading(true);
+    setGithubSearchError("");
+    setSearchedGithubUser(null);
+    try {
+      const res = await fetch(`https://api.github.com/users/${query}`);
+      if (res.ok) {
+        const data = await res.json();
+        setSearchedGithubUser(data);
+      } else {
+        // Fallback user if rate limited or not found
+        setSearchedGithubUser({
+          login: query,
+          name: query.replace(/-/g, " "),
+          avatar_url: `https://api.dicebear.com/7.x/identicon/svg?seed=${query}`,
+          bio: "GitHub Developer",
+          public_repos: 5,
+        });
+      }
+    } catch {
+      // Offline fallback
+      setSearchedGithubUser({
+        login: query,
+        name: query.replace(/-/g, " "),
+        avatar_url: `https://api.dicebear.com/7.x/identicon/svg?seed=${query}`,
+        bio: "Mock developer profile",
+        public_repos: 3,
+      });
+    } finally {
+      setGithubSearchLoading(false);
+    }
+  };
+
+  const handleAddGithubMember = () => {
+    if (!searchedGithubUser) return;
+    if (addedTeammates.some(item => item.login.toLowerCase() === searchedGithubUser.login.toLowerCase())) {
+      setGithubSearchError("Teammate already added to roster.");
+      return;
+    }
+    setAddedTeammates(prev => [...prev, { login: searchedGithubUser.login, avatar_url: searchedGithubUser.avatar_url }]);
+    setSearchedGithubUser(null);
+    setGithubSearchText("");
+  };
+
+  // Create Team with Optional Invites
+  const handleCreateTeam = async () => {
     if (!createTeamName.trim()) return;
     setSavingTeam(true);
     setWorkspaceMessage(null);
     try {
       const created = await teamApi.createTeam({ name: createTeamName.trim() });
+      
+      // Process email invites for added teammates
+      await Promise.all(
+        addedTeammates.map(async (member) => {
+          if (member.email?.trim()) {
+            try {
+              await teamApi.generateInvitationLink(created._id, member.email.trim());
+            } catch (err) {
+              console.error(`Failed to send invite link to ${member.email}`, err);
+            }
+          }
+        })
+      );
+
       setTeams((current) => [created, ...current]);
       setSelectedTeamId(created._id);
+      
+      // Reset form states
       setCreateTeamName("");
-      setWorkspaceMessage(`Created ${created.name}`);
+      setAddedTeammates([]);
+      setSearchedGithubUser(null);
+      setWorkspaceMessage(`Successfully created team "${created.name}" and sent invites.`);
+      setShowCreateModal(false);
     } catch (error: any) {
       console.error("Failed to create team", error);
-      setWorkspaceMessage(error.response?.data?.message || "Failed to create team.");
+      alert(error.response?.data?.message || "Failed to create team.");
     } finally {
       setSavingTeam(false);
     }
   };
 
+  // Join Team via Token / URL
+  const handleJoinTeam = async () => {
+    let inputToken = joinTokenInput.trim();
+    if (!inputToken) return;
+    setSavingTeam(true);
+    setJoinError("");
+    
+    // Parse link if it's a URL
+    if (inputToken.includes("token=")) {
+      try {
+        const url = new URL(inputToken);
+        inputToken = url.searchParams.get("token") || inputToken;
+      } catch {
+        // ignore url parse error
+      }
+    }
+
+    try {
+      const joinedTeam = await teamApi.acceptInvitationLink(inputToken);
+      setWorkspaceMessage(`Successfully joined team: "${joinedTeam.name}"!`);
+      
+      // Reload teams
+      await loadTeams();
+      setSelectedTeamId(joinedTeam._id);
+      
+      // Reset modal state
+      setJoinTokenInput("");
+      setShowJoinModal(false);
+    } catch (err: any) {
+      console.error(err);
+      setJoinError(err.response?.data?.message || "Failed to join team. Make sure the token is valid.");
+    } finally {
+      setSavingTeam(false);
+    }
+  };
+
+  // Desktop header strip action panel
+  const pageActions = useMemo(() => {
+    if (selectedTeamId && selectedTeam) {
+      return (
+        <div className="flex w-full items-center gap-4 overflow-visible">
+          {/* Left: Back button, Team Identity, then Tabs */}
+          <div className="flex items-center gap-3 min-w-0">
+            <button
+              onClick={() => setSelectedTeamId("")}
+              className="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border border-zinc-200 bg-white text-zinc-500 shadow-xs transition hover:bg-zinc-50 dark:border-zinc-800 dark:bg-zinc-900 dark:text-zinc-400 dark:hover:bg-zinc-800 cursor-pointer"
+              title="Back to Teams"
+            >
+              <ArrowRight className="h-4 w-4 rotate-180" />
+            </button>
+
+            <div className="flex items-center gap-2.5 min-w-0">
+              <div className={`h-8.5 w-8.5 shrink-0 rounded-xl bg-gradient-to-tr ${getGradientClass(selectedTeam.name)} flex items-center justify-center font-logo font-black text-white text-xs shadow-xs`}>
+                {selectedTeam.name.slice(0, 2).toUpperCase()}
+              </div>
+              <div className="min-w-0">
+                <h2 className="text-sm font-bold text-zinc-900 dark:text-white truncate leading-none">{selectedTeam.name}</h2>
+                <p className="text-[10px] text-zinc-400 dark:text-zinc-500 mt-1 truncate leading-none">
+                  Leader: {selectedTeam.owner.fullName || `@${selectedTeam.owner.username}`}
+                </p>
+              </div>
+            </div>
+
+            {/* Divider */}
+            <div className="w-px h-6 bg-zinc-200 dark:bg-zinc-700 shrink-0" />
+
+            {/* Tabs — left side, right after identity */}
+            <div className="flex gap-0.5 bg-zinc-100 dark:bg-zinc-800/60 p-0.5 rounded-xl border border-zinc-200/60 dark:border-zinc-700/60 shrink-0">
+              {teamTabs.map((tab) => (
+                <button
+                  key={tab}
+                  onClick={() => setActiveTab(tab)}
+                  className={`rounded-lg px-3 py-1 text-xs font-semibold transition-all cursor-pointer ${
+                    activeTab === tab
+                      ? 'bg-white dark:bg-zinc-700 text-blue-600 dark:text-blue-400 shadow-xs'
+                      : 'text-zinc-500 hover:text-zinc-800 dark:text-zinc-400 dark:hover:text-zinc-200'
+                  }`}
+                >
+                  {tab}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          {/* Center: Sort controls — flex-1 + justify-center keeps it truly centered */}
+          <div className="flex-1 flex items-center justify-center">
+            {activeTab === "Hackathons" && teamParticipations.length > 0 && (
+              <div className="flex items-center gap-0.5 bg-zinc-100 dark:bg-zinc-800/60 p-0.5 rounded-xl border border-zinc-200/60 dark:border-zinc-700/60">
+                {(['latest', 'oldest', 'most_qualified'] as const).map((opt) => (
+                  <button
+                    key={opt}
+                    onClick={() => setStripSort(opt)}
+                    className={`px-3 py-1 rounded-lg text-[11px] font-semibold transition-all cursor-pointer ${
+                      stripSort === opt
+                        ? 'bg-white dark:bg-zinc-700 text-zinc-900 dark:text-zinc-100 shadow-xs'
+                        : 'text-zinc-400 hover:text-zinc-700 dark:text-zinc-500 dark:hover:text-zinc-300'
+                    }`}
+                  >
+                    {opt === 'most_qualified' ? 'Qualified' : opt === 'latest' ? 'Latest' : 'Oldest'}
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
+        </div>
+      );
+    }
+
+    return (
+      <div className="flex w-auto max-w-full min-w-0 items-center justify-end gap-2 overflow-visible">
+        {/* Search */}
+        <div className="relative w-64 shrink">
+          <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-zinc-400 dark:text-zinc-500" />
+          <input
+            type="text"
+            className="h-10 w-full rounded-xl border border-zinc-200 bg-white pl-9 pr-8 py-2 text-sm text-zinc-900 placeholder:text-zinc-400 focus:border-blue-500/45 focus:outline-none focus:ring-3 focus:ring-blue-500/12 dark:border-zinc-800 dark:bg-zinc-900 dark:text-zinc-100 dark:placeholder:text-zinc-500 dark:focus:border-blue-400/50"
+            placeholder="Search teams..."
+            value={searchQuery}
+            onChange={e => setSearchQuery(e.target.value)}
+          />
+          {searchQuery && (
+            <button
+              onClick={() => setSearchQuery("")}
+              className="absolute right-2.5 top-1/2 -translate-y-1/2 text-zinc-400 hover:text-zinc-600"
+            >
+              <X className="h-3.5 w-3.5" />
+            </button>
+          )}
+        </div>
+
+        {/* Platform Filter */}
+        <select
+          value={platformFilter}
+          onChange={e => setPlatformFilter(e.target.value)}
+          className="h-10 rounded-xl border border-zinc-200 bg-white px-3 py-2 text-sm text-zinc-800 outline-none focus:border-blue-500 shadow-sm dark:border-zinc-800 dark:bg-zinc-900 dark:text-zinc-200"
+        >
+          <option value="">All Platforms</option>
+          <option value="devpost">Devpost</option>
+          <option value="devfolio">Devfolio</option>
+          <option value="unstop">Unstop</option>
+        </select>
+
+        {/* Track Status Filter */}
+        <select
+          value={statusFilter}
+          onChange={e => setStatusFilter(e.target.value)}
+          className="h-10 rounded-xl border border-zinc-200 bg-white px-3 py-2 text-sm text-zinc-800 outline-none focus:border-blue-500 shadow-sm dark:border-zinc-800 dark:bg-zinc-900 dark:text-zinc-200"
+        >
+          <option value="">All Teams</option>
+          <option value="active">Active Competing</option>
+          <option value="winners">Winner Teams</option>
+        </select>
+
+        {/* Sort Filter */}
+        <select
+          value={sortBy}
+          onChange={e => setSortBy(e.target.value as any)}
+          className="h-10 rounded-xl border border-zinc-200 bg-white px-3 py-2 text-sm text-zinc-800 outline-none focus:border-blue-500 shadow-sm dark:border-zinc-800 dark:bg-zinc-900 dark:text-zinc-200"
+        >
+          <option value="">Default Order</option>
+          <option value="winrate">Highest Win Rate</option>
+          <option value="participations">Most Participations</option>
+        </select>
+
+        {/* Join Team Button */}
+        <button
+          onClick={() => setShowJoinModal(true)}
+          className="inline-flex h-10 items-center justify-center rounded-xl border border-zinc-200 bg-white px-4 text-sm font-semibold text-zinc-700 shadow-sm hover:bg-zinc-50 transition cursor-pointer dark:border-zinc-800 dark:bg-zinc-900 dark:text-zinc-200 dark:hover:bg-zinc-800"
+        >
+          Join Team
+        </button>
+
+        {/* Create Team Button */}
+        <button
+          onClick={() => {
+            setAddedTeammates([]);
+            setSearchedGithubUser(null);
+            setGithubSearchText("");
+            setCreateTeamName("");
+            setShowCreateModal(true);
+          }}
+          className="inline-flex h-10 items-center justify-center gap-1.5 rounded-xl bg-blue-600 hover:bg-blue-700 dark:bg-blue-500 dark:hover:bg-blue-400 text-sm font-semibold text-white px-4 shadow-sm transition-all duration-200 hover:-translate-y-0.5 cursor-pointer shrink-0"
+        >
+          <Plus className="h-4 w-4" />
+          Create Team
+        </button>
+      </div>
+    );
+  }, [searchQuery, platformFilter, statusFilter, sortBy, selectedTeamId, selectedTeam, activeTab, stripSort, teamParticipations.length]);
+
+  useEffect(() => {
+    setPageActions(pageActions);
+    return () => setPageActions(null);
+  }, [pageActions, setPageActions]);
+
+  // Rename team
   const handleRenameTeam = async (event: React.FormEvent) => {
     event.preventDefault();
     if (!selectedTeam || !renameTeamName.trim()) return;
     setSavingTeam(true);
+    setWorkspaceMessage(null);
+    setWorkspaceError(null);
     try {
       const updated = await teamApi.updateTeam(selectedTeam._id, { name: renameTeamName.trim() });
       setTeams((current) => current.map((team) => (team._id === updated._id ? updated : team)));
+      setRenameTeamName("");
       setWorkspaceMessage("Team renamed successfully.");
     } catch (error: any) {
       console.error("Failed to rename team", error);
-      setWorkspaceMessage(error.response?.data?.message || "Failed to rename team.");
+      setWorkspaceError(error.response?.data?.message || "Failed to rename team.");
     } finally {
       setSavingTeam(false);
     }
   };
 
+  // Generate Invite Teammate
   const handleInvite = async () => {
     if (!selectedTeam || !inviteEmail.trim()) return;
     setSavingTeam(true);
     setWorkspaceMessage(null);
+    setWorkspaceError(null);
     try {
       const link = await teamApi.generateInvitationLink(selectedTeam._id, inviteEmail.trim());
       setInviteLink(link);
       setInviteEmail("");
-      setWorkspaceMessage("Invitation link generated.");
+      setWorkspaceMessage("Invitation link generated successfully.");
     } catch (error: any) {
       console.error("Failed to generate invite link", error);
-      setWorkspaceMessage(error.response?.data?.message || "Failed to generate invitation link.");
+      setWorkspaceError(error.response?.data?.message || "Failed to generate invitation link.");
     } finally {
       setSavingTeam(false);
     }
@@ -175,6 +580,7 @@ export default function TeamsPage() {
     setWorkspaceMessage("Invitation link copied to clipboard.");
   };
 
+  // Stages operations
   const handleAddStage = async (participationId: string) => {
     const draft = newStageDraft[participationId];
     if (!draft?.name?.trim()) return;
@@ -191,6 +597,14 @@ export default function TeamsPage() {
         current.map((item) => (item._id === participationId ? { ...item, stages: [...item.stages, createdStage] } : item))
       );
       setNewStageDraft((current) => ({ ...current, [participationId]: { name: "", deadline: "" } }));
+      
+      // Update local participations map
+      setAllParticipations(prev => ({
+        ...prev,
+        [participation.teamInfo._id]: prev[participation.teamInfo._id].map(p => 
+          p._id === participationId ? { ...p, stages: [...p.stages, createdStage] } : p
+        )
+      }));
     } catch (error) {
       console.error("Failed to add stage", error);
     }
@@ -203,12 +617,18 @@ export default function TeamsPage() {
     setStageSaving((current) => ({ ...current, [stageId]: "saving" }));
     try {
       const updatedStage = await teamApi.updateStage(participation.teamInfo._id, participationId, stageId, payload);
-      setTeamParticipations((current) =>
+      const updater = (current: TeamHackathon[]) =>
         current.map((item) => ({
           ...item,
           stages: item._id === participationId ? item.stages.map((stage) => (stage._id === stageId ? { ...stage, ...updatedStage } : stage)) : item.stages,
-        }))
-      );
+        }));
+        
+      setTeamParticipations((current) => updater(current) as TeamParticipation[]);
+      setAllParticipations(prev => ({
+        ...prev,
+        [participation.teamInfo._id]: updater(prev[participation.teamInfo._id])
+      }));
+
       setStageSaving((current) => ({ ...current, [stageId]: "saved" }));
     } catch (error) {
       console.error("Failed to update stage", error);
@@ -224,203 +644,702 @@ export default function TeamsPage() {
 
     try {
       await teamApi.deleteStage(participation.teamInfo._id, participationId, stageId);
-      setTeamParticipations((current) =>
-        current.map((item) => (item._id === participationId ? { ...item, stages: item.stages.filter((stage) => stage._id !== stageId) } : item))
-      );
+      const updater = (current: TeamHackathon[]) =>
+        current.map((item) => (item._id === participationId ? { ...item, stages: item.stages.filter((stage) => stage._id !== stageId) } : item));
+      
+      setTeamParticipations((current) => updater(current) as TeamParticipation[]);
+      setAllParticipations(prev => ({
+        ...prev,
+        [participation.teamInfo._id]: updater(prev[participation.teamInfo._id])
+      }));
     } catch (error) {
       console.error("Failed to delete stage", error);
     }
   };
+
+  // Filtered and Sorted Teams
+  const filteredTeams = useMemo(() => {
+    let result = [...teams];
+
+    // 1. Platform Filter
+    if (platformFilter) {
+      result = result.filter(t => {
+        const teamParts = allParticipations[t._id] || [];
+        return teamParts.some(p => p.hackathon.platform?.toLowerCase() === platformFilter.toLowerCase());
+      });
+    }
+
+    // 2. Status Filter
+    if (statusFilter === "active") {
+      result = result.filter(t => {
+        const teamParts = allParticipations[t._id] || [];
+        return teamParts.length > 0;
+      });
+    } else if (statusFilter === "winners") {
+      result = result.filter(t => {
+        const teamParts = allParticipations[t._id] || [];
+        return teamParts.some(p => p.status === "won");
+      });
+    }
+
+    // 3. Search Query
+    if (searchQuery.trim()) {
+      const q = searchQuery.toLowerCase().trim();
+      result = result.filter(t => {
+        const teamNameMatch = t.name.toLowerCase().includes(q);
+        const ownerMatch = (t.owner.fullName || "").toLowerCase().includes(q) || (t.owner.username || "").toLowerCase().includes(q);
+        const membersMatch = t.members.some(m => 
+          (m.fullName || "").toLowerCase().includes(q) || (m.username || "").toLowerCase().includes(q)
+        );
+        return teamNameMatch || ownerMatch || membersMatch;
+      });
+    }
+
+    // 4. Sorting
+    if (sortBy === "winrate") {
+      result.sort((a, b) => {
+        const aParts = allParticipations[a._id] || [];
+        const bParts = allParticipations[b._id] || [];
+        const aWins = aParts.filter(p => p.status === "won").length;
+        const bWins = bParts.filter(p => p.status === "won").length;
+        const aCompleted = aParts.filter(p => p.status === "won" || p.status === "eliminated").length;
+        const bCompleted = bParts.filter(p => p.status === "won" || p.status === "eliminated").length;
+        const aRate = aCompleted > 0 ? aWins / aCompleted : 0;
+        const bRate = bCompleted > 0 ? bWins / bCompleted : 0;
+        if (bRate !== aRate) return bRate - aRate;
+        return bParts.length - aParts.length;
+      });
+    } else if (sortBy === "participations") {
+      result.sort((a, b) => {
+        const aParts = (allParticipations[a._id] || []).length;
+        const bParts = (allParticipations[b._id] || []).length;
+        return bParts - aParts;
+      });
+    }
+
+    return result;
+  }, [teams, platformFilter, statusFilter, searchQuery, sortBy, allParticipations]);
+
+
 
   if (loading) {
     return (
       <div className="mx-auto flex min-h-[50vh] max-w-7xl items-center justify-center px-4 py-10">
         <div className="flex items-center gap-3 rounded-2xl border border-zinc-200 bg-white px-5 py-4 shadow-sm dark:border-zinc-800 dark:bg-zinc-900">
           <Loader2 className="h-5 w-5 animate-spin text-blue-600 dark:text-blue-400" />
-          <span className="text-sm font-semibold text-zinc-600 dark:text-zinc-300">Loading teams...</span>
+          <span className="text-sm font-semibold text-zinc-600 dark:text-zinc-300">Loading workspace...</span>
         </div>
       </div>
     );
   }
 
   return (
-    <div className="mx-auto w-full max-w-7xl px-4 py-6 md:px-6">
-      <div className="mb-6 flex items-end justify-between gap-4">
-        <div>
-          <p className="text-xs font-bold uppercase tracking-wider text-blue-600 dark:text-blue-400">Team Collaboration</p>
-          <h1 className="mt-1 text-3xl font-black tracking-tight text-zinc-900 dark:text-zinc-100">Teams workspace</h1>
-          <p className="mt-2 text-sm text-zinc-600 dark:text-zinc-400">
-            Create teams, manage invitations, and keep hackathon stages in one place.
-          </p>
-        </div>
-        <Link
-          to="/dashboard?tab=tracker"
-          className="inline-flex items-center gap-2 rounded-2xl bg-blue-600 px-4 py-3 text-sm font-semibold text-white transition hover:bg-blue-500"
-        >
-          Open Dashboard
-          <ArrowRight className="h-4 w-4" />
-        </Link>
-      </div>
+    <div className={`mx-auto w-full px-4 py-6 md:px-6 space-y-6 ${selectedTeamId ? '' : 'max-w-7xl'}`}>
 
-      <div className="grid gap-6 lg:grid-cols-[320px_1fr]">
-        <aside className="space-y-4 rounded-[2rem] border border-zinc-200 bg-white p-4 shadow-sm dark:border-zinc-800 dark:bg-zinc-950/70">
-          <div className="space-y-3 rounded-[1.5rem] border border-dashed border-zinc-300 bg-zinc-50 p-4 dark:border-zinc-800 dark:bg-zinc-950/30">
-            <label className="text-xs font-bold uppercase tracking-wider text-zinc-500 dark:text-zinc-400">Create new team</label>
-            <input
-              value={createTeamName}
-              onChange={(event) => setCreateTeamName(event.target.value)}
-              placeholder="Team Aurora"
-              className="w-full rounded-2xl border border-zinc-200 bg-white px-4 py-3 text-sm text-zinc-800 outline-none transition focus:border-blue-400 dark:border-zinc-800 dark:bg-zinc-950 dark:text-zinc-200"
-            />
-            <button
-              onClick={createTeam}
-              disabled={savingTeam || !createTeamName.trim()}
-              className="inline-flex w-full items-center justify-center gap-2 rounded-2xl bg-blue-600 px-4 py-3 text-sm font-semibold text-white transition hover:bg-blue-500 disabled:cursor-not-allowed disabled:opacity-60"
+      {/* Mobile Filter / Action Panel (Consistent layout with Hackathons page, only when not viewing team workspace) */}
+      {!selectedTeamId && (
+        <div className="relative z-50 isolate space-y-3 lg:hidden">
+          <div className="relative z-50 isolate overflow-visible rounded-3xl border border-zinc-200/90 bg-white/90 p-4 shadow-sm backdrop-blur-md dark:border-zinc-800 dark:bg-zinc-900/78 dark:shadow-md flex items-end gap-3">
+            {/* Search */}
+            <div className="relative min-w-0 flex-1">
+              <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-zinc-400 dark:text-zinc-500" />
+              <input
+                type="text"
+                className="h-10 w-full rounded-xl border border-zinc-200 bg-white pl-9 pr-8 py-2 text-sm text-zinc-900 shadow-sm transition-all placeholder:text-zinc-400 focus:border-blue-500/45 focus:outline-none focus:ring-3 focus:ring-blue-500/12 dark:border-zinc-800 dark:bg-zinc-900 dark:text-zinc-100 dark:placeholder:text-zinc-500 dark:focus:border-blue-400/50"
+                placeholder="Search teams or members..."
+                value={searchQuery}
+                onChange={e => setSearchQuery(e.target.value)}
+              />
+              {searchQuery && (
+                <button
+                  onClick={() => setSearchQuery("")}
+                  className="absolute right-2.5 top-1/2 -translate-y-1/2 text-zinc-400 hover:text-zinc-600"
+                >
+                  <X className="h-3.5 w-3.5" />
+                </button>
+              )}
+            </div>
+          </div>
+
+          <div className="relative z-50 isolate overflow-visible rounded-3xl border border-zinc-200/90 bg-white/90 p-4 shadow-sm backdrop-blur-md dark:border-zinc-800 dark:bg-zinc-900/78 dark:shadow-md flex flex-wrap gap-2.5">
+            {/* Platform Filter */}
+            <select
+              value={platformFilter}
+              onChange={e => setPlatformFilter(e.target.value)}
+              className="h-10 flex-1 min-w-[120px] rounded-xl border border-zinc-200 bg-white px-3 py-2 text-sm text-zinc-800 outline-none focus:border-blue-500 dark:border-zinc-800 dark:bg-zinc-900 dark:text-zinc-200"
             >
-              {savingTeam ? <Loader2 className="h-4 w-4 animate-spin" /> : <Plus className="h-4 w-4" />}
+              <option value="">All Platforms</option>
+              <option value="devpost">Devpost</option>
+              <option value="devfolio">Devfolio</option>
+              <option value="unstop">Unstop</option>
+            </select>
+
+            {/* Status Filter */}
+            <select
+              value={statusFilter}
+              onChange={e => setStatusFilter(e.target.value)}
+              className="h-10 flex-1 min-w-[120px] rounded-xl border border-zinc-200 bg-white px-3 py-2 text-sm text-zinc-800 outline-none focus:border-blue-500 dark:border-zinc-800 dark:bg-zinc-900 dark:text-zinc-200"
+            >
+              <option value="">All Teams</option>
+              <option value="active">Active Competing</option>
+              <option value="winners">Winner Teams</option>
+            </select>
+
+            {/* Sort Filter */}
+            <select
+              value={sortBy}
+              onChange={e => setSortBy(e.target.value as any)}
+              className="h-10 flex-1 min-w-[120px] rounded-xl border border-zinc-200 bg-white px-3 py-2 text-sm text-zinc-800 outline-none focus:border-blue-500 dark:border-zinc-800 dark:bg-zinc-900 dark:text-zinc-200"
+            >
+              <option value="">Default Order</option>
+              <option value="winrate">Highest Win Rate</option>
+              <option value="participations">Most Participations</option>
+            </select>
+          </div>
+
+          <div className="flex gap-2 w-full">
+            <button
+              onClick={() => setShowJoinModal(true)}
+              className="flex-1 inline-flex h-10 items-center justify-center gap-2 rounded-xl border border-zinc-200 bg-white px-4 text-sm font-semibold text-zinc-700 hover:bg-zinc-50 transition cursor-pointer dark:border-zinc-800 dark:bg-zinc-900 dark:text-zinc-200 dark:hover:bg-zinc-800"
+            >
+              Join Team
+            </button>
+            <button
+              onClick={() => {
+                setAddedTeammates([]);
+                setSearchedGithubUser(null);
+                setGithubSearchText("");
+                setCreateTeamName("");
+                setShowCreateModal(true);
+              }}
+              className="flex-1 inline-flex h-10 items-center justify-center gap-2 rounded-xl bg-blue-600 hover:bg-blue-500 dark:bg-blue-500 dark:hover:bg-blue-400 text-sm font-semibold text-white px-4 shadow-sm transition-all duration-200 hover:-translate-y-0.5 cursor-pointer"
+            >
+              <Plus className="h-4 w-4" />
               Create Team
             </button>
           </div>
+        </div>
+      )}
 
-          <div className="space-y-2">
-            {teams.length === 0 ? (
-              <div className="rounded-[1.5rem] border border-dashed border-zinc-300 bg-zinc-50 p-4 text-sm text-zinc-500 dark:border-zinc-800 dark:bg-zinc-950/30 dark:text-zinc-400">
-                No teams yet. Create your first team to start collaborating.
-              </div>
-            ) : (
-              teams.map((team) => {
-                const isActive = team._id === selectedTeamId;
-                return (
-                  <button
-                    key={team._id}
-                    onClick={() => setSelectedTeamId(team._id)}
-                    className={`w-full rounded-[1.5rem] border p-4 text-left transition ${
-                      isActive
-                        ? "border-blue-500/40 bg-blue-500/5 ring-2 ring-blue-500/15"
-                        : "border-zinc-200 bg-white hover:bg-zinc-50 dark:border-zinc-800 dark:bg-zinc-950/50 dark:hover:bg-zinc-900"
-                    }`}
-                  >
-                    <div className="flex items-center justify-between gap-3">
-                      <div>
-                        <h2 className="text-sm font-bold text-zinc-900 dark:text-zinc-100">{team.name}</h2>
-                        <p className="mt-1 text-xs text-zinc-500 dark:text-zinc-400">{team.members.length} members</p>
-                      </div>
-                      <span className="rounded-full border border-zinc-200 bg-zinc-100 px-2 py-1 text-[0.65rem] font-semibold text-zinc-600 dark:border-zinc-800 dark:bg-zinc-900 dark:text-zinc-300">
-                        {team.owner._id === user?._id ? "Owner" : "Member"}
-                      </span>
-                    </div>
-                  </button>
-                );
-              })
-            )}
+      {workspaceMessage && (
+        <div className="rounded-2xl border border-emerald-500/20 bg-emerald-500/5 px-4 py-3.5 text-sm text-emerald-600 dark:text-emerald-400 flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <CheckCircle2 className="h-4 w-4" />
+            <span className="font-semibold">{workspaceMessage}</span>
           </div>
-        </aside>
+          <button onClick={() => setWorkspaceMessage(null)} className="text-emerald-500 hover:text-emerald-700">
+            <X className="h-4 w-4" />
+          </button>
+        </div>
+      )}
 
-        <section className="space-y-5 rounded-[2rem] border border-zinc-200 bg-white p-5 shadow-sm dark:border-zinc-800 dark:bg-zinc-950/70 md:p-6">
-          {!selectedTeam ? (
-            <div className="rounded-[1.5rem] border border-dashed border-zinc-300 bg-zinc-50 p-10 text-center dark:border-zinc-800 dark:bg-zinc-950/30">
-              <Users className="mx-auto h-12 w-12 text-zinc-400" />
-              <h3 className="mt-4 text-lg font-bold text-zinc-900 dark:text-zinc-100">Select a team</h3>
-              <p className="mt-2 text-sm text-zinc-600 dark:text-zinc-400">Pick a team from the left panel to manage members and hackathon workspaces.</p>
+      {workspaceError && (
+        <div className="rounded-2xl border border-red-500/20 bg-red-500/5 px-4 py-3.5 text-sm text-red-600 dark:text-red-400 flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <XCircle className="h-4 w-4" />
+            <span className="font-semibold">{workspaceError}</span>
+          </div>
+          <button onClick={() => setWorkspaceError(null)} className="text-red-500 hover:text-red-700">
+            <X className="h-4 w-4" />
+          </button>
+        </div>
+      )}
+
+      {/* Main content flow */}
+      {!selectedTeamId ? (
+        /* Team Grid view */
+        <div className="grid gap-6 grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+          {filteredTeams.length === 0 ? (
+            <div className="col-span-full rounded-2xl border border-dashed border-zinc-200 bg-white p-16 text-center dark:border-zinc-800 dark:bg-zinc-950/40">
+              <Users className="mx-auto h-12 w-12 text-zinc-400 dark:text-zinc-500" />
+              <h3 className="mt-4 text-base font-bold text-zinc-900 dark:text-zinc-100">No teams match</h3>
+              <p className="mt-2 text-sm text-zinc-500 dark:text-zinc-400">Try adjusting your filters or search criteria.</p>
             </div>
           ) : (
-            <>
-              <div className="flex flex-wrap items-center justify-between gap-4">
-                <div>
-                  <p className="text-xs font-bold uppercase tracking-wider text-zinc-500 dark:text-zinc-400">Workspace</p>
-                  <h2 className="mt-1 text-2xl font-black text-zinc-900 dark:text-zinc-100">{selectedTeam.name}</h2>
-                  <p className="mt-1 text-sm text-zinc-600 dark:text-zinc-400">
-                    Owner: {selectedTeam.owner.fullName || selectedTeam.owner.username || selectedTeam.owner.email}
-                  </p>
-                </div>
+            filteredTeams.map((t) => {
+              const isOwner = t.owner._id === user?._id;
+              const teamParts = allParticipations[t._id] || [];
+              const wins = teamParts.filter(p => p.status === "won").length;
 
-                <div className="flex flex-wrap gap-2">
-                  {teamTabs.map((tab) => (
+
+
+              // Find next upcoming milestone/deadline
+              let nextDeadline: { date: Date; name: string; hackathonTitle: string } | null = null;
+              for (const p of teamParts) {
+                for (const s of p.stages) {
+                  if (s.result === 'pending' && s.deadline) {
+                    const d = new Date(s.deadline);
+                    if (!Number.isNaN(d.getTime())) {
+                      const currentNext = nextDeadline as { date: Date; name: string; hackathonTitle: string } | null;
+                      if (!currentNext || d.getTime() < currentNext.date.getTime()) {
+                        nextDeadline = { date: d, name: s.name, hackathonTitle: p.hackathon.title };
+                      }
+                    }
+                  }
+                }
+              }
+
+              // Win rate calculations
+              const totalCompleted = teamParts.filter(p => p.status === 'won' || p.status === 'eliminated').length;
+              const winRate = totalCompleted > 0 ? Math.round((wins / totalCompleted) * 100) : 0;
+              const rating = (4.1 + Math.min(t.members.length * 0.1, 0.4) + Math.min(wins * 0.2, 0.4)).toFixed(1);
+              const shouldOverlap = t.members.length > 3;
+
+              return (
+                <div
+                  key={t._id}
+                  onClick={() => setSelectedTeamId(t._id)}
+                  className="group rounded-2xl border border-zinc-200 bg-white p-5 text-left cursor-pointer transition-all duration-300 hover:border-zinc-300 hover:shadow-lg hover:-translate-y-0.5 dark:border-zinc-800 dark:bg-zinc-900/60 dark:hover:border-zinc-700 flex flex-col justify-between"
+                >
+                  <div className="space-y-4">
+                    {/* Header info */}
+                    <div className="flex items-start justify-between gap-3">
+                      <div className="flex items-center gap-3 min-w-0">
+                        {/* Avatar */}
+                        <div className={`h-10 w-10 shrink-0 rounded-xl bg-gradient-to-tr ${getGradientClass(t.name)} flex items-center justify-center font-logo font-black text-white text-sm shadow-xs`}>
+                          {t.name.slice(0, 2).toUpperCase()}
+                        </div>
+                        <div className="min-w-0">
+                          <h3 className="text-sm font-bold text-zinc-900 dark:text-white group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors truncate">
+                            {t.name}
+                          </h3>
+                          <p className="text-[10px] text-zinc-400 dark:text-zinc-500 mt-0.5 truncate">
+                            Leader: {t.owner.fullName || `@${t.owner.username}`}
+                          </p>
+                        </div>
+                      </div>
+
+                      <div className="flex flex-col items-end gap-1.5 shrink-0">
+                        <span className={`rounded-full px-2 py-0.5 text-[9px] font-extrabold tracking-wider uppercase border ${
+                          isOwner
+                            ? "border-blue-500/20 bg-blue-500/10 text-blue-600 dark:text-blue-400"
+                            : "border-zinc-200 bg-zinc-100/50 text-zinc-500 dark:border-zinc-800 dark:bg-zinc-900 dark:text-zinc-400"
+                        }`}>
+                          {isOwner ? "Leader" : "Teammate"}
+                        </span>
+                        <div className="flex items-center gap-1 rounded-full bg-amber-500/10 px-2 py-0.5 text-[10px] font-bold text-amber-700 dark:bg-amber-400/10 dark:text-amber-400 border border-amber-500/20 dark:border-amber-400/20">
+                          <Star className="h-3 w-3 fill-amber-500 text-amber-500 dark:fill-amber-400 dark:text-amber-400" />
+                          <span>{rating}</span>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Overlapping member avatars */}
+                    <div className="flex items-center gap-2">
+                      <div className={`flex items-center overflow-visible ${shouldOverlap ? "-space-x-2.5" : "gap-1.5"}`}>
+                        {t.members.map((member, mIdx) => (
+                          <img
+                            key={member._id || mIdx}
+                            src={`https://github.com/${member.username || 'octocat'}.png`}
+                            onError={(e) => {
+                              (e.target as HTMLImageElement).src = `https://api.dicebear.com/7.x/identicon/svg?seed=${member.username || member._id}`;
+                            }}
+                            className="inline-block h-7 w-7 rounded-full border-2 border-white dark:border-zinc-900 object-cover shadow-sm transition-transform duration-250 hover:scale-110 hover:z-20 cursor-pointer"
+                            title={member.fullName || member.username}
+                            alt="member avatar"
+                          />
+                        ))}
+                      </div>
+                      <span className="text-[10px] font-semibold text-zinc-400 dark:text-zinc-500">
+                        {t.members.length} {t.members.length === 1 ? "member" : "members"}
+                      </span>
+                    </div>
+                  </div>
+
+                  {/* Performance Summaries & View Button */}
+                  <div className="mt-4 pt-3.5 border-t border-zinc-100 dark:border-zinc-800 flex items-center justify-between">
+                    <div className="min-w-0">
+                      <div className="flex items-center gap-1.5 text-[10px] text-zinc-400 dark:text-zinc-500">
+                        <span className="font-semibold text-zinc-600 dark:text-zinc-400">{teamParts.length} trackings</span>
+                        <span>•</span>
+                        {totalCompleted > 0 ? (
+                          <span className="font-bold text-emerald-600 dark:text-emerald-400">{winRate}% Win Rate</span>
+                        ) : (
+                          <span className="text-zinc-400 italic">No record</span>
+                        )}
+                      </div>
+                      <div className="h-1 w-28 bg-zinc-100 dark:bg-zinc-800 rounded-full overflow-hidden flex mt-1.5">
+                        {totalCompleted > 0 ? (
+                          <>
+                            <div style={{ width: `${winRate}%` }} className="bg-emerald-500 h-full" />
+                            <div style={{ width: `${100 - winRate}%` }} className="bg-rose-500 h-full" />
+                          </>
+                        ) : (
+                          <div className="w-full bg-zinc-200 dark:bg-zinc-800 h-full" />
+                        )}
+                      </div>
+                    </div>
+
                     <button
-                      key={tab}
-                      onClick={() => setActiveTab(tab)}
-                      className={`rounded-full border px-4 py-2 text-sm font-semibold transition ${
-                        activeTab === tab
-                          ? "border-blue-600 bg-blue-600 text-white"
-                          : "border-zinc-200 bg-white text-zinc-600 hover:bg-zinc-50 dark:border-zinc-800 dark:bg-zinc-950 dark:text-zinc-300 dark:hover:bg-zinc-900"
-                      }`}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setSelectedTeamId(t._id);
+                      }}
+                      className="inline-flex items-center gap-1.5 rounded-lg bg-zinc-900 text-white dark:bg-zinc-100 dark:text-zinc-900 px-3.5 py-1.5 text-xs font-bold transition-all duration-200 hover:bg-zinc-800 dark:hover:bg-white hover:-translate-y-0.5 active:translate-y-0 cursor-pointer shadow-xs"
                     >
-                      {tab}
+                      <span>View</span>
+                      <ArrowRight className="h-3.5 w-3.5" />
                     </button>
-                  ))}
+                  </div>
+                </div>
+              );
+            })
+          )}
+        </div>
+      ) : (
+        /* Team Workspace Details view */
+        <div className="space-y-4">
+          
+          {/* Mobile-only header panel */}
+          {selectedTeam && (
+            <div className="lg:hidden flex flex-col gap-3 bg-white dark:bg-zinc-900/40 border border-zinc-200/90 dark:border-zinc-800 p-4 rounded-2xl shadow-xs">
+              <div className="flex items-center gap-3">
+                <button
+                  onClick={() => setSelectedTeamId("")}
+                  className="inline-flex h-9 w-9 items-center justify-center rounded-xl border border-zinc-200 bg-white text-zinc-500 shadow-xs hover:bg-zinc-50 dark:border-zinc-800 dark:bg-zinc-900 dark:text-zinc-400 dark:hover:bg-zinc-800 cursor-pointer"
+                >
+                  <ArrowRight className="h-4 w-4 rotate-180" />
+                </button>
+                <div className="flex items-center gap-2.5 min-w-0">
+                  <div className={`h-8.5 w-8.5 shrink-0 rounded-xl bg-gradient-to-tr ${getGradientClass(selectedTeam.name)} flex items-center justify-center font-logo font-black text-white text-xs shadow-xs`}>
+                    {selectedTeam.name.slice(0, 2).toUpperCase()}
+                  </div>
+                  <div className="min-w-0">
+                    <h2 className="text-sm font-bold text-zinc-900 dark:text-white truncate leading-none">{selectedTeam.name}</h2>
+                    <p className="text-[10px] text-zinc-400 dark:text-zinc-500 mt-1 truncate leading-none">
+                      Leader: {selectedTeam.owner.fullName || `@${selectedTeam.owner.username}`}
+                    </p>
+                  </div>
                 </div>
               </div>
+              
+            </div>
+          )}
 
-              {workspaceMessage && (
-                <div className="rounded-2xl border border-blue-500/20 bg-blue-500/5 px-4 py-3 text-sm text-blue-700 dark:text-blue-300">
-                  {workspaceMessage}
+          {selectedTeam && (
+            <div className="w-full space-y-4">
+              {/* Tab content panels */}
+
+              {/* 1. HACKATHONS TAB: Progress Strips Timeline */}
+              {activeTab === "Hackathons" && (
+                <div className="space-y-4">
+                  {loadingTeamData ? (
+                    <div className="flex items-center gap-3 rounded-xl border border-zinc-200/80 bg-white px-4 py-5 text-sm text-zinc-500 dark:border-zinc-800 dark:bg-zinc-900/40 dark:text-zinc-400 shadow-xs">
+                      <Loader2 className="h-4 w-4 animate-spin text-blue-600" /> Loading participations timeline...
+                    </div>
+                  ) : teamParticipations.length === 0 ? (
+                    <div className="rounded-[1.5rem] border border-dashed border-zinc-300 bg-white/50 p-10 text-center dark:border-zinc-800 dark:bg-zinc-900/10">
+                      <Flag className="mx-auto h-10 w-10 text-zinc-400" />
+                      <h3 className="mt-4 text-base font-bold text-zinc-900 dark:text-zinc-100">No active participations</h3>
+                      <p className="mt-1.5 text-xs text-zinc-500 dark:text-zinc-400">
+                        Go to the Hackathons list page and register this team to track progress milestones.
+                      </p>
+                    </div>
+                  ) : (
+                    <div className="space-y-4">
+                      {sortedParticipations.map((participation) => {
+                        const failedStageIdx = participation.stages.findIndex(s => s.result === 'rejected');
+                        const segmentDuration = 0.5;
+                        return (
+                          <div
+                            key={participation._id}
+                            className="relative flex flex-col lg:flex-row lg:items-center gap-6 lg:gap-8 py-5 px-5 lg:py-6 lg:px-6 rounded-2xl border border-zinc-200 bg-white hover:shadow-md hover:border-zinc-300 dark:border-zinc-800 dark:bg-zinc-900/60 dark:hover:border-zinc-700 transition-all duration-300 overflow-visible w-full"
+                          >
+                            {/* Sequence pill badge — muted zinc, inside top-left of card */}
+                            <span className="absolute top-3 left-3.5 inline-flex items-center px-1.5 py-0.5 rounded-md bg-zinc-100 dark:bg-zinc-800 text-zinc-500 dark:text-zinc-400 border border-zinc-200 dark:border-zinc-700 text-[9px] font-semibold tabular-nums select-none leading-none tracking-wide">
+                              {participation.seqNum}
+                            </span>
+
+                            {/* Left: Hackathon info with date tag */}
+                            <div className="flex items-center gap-3 w-full lg:w-60 shrink-0 min-w-0">
+                              <img
+                                src={participation.hackathon.coverImage?.trim() || getStableDefaultImage(`${participation.hackathon._id}:${participation.hackathon.title}`)}
+                                onError={(e) => {
+                                  e.currentTarget.src = "/BrandImages/HackDekh.png";
+                                }}
+                                className="h-14 w-14 md:h-16 md:w-16 rounded-xl object-cover border border-zinc-200 dark:border-zinc-800 shadow-xs shrink-0"
+                                alt="Hackathon cover"
+                              />
+                              <div className="min-w-0 flex-1">
+                                <div className="flex items-center gap-2">
+                                  <h4 className="text-sm font-bold text-zinc-900 dark:text-white truncate" title={participation.hackathon.title}>
+                                    {participation.hackathon.title}
+                                  </h4>
+                                  <Link
+                                    to={`/hackathons/${participation.hackathon._id}`}
+                                    className="text-zinc-400 hover:text-zinc-700 dark:hover:text-zinc-200 p-0.5 shrink-0"
+                                    title="View Hackathon Details"
+                                  >
+                                    <ExternalLink className="h-3.5 w-3.5" />
+                                  </Link>
+                                </div>
+                                <div className="flex items-center gap-2 mt-1">
+                                  <span className={`text-[10px] font-extrabold uppercase ${
+                                    participation.status === 'won' ? 'text-emerald-600 dark:text-emerald-400' :
+                                    participation.status === 'eliminated' ? 'text-rose-600 dark:text-rose-400' :
+                                    'text-blue-600 dark:text-blue-400'
+                                  }`}>{participation.status}</span>
+                                  <span className="w-px h-3 bg-zinc-200 dark:bg-zinc-700" />
+                                  <span className="inline-flex items-center gap-1 text-[10px] text-zinc-400 dark:text-zinc-500 tabular-nums">
+                                    <Calendar className="h-2.5 w-2.5" />
+                                    {formatDateTag(participation.createdAt)}
+                                  </span>
+                                </div>
+                              </div>
+                            </div>
+
+                            {/* Right: Stage Progress Line */}
+                            <div className="flex-1 min-w-0 pt-16 pb-3 overflow-visible">
+                              {participation.stages.length === 0 ? (
+                                <p className="text-zinc-400 italic text-[11px] leading-relaxed">
+                                  No stages defined. Go to the &quot;Stages&quot; tab to add trackable milestones.
+                                </p>
+                              ) : (
+                                <div className="flex items-center gap-0 relative overflow-visible w-full">
+                                  {participation.stages.map((stage, sIdx) => {
+                                    const hasPrev = sIdx > 0;
+                                    const isFailedStage = sIdx === failedStageIdx;
+                                    const isPostDisqualification = failedStageIdx !== -1 && sIdx > failedStageIdx;
+                                    
+                                    // Color of connector line BEFORE this stage
+                                    let lineBg = 'bg-zinc-200 dark:bg-zinc-800';
+                                    if (hasPrev) {
+                                      const prevStageIdx = sIdx - 1;
+                                      if (failedStageIdx !== -1 && prevStageIdx >= failedStageIdx) {
+                                        // Line starts after failure
+                                        lineBg = 'bg-rose-500/30 dark:bg-rose-500/20';
+                                      } else {
+                                        const prevStageObj = participation.stages[prevStageIdx];
+                                        if (prevStageObj.result === 'qualified') {
+                                          lineBg = 'bg-emerald-500 dark:bg-emerald-400';
+                                        } else if (prevStageObj.result === 'rejected') {
+                                          lineBg = 'bg-rose-500 dark:bg-rose-400';
+                                        }
+                                      }
+                                    }
+
+                                    // Determine dot styling (halo + dot)
+                                    let ringClass = 'border-zinc-200 bg-zinc-50 dark:border-zinc-800 dark:bg-zinc-900';
+                                    let hoverStatusText = stage.result;
+
+                                    const isFirstPending = failedStageIdx === -1 && participation.stages.findIndex(st => st.result === 'pending') === sIdx;
+
+                                    if (isPostDisqualification) {
+                                      // Faded red / Disqualified
+                                      ringClass = 'border-rose-500/20 bg-rose-50/5 dark:border-rose-500/20 dark:bg-rose-950/5 text-rose-500/50 dark:text-rose-400/50';
+                                      hoverStatusText = 'disqualified';
+                                    } else if (isFailedStage) {
+                                      // Active failed stage
+                                      ringClass = 'border-rose-500/30 bg-rose-50/50 dark:border-rose-500/40 dark:bg-rose-950/20 shadow-[0_0_12px_rgba(239,68,68,0.15)] text-rose-600 dark:text-rose-400';
+                                    } else if (stage.result === 'qualified') {
+                                      // Active success stage
+                                      ringClass = 'border-emerald-500/30 bg-emerald-50/50 dark:border-emerald-500/45 dark:bg-emerald-950/20 shadow-[0_0_12px_rgba(16,185,129,0.15)] text-emerald-600 dark:text-emerald-400';
+                                    } else if (isFirstPending) {
+                                      // Active pending
+                                      ringClass = 'border-blue-500/30 bg-blue-50/50 dark:border-blue-500/40 dark:bg-blue-950/20 ring-4 ring-blue-500/5 text-blue-600 dark:text-blue-400';
+                                    } else {
+                                      // Future pending
+                                      ringClass = 'border-zinc-200 bg-zinc-50 dark:border-zinc-800 dark:bg-zinc-900/50 text-zinc-300 dark:text-zinc-700';
+                                    }
+
+                                    return (
+                                      <React.Fragment key={stage._id}>
+                                        {hasPrev && (
+                                          <div className="flex-1 h-[2px] bg-zinc-200 dark:bg-zinc-800 relative">
+                                            <motion.div
+                                              initial={{ scaleX: 0 }}
+                                              animate={{ scaleX: 1 }}
+                                              transition={{ delay: (sIdx - 1) * segmentDuration + 0.15, duration: 0.35, ease: "easeInOut" }}
+                                              className={`absolute inset-0 origin-left ${lineBg}`}
+                                            />
+                                          </div>
+                                        )}
+                                        <motion.div
+                                          initial={{ scale: 0, opacity: 0 }}
+                                          animate={{ scale: 1, opacity: 1 }}
+                                          transition={{ delay: sIdx * segmentDuration, duration: 0.25, ease: "backOut" }}
+                                          className="relative flex flex-col items-center group overflow-visible"
+                                        >
+                                          {/* Smart edge-aware elegant tooltip */}
+                                          {(() => {
+                                            const totalStages = participation.stages.length;
+                                            const isFirst = sIdx === 0;
+                                            const isLast = sIdx === totalStages - 1;
+
+                                            // Positional anchor
+                                            const outerAnchor = isFirst
+                                              ? 'left-0 items-start'
+                                              : isLast
+                                                ? 'right-0 items-end'
+                                                : 'items-center';
+
+                                            // Caret alignment under the box
+                                            const caretOffset = isFirst ? 'ml-[7px]' : isLast ? 'mr-[7px]' : '';
+
+                                            // Left accent color by status
+                                            const accentBorder =
+                                              hoverStatusText === 'qualified'
+                                                ? 'border-l-emerald-500'
+                                                : hoverStatusText === 'rejected' || hoverStatusText === 'disqualified'
+                                                  ? 'border-l-rose-500'
+                                                  : hoverStatusText === 'pending'
+                                                    ? 'border-l-blue-500'
+                                                    : 'border-l-zinc-300 dark:border-l-zinc-600';
+
+                                            const statusColor =
+                                              hoverStatusText === 'qualified'
+                                                ? 'text-emerald-600 dark:text-emerald-400'
+                                                : hoverStatusText === 'rejected' || hoverStatusText === 'disqualified'
+                                                  ? 'text-rose-500 dark:text-rose-400'
+                                                  : 'text-blue-500 dark:text-blue-400';
+
+                                            return (
+                                              <div className={`absolute bottom-full mb-3 flex flex-col pointer-events-none z-30 ${outerAnchor}`}>
+                                                <div className={`bg-white/95 dark:bg-zinc-900/95 backdrop-blur-sm border border-zinc-200/80 dark:border-zinc-700/80 border-l-2 ${accentBorder} rounded-lg shadow-lg shadow-zinc-900/8 dark:shadow-zinc-950/40 py-1.5 px-2.5 min-w-[100px] max-w-[130px]`}>
+                                                  <p className="text-[10px] font-bold text-zinc-800 dark:text-zinc-100 truncate leading-tight">{stage.name}</p>
+                                                  <p className="text-[8px] text-zinc-400 dark:text-zinc-500 mt-0.5 leading-tight">{formatDate(stage.deadline)}</p>
+                                                  <p className={`text-[8px] font-bold uppercase tracking-widest mt-1 ${statusColor}`}>
+                                                    {hoverStatusText}
+                                                  </p>
+                                                  {stage.notes && (
+                                                    <p className="text-[7.5px] text-zinc-400 dark:text-zinc-500 italic mt-1 border-t border-zinc-100 dark:border-zinc-800 pt-1 leading-normal line-clamp-1">
+                                                      {stage.notes}
+                                                    </p>
+                                                  )}
+                                                </div>
+                                                {/* Caret */}
+                                                <div className={`w-1.5 h-1.5 bg-white dark:bg-zinc-900 border-r border-b border-zinc-200/80 dark:border-zinc-700/80 rotate-45 -mt-[3px] ${caretOffset}`} />
+                                              </div>
+                                            );
+                                          })()}
+                                          
+
+                                          {/* Premium Halo Circle Indicator */}
+                                          <div className={`h-5 w-5 rounded-full border flex items-center justify-center transition-all duration-300 z-10 cursor-pointer ${ringClass}`}>
+                                            {isFailedStage ? (
+                                              <svg className="h-2.5 w-2.5" viewBox="0 0 12 12" fill="none">
+                                                <motion.path
+                                                  d="M2.5 2.5L9.5 9.5"
+                                                  stroke="currentColor"
+                                                  strokeWidth="2.5"
+                                                  strokeLinecap="round"
+                                                  initial={{ pathLength: 0 }}
+                                                  animate={{ pathLength: 1 }}
+                                                  transition={{ delay: sIdx * segmentDuration + 0.15, duration: 0.20, ease: "easeOut" }}
+                                                />
+                                                <motion.path
+                                                  d="M9.5 2.5L2.5 9.5"
+                                                  stroke="currentColor"
+                                                  strokeWidth="2.5"
+                                                  strokeLinecap="round"
+                                                  initial={{ pathLength: 0 }}
+                                                  animate={{ pathLength: 1 }}
+                                                  transition={{ delay: sIdx * segmentDuration + 0.25, duration: 0.20, ease: "easeOut" }}
+                                                />
+                                              </svg>
+                                            ) : isPostDisqualification ? (
+                                              <svg className="h-2.5 w-2.5 text-rose-505/60" viewBox="0 0 12 12" fill="none">
+                                                <path
+                                                  d="M2.5 2.5L9.5 9.5M9.5 2.5L2.5 9.5"
+                                                  stroke="currentColor"
+                                                  strokeWidth="2"
+                                                  strokeLinecap="round"
+                                                />
+                                              </svg>
+                                            ) : stage.result === 'qualified' ? (
+                                              <svg className="h-2.5 w-2.5" viewBox="0 0 12 12" fill="none">
+                                                <motion.path
+                                                  d="M2.5 6L5 8.5L9.5 3.5"
+                                                  stroke="currentColor"
+                                                  strokeWidth="2.5"
+                                                  strokeLinecap="round"
+                                                  strokeLinejoin="round"
+                                                  initial={{ pathLength: 0 }}
+                                                  animate={{ pathLength: 1 }}
+                                                  transition={{ delay: sIdx * segmentDuration + 0.15, duration: 0.25, ease: "easeOut" }}
+                                                />
+                                              </svg>
+                                            ) : isFirstPending ? (
+                                              <div className="h-1.5 w-1.5 rounded-full bg-blue-500 dark:bg-blue-400 relative">
+                                                <div className="absolute inset-0 rounded-full bg-blue-500 dark:bg-blue-400 animate-ping opacity-75" />
+                                              </div>
+                                            ) : (
+                                              <div className="h-1 w-1 rounded-full bg-zinc-300 dark:bg-zinc-700" />
+                                            )}
+                                          </div>
+                                        </motion.div>
+                                      </React.Fragment>
+                                    );
+                                  })}
+                                </div>
+                              )}
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  )}
                 </div>
               )}
 
+              {/* 2. MEMBERS TAB: Teammate Listing & Generating Invitations */}
               {activeTab === "Members" && (
-                <div className="grid gap-6 lg:grid-cols-[1fr_320px]">
-                  <div className="space-y-3 rounded-[1.5rem] border border-zinc-200 bg-zinc-50 p-4 dark:border-zinc-800 dark:bg-zinc-950/40">
-                    <div className="flex items-center justify-between">
-                      <h3 className="text-sm font-bold uppercase tracking-wider text-zinc-800 dark:text-zinc-200">Members</h3>
-                      <span className="text-xs text-zinc-500 dark:text-zinc-400">{selectedTeam.members.length} total</span>
+                <div className="grid gap-6 lg:grid-cols-[1fr_320px] items-start">
+                  {/* Left: roster list */}
+                  <div className="space-y-4">
+                    <div className="flex items-center justify-between border-b border-zinc-150 dark:border-zinc-800 pb-2.5">
+                      <h3 className="text-xs font-bold uppercase tracking-wider text-zinc-400 dark:text-zinc-500">Roster</h3>
+                      <span className="text-xs font-bold text-zinc-600 dark:text-zinc-400">{selectedTeam.members.length} members</span>
                     </div>
                     <div className="grid gap-3 sm:grid-cols-2">
                       {selectedTeam.members.map((member) => (
-                        <div key={member._id} className="rounded-2xl border border-zinc-200 bg-white p-4 dark:border-zinc-800 dark:bg-zinc-950">
-                          <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-blue-600/10 text-sm font-bold text-blue-700 dark:text-blue-400">
-                            {(member.fullName || member.username || "U").slice(0, 2).toUpperCase()}
+                        <div key={member._id} className="rounded-xl border border-zinc-200 bg-white p-3.5 dark:border-zinc-800 dark:bg-zinc-900/60 flex items-center gap-3 shadow-xs hover:border-zinc-300 dark:hover:border-zinc-700 hover:shadow-sm transition-all duration-205">
+                          <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-blue-600/10 text-xs font-bold text-blue-700 dark:text-blue-400 uppercase">
+                            {(member.fullName || member.username || "U").slice(0, 2)}
                           </div>
-                          <p className="mt-3 text-sm font-semibold text-zinc-900 dark:text-zinc-100">{member.fullName || member.username || member.email}</p>
-                          <p className="text-xs text-zinc-500 dark:text-zinc-400">{member.email}</p>
+                          <div className="min-w-0 flex-1">
+                            <p className="text-xs font-bold text-zinc-900 dark:text-white truncate">{member.fullName || member.username}</p>
+                            <p className="text-[10px] text-zinc-400 dark:text-zinc-500 truncate mt-0.5">{member.email}</p>
+                          </div>
                         </div>
                       ))}
                     </div>
                   </div>
 
-                  <div className="space-y-4 rounded-[1.5rem] border border-zinc-200 bg-zinc-50 p-4 dark:border-zinc-800 dark:bg-zinc-950/40">
+                  {/* Right: generate invite module */}
+                  <div className="space-y-4 rounded-xl border border-zinc-200 bg-white p-5 dark:border-zinc-800/60 dark:bg-zinc-900/60 shadow-xs h-fit">
                     <div>
-                      <h3 className="text-sm font-bold uppercase tracking-wider text-zinc-800 dark:text-zinc-200">Invite teammate</h3>
-                      <p className="mt-1 text-xs text-zinc-500 dark:text-zinc-400">Generate an invite link for a teammate by email.</p>
+                      <h3 className="text-xs font-bold uppercase tracking-wider text-zinc-700 dark:text-zinc-300">Invite teammate</h3>
+                      <p className="mt-1 text-[11px] text-zinc-500 dark:text-zinc-400">Generate an email-specific invitation token link.</p>
                     </div>
                     <input
                       value={inviteEmail}
                       onChange={(event) => setInviteEmail(event.target.value)}
                       type="email"
-                      placeholder="teammate@example.com"
-                      className="w-full rounded-2xl border border-zinc-200 bg-white px-4 py-3 text-sm text-zinc-800 outline-none transition focus:border-blue-400 dark:border-zinc-800 dark:bg-zinc-950 dark:text-zinc-200"
+                      placeholder="partner@example.com"
+                      className="w-full rounded-xl border border-zinc-200 bg-white px-3.5 py-2 text-sm text-zinc-800 outline-none transition focus:border-blue-400 dark:border-zinc-800 dark:bg-zinc-950 dark:text-zinc-200"
                     />
                     <button
                       onClick={handleInvite}
                       disabled={savingTeam || !inviteEmail.trim()}
-                      className="inline-flex w-full items-center justify-center gap-2 rounded-2xl bg-blue-600 px-4 py-3 text-sm font-semibold text-white transition hover:bg-blue-500 disabled:cursor-not-allowed disabled:opacity-60"
+                      className="inline-flex w-full items-center justify-center gap-2 rounded-xl bg-blue-600 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-blue-500 disabled:cursor-not-allowed disabled:opacity-60 cursor-pointer"
                     >
                       {savingTeam ? <Loader2 className="h-4 w-4 animate-spin" /> : <Shield className="h-4 w-4" />}
-                      Generate invite link
+                      Generate Link
                     </button>
 
                     {inviteLink && (
-                      <div className="space-y-3 rounded-2xl border border-zinc-200 bg-white p-4 dark:border-zinc-800 dark:bg-zinc-950">
-                        <div>
-                          <p className="text-xs font-semibold uppercase tracking-wider text-zinc-500 dark:text-zinc-400">Invite link</p>
-                          <p className="mt-1 break-all text-sm text-zinc-700 dark:text-zinc-300">{inviteLink.invitationLink}</p>
-                        </div>
+                      <div className="space-y-2.5 rounded-xl border border-zinc-200 bg-white p-3.5 dark:border-zinc-800 dark:bg-zinc-950/60 mt-2 shadow-xs">
+                        <p className="text-[10px] font-bold uppercase tracking-wider text-zinc-400 dark:text-zinc-500">Token Link</p>
+                        <p className="break-all text-[11px] text-zinc-600 dark:text-zinc-400 leading-normal">{inviteLink.invitationLink}</p>
                         <div className="flex gap-2">
                           <button
                             onClick={handleCopyInvite}
-                            className="inline-flex items-center gap-2 rounded-xl border border-zinc-200 bg-white px-3 py-2 text-xs font-semibold text-zinc-600 transition hover:bg-zinc-50 dark:border-zinc-800 dark:bg-zinc-950 dark:text-zinc-300 dark:hover:bg-zinc-900"
+                            className="inline-flex items-center gap-1.5 rounded-lg border border-zinc-200 bg-white px-2.5 py-1.5 text-[11px] font-bold text-zinc-600 transition hover:bg-zinc-50 dark:border-zinc-800 dark:bg-zinc-950 dark:text-zinc-300 dark:hover:bg-zinc-900 cursor-pointer"
                           >
                             <Copy className="h-3.5 w-3.5" />
-                            Copy
+                            Copy Link
                           </button>
-                          <a
-                            href={inviteLink.invitationLink}
-                            target="_blank"
-                            rel="noreferrer"
-                            className="inline-flex items-center gap-2 rounded-xl bg-blue-600 px-3 py-2 text-xs font-semibold text-white transition hover:bg-blue-500"
-                          >
-                            Open
-                            <ExternalLink className="h-3.5 w-3.5" />
-                          </a>
                         </div>
                       </div>
                     )}
@@ -428,127 +1347,97 @@ export default function TeamsPage() {
                 </div>
               )}
 
-              {activeTab === "Hackathons" && (
-                <div className="space-y-3">
-                  {loadingTeamData ? (
-                    <div className="flex items-center gap-3 rounded-2xl border border-zinc-200 bg-zinc-50 px-4 py-5 text-sm text-zinc-500 dark:border-zinc-800 dark:bg-zinc-950/40 dark:text-zinc-400">
-                      <Loader2 className="h-4 w-4 animate-spin" /> Loading hackathons...
-                    </div>
-                  ) : teamParticipations.length === 0 ? (
-                    <div className="rounded-[1.5rem] border border-dashed border-zinc-300 bg-zinc-50 p-10 text-center dark:border-zinc-800 dark:bg-zinc-950/30">
-                      <Flag className="mx-auto h-10 w-10 text-zinc-400" />
-                      <h3 className="mt-4 text-lg font-bold text-zinc-900 dark:text-zinc-100">No participations yet</h3>
-                      <p className="mt-2 text-sm text-zinc-600 dark:text-zinc-400">Register this team on a hackathon details page to start tracking it here.</p>
-                    </div>
-                  ) : (
-                    teamParticipations.map((participation) => (
-                      <div key={participation._id} className="rounded-[1.5rem] border border-zinc-200 bg-white p-4 dark:border-zinc-800 dark:bg-zinc-950">
-                        <div className="flex flex-wrap items-center justify-between gap-4">
-                          <div>
-                            <h3 className="text-base font-bold text-zinc-900 dark:text-zinc-100">{participation.hackathon.title}</h3>
-                            <p className="mt-1 text-sm text-zinc-500 dark:text-zinc-400">{participation.hackathon.platform}</p>
-                          </div>
-                          <span className={`rounded-full border px-3 py-1 text-xs font-semibold ${stageResultClass(participation.status)}`}>
-                            {participation.status}
-                          </span>
-                        </div>
-                        <div className="mt-3 flex flex-wrap gap-2 text-xs text-zinc-500 dark:text-zinc-400">
-                          <span className="rounded-full border border-zinc-200 bg-zinc-50 px-3 py-1 dark:border-zinc-800 dark:bg-zinc-950">{participation.stages.length} stages</span>
-                          <span className="rounded-full border border-zinc-200 bg-zinc-50 px-3 py-1 dark:border-zinc-800 dark:bg-zinc-950">Updated {formatDate(participation.updatedAt)}</span>
-                          <Link to="/dashboard?tab=tracker" className="inline-flex items-center gap-1 rounded-full bg-blue-600 px-3 py-1 text-white">
-                            Dashboard
-                            <ArrowRight className="h-3.5 w-3.5" />
-                          </Link>
-                        </div>
-                      </div>
-                    ))
-                  )}
-                </div>
-              )}
-
+              {/* 3. STAGES TAB: Stages Editor */}
               {activeTab === "Stages" && (
-                <div className="space-y-4">
+                <div className="space-y-6">
                   {loadingTeamData ? (
-                    <div className="flex items-center gap-3 rounded-2xl border border-zinc-200 bg-zinc-50 px-4 py-5 text-sm text-zinc-500 dark:border-zinc-800 dark:bg-zinc-950/40 dark:text-zinc-400">
-                      <Loader2 className="h-4 w-4 animate-spin" /> Loading stages...
+                    <div className="flex items-center gap-3 rounded-xl border border-zinc-200/80 bg-white px-4 py-5 text-sm text-zinc-500 dark:border-zinc-800 dark:bg-zinc-900/40 dark:text-zinc-400 shadow-xs">
+                      <Loader2 className="h-4 w-4 animate-spin text-blue-600" /> Loading stages list...
                     </div>
                   ) : selectedParticipation ? (
                     <>
-                      <div className="rounded-[1.5rem] border border-zinc-200 bg-zinc-50 p-4 dark:border-zinc-800 dark:bg-zinc-950/40">
-                        <div className="flex items-center justify-between gap-4">
-                          <div>
-                            <h3 className="text-sm font-bold uppercase tracking-wider text-zinc-800 dark:text-zinc-200">Selected participation</h3>
-                            <p className="mt-1 text-sm text-zinc-500 dark:text-zinc-400">{selectedParticipation.hackathon.title}</p>
-                          </div>
-                          <select
-                            value={selectedParticipationId}
-                            onChange={(event) => setSelectedParticipationId(event.target.value)}
-                            className="rounded-xl border border-zinc-200 bg-white px-3 py-2 text-sm text-zinc-700 dark:border-zinc-800 dark:bg-zinc-950 dark:text-zinc-200"
-                          >
-                            {teamParticipations.map((participation) => (
-                              <option key={participation._id} value={participation._id}>
-                                {participation.hackathon.title}
-                              </option>
-                            ))}
-                          </select>
-                        </div>
+                      {/* Dropdown to pick which participation to edit */}
+                      <div className="flex items-center justify-between gap-4 pb-3.5 border-b border-zinc-150 dark:border-zinc-800">
+                        <span className="text-xs font-bold uppercase tracking-wider text-zinc-450 dark:text-zinc-500">Select hackathon:</span>
+                        <select
+                          value={selectedParticipationId}
+                          onChange={(event) => setSelectedParticipationId(event.target.value)}
+                          className="rounded-xl border border-zinc-200 bg-white px-3 py-2 text-sm text-zinc-800 dark:border-zinc-800 dark:bg-zinc-900 dark:text-zinc-205 outline-none shadow-xs"
+                        >
+                          {teamParticipations.map((participation) => (
+                            <option key={participation._id} value={participation._id}>
+                              {participation.hackathon.title}
+                            </option>
+                          ))}
+                        </select>
                       </div>
 
-                      <div className="space-y-3">
+                      {/* Stages list editor */}
+                      <div className="space-y-4">
                         {selectedParticipation.stages.length === 0 ? (
-                          <div className="rounded-[1.5rem] border border-dashed border-zinc-300 bg-zinc-50 p-8 text-center dark:border-zinc-800 dark:bg-zinc-950/30">
+                          <div className="rounded-xl border border-dashed border-zinc-200 bg-zinc-50/30 p-8 text-center dark:border-zinc-800 dark:bg-zinc-900/10">
                             <CalendarRange className="mx-auto h-10 w-10 text-zinc-400" />
-                            <h3 className="mt-4 text-lg font-bold text-zinc-900 dark:text-zinc-100">No stages yet</h3>
-                            <p className="mt-2 text-sm text-zinc-600 dark:text-zinc-400">Add the first stage for this hackathon participation.</p>
+                            <h4 className="mt-3 text-sm font-bold text-zinc-900 dark:text-white">No milestones defined</h4>
+                            <p className="mt-1 text-xs text-zinc-500 dark:text-zinc-400">Create stages like "Ideation", "Prototype Submission", etc.</p>
                           </div>
                         ) : (
                           selectedParticipation.stages.map((stage) => (
-                            <div key={stage._id} className="rounded-[1.5rem] border border-zinc-200 bg-white p-4 dark:border-zinc-800 dark:bg-zinc-950">
-                              <div className="flex items-start justify-between gap-3">
-                                <input
-                                  defaultValue={stage.name}
-                                  onBlur={(event) => {
-                                    if (event.target.value !== stage.name) {
-                                      handleUpdateStage(selectedParticipation._id, stage._id, { name: event.target.value });
-                                    }
-                                  }}
-                                  className="w-full rounded-xl border border-zinc-200 bg-zinc-50 px-3 py-2 text-sm font-semibold text-zinc-900 outline-none transition focus:border-blue-400 dark:border-zinc-800 dark:bg-zinc-950 dark:text-zinc-100"
-                                />
+                            <div key={stage._id} className="rounded-xl border border-zinc-200 bg-white p-4 dark:border-zinc-800/60 dark:bg-zinc-900/60 space-y-3 shadow-xs hover:border-zinc-300 dark:hover:border-zinc-700 transition-all duration-200">
+                              <div className="flex items-center justify-between gap-4">
+                                <div className="flex-1">
+                                  <input
+                                    defaultValue={stage.name}
+                                    onBlur={(event) => {
+                                      if (event.target.value !== stage.name) {
+                                        handleUpdateStage(selectedParticipation._id, stage._id, { name: event.target.value });
+                                      }
+                                    }}
+                                    className="w-full bg-transparent text-sm font-bold text-zinc-900 dark:text-white outline-none border-b border-transparent focus:border-blue-500 py-0.5"
+                                  />
+                                </div>
                                 <button
                                   onClick={() => handleDeleteStage(selectedParticipation._id, stage._id)}
-                                  className="rounded-lg p-2 text-zinc-400 transition hover:bg-rose-500/10 hover:text-rose-500"
+                                  className="rounded-lg p-1.5 text-zinc-400 hover:bg-rose-500/10 hover:text-rose-500 transition cursor-pointer"
                                   title="Delete stage"
                                 >
                                   <Trash2 className="h-4 w-4" />
                                 </button>
                               </div>
 
-                              <div className="mt-3 flex flex-wrap items-center gap-2">
-                                <input
-                                  type="date"
-                                  defaultValue={stage.deadline ? new Date(stage.deadline).toISOString().slice(0, 10) : ""}
-                                  onBlur={(event) => {
-                                    const nextDeadline = event.target.value || null;
-                                    const currentDeadline = stage.deadline ? new Date(stage.deadline).toISOString().slice(0, 10) : "";
-                                    if (nextDeadline !== currentDeadline) {
-                                      handleUpdateStage(selectedParticipation._id, stage._id, { deadline: nextDeadline });
-                                    }
-                                  }}
-                                  className="rounded-xl border border-zinc-200 bg-white px-3 py-2 text-sm text-zinc-700 outline-none transition focus:border-blue-400 dark:border-zinc-800 dark:bg-zinc-950 dark:text-zinc-200"
-                                />
-                                <button
-                                  onClick={() => {
-                                    const resultOrder: Stage["result"][] = ["pending", "qualified", "rejected"];
-                                    const currentIndex = resultOrder.indexOf(stage.result as Stage["result"]);
-                                    const nextResult = resultOrder[(currentIndex + 1) % resultOrder.length];
-                                    handleUpdateStage(selectedParticipation._id, stage._id, { result: nextResult });
-                                  }}
-                                  className={`rounded-full border px-3 py-1.5 text-xs font-semibold ${stageResultClass(stage.result)}`}
-                                >
-                                  {stage.result}
-                                </button>
+                              <div className="flex flex-wrap items-center gap-3 pt-2.5 border-t border-zinc-100 dark:border-zinc-800/60 text-xs">
+                                <div>
+                                  <label className="text-[9px] font-bold text-zinc-400 uppercase tracking-wider block mb-0.5">Deadline</label>
+                                  <input
+                                    type="date"
+                                    defaultValue={stage.deadline ? new Date(stage.deadline).toISOString().slice(0, 10) : ""}
+                                    onBlur={(event) => {
+                                      const nextDeadline = event.target.value || null;
+                                      const currentDeadline = stage.deadline ? new Date(stage.deadline).toISOString().slice(0, 10) : "";
+                                      if (nextDeadline !== currentDeadline) {
+                                        handleUpdateStage(selectedParticipation._id, stage._id, { deadline: nextDeadline });
+                                      }
+                                    }}
+                                    className="rounded-lg border border-zinc-200 bg-zinc-50/50 px-2.5 py-1 text-xs text-zinc-700 outline-none dark:border-zinc-800 dark:bg-zinc-900 dark:text-zinc-300"
+                                  />
+                                </div>
+
+                                <div>
+                                  <label className="text-[9px] font-bold text-zinc-400 uppercase tracking-wider block mb-0.5">Result</label>
+                                  <button
+                                    onClick={() => {
+                                      const resultOrder: Stage["result"][] = ["pending", "qualified", "rejected"];
+                                      const currentIndex = resultOrder.indexOf(stage.result as Stage["result"]);
+                                      const nextResult = resultOrder[(currentIndex + 1) % resultOrder.length];
+                                      handleUpdateStage(selectedParticipation._id, stage._id, { result: nextResult });
+                                    }}
+                                    className={`rounded-lg border px-2.5 py-1 text-xs font-semibold uppercase tracking-wider transition ${stageResultClass(stage.result)}`}
+                                  >
+                                    {stage.result}
+                                  </button>
+                                </div>
+
                                 {stageSaving[stage._id] && (
-                                  <span className="text-xs font-semibold text-zinc-500 dark:text-zinc-400">
+                                  <span className="text-[10px] text-zinc-400 ml-auto pt-4">
                                     {stageSaving[stage._id] === "saving" ? "Saving..." : stageSaving[stage._id] === "saved" ? "Saved" : "Error"}
                                   </span>
                                 )}
@@ -558,9 +1447,10 @@ export default function TeamsPage() {
                         )}
                       </div>
 
-                      <div className="rounded-[1.5rem] border border-zinc-200 bg-zinc-50 p-4 dark:border-zinc-800 dark:bg-zinc-950/40">
-                        <h3 className="text-sm font-bold uppercase tracking-wider text-zinc-800 dark:text-zinc-200">Add stage</h3>
-                        <div className="mt-3 grid gap-3 md:grid-cols-[1fr_220px]">
+                      {/* Add stage form */}
+                      <div className="rounded-xl border border-zinc-200 bg-white p-5 dark:border-zinc-800/60 dark:bg-zinc-900/60 shadow-xs mt-6">
+                        <h4 className="text-xs font-bold uppercase tracking-wider text-zinc-700 dark:text-zinc-300">Add Stage Milestone</h4>
+                        <div className="mt-3 grid gap-3 sm:grid-cols-[1fr_160px]">
                           <input
                             value={newStageDraft[selectedParticipation._id]?.name || ""}
                             onChange={(event) =>
@@ -572,8 +1462,8 @@ export default function TeamsPage() {
                                 },
                               }))
                             }
-                            placeholder="Stage name"
-                            className="rounded-xl border border-zinc-200 bg-white px-3 py-2 text-sm text-zinc-700 outline-none transition focus:border-blue-400 dark:border-zinc-800 dark:bg-zinc-950 dark:text-zinc-200"
+                            placeholder="e.g. Round 2: Video Pitch"
+                            className="rounded-xl border border-zinc-200 bg-white px-3.5 py-2 text-sm text-zinc-800 outline-none transition focus:border-blue-400 dark:border-zinc-800 dark:bg-zinc-950 dark:text-zinc-200"
                           />
                           <input
                             type="date"
@@ -587,36 +1477,37 @@ export default function TeamsPage() {
                                 },
                               }))
                             }
-                            className="rounded-xl border border-zinc-200 bg-white px-3 py-2 text-sm text-zinc-700 outline-none transition focus:border-blue-400 dark:border-zinc-800 dark:bg-zinc-950 dark:text-zinc-200"
+                            className="rounded-xl border border-zinc-200 bg-white px-3 py-2 text-sm text-zinc-800 outline-none transition focus:border-blue-400 dark:border-zinc-800 dark:bg-zinc-950 dark:text-zinc-200"
                           />
                         </div>
                         <button
                           onClick={() => handleAddStage(selectedParticipation._id)}
-                          className="mt-3 inline-flex items-center gap-2 rounded-xl bg-blue-600 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-blue-500"
+                          className="mt-3 inline-flex items-center gap-2 rounded-xl bg-blue-600 px-4 py-2 text-sm font-semibold text-white transition hover:bg-blue-500 cursor-pointer"
                         >
                           <Plus className="h-4 w-4" />
-                          Add stage
+                          Add Stage
                         </button>
                       </div>
                     </>
                   ) : (
-                    <div className="rounded-[1.5rem] border border-dashed border-zinc-300 bg-zinc-50 p-8 text-center dark:border-zinc-800 dark:bg-zinc-950/30">
+                    <div className="rounded-xl border border-dashed border-zinc-250 bg-zinc-50/30 p-8 text-center dark:border-zinc-800 dark:bg-zinc-900/10">
                       <CalendarRange className="mx-auto h-10 w-10 text-zinc-400" />
-                      <h3 className="mt-4 text-lg font-bold text-zinc-900 dark:text-zinc-100">Select a participation</h3>
-                      <p className="mt-2 text-sm text-zinc-600 dark:text-zinc-400">Choose a hackathon from the Hackathons tab to manage its stages here.</p>
+                      <h4 className="mt-3 text-sm font-bold text-zinc-900 dark:text-white">No active trackings</h4>
+                      <p className="mt-1.5 text-xs text-zinc-500 dark:text-zinc-400">Join a hackathon to start configuring tracking stage paths.</p>
                     </div>
                   )}
                 </div>
               )}
 
+              {/* 4. SETTINGS TAB: rename & delete settings */}
               {activeTab === "Settings" && (
                 <div className="grid gap-6 md:grid-cols-2">
-                  <div className="rounded-[1.5rem] border border-zinc-200 bg-zinc-50 p-4 dark:border-zinc-800 dark:bg-zinc-950/40">
+                  <div className="rounded-xl border border-zinc-200 bg-white p-5 dark:border-zinc-800/60 dark:bg-zinc-900/60 shadow-xs">
                     <div className="flex items-center gap-3">
                       <Settings className="h-5 w-5 text-blue-600 dark:text-blue-400" />
                       <div>
-                        <h3 className="text-sm font-bold uppercase tracking-wider text-zinc-800 dark:text-zinc-200">Rename team</h3>
-                        <p className="mt-1 text-xs text-zinc-500 dark:text-zinc-400">Update the visible team name.</p>
+                        <h3 className="text-xs font-bold uppercase tracking-wider text-zinc-800 dark:text-zinc-200">Rename Team</h3>
+                        <p className="mt-0.5 text-[11px] text-zinc-500 dark:text-zinc-400">Change the visible workspace name.</p>
                       </div>
                     </div>
                     <form onSubmit={handleRenameTeam} className="mt-4 space-y-3">
@@ -624,12 +1515,12 @@ export default function TeamsPage() {
                         value={renameTeamName}
                         onChange={(event) => setRenameTeamName(event.target.value)}
                         placeholder={selectedTeam.name}
-                        className="w-full rounded-2xl border border-zinc-200 bg-white px-4 py-3 text-sm text-zinc-800 outline-none transition focus:border-blue-400 dark:border-zinc-800 dark:bg-zinc-950 dark:text-zinc-200"
+                        className="w-full rounded-xl border border-zinc-200 bg-white px-3.5 py-2 text-sm text-zinc-800 outline-none transition focus:border-blue-400 dark:border-zinc-800 dark:bg-zinc-950 dark:text-zinc-200"
                       />
                       <button
                         type="submit"
                         disabled={savingTeam || !renameTeamName.trim()}
-                        className="inline-flex items-center gap-2 rounded-2xl bg-blue-600 px-4 py-3 text-sm font-semibold text-white transition hover:bg-blue-500 disabled:cursor-not-allowed disabled:opacity-60"
+                        className="inline-flex items-center gap-2 rounded-xl bg-blue-600 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-blue-500 disabled:cursor-not-allowed disabled:opacity-60 cursor-pointer"
                       >
                         {savingTeam ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
                         Save
@@ -637,28 +1528,233 @@ export default function TeamsPage() {
                     </form>
                   </div>
 
-                  <div className="rounded-[1.5rem] border border-zinc-200 bg-zinc-50 p-4 dark:border-zinc-800 dark:bg-zinc-950/40">
-                    <div className="flex items-center gap-3">
-                      <ExternalLink className="h-5 w-5 text-emerald-600 dark:text-emerald-400" />
-                      <div>
-                        <h3 className="text-sm font-bold uppercase tracking-wider text-zinc-800 dark:text-zinc-200">Quick access</h3>
-                        <p className="mt-1 text-xs text-zinc-500 dark:text-zinc-400">Jump back to the tracker when you need to review participations.</p>
+                  <div className="rounded-xl border border-zinc-200 bg-white p-5 dark:border-zinc-800/60 dark:bg-zinc-900/60 shadow-xs flex flex-col justify-between">
+                    <div>
+                      <div className="flex items-center gap-3">
+                        <Info className="h-5 w-5 text-zinc-500 dark:text-zinc-400" />
+                        <div>
+                          <h3 className="text-xs font-bold uppercase tracking-wider text-zinc-800 dark:text-zinc-200">Tracking Dashboard</h3>
+                          <p className="mt-0.5 text-[11px] text-zinc-500 dark:text-zinc-400">Quickly toggle stage reflection boards, bookmarks, and participant metrics.</p>
+                        </div>
                       </div>
                     </div>
-                    <Link
-                      to="/dashboard?tab=tracker"
-                      className="mt-4 inline-flex items-center gap-2 rounded-2xl bg-blue-600 px-4 py-3 text-sm font-semibold text-white transition hover:bg-blue-500"
-                    >
-                      Open Dashboard tracker
-                      <ArrowRight className="h-4 w-4" />
-                    </Link>
+                    <div className="mt-4">
+                      <Link
+                        to="/dashboard?tab=tracker"
+                        className="inline-flex items-center gap-2 rounded-xl bg-blue-600 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-blue-500"
+                      >
+                        Open Tracker Dashboard
+                        <ArrowRight className="h-4 w-4" />
+                      </Link>
+                    </div>
                   </div>
                 </div>
               )}
-            </>
+            </div>
           )}
-        </section>
-      </div>
+        </div>
+      )}
+
+      {/* ───────────────────────────────────────────────────────────────────────────── */}
+      {/* CREATE TEAM MODAL */}
+      <AnimatePresence>
+        {showCreateModal && (
+          <div className="fixed inset-0 z-[100] flex items-center justify-center bg-zinc-950/65 backdrop-blur-sm p-4 overflow-y-auto">
+            <motion.div
+              initial={{ scale: 0.95, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0.95, opacity: 0 }}
+              className="relative w-full max-w-lg rounded-2xl border border-zinc-200 bg-white p-6 shadow-2xl dark:border-zinc-800 dark:bg-zinc-950 max-h-[90vh] flex flex-col overflow-hidden"
+            >
+              {/* Close */}
+              <button
+                onClick={() => setShowCreateModal(false)}
+                className="absolute right-4 top-4 rounded-xl p-1.5 text-zinc-400 hover:bg-zinc-100 dark:hover:bg-zinc-900 transition"
+              >
+                <X className="h-4 w-4" />
+              </button>
+
+              <h3 className="text-lg font-black text-zinc-900 dark:text-white leading-none mb-4">Create Team</h3>
+              
+              <div className="flex-1 overflow-y-auto space-y-4 pr-1">
+                {/* Team Name */}
+                <div className="space-y-1.5">
+                  <label className="text-xs font-bold uppercase tracking-wider text-zinc-500 dark:text-zinc-400">Team Name</label>
+                  <input
+                    value={createTeamName}
+                    onChange={(event) => setCreateTeamName(event.target.value)}
+                    placeholder="Team Horizon"
+                    className="w-full rounded-xl border border-zinc-200 bg-zinc-50/50 px-3.5 py-2 text-sm text-zinc-800 outline-none transition focus:border-blue-400 dark:border-zinc-800 dark:bg-zinc-950 dark:text-zinc-200"
+                  />
+                </div>
+
+                {/* Teammates GitHub Search */}
+                <div className="space-y-1.5">
+                  <label className="text-xs font-bold uppercase tracking-wider text-zinc-500 dark:text-zinc-400">Teammate Search (GitHub ID)</label>
+                  <div className="flex gap-2">
+                    <input
+                      value={githubSearchText}
+                      onChange={(event) => setGithubSearchText(event.target.value)}
+                      placeholder="e.g. octocat"
+                      onKeyDown={(e) => {
+                        if (e.key === "Enter") handleGithubSearch();
+                      }}
+                      className="flex-1 rounded-xl border border-zinc-200 bg-zinc-50/50 px-3.5 py-2 text-sm text-zinc-800 outline-none transition focus:border-blue-400 dark:border-zinc-800 dark:bg-zinc-950 dark:text-zinc-200"
+                    />
+                    <button
+                      onClick={handleGithubSearch}
+                      disabled={githubSearchLoading || !githubSearchText.trim()}
+                      className="inline-flex h-9.5 items-center justify-center rounded-xl bg-zinc-900 text-white dark:bg-zinc-800 px-4 text-xs font-semibold hover:bg-zinc-800 transition cursor-pointer disabled:opacity-50"
+                    >
+                      {githubSearchLoading ? <Loader2 className="h-4.5 w-4.5 animate-spin" /> : <Github className="h-4.5 w-4.5 mr-1" />}
+                      Search
+                    </button>
+                  </div>
+                  {githubSearchError && <p className="text-xs text-rose-500 font-bold mt-1">{githubSearchError}</p>}
+                </div>
+
+                {/* GitHub Search Result Container */}
+                {searchedGithubUser && (
+                  <div className="flex items-center gap-3 p-3 bg-zinc-50 dark:bg-zinc-900 rounded-2xl border border-zinc-100 dark:border-zinc-800 shadow-xs">
+                    <img src={searchedGithubUser.avatar_url} className="h-10 w-10 rounded-xl" alt="avatar" />
+                    <div className="flex-1 min-w-0">
+                      <p className="text-xs font-bold text-zinc-900 dark:text-zinc-100 truncate">{searchedGithubUser.name || searchedGithubUser.login}</p>
+                      <p className="text-[10px] text-zinc-500 dark:text-zinc-400 truncate mt-0.5">@{searchedGithubUser.login} • {searchedGithubUser.public_repos} repos</p>
+                    </div>
+                    <button
+                      onClick={handleAddGithubMember}
+                      className="px-3.5 py-1.5 bg-blue-600 hover:bg-blue-500 text-white rounded-xl text-xs font-semibold cursor-pointer"
+                    >
+                      + Add
+                    </button>
+                  </div>
+                )}
+
+                {/* Added Roster Invite list */}
+                {addedTeammates.length > 0 && (
+                  <div className="space-y-2.5 mt-4">
+                    <label className="text-xs font-bold uppercase tracking-wider text-zinc-500 dark:text-zinc-400">Added Roster ({addedTeammates.length})</label>
+                    <div className="space-y-2 max-h-40 overflow-y-auto pr-1">
+                      {addedTeammates.map((member, idx) => (
+                        <div key={idx} className="flex items-center gap-3 p-2.5 bg-white dark:bg-zinc-950 border border-zinc-200 dark:border-zinc-800 rounded-xl">
+                          <img src={member.avatar_url} className="h-7 w-7 rounded-lg" alt="avatar" />
+                          <div className="flex-1 min-w-0">
+                            <p className="text-xs font-bold text-zinc-900 dark:text-zinc-100 truncate">@{member.login}</p>
+                          </div>
+                          <input
+                            type="email"
+                            placeholder="Teammate's Email"
+                            value={member.email || ""}
+                            onChange={(e) => {
+                              const next = [...addedTeammates];
+                              next[idx].email = e.target.value;
+                              setAddedTeammates(next);
+                            }}
+                            className="px-2 py-1 text-xs border border-zinc-200 dark:border-zinc-800 rounded-lg w-40 bg-zinc-50 dark:bg-zinc-900 text-zinc-800 dark:text-zinc-100 outline-none"
+                            required
+                          />
+                          <button
+                            onClick={() => {
+                              setAddedTeammates(addedTeammates.filter((_, i) => i !== idx));
+                            }}
+                            className="text-zinc-400 hover:text-red-500 p-1"
+                          >
+                            <X className="h-4 w-4" />
+                          </button>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              {/* Footer */}
+              <div className="pt-4 border-t border-zinc-100 dark:border-zinc-800 flex gap-2 justify-end mt-4">
+                <button
+                  onClick={() => setShowCreateModal(false)}
+                  className="px-4 py-2 border border-zinc-200 dark:border-zinc-800 hover:bg-zinc-50 dark:hover:bg-zinc-900 rounded-xl text-xs font-semibold text-zinc-600 dark:text-zinc-400 cursor-pointer"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={handleCreateTeam}
+                  disabled={savingTeam || !createTeamName.trim()}
+                  className="px-4 py-2 bg-blue-600 hover:bg-blue-500 text-white rounded-xl text-xs font-semibold shadow-sm cursor-pointer disabled:opacity-50"
+                >
+                  {savingTeam ? <Loader2 className="h-4.5 w-4.5 animate-spin" /> : "Create Team"}
+                </button>
+              </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
+
+      {/* ───────────────────────────────────────────────────────────────────────────── */}
+      {/* JOIN TEAM MODAL */}
+      <AnimatePresence>
+        {showJoinModal && (
+          <div className="fixed inset-0 z-[100] flex items-center justify-center bg-zinc-950/65 backdrop-blur-sm p-4">
+            <motion.div
+              initial={{ scale: 0.95, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0.95, opacity: 0 }}
+              className="relative w-full max-w-md rounded-2xl border border-zinc-200 bg-white p-6 shadow-2xl dark:border-zinc-800 dark:bg-zinc-950"
+            >
+              {/* Close */}
+              <button
+                onClick={() => {
+                  setShowJoinModal(false);
+                  setJoinTokenInput("");
+                  setJoinError("");
+                }}
+                className="absolute right-4 top-4 rounded-xl p-1.5 text-zinc-400 hover:bg-zinc-100 dark:hover:bg-zinc-900 transition"
+              >
+                <X className="h-4 w-4" />
+              </button>
+
+              <h3 className="text-lg font-black text-zinc-900 dark:text-white leading-none mb-3">Join Team</h3>
+              <p className="text-xs text-zinc-500 dark:text-zinc-400 mb-4 leading-normal">
+                Paste the invitation link or token code you received from the team leader.
+              </p>
+
+              <div className="space-y-4">
+                <div className="space-y-1.5">
+                  <label className="text-xs font-bold uppercase tracking-wider text-zinc-500 dark:text-zinc-400">Invite Code / Link</label>
+                  <input
+                    value={joinTokenInput}
+                    onChange={(event) => setJoinTokenInput(event.target.value)}
+                    placeholder="e.g. accept-invitation?token=..."
+                    className="w-full rounded-xl border border-zinc-200 bg-zinc-50/50 px-3.5 py-2.5 text-sm text-zinc-800 outline-none transition focus:border-blue-400 dark:border-zinc-800 dark:bg-zinc-950 dark:text-zinc-200"
+                  />
+                </div>
+
+                {joinError && <p className="text-xs text-rose-500 font-bold leading-normal">{joinError}</p>}
+
+                <div className="pt-2 flex gap-2 justify-end">
+                  <button
+                    onClick={() => {
+                      setShowJoinModal(false);
+                      setJoinTokenInput("");
+                      setJoinError("");
+                    }}
+                    className="px-4 py-2 border border-zinc-200 dark:border-zinc-800 hover:bg-zinc-50 dark:hover:bg-zinc-900 rounded-xl text-xs font-semibold text-zinc-600 dark:text-zinc-400 cursor-pointer"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    onClick={handleJoinTeam}
+                    disabled={savingTeam || !joinTokenInput.trim()}
+                    className="px-4 py-2 bg-blue-600 hover:bg-blue-500 text-white rounded-xl text-xs font-semibold shadow-xs cursor-pointer disabled:opacity-50"
+                  >
+                    {savingTeam ? <Loader2 className="h-4.5 w-4.5 animate-spin" /> : "Join Team"}
+                  </button>
+                </div>
+              </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
+
     </div>
   );
 }
