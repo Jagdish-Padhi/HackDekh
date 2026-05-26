@@ -229,12 +229,13 @@ export interface LogoTransitionProps {
   onComplete?: () => void;
   width?: number;
   height?: number;
+  loop?: boolean;
 }
 
 // ─── Main component ───────────────────────────────────────────
 const LogoTransition = forwardRef<LogoTransitionRef, LogoTransitionProps>(
   function LogoTransition(
-    { autoPlay = true, onComplete, width = 400, height = 240 },
+    { autoPlay = true, onComplete, width = 400, height = 240, loop = false },
     ref
   ) {
     const arenaRef  = useRef<HTMLDivElement>(null);
@@ -410,6 +411,9 @@ const LogoTransition = forwardRef<LogoTransitionRef, LogoTransitionProps>(
           reset();
           running.current = false;
           onComplete?.();
+          if (loop) {
+            play();
+          }
           return;
         }
 
@@ -417,7 +421,7 @@ const LogoTransition = forwardRef<LogoTransitionRef, LogoTransitionProps>(
       };
 
       rafRef.current = requestAnimationFrame(frame);
-    }, [reset, onComplete, width, height]);
+    }, [reset, onComplete, width, height, loop]);
 
     // expose play() via ref
     useImperativeHandle(ref, () => ({ play }), [play]);

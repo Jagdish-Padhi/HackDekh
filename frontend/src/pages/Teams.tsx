@@ -26,6 +26,7 @@ import {
 import { useAuth } from "../context/AuthContext";
 import { usePageChrome } from "../context/pageChrome";
 import { teamApi } from "../services";
+import LogoTransition from "../components/LogoAnimation";
 import type { GeneratedInvitationLink, Team, TeamHackathon, Stage } from "../types";
 import { motion, AnimatePresence } from "framer-motion";
 
@@ -724,10 +725,15 @@ export default function TeamsPage() {
 
   if (loading) {
     return (
-      <div className="mx-auto flex min-h-[50vh] max-w-7xl items-center justify-center px-4 py-10">
-        <div className="flex items-center gap-3 rounded-2xl border border-zinc-200 bg-white px-5 py-4 shadow-sm dark:border-zinc-800 dark:bg-zinc-900">
-          <Loader2 className="h-5 w-5 animate-spin text-blue-600 dark:text-blue-400" />
-          <span className="text-sm font-semibold text-zinc-600 dark:text-zinc-300">Loading workspace...</span>
+      <div className="mx-auto flex min-h-[60vh] max-w-7xl flex-col items-center justify-center px-4 py-10">
+        <div className="flex flex-col items-center max-w-sm text-center">
+          <LogoTransition width={220} height={140} loop={true} />
+          <h3 className="text-sm font-extrabold text-zinc-800 dark:text-zinc-200 mt-2 tracking-tight">
+            Assembling Workspace
+          </h3>
+          <p className="text-[11px] text-zinc-500 dark:text-zinc-400 mt-1 leading-normal">
+            Synchronizing teams, roster data, and stage history...
+          </p>
         </div>
       </div>
     );
