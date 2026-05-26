@@ -14,6 +14,7 @@ import {
 	removeApplication,
 	getUserApplications,
 	getPendingReflections,
+	githubAuth,
 } from "../controllers/user.controller.ts";
 import { verifyJWT } from "../middlewares/auth.middleware.ts";
 
@@ -21,6 +22,7 @@ const router = Router();
 
 router.post("/register", registerUser);
 router.post("/login", loginUser);
+router.post("/auth/github", githubAuth);
 router.post("/logout", verifyJWT, logoutUser);
 router.post("/refresh", refreshAccessToken);
 router.get("/me", verifyJWT, getCurrentUser);

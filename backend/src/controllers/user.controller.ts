@@ -4,6 +4,7 @@ import User from "../models/user.model.ts";
 import { ApiResponse } from "../utils/apiResponse.ts";
 import jwt from "jsonwebtoken";
 import { getPendingReflections as fetchPendingReflections } from "../services/stage.service.ts";
+import axios from "axios";
 
 const generateAccessAndRefreshTokens = async (userId: string) => {
   try {
@@ -423,6 +424,125 @@ const getPendingReflections = asyncHandler(async (req: any, res: any) => {
     .json(new ApiResponse(200, stages, 'Pending reflections fetched successfully'));
 });
 
+
+const githubAuth = asyncHandler(async (req: any, res: any) => {
+  const { code } = req.body;
+  if (!code) {
+    throw new ApiError(400, "Authorization code is required");
+  }
+
+  const clientId = process.env.GITHUB_CLIENT_ID;
+  const clientSecret = process.env.GITHUB_CLIENT_SECRET;
+
+  let githubUser: any;
+  let email: string;
+
+  // Sandbox / Mock mode if credentials are not configured or if code is mock
+  if (!clientId || !clientSecret || code.startsWith("mock_code_dev_")) {
+    console.log("Using Mock GitHub Authentication Flow (Sandbox/Dev mode)");
+    
+    // Simulate a GitHub profile
+    const mockUsername = code.startsWith("mock_code_dev_") 
+      ? `github_dev_${code.split("_").pop()}`
+      : "github_octocat";
+
+    githubUser = {
+      login: mockUsername,
+      name: "Octocat Developer",
+      email: `${mockUsername}@example.com`,
+      avatar_url: `https://api.dicebear.com/7.x/identicon/svg?seed=${mockUsername}`,
+    };
+    email = githubUser.email;
+  } else {
+    // Real GitHub OAuth flow
+    try {
+      // 1. Exchange code for access token
+      const tokenResponse = await axios.post(
+        "https://github.com/login/oauth/access_token",
+        {
+          client_id: clientId,
+          client_secret: clientSecret,
+          code,
+        },
+        {
+          headers: {
+            Accept: "application/json",
+          },
+        }
+      );
+
+      const { access_token: githubToken, error: tokenError, error_description } = tokenResponse.data;
+      if (tokenError || !githubToken) {
+        throw new ApiError(400, error_description || "Failed to retrieve GitHub access token");
+      }
+
+      // 2. Fetch user profile
+      const userResponse = await axios.get("https://api.github.com/user", {
+        headers: {
+          Authorization: `token ${githubToken}`,
+        },
+      });
+      githubUser = userResponse.data;
+
+      // 3. Fetch user emails to get verified primary email
+      const emailsResponse = await axios.get("https://api.github.com/user/emails", {
+        headers: {
+          Authorization: `token ${githubToken}`,
+        },
+      });
+      
+      const primaryEmailObj = emailsResponse.data.find(
+        (e: any) => e.primary && e.verified
+      ) || emailsResponse.data[0];
+      
+      email = primaryEmailObj ? primaryEmailObj.email : `${githubUser.login}@github.com`;
+    } catch (err: any) {
+      console.error("GitHub Auth Error:", err.response?.data || err.message);
+      throw new ApiError(500, `GitHub authentication failed: ${err.message}`);
+    }
+  }
+
+  // Find or create user
+  let user = await User.findOne({
+    $or: [{ email: email.toLowerCase() }, { username: githubUser.login.toLowerCase() }],
+  });
+
+  if (!user) {
+    // Create new user
+    const randomPassword = Math.random().toString(36).substring(2) + Math.random().toString(36).substring(2);
+    user = await User.create({
+      username: githubUser.login.toLowerCase(),
+      fullName: githubUser.name || githubUser.login,
+      email: email.toLowerCase(),
+      password: randomPassword,
+    });
+  }
+
+  const { accessToken, refreshToken } = await generateAccessAndRefreshTokens(user._id.toString());
+  const loggedInUser = await User.findById(user._id).select("-password -refreshToken");
+
+  const options = {
+    httpOnly: true,
+    secure: true,
+  };
+
+  return res
+    .status(200)
+    .cookie("accessToken", accessToken, options)
+    .cookie("refreshToken", refreshToken, options)
+    .json(
+      new ApiResponse(
+        200,
+        {
+          user: loggedInUser,
+          accessToken,
+          refreshToken,
+        },
+        "User logged in via GitHub successfully!"
+      )
+    );
+});
+
 export {
   registerUser,
   loginUser,
@@ -438,4 +558,5 @@ export {
   removeApplication,
   getUserApplications,
   getPendingReflections,
+  githubAuth,
 };
