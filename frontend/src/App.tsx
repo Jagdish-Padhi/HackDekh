@@ -9,6 +9,7 @@ import LoginPage from './pages/Login';
 import TeamsPage from './pages/Teams';
 import AcceptInvitationPage from './pages/AcceptInvitation';
 import DashboardPage from './pages/Dashboard';
+import GithubCallbackPage from './pages/GithubCallback';
 import ProtectedRoute from './components/ProtectedRoute';
 import { AuthProvider, useAuth } from './context/AuthContext';
 
@@ -48,6 +49,7 @@ function AppContent() {
             <Route path="/hackathons" element={<HackathonsPage />} />
             <Route path="/hackathons/:id" element={<HackathonDetailsPage />} />
             <Route path="/accept-invitation" element={<AcceptInvitationPage />} />
+            <Route path="/auth/github/callback" element={<GithubCallbackPage />} />
             
             {/* Protected Routes */}
             <Route 
