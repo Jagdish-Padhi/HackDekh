@@ -9,6 +9,7 @@ import LoginPage from './pages/Login';
 import TeamsPage from './pages/Teams';
 import AcceptInvitationPage from './pages/AcceptInvitation';
 import DashboardPage from './pages/Dashboard';
+import SettingsPage from './pages/Settings';
 import GithubCallbackPage from './pages/GithubCallback';
 import ProtectedRoute from './components/ProtectedRoute';
 import { AuthProvider, useAuth } from './context/AuthContext';
@@ -65,6 +66,14 @@ function AppContent() {
               element={
                 <ProtectedRoute>
                   <DashboardPage />
+                </ProtectedRoute>
+              } 
+            />
+            <Route 
+              path="/settings" 
+              element={
+                <ProtectedRoute>
+                  <SettingsPage />
                 </ProtectedRoute>
               } 
             />
