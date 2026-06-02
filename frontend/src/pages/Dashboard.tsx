@@ -790,13 +790,17 @@ export default function DashboardPage() {
                                   ) : (
                                     selectedParticipation.stages.map((stage, index) => {
                                       const isFocused = focusedStageId === stage._id;
+                                      const failedStageIdx = selectedParticipation.stages.findIndex(s => s.result === 'rejected');
+                                      const isDisqualified = failedStageIdx !== -1 && index > failedStageIdx;
                                       return (
                                         <div
                                           key={stage._id}
                                           className={`rounded-[1.4rem] border p-4 transition ${
-                                            isFocused
-                                              ? "border-blue-500/40 bg-blue-500/5"
-                                              : "border-zinc-200 bg-zinc-50/70 dark:border-zinc-800 dark:bg-zinc-950/40"
+                                            isDisqualified
+                                              ? "border-zinc-200/50 bg-zinc-100/30 dark:border-zinc-800/40 dark:bg-zinc-950/10 opacity-50"
+                                              : isFocused
+                                                ? "border-blue-500/40 bg-blue-500/5"
+                                                : "border-zinc-200 bg-zinc-50/70 dark:border-zinc-800 dark:bg-zinc-950/40"
                                           }`}
                                         >
                                           <div className="flex items-start justify-between gap-3">
@@ -805,21 +809,29 @@ export default function DashboardPage() {
                                                 {index + 1}
                                               </div>
                                               <div className="space-y-3">
-                                                <input
-                                                  defaultValue={stage.name}
-                                                  onBlur={(event) => {
-                                                    if (event.target.value !== stage.name) {
-                                                      handleStageFieldSave(selectedParticipation._id, stage._id, { name: event.target.value });
-                                                    }
-                                                  }}
-                                                  className="w-full rounded-xl border border-zinc-200 bg-white px-3 py-2 text-sm font-semibold text-zinc-900 outline-none transition focus:border-blue-400 dark:border-zinc-800 dark:bg-zinc-950 dark:text-zinc-100"
-                                                />
+                                                <div className="flex items-center gap-2">
+                                                  {isDisqualified && (
+                                                    <span className="inline-flex items-center gap-1 rounded-md bg-zinc-200 px-2 py-0.5 text-[9px] font-black uppercase text-zinc-600 dark:bg-zinc-800 dark:text-zinc-400 shrink-0">
+                                                      Disqualified
+                                                    </span>
+                                                  )}
+                                                  <input
+                                                    disabled={isDisqualified}
+                                                    defaultValue={stage.name}
+                                                    onBlur={(event) => {
+                                                      if (event.target.value !== stage.name) {
+                                                        handleStageFieldSave(selectedParticipation._id, stage._id, { name: event.target.value });
+                                                      }
+                                                    }}
+                                                    className="w-full rounded-xl border border-zinc-200 bg-white px-3 py-2 text-sm font-semibold text-zinc-900 outline-none transition focus:border-blue-400 dark:border-zinc-800 dark:bg-zinc-950 dark:text-zinc-100 disabled:cursor-not-allowed"
+                                                  />
+                                                </div>
                                                 <div className="flex flex-wrap items-center gap-2 text-xs text-zinc-500 dark:text-zinc-400">
                                                   <span className="inline-flex items-center gap-1 rounded-full border border-zinc-200 bg-white px-2.5 py-1 dark:border-zinc-800 dark:bg-zinc-950">
                                                     <Clock3 className="h-3.5 w-3.5" />
                                                     {formatDate(stage.deadline || undefined)}
                                                   </span>
-                                                  {isCurrentUserPending(stage, user?._id) && (
+                                                  {!isDisqualified && isCurrentUserPending(stage, user?._id) && (
                                                     <span className="inline-flex items-center gap-1 rounded-full border border-amber-500/20 bg-amber-500/10 px-2.5 py-1 text-amber-700 dark:text-amber-300">
                                                       pending reflection
                                                     </span>
@@ -838,6 +850,7 @@ export default function DashboardPage() {
 
                                           <div className="mt-4 grid gap-3 sm:grid-cols-[1fr_auto]">
                                             <input
+                                              disabled={isDisqualified}
                                               type="date"
                                               defaultValue={stage.deadline ? new Date(stage.deadline).toISOString().slice(0, 10) : ""}
                                               onBlur={(event) => {
@@ -847,18 +860,20 @@ export default function DashboardPage() {
                                                   handleStageFieldSave(selectedParticipation._id, stage._id, { deadline: nextValue });
                                                 }
                                               }}
-                                              className="rounded-xl border border-zinc-200 bg-white px-3 py-2 text-sm text-zinc-700 outline-none transition focus:border-blue-400 dark:border-zinc-800 dark:bg-zinc-950 dark:text-zinc-200"
+                                              className="rounded-xl border border-zinc-200 bg-white px-3 py-2 text-sm text-zinc-700 outline-none transition focus:border-blue-400 dark:border-zinc-800 dark:bg-zinc-950 dark:text-zinc-200 disabled:cursor-not-allowed"
                                             />
                                             <button
+                                              disabled={isDisqualified}
                                               onClick={() => handleCycleStageResult(selectedParticipation._id, stage._id)}
-                                              className={`inline-flex items-center justify-center gap-2 rounded-xl border px-3 py-2 text-xs font-semibold cursor-pointer ${getStageResultClass(stage.result)}`}
+                                              className={`inline-flex items-center justify-center gap-2 rounded-lg border px-3 py-2 text-xs font-semibold cursor-pointer disabled:cursor-not-allowed ${isDisqualified ? "border-zinc-200 bg-zinc-150 text-zinc-500 dark:border-zinc-800 dark:bg-zinc-900/50" : getStageResultClass(stage.result)}`}
                                             >
                                               <CircleDot className="h-3.5 w-3.5" />
-                                              {stage.result}
+                                              {isDisqualified ? "disqualified" : stage.result}
                                             </button>
                                           </div>
 
                                           <textarea
+                                            disabled={isDisqualified}
                                             defaultValue={stage.notes || ""}
                                             onBlur={(event) => {
                                               if (event.target.value !== (stage.notes || "")) {

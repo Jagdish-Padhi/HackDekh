@@ -1572,69 +1572,82 @@ export default function TeamsPage() {
                             <p className="mt-1 text-xs text-zinc-500 dark:text-zinc-400">Create stages like "Ideation", "Prototype Submission", etc.</p>
                           </div>
                         ) : (
-                          selectedParticipation.stages.map((stage) => (
-                            <div key={stage._id} className="rounded-xl border border-zinc-200 bg-white p-4 dark:border-zinc-800/60 dark:bg-zinc-900/60 space-y-3 shadow-xs hover:border-zinc-300 dark:hover:border-zinc-700 transition-all duration-200">
-                              <div className="flex items-center justify-between gap-4">
-                                <div className="flex-1">
-                                  <input
-                                    defaultValue={stage.name}
-                                    onBlur={(event) => {
-                                      if (event.target.value !== stage.name) {
-                                        handleUpdateStage(selectedParticipation._id, stage._id, { name: event.target.value });
-                                      }
-                                    }}
-                                    className="w-full bg-transparent text-sm font-bold text-zinc-900 dark:text-white outline-none border-b border-transparent focus:border-blue-500 py-0.5"
-                                  />
-                                </div>
-                                <button
-                                  onClick={() => handleDeleteStage(selectedParticipation._id, stage._id)}
-                                  className="rounded-lg p-1.5 text-zinc-400 hover:bg-rose-500/10 hover:text-rose-500 transition cursor-pointer"
-                                  title="Delete stage"
-                                >
-                                  <Trash2 className="h-4 w-4" />
-                                </button>
-                              </div>
+                          selectedParticipation.stages.map((stage, sIdx) => {
+                            const failedStageIdx = selectedParticipation.stages.findIndex(s => s.result === 'rejected');
+                            const isDisqualified = failedStageIdx !== -1 && sIdx > failedStageIdx;
 
-                              <div className="flex flex-wrap items-center gap-3 pt-2.5 border-t border-zinc-100 dark:border-zinc-800/60 text-xs">
-                                <div>
-                                  <label className="text-[9px] font-bold text-zinc-400 uppercase tracking-wider block mb-0.5">Deadline</label>
-                                  <input
-                                    type="date"
-                                    defaultValue={stage.deadline ? new Date(stage.deadline).toISOString().slice(0, 10) : ""}
-                                    onBlur={(event) => {
-                                      const nextDeadline = event.target.value || null;
-                                      const currentDeadline = stage.deadline ? new Date(stage.deadline).toISOString().slice(0, 10) : "";
-                                      if (nextDeadline !== currentDeadline) {
-                                        handleUpdateStage(selectedParticipation._id, stage._id, { deadline: nextDeadline });
-                                      }
-                                    }}
-                                    className="rounded-lg border border-zinc-200 bg-zinc-50/50 px-2.5 py-1 text-xs text-zinc-700 outline-none dark:border-zinc-800 dark:bg-zinc-900 dark:text-zinc-300"
-                                  />
-                                </div>
-
-                                <div>
-                                  <label className="text-[9px] font-bold text-zinc-400 uppercase tracking-wider block mb-0.5">Result</label>
+                            return (
+                              <div key={stage._id} className={`rounded-xl border p-4 transition-all duration-200 ${isDisqualified ? "border-dashed border-zinc-250 bg-zinc-50/50 dark:border-zinc-800/40 dark:bg-zinc-950/20 opacity-50" : "border-zinc-200 bg-white dark:border-zinc-800/60 dark:bg-zinc-900/60 shadow-xs hover:border-zinc-300 dark:hover:border-zinc-700"}`}>
+                                <div className="flex items-center justify-between gap-4">
+                                  <div className="flex-1 flex items-center gap-2">
+                                    {isDisqualified && (
+                                      <span className="inline-flex items-center gap-1 rounded-md bg-zinc-200 px-2 py-0.5 text-[9px] font-black uppercase text-zinc-655 dark:bg-zinc-800 dark:text-zinc-400 shrink-0">
+                                        Disqualified
+                                      </span>
+                                    )}
+                                    <input
+                                      disabled={isDisqualified}
+                                      defaultValue={stage.name}
+                                      onBlur={(event) => {
+                                        if (event.target.value !== stage.name) {
+                                          handleUpdateStage(selectedParticipation._id, stage._id, { name: event.target.value });
+                                        }
+                                      }}
+                                      className="w-full bg-transparent text-sm font-bold text-zinc-900 dark:text-white outline-none border-b border-transparent focus:border-blue-500 py-0.5 disabled:cursor-not-allowed"
+                                    />
+                                  </div>
                                   <button
-                                    onClick={() => {
-                                      const resultOrder: Stage["result"][] = ["pending", "qualified", "rejected"];
-                                      const currentIndex = resultOrder.indexOf(stage.result as Stage["result"]);
-                                      const nextResult = resultOrder[(currentIndex + 1) % resultOrder.length];
-                                      handleUpdateStage(selectedParticipation._id, stage._id, { result: nextResult });
-                                    }}
-                                    className={`rounded-lg border px-2.5 py-1 text-xs font-semibold uppercase tracking-wider transition ${stageResultClass(stage.result)}`}
+                                    onClick={() => handleDeleteStage(selectedParticipation._id, stage._id)}
+                                    className="rounded-lg p-1.5 text-zinc-400 hover:bg-rose-500/10 hover:text-rose-500 transition cursor-pointer"
+                                    title="Delete stage"
                                   >
-                                    {stage.result}
+                                    <Trash2 className="h-4 w-4" />
                                   </button>
                                 </div>
 
-                                {stageSaving[stage._id] && (
-                                  <span className="text-[10px] text-zinc-400 ml-auto pt-4">
-                                    {stageSaving[stage._id] === "saving" ? "Saving..." : stageSaving[stage._id] === "saved" ? "Saved" : "Error"}
-                                  </span>
-                                )}
+                                <div className="flex flex-wrap items-center gap-3 pt-2.5 border-t border-zinc-100 dark:border-zinc-800/60 text-xs">
+                                  <div>
+                                    <label className="text-[9px] font-bold text-zinc-400 uppercase tracking-wider block mb-0.5">Deadline</label>
+                                    <input
+                                      type="date"
+                                      disabled={isDisqualified}
+                                      defaultValue={stage.deadline ? new Date(stage.deadline).toISOString().slice(0, 10) : ""}
+                                      onBlur={(event) => {
+                                        const nextDeadline = event.target.value || null;
+                                        const currentDeadline = stage.deadline ? new Date(stage.deadline).toISOString().slice(0, 10) : "";
+                                        if (nextDeadline !== currentDeadline) {
+                                          handleUpdateStage(selectedParticipation._id, stage._id, { deadline: nextDeadline });
+                                        }
+                                      }}
+                                      className="rounded-lg border border-zinc-200 bg-zinc-50/50 px-2.5 py-1 text-xs text-zinc-700 outline-none dark:border-zinc-800 dark:bg-zinc-900 dark:text-zinc-300 disabled:cursor-not-allowed"
+                                    />
+                                  </div>
+
+                                  <div>
+                                    <label className="text-[9px] font-bold text-zinc-400 uppercase tracking-wider block mb-0.5">Result</label>
+                                    <button
+                                      disabled={isDisqualified}
+                                      onClick={() => {
+                                        const resultOrder: Stage["result"][] = ["pending", "qualified", "rejected"];
+                                        const currentIndex = resultOrder.indexOf(stage.result as Stage["result"]);
+                                        const nextResult = resultOrder[(currentIndex + 1) % resultOrder.length];
+                                        handleUpdateStage(selectedParticipation._id, stage._id, { result: nextResult });
+                                      }}
+                                      className={`rounded-lg border px-2.5 py-1 text-xs font-semibold uppercase tracking-wider transition disabled:cursor-not-allowed ${isDisqualified ? "border-zinc-200 bg-zinc-100 text-zinc-400 dark:border-zinc-800 dark:bg-zinc-900/50" : stageResultClass(stage.result)}`}
+                                    >
+                                      {isDisqualified ? "disqualified" : stage.result}
+                                    </button>
+                                  </div>
+
+                                  {stageSaving[stage._id] && (
+                                    <span className="text-[10px] text-zinc-400 ml-auto pt-4">
+                                      {stageSaving[stage._id] === "saving" ? "Saving..." : stageSaving[stage._id] === "saved" ? "Saved" : "Error"}
+                                    </span>
+                                  )}
+                                </div>
                               </div>
-                            </div>
-                          ))
+                            );
+                          })
                         )}
                       </div>
 
