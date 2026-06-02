@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react'
 import { NavLink, useLocation, useNavigate } from 'react-router-dom'
 import { BarChart3, LogOut, Menu, Moon, PanelLeftClose, PanelLeftOpen, Sun, Trophy, Users, X, Settings } from 'lucide-react'
 import { usePageChrome } from '../context/pageChrome'
-import { useAuth } from '../context/AuthContext'
+import { useAuth, useCache } from '../context'
 
 const navItems = [
     { name: 'Hackathons', path: '/hackathons', icon: Trophy },
@@ -23,6 +23,7 @@ const Sidebar = () => {
         return window.innerWidth < 1024
     })
     const { user, isAuthenticated, logout } = useAuth()
+    const { clearCache } = useCache()
     const [isDark, setIsDark] = useState(false)
 
     useEffect(() => {
@@ -70,6 +71,7 @@ const Sidebar = () => {
         } catch {
             // fallback
         } finally {
+            clearCache()
             sessionStorage.removeItem("dismissedSignupFunnel")
             navigate('/login')
             closeSidebar()
