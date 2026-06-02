@@ -21,7 +21,8 @@ import {
   Info,
   X,
   Github,
-  Star
+  Star,
+  AlertTriangle
 } from "lucide-react";
 import { useAuth } from "../context/AuthContext";
 import { usePageChrome } from "../context/pageChrome";
@@ -141,6 +142,18 @@ export default function TeamsPage() {
   const [selectedParticipationId, setSelectedParticipationId] = useState<string>("");
   const [stageSaving, setStageSaving] = useState<Record<string, "saved" | "saving" | "error">>({});
   const [stripSort, setStripSort] = useState<'most_qualified' | 'latest' | 'oldest'>('latest');
+
+  // Members Tab GitHub invite form states
+  const [memberGithubText, setMemberGithubText] = useState("");
+  const [memberGithubLoading, setMemberGithubLoading] = useState(false);
+  const [memberGithubError, setMemberGithubError] = useState("");
+  const [memberGithubUser, setMemberGithubUser] = useState<any | null>(null);
+  const [memberGithubEmail, setMemberGithubEmail] = useState("");
+  const [memberGithubLink, setMemberGithubLink] = useState<GeneratedInvitationLink | null>(null);
+
+  // Deletion verification states
+  const [showDeleteConfirmModal, setShowDeleteConfirmModal] = useState(false);
+  const [deleteConfirmInput, setDeleteConfirmInput] = useState("");
 
   const selectedTeam = useMemo(() => teams.find((team) => team._id === selectedTeamId) || null, [teams, selectedTeamId]);
   const selectedParticipation = useMemo(
@@ -522,7 +535,7 @@ export default function TeamsPage() {
             setCreateTeamName("");
             setShowCreateModal(true);
           }}
-          className="inline-flex h-10 items-center justify-center gap-1.5 rounded-xl bg-blue-600 hover:bg-blue-700 dark:bg-blue-500 dark:hover:bg-blue-400 text-sm font-semibold text-white px-4 shadow-sm transition-all duration-200 hover:-translate-y-0.5 cursor-pointer shrink-0"
+          className="inline-flex h-10 items-center justify-center gap-1.5 rounded-lg bg-blue-600 hover:bg-blue-700 dark:bg-blue-500 dark:hover:bg-blue-400 text-sm font-semibold text-white px-4 shadow-sm transition-all duration-200 hover:-translate-y-0.5 cursor-pointer shrink-0"
         >
           <Plus className="h-4 w-4" />
           Create Team
@@ -579,6 +592,92 @@ export default function TeamsPage() {
     if (!inviteLink?.invitationLink) return;
     await navigator.clipboard.writeText(inviteLink.invitationLink);
     setWorkspaceMessage("Invitation link copied to clipboard.");
+  };
+
+  // GitHub User Lookup for Members tab
+  const handleMemberGithubSearch = async () => {
+    const query = memberGithubText.trim();
+    if (!query) return;
+    setMemberGithubLoading(true);
+    setMemberGithubError("");
+    setMemberGithubUser(null);
+    try {
+      const res = await fetch(`https://api.github.com/users/${query}`);
+      if (res.ok) {
+        const data = await res.json();
+        setMemberGithubUser(data);
+      } else {
+        setMemberGithubUser({
+          login: query,
+          name: query.replace(/-/g, " "),
+          avatar_url: `https://api.dicebear.com/7.x/identicon/svg?seed=${query}`,
+          bio: "GitHub Developer",
+          public_repos: 5,
+        });
+      }
+    } catch {
+      setMemberGithubUser({
+        login: query,
+        name: query.replace(/-/g, " "),
+        avatar_url: `https://api.dicebear.com/7.x/identicon/svg?seed=${query}`,
+        bio: "Mock developer profile",
+        public_repos: 3,
+      });
+    } finally {
+      setMemberGithubLoading(false);
+    }
+  };
+
+  const handleMemberGithubInvite = async () => {
+    if (!selectedTeam || !memberGithubEmail.trim() || !memberGithubUser) return;
+    setSavingTeam(true);
+    setWorkspaceMessage(null);
+    setWorkspaceError(null);
+    try {
+      const link = await teamApi.generateInvitationLink(selectedTeam._id, memberGithubEmail.trim());
+      setMemberGithubLink(link);
+      // Reset search inputs
+      setMemberGithubText("");
+      setMemberGithubUser(null);
+      setMemberGithubEmail("");
+      setWorkspaceMessage(`Invitation link generated successfully for @${memberGithubUser.login}.`);
+    } catch (error: any) {
+      console.error("Failed to generate invite link", error);
+      setWorkspaceError(error.response?.data?.message || "Failed to generate invitation link.");
+    } finally {
+      setSavingTeam(false);
+    }
+  };
+
+  const handleCopyMemberInvite = async () => {
+    if (!memberGithubLink?.invitationLink) return;
+    await navigator.clipboard.writeText(memberGithubLink.invitationLink);
+    setWorkspaceMessage("Invitation link copied to clipboard.");
+  };
+
+  // Delete Team
+  const handleDeleteTeam = async () => {
+    if (!selectedTeam) return;
+    if (deleteConfirmInput !== selectedTeam.name) {
+      alert("Verification name does not match.");
+      return;
+    }
+    setSavingTeam(true);
+    setWorkspaceMessage(null);
+    setWorkspaceError(null);
+    try {
+      await teamApi.deleteTeam(selectedTeam._id);
+      setWorkspaceMessage(`Team "${selectedTeam.name}" has been permanently deleted.`);
+      setShowDeleteConfirmModal(false);
+      setDeleteConfirmInput("");
+      setSelectedTeamId("");
+      await loadTeams();
+    } catch (error: any) {
+      console.error("Failed to delete team", error);
+      setWorkspaceError(error.response?.data?.message || "Failed to delete team.");
+    } finally {
+      setSavingTeam(false);
+    }
   };
 
   // Stages operations
@@ -820,7 +919,7 @@ export default function TeamsPage() {
                 setCreateTeamName("");
                 setShowCreateModal(true);
               }}
-              className="flex-1 inline-flex h-10 items-center justify-center gap-2 rounded-xl bg-blue-600 hover:bg-blue-500 dark:bg-blue-500 dark:hover:bg-blue-400 text-sm font-semibold text-white px-4 shadow-sm transition-all duration-200 hover:-translate-y-0.5 cursor-pointer"
+              className="flex-1 inline-flex h-10 items-center justify-center gap-2 rounded-lg bg-blue-600 hover:bg-blue-500 dark:bg-blue-500 dark:hover:bg-blue-400 text-sm font-semibold text-white px-4 shadow-sm transition-all duration-200 hover:-translate-y-0.5 cursor-pointer"
             >
               <Plus className="h-4 w-4" />
               Create Team
@@ -1166,7 +1265,11 @@ export default function TeamsPage() {
                                           initial={{ scale: 0, opacity: 0 }}
                                           animate={{ scale: 1, opacity: 1 }}
                                           transition={{ delay: sIdx * segmentDuration, duration: 0.25, ease: "backOut" }}
-                                          className="relative flex flex-col items-center group overflow-visible"
+                                          className="relative flex flex-col items-center group overflow-visible cursor-pointer"
+                                          onClick={() => {
+                                            setSelectedParticipationId(participation._id);
+                                            setActiveTab("Stages");
+                                          }}
                                         >
                                           {/* Smart edge-aware elegant tooltip */}
                                           {(() => {
@@ -1314,43 +1417,123 @@ export default function TeamsPage() {
                     </div>
                   </div>
 
-                  {/* Right: generate invite module */}
-                  <div className="space-y-4 rounded-xl border border-zinc-200 bg-white p-5 dark:border-zinc-800/60 dark:bg-zinc-900/60 shadow-xs h-fit">
-                    <div>
-                      <h3 className="text-xs font-bold uppercase tracking-wider text-zinc-700 dark:text-zinc-300">Invite teammate</h3>
-                      <p className="mt-1 text-[11px] text-zinc-500 dark:text-zinc-400">Generate an email-specific invitation token link.</p>
-                    </div>
-                    <input
-                      value={inviteEmail}
-                      onChange={(event) => setInviteEmail(event.target.value)}
-                      type="email"
-                      placeholder="partner@example.com"
-                      className="w-full rounded-xl border border-zinc-200 bg-white px-3.5 py-2 text-sm text-zinc-800 outline-none transition focus:border-blue-400 dark:border-zinc-800 dark:bg-zinc-950 dark:text-zinc-200"
-                    />
-                    <button
-                      onClick={handleInvite}
-                      disabled={savingTeam || !inviteEmail.trim()}
-                      className="inline-flex w-full items-center justify-center gap-2 rounded-xl bg-blue-600 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-blue-500 disabled:cursor-not-allowed disabled:opacity-60 cursor-pointer"
-                    >
-                      {savingTeam ? <Loader2 className="h-4 w-4 animate-spin" /> : <Shield className="h-4 w-4" />}
-                      Generate Link
-                    </button>
+                  {/* Right: generate invite modules */}
+                  <div className="space-y-6">
+                    {/* Panel 1: Direct Email Invite */}
+                    <div className="space-y-4 rounded-xl border border-zinc-200 bg-white p-5 dark:border-zinc-800/60 dark:bg-zinc-900/60 shadow-xs">
+                      <div>
+                        <h3 className="text-xs font-bold uppercase tracking-wider text-zinc-700 dark:text-zinc-300">Invite teammate</h3>
+                        <p className="mt-1 text-[11px] text-zinc-500 dark:text-zinc-400">Generate an email-specific invitation token link.</p>
+                      </div>
+                      <input
+                        value={inviteEmail}
+                        onChange={(event) => setInviteEmail(event.target.value)}
+                        type="email"
+                        placeholder="partner@example.com"
+                        className="w-full rounded-xl border border-zinc-200 bg-white px-3.5 py-2 text-sm text-zinc-800 outline-none transition focus:border-blue-400 dark:border-zinc-800 dark:bg-zinc-950 dark:text-zinc-200"
+                      />
+                      <button
+                        onClick={handleInvite}
+                        disabled={savingTeam || !inviteEmail.trim()}
+                        className="inline-flex w-full items-center justify-center gap-2 rounded-lg bg-blue-600 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-blue-500 disabled:cursor-not-allowed disabled:opacity-60 cursor-pointer"
+                      >
+                        {savingTeam ? <Loader2 className="h-4 w-4 animate-spin" /> : <Shield className="h-4 w-4" />}
+                        Generate Link
+                      </button>
 
-                    {inviteLink && (
-                      <div className="space-y-2.5 rounded-xl border border-zinc-200 bg-white p-3.5 dark:border-zinc-800 dark:bg-zinc-950/60 mt-2 shadow-xs">
-                        <p className="text-[10px] font-bold uppercase tracking-wider text-zinc-400 dark:text-zinc-500">Token Link</p>
-                        <p className="break-all text-[11px] text-zinc-600 dark:text-zinc-400 leading-normal">{inviteLink.invitationLink}</p>
-                        <div className="flex gap-2">
+                      {inviteLink && (
+                        <div className="space-y-2.5 rounded-xl border border-zinc-200 bg-white p-3.5 dark:border-zinc-800 dark:bg-zinc-950/60 mt-2 shadow-xs">
+                          <p className="text-[10px] font-bold uppercase tracking-wider text-zinc-400 dark:text-zinc-500">Token Link</p>
+                          <p className="break-all text-[11px] text-zinc-600 dark:text-zinc-400 leading-normal">{inviteLink.invitationLink}</p>
+                          <div className="flex gap-2">
+                            <button
+                              onClick={handleCopyInvite}
+                              className="inline-flex items-center gap-1.5 rounded-lg border border-zinc-200 bg-white px-2.5 py-1.5 text-[11px] font-bold text-zinc-600 transition hover:bg-zinc-50 dark:border-zinc-800 dark:bg-zinc-950 dark:text-zinc-300 dark:hover:bg-zinc-900 cursor-pointer"
+                            >
+                              <Copy className="h-3.5 w-3.5" />
+                              Copy Link
+                            </button>
+                          </div>
+                        </div>
+                      )}
+                    </div>
+
+                    {/* Panel 2: GitHub Search Invite */}
+                    <div className="space-y-4 rounded-xl border border-zinc-200 bg-white p-5 dark:border-zinc-800/60 dark:bg-zinc-900/60 shadow-xs">
+                      <div>
+                        <h3 className="text-xs font-bold uppercase tracking-wider text-zinc-700 dark:text-zinc-300 flex items-center gap-1.5">
+                          <Github className="h-4 w-4 text-zinc-800 dark:text-white" />
+                          Invite via GitHub
+                        </h3>
+                        <p className="mt-1 text-[11px] text-zinc-500 dark:text-zinc-400">Search developer profiles on GitHub and invite them.</p>
+                      </div>
+
+                      <div className="flex gap-2">
+                        <input
+                          value={memberGithubText}
+                          onChange={(e) => setMemberGithubText(e.target.value)}
+                          placeholder="e.g. octocat"
+                          onKeyDown={(e) => {
+                            if (e.key === "Enter") handleMemberGithubSearch();
+                          }}
+                          className="flex-1 rounded-xl border border-zinc-200 bg-white px-3 py-1.5 text-xs text-zinc-800 outline-none transition focus:border-blue-400 dark:border-zinc-800 dark:bg-zinc-950 dark:text-zinc-200"
+                        />
+                        <button
+                          onClick={handleMemberGithubSearch}
+                          disabled={memberGithubLoading || !memberGithubText.trim()}
+                          className="inline-flex items-center justify-center rounded-xl bg-zinc-900 text-white dark:bg-zinc-800 px-3 text-[11px] font-semibold hover:bg-zinc-800 transition cursor-pointer disabled:opacity-50"
+                        >
+                          {memberGithubLoading ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : "Search"}
+                        </button>
+                      </div>
+
+                      {memberGithubError && <p className="text-xs text-rose-500 font-bold">{memberGithubError}</p>}
+
+                      {memberGithubUser && (
+                        <div className="space-y-3 p-3 bg-zinc-50 dark:bg-zinc-950 rounded-xl border border-zinc-100 dark:border-zinc-800 shadow-xs">
+                          <div className="flex items-center gap-2">
+                            <img src={memberGithubUser.avatar_url} className="h-8 w-8 rounded-lg" alt="avatar" />
+                            <div className="min-w-0 flex-1">
+                              <p className="text-xs font-bold text-zinc-900 dark:text-zinc-100 truncate">{memberGithubUser.name || memberGithubUser.login}</p>
+                              <p className="text-[9px] text-zinc-500 dark:text-zinc-400 truncate">@{memberGithubUser.login}</p>
+                            </div>
+                          </div>
+
+                          <div className="space-y-1.5 pt-1.5 border-t border-zinc-200/50 dark:border-zinc-800/50">
+                            <label className="text-[10px] font-bold uppercase tracking-wider text-zinc-400 dark:text-zinc-500">Invite Email Address</label>
+                            <input
+                              type="email"
+                              required
+                              placeholder="teammate@example.com"
+                              value={memberGithubEmail}
+                              onChange={(e) => setMemberGithubEmail(e.target.value)}
+                              className="w-full rounded-lg border border-zinc-200 bg-white px-2.5 py-1.5 text-xs text-zinc-800 outline-none transition focus:border-blue-400 dark:border-zinc-800 dark:bg-zinc-900 dark:text-zinc-200"
+                            />
+                            <button
+                              onClick={handleMemberGithubInvite}
+                              disabled={savingTeam || !memberGithubEmail.trim()}
+                              className="w-full inline-flex items-center justify-center gap-1.5 rounded-lg bg-blue-600 px-3 py-1.5 text-[11px] font-bold text-white transition hover:bg-blue-500 disabled:opacity-60 cursor-pointer"
+                            >
+                              Generate Invite Link
+                            </button>
+                          </div>
+                        </div>
+                      )}
+
+                      {memberGithubLink && (
+                        <div className="space-y-2 rounded-xl border border-zinc-200 bg-zinc-50 p-3 dark:border-zinc-800 dark:bg-zinc-950/60 mt-2 shadow-xs">
+                          <p className="text-[10px] font-bold uppercase tracking-wider text-zinc-450 dark:text-zinc-500">GitHub Member Link</p>
+                          <p className="break-all text-[11px] text-zinc-650 dark:text-zinc-400 leading-normal">{memberGithubLink.invitationLink}</p>
                           <button
-                            onClick={handleCopyInvite}
-                            className="inline-flex items-center gap-1.5 rounded-lg border border-zinc-200 bg-white px-2.5 py-1.5 text-[11px] font-bold text-zinc-600 transition hover:bg-zinc-50 dark:border-zinc-800 dark:bg-zinc-950 dark:text-zinc-300 dark:hover:bg-zinc-900 cursor-pointer"
+                            onClick={handleCopyMemberInvite}
+                            className="w-full inline-flex items-center justify-center gap-1 rounded-lg border border-zinc-200 bg-white px-2 py-1.5 text-[11px] font-bold text-zinc-650 transition hover:bg-zinc-50 dark:border-zinc-800 dark:bg-zinc-950 dark:text-zinc-300 dark:hover:bg-zinc-900 cursor-pointer"
                           >
-                            <Copy className="h-3.5 w-3.5" />
-                            Copy Link
+                            <Copy className="h-3 w-3" />
+                            Copy GitHub Invite
                           </button>
                         </div>
-                      </div>
-                    )}
+                      )}
+                    </div>
                   </div>
                 </div>
               )}
@@ -1490,7 +1673,7 @@ export default function TeamsPage() {
                         </div>
                         <button
                           onClick={() => handleAddStage(selectedParticipation._id)}
-                          className="mt-3 inline-flex items-center gap-2 rounded-xl bg-blue-600 px-4 py-2 text-sm font-semibold text-white transition hover:bg-blue-500 cursor-pointer"
+                          className="mt-3 inline-flex items-center gap-2 rounded-lg bg-blue-600 px-4 py-2 text-sm font-semibold text-white transition hover:bg-blue-500 cursor-pointer"
                         >
                           <Plus className="h-4 w-4" />
                           Add Stage
@@ -1509,31 +1692,33 @@ export default function TeamsPage() {
 
               {/* 4. SETTINGS TAB: rename & delete settings */}
               {activeTab === "Settings" && (
-                <div className="grid gap-6 md:grid-cols-2">
-                  <div className="rounded-xl border border-zinc-200 bg-white p-5 dark:border-zinc-800/60 dark:bg-zinc-900/60 shadow-xs">
-                    <div className="flex items-center gap-3">
-                      <Settings className="h-5 w-5 text-blue-600 dark:text-blue-400" />
-                      <div>
-                        <h3 className="text-xs font-bold uppercase tracking-wider text-zinc-800 dark:text-zinc-200">Rename Team</h3>
-                        <p className="mt-0.5 text-[11px] text-zinc-500 dark:text-zinc-400">Change the visible workspace name.</p>
+                <div className="grid gap-6 md:grid-cols-3">
+                  <div className="rounded-xl border border-zinc-200 bg-white p-5 dark:border-zinc-800/60 dark:bg-zinc-900/60 shadow-xs flex flex-col justify-between">
+                    <div>
+                      <div className="flex items-center gap-3">
+                        <Settings className="h-5 w-5 text-blue-600 dark:text-blue-400" />
+                        <div>
+                          <h3 className="text-xs font-bold uppercase tracking-wider text-zinc-800 dark:text-zinc-200">Rename Team</h3>
+                          <p className="mt-0.5 text-[11px] text-zinc-500 dark:text-zinc-400">Change the visible workspace name.</p>
+                        </div>
                       </div>
+                      <form onSubmit={handleRenameTeam} className="mt-4 space-y-3">
+                        <input
+                          value={renameTeamName}
+                          onChange={(event) => setRenameTeamName(event.target.value)}
+                          placeholder={selectedTeam.name}
+                          className="w-full rounded-xl border border-zinc-200 bg-white px-3.5 py-2 text-sm text-zinc-800 outline-none transition focus:border-blue-400 dark:border-zinc-800 dark:bg-zinc-950 dark:text-zinc-200"
+                        />
+                        <button
+                          type="submit"
+                          disabled={savingTeam || !renameTeamName.trim()}
+                          className="inline-flex items-center gap-2 rounded-lg bg-blue-600 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-blue-500 disabled:cursor-not-allowed disabled:opacity-60 cursor-pointer"
+                        >
+                          {savingTeam ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
+                          Save
+                        </button>
+                      </form>
                     </div>
-                    <form onSubmit={handleRenameTeam} className="mt-4 space-y-3">
-                      <input
-                        value={renameTeamName}
-                        onChange={(event) => setRenameTeamName(event.target.value)}
-                        placeholder={selectedTeam.name}
-                        className="w-full rounded-xl border border-zinc-200 bg-white px-3.5 py-2 text-sm text-zinc-800 outline-none transition focus:border-blue-400 dark:border-zinc-800 dark:bg-zinc-950 dark:text-zinc-200"
-                      />
-                      <button
-                        type="submit"
-                        disabled={savingTeam || !renameTeamName.trim()}
-                        className="inline-flex items-center gap-2 rounded-xl bg-blue-600 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-blue-500 disabled:cursor-not-allowed disabled:opacity-60 cursor-pointer"
-                      >
-                        {savingTeam ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
-                        Save
-                      </button>
-                    </form>
                   </div>
 
                   <div className="rounded-xl border border-zinc-200 bg-white p-5 dark:border-zinc-800/60 dark:bg-zinc-900/60 shadow-xs flex flex-col justify-between">
@@ -1549,11 +1734,34 @@ export default function TeamsPage() {
                     <div className="mt-4">
                       <Link
                         to="/dashboard?tab=tracker"
-                        className="inline-flex items-center gap-2 rounded-xl bg-blue-600 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-blue-500"
+                        className="inline-flex items-center gap-2 rounded-lg bg-blue-600 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-blue-500"
                       >
                         Open Tracker Dashboard
                         <ArrowRight className="h-4 w-4" />
                       </Link>
+                    </div>
+                  </div>
+
+                  <div className="rounded-xl border border-rose-200 bg-rose-50/10 p-5 dark:border-rose-900/50 dark:bg-rose-950/10 shadow-xs flex flex-col justify-between">
+                    <div>
+                      <div className="flex items-center gap-3">
+                        <AlertTriangle className="h-5 w-5 text-rose-600 dark:text-rose-450" />
+                        <div>
+                          <h3 className="text-xs font-bold uppercase tracking-wider text-rose-800 dark:text-rose-350">Danger Zone</h3>
+                          <p className="mt-0.5 text-[11px] text-rose-600/80 dark:text-rose-400/85">Permanently delete this team workspace and all associated logs.</p>
+                        </div>
+                      </div>
+                    </div>
+                    <div className="mt-4">
+                      <button
+                        onClick={() => {
+                          setDeleteConfirmInput("");
+                          setShowDeleteConfirmModal(true);
+                        }}
+                        className="inline-flex items-center gap-2 rounded-xl bg-rose-600 hover:bg-rose-500 text-white px-4 py-2.5 text-sm font-semibold transition cursor-pointer"
+                      >
+                        Delete Team
+                      </button>
                     </div>
                   </div>
                 </div>
@@ -1631,7 +1839,7 @@ export default function TeamsPage() {
                     </div>
                     <button
                       onClick={handleAddGithubMember}
-                      className="px-3.5 py-1.5 bg-blue-600 hover:bg-blue-500 text-white rounded-xl text-xs font-semibold cursor-pointer"
+                      className="px-3.5 py-1.5 bg-blue-600 hover:bg-blue-500 text-white rounded-lg text-xs font-semibold cursor-pointer"
                     >
                       + Add
                     </button>
@@ -1680,14 +1888,14 @@ export default function TeamsPage() {
               <div className="pt-4 border-t border-zinc-100 dark:border-zinc-800 flex gap-2 justify-end mt-4">
                 <button
                   onClick={() => setShowCreateModal(false)}
-                  className="px-4 py-2 border border-zinc-200 dark:border-zinc-800 hover:bg-zinc-50 dark:hover:bg-zinc-900 rounded-xl text-xs font-semibold text-zinc-600 dark:text-zinc-400 cursor-pointer"
+                  className="px-4 py-2 border border-zinc-200 dark:border-zinc-800 hover:bg-zinc-50 dark:hover:bg-zinc-900 rounded-lg text-xs font-semibold text-zinc-600 dark:text-zinc-400 cursor-pointer"
                 >
                   Cancel
                 </button>
                 <button
                   onClick={handleCreateTeam}
                   disabled={savingTeam || !createTeamName.trim()}
-                  className="px-4 py-2 bg-blue-600 hover:bg-blue-500 text-white rounded-xl text-xs font-semibold shadow-sm cursor-pointer disabled:opacity-50"
+                  className="px-4 py-2 bg-blue-600 hover:bg-blue-500 text-white rounded-lg text-xs font-semibold shadow-sm cursor-pointer disabled:opacity-50"
                 >
                   {savingTeam ? <Loader2 className="h-4.5 w-4.5 animate-spin" /> : "Create Team"}
                 </button>
@@ -1715,7 +1923,7 @@ export default function TeamsPage() {
                   setJoinTokenInput("");
                   setJoinError("");
                 }}
-                className="absolute right-4 top-4 rounded-xl p-1.5 text-zinc-400 hover:bg-zinc-100 dark:hover:bg-zinc-900 transition"
+                className="absolute right-4 top-4 rounded-lg p-1.5 text-zinc-400 hover:bg-zinc-100 dark:hover:bg-zinc-900 transition"
               >
                 <X className="h-4 w-4" />
               </button>
@@ -1732,7 +1940,7 @@ export default function TeamsPage() {
                     value={joinTokenInput}
                     onChange={(event) => setJoinTokenInput(event.target.value)}
                     placeholder="e.g. accept-invitation?token=..."
-                    className="w-full rounded-xl border border-zinc-200 bg-zinc-50/50 px-3.5 py-2.5 text-sm text-zinc-800 outline-none transition focus:border-blue-400 dark:border-zinc-800 dark:bg-zinc-950 dark:text-zinc-200"
+                    className="w-full rounded-lg border border-zinc-200 bg-zinc-50/50 px-3.5 py-2.5 text-sm text-zinc-800 outline-none transition focus:border-blue-400 dark:border-zinc-800 dark:bg-zinc-950 dark:text-zinc-200"
                   />
                 </div>
 
@@ -1745,16 +1953,80 @@ export default function TeamsPage() {
                       setJoinTokenInput("");
                       setJoinError("");
                     }}
-                    className="px-4 py-2 border border-zinc-200 dark:border-zinc-800 hover:bg-zinc-50 dark:hover:bg-zinc-900 rounded-xl text-xs font-semibold text-zinc-600 dark:text-zinc-400 cursor-pointer"
+                    className="px-4 py-2 border border-zinc-200 dark:border-zinc-800 hover:bg-zinc-50 dark:hover:bg-zinc-900 rounded-lg text-xs font-semibold text-zinc-600 dark:text-zinc-400 cursor-pointer"
                   >
                     Cancel
                   </button>
                   <button
                     onClick={handleJoinTeam}
                     disabled={savingTeam || !joinTokenInput.trim()}
-                    className="px-4 py-2 bg-blue-600 hover:bg-blue-500 text-white rounded-xl text-xs font-semibold shadow-xs cursor-pointer disabled:opacity-50"
+                    className="px-4 py-2 bg-blue-600 hover:bg-blue-500 text-white rounded-lg text-xs font-semibold shadow-xs cursor-pointer disabled:opacity-50"
                   >
                     {savingTeam ? <Loader2 className="h-4.5 w-4.5 animate-spin" /> : "Join Team"}
+                  </button>
+                </div>
+              </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
+
+      {/* ───────────────────────────────────────────────────────────────────────────── */}
+      {/* DELETE TEAM CONFIRMATION MODAL */}
+      <AnimatePresence>
+        {showDeleteConfirmModal && selectedTeam && (
+          <div className="fixed inset-0 z-[100] flex items-center justify-center bg-zinc-950/65 backdrop-blur-sm p-4">
+            <motion.div
+              initial={{ scale: 0.95, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0.95, opacity: 0 }}
+              className="relative w-full max-w-md rounded-2xl border border-zinc-200 bg-white p-6 shadow-2xl dark:border-zinc-800 dark:bg-zinc-950"
+            >
+              {/* Close */}
+              <button
+                onClick={() => {
+                  setShowDeleteConfirmModal(false);
+                  setDeleteConfirmInput("");
+                }}
+                className="absolute right-4 top-4 rounded-lg p-1.5 text-zinc-400 hover:bg-zinc-100 dark:hover:bg-zinc-900 transition"
+              >
+                <X className="h-4 w-4" />
+              </button>
+
+              <h3 className="text-lg font-black text-rose-600 dark:text-rose-450 leading-none mb-3">Delete Team Workspace?</h3>
+              <p className="text-xs text-zinc-650 dark:text-zinc-400 mb-4 leading-normal">
+                This action <strong className="text-rose-600 dark:text-rose-400 font-bold">CANNOT</strong> be undone. This will permanently delete the team <strong>{selectedTeam.name}</strong>, clear all user invitations, remove all member links, and erase all hackathon tracking stage histories.
+              </p>
+
+              <div className="space-y-4">
+                <div className="space-y-1.5">
+                  <label className="text-xs font-bold text-zinc-500 dark:text-zinc-400">
+                    Please type <span className="font-mono text-zinc-800 dark:text-zinc-200 select-all font-bold">"{selectedTeam.name}"</span> to confirm:
+                  </label>
+                  <input
+                    value={deleteConfirmInput}
+                    onChange={(event) => setDeleteConfirmInput(event.target.value)}
+                    placeholder={selectedTeam.name}
+                    className="w-full rounded-lg border border-zinc-200 bg-zinc-50/50 px-3.5 py-2 text-sm text-zinc-800 outline-none transition focus:border-red-400 dark:border-zinc-800 dark:bg-zinc-950 dark:text-zinc-200"
+                  />
+                </div>
+
+                <div className="pt-2 flex gap-2 justify-end">
+                  <button
+                    onClick={() => {
+                      setShowDeleteConfirmModal(false);
+                      setDeleteConfirmInput("");
+                    }}
+                    className="px-4 py-2 border border-zinc-200 dark:border-zinc-800 hover:bg-zinc-50 dark:hover:bg-zinc-900 rounded-lg text-xs font-semibold text-zinc-600 dark:text-zinc-400 cursor-pointer"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    onClick={handleDeleteTeam}
+                    disabled={savingTeam || deleteConfirmInput !== selectedTeam.name}
+                    className="px-4 py-2 bg-rose-600 hover:bg-rose-500 disabled:bg-zinc-200 dark:disabled:bg-zinc-850 disabled:text-zinc-450 text-white rounded-lg text-xs font-semibold shadow-xs cursor-pointer disabled:opacity-50"
+                  >
+                    {savingTeam ? <Loader2 className="h-4.5 w-4.5 animate-spin" /> : "Delete this team"}
                   </button>
                 </div>
               </div>

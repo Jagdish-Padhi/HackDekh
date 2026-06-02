@@ -140,6 +140,11 @@ export const teamApi = {
     const response = await axiosInstance.delete<ApiResponse<Team>>(`/teams/${teamId}/members/${userId}`);
     return unwrap(response);
   },
+
+  deleteTeam: async (teamId: string): Promise<Team> => {
+    const response = await axiosInstance.delete<ApiResponse<Team>>(`/teams/${teamId}`);
+    return unwrap(response);
+  },
 };
 
 export const userApi = {
