@@ -6,55 +6,29 @@ import { asyncHandler } from "../utils/asyncHandler.ts";
 import { ApiResponse } from "../utils/apiResponse.ts";
 import { ApiError } from "../utils/apiError.ts";
 
+const HEADERS = {
+  "User-Agent":
+    "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/142.0.0.0 Safari/537.36",
+  Referer: "https://unstop.com/hackathons",
+  Origin: "https://unstop.com",
+};
+
 export const scrapeUnstop = asyncHandler(async (req: any, res: any) => {
   const data = await scrapeUnstopData();
   return res.status(200).json(new ApiResponse(200, { ok: true, count: data.length }, "Unstop hackathons scraped successfully!"));
-
-  // Approach 2: HTML scraping
-  // try {
-  //   const { data: html } = await axios.get("https://unstop.com/hackathons", {
-  //     headers: HEADERS,
-  //   });
-  //   const $ = cheerio.load(html);
-  //   const rawJson = $("#__NEXT_DATA__").html();
-
-  //   if (!rawJson) {
-  //     throw new ApiError(500, "Critical issue: No __NEXt_DATA__ found");
-  //   }
-
-  //   const json = JSON.parse(rawJson);
-  //   // Deep search for data in case path changed
-  //   const hacks =
-  //     json?.props?.pageProps?.initialState?.opportunities?.searchResult?.data ||
-  //     json?.props?.pageProps?.seo_data?.opportunities;
-
-  //   if (!hacks || hacks.length === 0) {
-  //     throw new ApiError(400, "No hackathons found via HTML scraping too...");
-  //   }
-
-  //   return res.status(200).json(new ApiResponse(200, { ok: true, source: "html", count: hacks.length }, "Unstop HTML scraping successful!"));
-  // } catch (err) {
-  //   console.error("Both Approaches failed...", err);
-  //   throw new ApiError(500, "Scraper failed completely!");
-  // }
 });
 
 export async function scrapeUnstopData() {
-
-  const HEADERS = {
-    "User-Agent":
-      "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/142.0.0.0 Safari/537.36",
-    Referer: "https://unstop.com/hackathons",
-    Origin: "https://unstop.com",
-  };
 
   let hackathons: any[] = [];
   let page: number = 1;
   let hasMoreData: boolean = true;
 
-  //Approach 1: Internal API call
+  // The search API already returns ALL detail data per hackathon including:
+  // regnRequirements (team size, deadline), prizes, address_with_country_logo,
+  // details (HTML description), organisation, filters, required_skills, etc.
+  // No separate detail API call needed — the search endpoint IS the deep data source.
 
-  //Because there are multiple pages so one by one we will search each page
   while (hasMoreData) {
     console.log(`fetching page No. ${page}...`);
 
@@ -88,6 +62,8 @@ export async function scrapeUnstopData() {
     //wait 1 sec between pages so that they don't ban me
     await new Promise((resolve) => setTimeout(resolve, 1000));
   }
+
+  console.log(`[Unstop Scraper] Fetched ${hackathons.length} hackathons (all detail data included from search API). Formatting...`);
 
   //Normalize the raw data
   const normalizedList = universalFormatter(hackathons, "unstop");
@@ -126,6 +102,4 @@ export async function scrapeUnstopData() {
   console.log(`[Unstop Scraper] Successfully saved ${saveCount} Unstop hackathons.`);
 
   return normalizedList;
-
-
 }

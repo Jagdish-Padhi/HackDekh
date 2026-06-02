@@ -7,6 +7,10 @@ import { ApiError } from "../utils/apiError.ts";
 
 const HACK2SKILL_EVENTS_API = "https://hack2skill.com/api/v1/innovator/public/event/list";
 
+const HEADERS = {
+  "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
+};
+
 export const scrapeHack2Skill = asyncHandler(async (req: any, res: any) => {
   try {
     const data = await scrapeHack2SkillData();
@@ -20,9 +24,7 @@ export async function scrapeHack2SkillData() {
   try {
     console.log("[Hack2Skill Scraper] Fetching public event list API...");
     const response = await axios.get(HACK2SKILL_EVENTS_API, {
-      headers: {
-        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
-      },
+      headers: HEADERS,
       timeout: 15000
     });
 
@@ -30,6 +32,11 @@ export async function scrapeHack2SkillData() {
     if (!data || !data.success || !data.data) {
       throw new Error("Invalid response format from Hack2Skill API.");
     }
+
+    // The list API already returns all data we need per event:
+    // tags.teamSize.min/max, tags.mode.value, tags.ticket.value,
+    // tags.impressions, tags.registrations, tags.technology, tags.finale, etc.
+    // No separate detail API endpoint available/working.
 
     const flagshipEvents = data.data.flagshipEvents || [];
     const communityEvents = data.data.communityEvents || [];

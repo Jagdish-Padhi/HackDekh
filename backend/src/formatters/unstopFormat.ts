@@ -266,18 +266,49 @@ export default function formatUnstop(rawData: any) {
     } else if (h.slug) {
       applyLink = `https://unstop.com/${h.slug.replace(/^\//, '')}`;
     }
+
+    // --- Team Size (directly from search API regnRequirements) ---
+    let teamSize: string | null = null;
+    const minTeam = h?.regnRequirements?.min_team_size ?? null;
+    const maxTeam = h?.regnRequirements?.max_team_size ?? null;
+    if (typeof minTeam === "number" && typeof maxTeam === "number" && minTeam > 0 && maxTeam > 0) {
+      teamSize = minTeam === maxTeam ? `${minTeam}` : `${minTeam}-${maxTeam}`;
+    } else if (typeof maxTeam === "number" && maxTeam > 0) {
+      teamSize = `1-${maxTeam}`;
+    } else if (typeof minTeam === "number" && minTeam > 0) {
+      teamSize = `${minTeam}+`;
+    }
+
+    // --- Description (from 'details' HTML field in search API, strip HTML tags) ---
+    let description: string | null = null;
+    if (h?.details && typeof h.details === "string" && h.details.trim().length > 0) {
+      // Strip HTML tags and take first 500 chars for a summary
+      const stripped = h.details.replace(/<[^>]*>/g, " ").replace(/\s+/g, " ").trim();
+      if (stripped.length > 0) {
+        description = stripped.length > 500 ? stripped.substring(0, 500) + "..." : stripped;
+      }
+    }
+    if (!description) {
+      const seoDesc = h?.seo_details?.[0]?.description;
+      if (seoDesc && typeof seoDesc === "string") {
+        description = seoDesc.trim();
+      }
+    }
+
     return {
       title: h.title,
       startDate: h.start_date,
       slug: publicUrl,
       deadline: h.regnRequirements?.end_regn_dt || h.end_date || null,
-      mode: h.is_online ? "Online" : "Offline",
+      mode: h.is_online ? "Online" : (h.region?.toLowerCase() === "online" ? "Online" : "Offline"),
       platform: "Unstop",
       applyLink,
       organization: h.organization?.name || h.organisation?.name || "Unknown",
       tags: h.filters ? h.filters.map((f: any) => f.name) : [],
       prize: extractUnstopPrize(h),
       location: extractUnstopLocation(h),
+      teamSize,
+      description,
       // Try thumb, logoUrl2, logoUrl as possible cover images
       coverImage: h.thumb || h.logoUrl2 || h.logoUrl || h.organisation?.logoUrl2 || h.organisation?.logoUrl || null,
       scrapedFromURL: "https://unstop.com/hackathons",
