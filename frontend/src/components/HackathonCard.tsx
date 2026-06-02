@@ -129,17 +129,25 @@ const HackathonCard = ({ hackathon, displayIndex, isBookmarked = false, onToggle
     const fallbackImageRef = useRef<string>(getStableDefaultImage(`${hackathon._id}:${hackathon.title}`));
     const fallbackImage = fallbackImageRef.current;
     const primaryImage = hackathon.coverImage?.trim() || "";
-    const initialImageSource = primaryImage || fallbackImage;
+    
+    // Industry technique: Use a free global Image CDN to proxy external images.
+    // This resizes huge raw images, converts them to WebP, and completely bypasses 
+    // hotlinking/CORS 403 blocks from platforms like Devpost/Unstop/MLH.
+    const optimizedPrimaryImage = primaryImage && !primaryImage.startsWith("/") 
+        ? `https://wsrv.nl/?url=${encodeURIComponent(primaryImage)}&w=500&h=250&fit=cover&output=webp&we`
+        : primaryImage;
+
+    const initialImageSource = optimizedPrimaryImage || fallbackImage;
     const [imageSource, setImageSource] = useState(initialImageSource);
     const [imageLoaded, setImageLoaded] = useState(() => loadedImageSourceCache.has(initialImageSource));
     const [isVisible, setIsVisible] = useState(hasBeenRevealed);
     const [isMenuOpen, setIsMenuOpen] = useState(false);
 
     useEffect(() => {
-        const nextSource = primaryImage || fallbackImage;
+        const nextSource = optimizedPrimaryImage || fallbackImage;
         setImageSource(nextSource);
         setImageLoaded(loadedImageSourceCache.has(nextSource));
-    }, [primaryImage, fallbackImage]);
+    }, [optimizedPrimaryImage, fallbackImage]);
 
     useEffect(() => {
         if (isVisible || !cardRef.current) {
@@ -316,6 +324,7 @@ const HackathonCard = ({ hackathon, displayIndex, isBookmarked = false, onToggle
                     alt={hackathon.title}
                     loading="lazy"
                     decoding="async"
+                    referrerPolicy="no-referrer"
                     onLoad={() => {
                         loadedImageSourceCache.add(imageSource);
                         setImageLoaded(true);
@@ -353,13 +362,23 @@ const HackathonCard = ({ hackathon, displayIndex, isBookmarked = false, onToggle
                         </span>
                     </span>
                 </div>
-                <div className="flex items-center gap-2 text-[0.72rem] text-zinc-500 dark:text-zinc-400">
-                    <svg className="h-3.5 w-3.5 shrink-0 text-zinc-400 dark:text-zinc-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
+                <div className="flex items-start gap-2 text-[0.72rem] text-zinc-500 min-h-[32px] dark:text-zinc-400">
+                    <svg className="mt-[2px] h-3.5 w-3.5 shrink-0 text-zinc-400 dark:text-zinc-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
                         <path strokeLinecap="round" strokeLinejoin="round" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
                         <path strokeLinecap="round" strokeLinejoin="round" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
                     </svg>
-                    <span className="font-medium truncate" title={locationLabel}>
-                        Location: <span className="text-zinc-700 dark:text-zinc-300 font-semibold">{locationLabel}</span>
+                    <span className="font-medium line-clamp-2" title={locationLabel}>
+                        Location: <span className="text-zinc-700 dark:text-zinc-300 font-semibold">{
+                            (() => {
+                                const parts = locationLabel.split(',').map(p => p.trim()).filter(Boolean);
+                                const nonIndiaParts = parts.filter(p => p.toLowerCase() !== 'india');
+                                
+                                if (nonIndiaParts.length <= 3) return nonIndiaParts.join(', ');
+                                
+                                // Take Venue (first) + City & State (last two)
+                                return `${nonIndiaParts[0]}, ${nonIndiaParts.slice(-2).join(', ')}`;
+                            })()
+                        }</span>
                     </span>
                 </div>
             </div>
