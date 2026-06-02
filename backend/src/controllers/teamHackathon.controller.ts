@@ -50,7 +50,7 @@ export const getTeamHackathons = asyncHandler(async (req: AuthRequest, res: Resp
 // PATCH /teams/:id/hackathons/:thId/status
 export const updateParticipationStatus = asyncHandler(async (req: AuthRequest, res: Response) => {
     const { status } = req.body;
-    const validStatuses = ['active', 'eliminated', 'finalist', 'won'];
+    const validStatuses = ['tracking', 'active', 'eliminated', 'finalist', 'won'];
 
     if (!status || !validStatuses.includes(status)) {
         throw new ApiError(400, `status must be one of: ${validStatuses.join(', ')}`);

@@ -9,8 +9,8 @@ const teamHackathonSchema = new mongoose.Schema({
 
     status: {
         type: String,
-        enum: ['active', 'eliminated', 'finalist', 'won'],
-        default: 'active'
+        enum: ['tracking', 'active', 'eliminated', 'finalist', 'won'],
+        default: 'tracking'
     },
 
     stages: [{

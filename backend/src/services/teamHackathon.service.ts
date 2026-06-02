@@ -34,7 +34,7 @@ export async function linkTeamToHackathon(
     const participation = new TeamHackathon({
         team: teamId,
         hackathon: hackathonId,
-        status: 'active',
+        status: 'tracking',
         stages: [],
     });
     await participation.save();
