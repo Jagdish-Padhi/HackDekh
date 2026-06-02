@@ -1,5 +1,5 @@
 import { RefreshCw, ArrowRight } from 'lucide-react'
-import { useCallback, useDeferredValue, useEffect, useMemo, useState } from 'react'
+import { useCallback, useDeferredValue, useEffect, useMemo, useRef, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { AnimatePresence, motion } from 'framer-motion'
 import HackathonCard from './HackathonCard'
@@ -8,7 +8,8 @@ import SearchBar from './SearchBar'
 import FilterPanel from './FilterPanel'
 import LoadingProgress from './LoadingProgress'
 import { usePageChrome } from '../context/pageChrome'
-import { useAuth } from '../context/AuthContext'
+import { useAuth, useCache } from '../context'
+import { teamApi } from '../services'
 
 type Hackathon = {
     _id: string
@@ -30,20 +31,24 @@ const DESKTOP_MEDIA_QUERY = '(min-width: 1024px)'
 
 const HackathonList = () => {
     const navigate = useNavigate()
-    const [hackathons, setHackathons] = useState<Hackathon[]>([])
-    const [loading, setLoading] = useState(true)
+    const { hackathons: cachedHackathons, setHackathons: setCachedHackathons, hackathonsFilters, setHackathonsFilters } = useCache()
+    const isInitialMountRef = useRef(true)
+    const initialCacheRef = useRef(cachedHackathons)
+
+    const [hackathons, setHackathons] = useState<Hackathon[]>(cachedHackathons || [])
+    const [loading, setLoading] = useState(!cachedHackathons)
     const [isRefreshing, setIsRefreshing] = useState(false)
     const [refreshNonce, setRefreshNonce] = useState(0)
-    const [hasLoadedFromServer, setHasLoadedFromServer] = useState(false)
-    const [progressTarget, setProgressTarget] = useState(0)
-    const [progressDisplay, setProgressDisplay] = useState(0)
-    const [showResults, setShowResults] = useState(false)
-    const [search, setSearch] = useState('')
-    const [platform, setPlatform] = useState('')
-    const [mode, setMode] = useState('')
-    const [sortBy, setSortBy] = useState<SortBy>('')
-    const [locationFilter, setLocationFilter] = useState('')
-    const { user, isAuthenticated, updateUser } = useAuth()
+    const [hasLoadedFromServer, setHasLoadedFromServer] = useState(!!cachedHackathons)
+    const [progressTarget, setProgressTarget] = useState(cachedHackathons ? 100 : 0)
+    const [progressDisplay, setProgressDisplay] = useState(cachedHackathons ? 100 : 0)
+    const [showResults, setShowResults] = useState(!!cachedHackathons)
+    const [search, setSearch] = useState(hackathonsFilters.search)
+    const [platform, setPlatform] = useState(hackathonsFilters.platform)
+    const [mode, setMode] = useState(hackathonsFilters.mode)
+    const [sortBy, setSortBy] = useState<SortBy>(hackathonsFilters.sortBy as SortBy)
+    const [locationFilter, setLocationFilter] = useState(hackathonsFilters.locationFilter)
+    const { isAuthenticated } = useAuth()
     const [isDesktopView, setIsDesktopView] = useState<boolean>(() => {
         if (typeof window === 'undefined') {
             return false
@@ -55,6 +60,59 @@ const HackathonList = () => {
     const { setPageActions } = usePageChrome()
 
     const [showFunnelModal, setShowFunnelModal] = useState(false)
+    const [trackedHackathonIds, setTrackedHackathonIds] = useState<string[]>([])
+    const [teams, setTeams] = useState<any[]>([])
+    const [selectedHackathonToTrack, setSelectedHackathonToTrack] = useState<string | null>(null)
+    const [selectedTeamIdToTrack, setSelectedTeamIdToTrack] = useState<string>('')
+    const [showTrackModal, setShowTrackModal] = useState(false)
+    const [isTrackingSubmitting, setIsTrackingSubmitting] = useState(false)
+
+    const loadTrackedHackathons = useCallback(async () => {
+        if (!isAuthenticated) return;
+        try {
+            const userTeams = await teamApi.getUserTeams();
+            setTeams(userTeams);
+            const ids: string[] = [];
+            for (const t of userTeams) {
+                const ths = await teamApi.getTeamHackathons(t._id);
+                ths.forEach(th => ids.push(th.hackathon._id));
+            }
+            setTrackedHackathonIds(ids);
+        } catch (error) {
+            console.error('Failed to load tracking data', error);
+        }
+    }, [isAuthenticated]);
+
+    useEffect(() => {
+        loadTrackedHackathons();
+    }, [loadTrackedHackathons]);
+
+    const handleInitiateTrack = (hackathonId: string) => {
+        if (!isAuthenticated) {
+            navigate(`/login?returnTo=${encodeURIComponent(window.location.pathname)}`);
+            return;
+        }
+        setSelectedHackathonToTrack(hackathonId);
+        if (teams.length > 0) {
+            setSelectedTeamIdToTrack(teams[0]._id);
+        }
+        setShowTrackModal(true);
+    };
+
+    const handleConfirmTrack = async () => {
+        if (!selectedHackathonToTrack || !selectedTeamIdToTrack) return;
+        setIsTrackingSubmitting(true);
+        try {
+            await teamApi.linkHackathon(selectedTeamIdToTrack, selectedHackathonToTrack);
+            await loadTrackedHackathons();
+            setShowTrackModal(false);
+            setSelectedHackathonToTrack(null);
+        } catch (error: any) {
+            alert(error.response?.data?.message || error.message || "Failed to start tracking");
+        } finally {
+            setIsTrackingSubmitting(false);
+        }
+    };
 
     useEffect(() => {
         if (isAuthenticated) return;
@@ -114,13 +172,32 @@ const HackathonList = () => {
     }, [loading])
 
     useEffect(() => {
+        setHackathonsFilters({
+            search: deferredSearch,
+            platform,
+            mode,
+            locationFilter,
+            sortBy,
+        });
+    }, [deferredSearch, platform, mode, locationFilter, sortBy, setHackathonsFilters]);
+
+    useEffect(() => {
         let isMounted = true
         let finishTimeout: number | undefined
         let retryTimeout: number | undefined
         let activeRequestAbort: AbortController | null = null
         let retryAttempt = 0
 
-        setLoading(true)
+        const isInitialMount = isInitialMountRef.current;
+        isInitialMountRef.current = false;
+
+        const hadCachedData = initialCacheRef.current;
+        initialCacheRef.current = null;
+        const isSilentRevalidation = isInitialMount && !!hadCachedData;
+
+        if (!isSilentRevalidation) {
+            setLoading(true)
+        }
 
         const fallbackProgress = window.setInterval(() => {
             setProgressTarget(previous => Math.max(previous, Math.min(previous + Math.random() * 6, 92)))
@@ -159,6 +236,7 @@ const HackathonList = () => {
                             : []
                     window.clearInterval(fallbackProgress)
                     setHackathons(responseData)
+                    setCachedHackathons(responseData)
                     setHasLoadedFromServer(true)
                     setProgressTarget(100)
                     finishTimeout = window.setTimeout(() => {
@@ -194,7 +272,8 @@ const HackathonList = () => {
                 window.clearTimeout(finishTimeout)
             }
         }
-    }, [refreshNonce, deferredSearch, platform, mode, locationFilter, sortBy])
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [refreshNonce, deferredSearch, platform, mode, locationFilter, sortBy, setCachedHackathons])
 
     const isStillLoading = loading || !hasLoadedFromServer
 
@@ -211,26 +290,6 @@ const HackathonList = () => {
         setProgressTarget(8)
         setRefreshNonce(previous => previous + 1)
     }, [isStillLoading])
-
-    const handleToggleBookmark = useCallback(async (hackathonId: string) => {
-        if (!isAuthenticated) {
-            navigate(`/login?returnTo=${encodeURIComponent(window.location.pathname)}`)
-            return
-        }
-
-        try {
-            const res = await axiosInstance.post(`/users/saved/${hackathonId}`)
-            if (res.data?.success && res.data?.data) {
-                const nextSavedHackathons = res.data.data.savedHackathons || []
-                updateUser({
-                    ...user!,
-                    savedHackathons: nextSavedHackathons,
-                })
-            }
-        } catch (error) {
-            console.error('Failed to toggle bookmark', error)
-        }
-    }, [isAuthenticated, navigate, updateUser, user])
 
     const loadingLabel = hasLoadedFromServer
         ? 'Loading hackathons'
@@ -340,15 +399,20 @@ const HackathonList = () => {
                     </div>
                 ) : visibleHackathons.length ? (
                     <div className={`grid grid-cols-1 gap-4 transition-all duration-300 sm:grid-cols-2 xl:grid-cols-4 ${showResults ? 'translate-y-0 opacity-100' : 'translate-y-1 opacity-0'}`}>
-                        {visibleHackathons.map((hack, index) => (
-                            <HackathonCard
-                                key={hack._id}
-                                hackathon={hack}
-                                displayIndex={index}
-                                isBookmarked={!!user?.savedHackathons?.includes(hack._id)}
-                                onToggleBookmark={() => handleToggleBookmark(hack._id)}
-                            />
-                        ))}
+                        {visibleHackathons.map((hack, index) => {
+                            const isTracked = trackedHackathonIds.includes(hack._id);
+                            return (
+                                <HackathonCard
+                                    key={hack._id}
+                                    hackathon={hack}
+                                    displayIndex={index}
+                                    extraActions={[
+                                        { label: isTracked ? "TRACKED_TRUE" : "TRACKED_FALSE", onClick: () => {} },
+                                        { label: "TRACK_HANDLER", onClick: () => handleInitiateTrack(hack._id) }
+                                    ]}
+                                />
+                            );
+                        })}
                     </div>
                 ) : (
                     <div className={`rounded-[1.8rem] border border-zinc-200/90 bg-white/90 px-6 py-16 text-center text-base text-zinc-600 shadow-sm backdrop-blur-md transition-all duration-300 dark:border-zinc-800 dark:bg-zinc-900/78 dark:text-zinc-400 dark:shadow-md ${showResults ? 'translate-y-0 opacity-100' : 'translate-y-1 opacity-0'}`}>
@@ -431,10 +495,76 @@ const HackathonList = () => {
                         </motion.div>
                     </motion.div>
                 )}
+                {showTrackModal && (
+                    <motion.div
+                        initial={{ opacity: 0 }}
+                        animate={{ opacity: 1 }}
+                        exit={{ opacity: 0 }}
+                        className="fixed inset-0 z-[100] flex items-center justify-center bg-zinc-950/70 backdrop-blur-[4px] px-4 py-8"
+                    >
+                        <motion.div
+                            initial={{ y: 24, scale: 0.96, opacity: 0 }}
+                            animate={{ y: 0, scale: 1, opacity: 1 }}
+                            exit={{ y: 20, scale: 0.96, opacity: 0 }}
+                            transition={{ duration: 0.2, ease: "easeOut" }}
+                            onClick={(e) => e.stopPropagation()}
+                            className="w-full max-w-sm rounded-3xl border border-zinc-200 bg-white p-6 shadow-2xl dark:border-zinc-800 dark:bg-zinc-950"
+                        >
+                            <h3 className="text-base font-extrabold text-zinc-900 dark:text-white">Track Hackathon</h3>
+                            <p className="mt-1 text-xs text-zinc-550 dark:text-zinc-400">Select which of your developer teams will compete in this hackathon to start tracking.</p>
+
+                            {teams.length === 0 ? (
+                                <div className="mt-4 text-center py-4 bg-zinc-50 dark:bg-zinc-900/60 rounded-2xl border border-dashed border-zinc-200 dark:border-zinc-800">
+                                    <p className="text-xs text-zinc-500 dark:text-zinc-400">You don't have any teams yet.</p>
+                                    <button
+                                        onClick={() => {
+                                            setShowTrackModal(false);
+                                            navigate("/teams");
+                                        }}
+                                        className="mt-3 inline-flex items-center justify-center rounded-lg bg-blue-600 px-3 py-1.5 text-xs font-bold text-white transition hover:bg-blue-500 cursor-pointer"
+                                    >
+                                        Create a Team
+                                    </button>
+                                </div>
+                            ) : (
+                                <div className="mt-4 space-y-4">
+                                    <div>
+                                        <label className="text-[10px] font-bold text-zinc-450 dark:text-zinc-500 uppercase tracking-widest block mb-1">Select Team</label>
+                                        <select
+                                            value={selectedTeamIdToTrack}
+                                            onChange={(e) => setSelectedTeamIdToTrack(e.target.value)}
+                                            className="w-full rounded-xl border border-zinc-200 bg-zinc-50 px-3 py-2.5 text-sm text-zinc-800 outline-none dark:border-zinc-850 dark:bg-zinc-900 dark:text-zinc-200 focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
+                                        >
+                                            {teams.map(t => (
+                                                <option key={t._id} value={t._id}>{t.name}</option>
+                                            ))}
+                                        </select>
+                                    </div>
+
+                                    <div className="flex gap-2.5 pt-2">
+                                        <button
+                                            onClick={() => setShowTrackModal(false)}
+                                            className="flex-1 rounded-xl border border-zinc-200 bg-white py-2.5 text-xs font-bold text-zinc-700 transition hover:bg-zinc-50 dark:border-zinc-800 dark:bg-zinc-950 dark:text-zinc-300 dark:hover:bg-zinc-900 cursor-pointer"
+                                        >
+                                            Cancel
+                                        </button>
+                                        <button
+                                            onClick={handleConfirmTrack}
+                                            disabled={isTrackingSubmitting}
+                                            className="flex-1 rounded-xl bg-blue-600 py-2.5 text-xs font-bold text-white shadow-sm transition hover:bg-blue-500 disabled:opacity-60 disabled:cursor-not-allowed cursor-pointer"
+                                        >
+                                            {isTrackingSubmitting ? "Tracking..." : "Confirm"}
+                                        </button>
+                                    </div>
+                                </div>
+                            )}
+                        </motion.div>
+                    </motion.div>
+                )}
             </AnimatePresence>
 
         </div>
     )
 }
 
-export default HackathonList
+export default HackathonList;
