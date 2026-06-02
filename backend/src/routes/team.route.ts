@@ -10,6 +10,7 @@ import {
     acceptInvitationLink,
     getInvitationPreview,
     getTeamInvitations,
+    deleteTeam,
 } from "../controllers/team.controller.ts";
 import {
     linkTeamToHackathon,
@@ -35,7 +36,7 @@ router.use(verifyJWT);
 
 // Team CRUD
 router.route("/").post(createTeam).get(getUserTeams);
-router.route("/:id").get(getTeamById).put(updateTeam);
+router.route("/:id").get(getTeamById).put(updateTeam).delete(deleteTeam);
 
 // Invitations
 router.route("/:id/invites").get(getTeamInvitations);

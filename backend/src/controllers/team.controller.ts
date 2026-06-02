@@ -208,3 +208,15 @@ export const getTeamInvitations = asyncHandler(async (
     return res.status(200).json(new ApiResponse(200, invitations, 'Team invitations fetched successfully'));
 });
 
+export const deleteTeam = asyncHandler(async (
+    req: AuthRequest & Request<TeamIdParams>,
+    res: Response
+) => {
+    const deletedTeam = await teamService.deleteTeam(req.params.id, req.user._id);
+    if (!deletedTeam) {
+        return res.status(404).json(new ApiResponse(404, null, 'Team not found or unauthorized to delete'));
+    }
+
+    return res.status(200).json(new ApiResponse(200, deletedTeam, 'Team deleted successfully'));
+});
+

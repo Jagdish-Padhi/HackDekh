@@ -2,6 +2,8 @@ import { Types } from 'mongoose';
 import Team from '../models/team.model.ts';
 import User from '../models/user.model.ts';
 import TeamInvitation from '../models/teamInvitation.model.ts';
+import TeamHackathon from '../models/teamHackathon.model.ts';
+import Stage from '../models/stage.model.ts';
 import crypto from 'crypto';
 
 interface CreateTeamInput {
@@ -326,4 +328,35 @@ export async function getTeamInvitations(teamId: string, ownerId: Types.ObjectId
         .populate('invitedBy', 'username fullName email')
         .populate('acceptedBy', 'username fullName email')
         .sort({ createdAt: -1 });
+}
+
+export async function deleteTeam(teamId: string, ownerId: Types.ObjectId) {
+    if (!Types.ObjectId.isValid(teamId)) {
+        return null;
+    }
+
+    const team = await Team.findOne({ _id: teamId, owner: ownerId });
+    if (!team) {
+        return null;
+    }
+
+    // 1. Find all team hackathon participations
+    const participations = await TeamHackathon.find({ team: teamId });
+    const participationIds = participations.map(p => p._id);
+
+    // 2. Delete all stages associated with these participations
+    if (participationIds.length > 0) {
+        await Stage.deleteMany({ teamHackathon: { $in: participationIds } });
+    }
+
+    // 3. Delete team hackathon relations
+    await TeamHackathon.deleteMany({ team: teamId });
+
+    // 4. Delete invites
+    await TeamInvitation.deleteMany({ team: teamId });
+
+    // 5. Delete the team itself
+    await Team.deleteOne({ _id: teamId });
+
+    return team;
 }
