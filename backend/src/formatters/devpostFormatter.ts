@@ -87,6 +87,7 @@ export default function formatDevpost(rawData: any[]) {
       teamSize,
       description,
       coverImage: h.thumbnail_url ? (h.thumbnail_url.startsWith("http") ? h.thumbnail_url : `https:${h.thumbnail_url}`) : null,
+      stages: h._stages ?? [],
       scrapedFromURL: "https://devpost.com/hackathons",
     };
   });

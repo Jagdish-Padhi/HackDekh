@@ -311,6 +311,34 @@ export default function formatUnstop(rawData: any) {
       description,
       // Try thumb, logoUrl2, logoUrl as possible cover images
       coverImage: h.thumb || h.logoUrl2 || h.logoUrl || h.organisation?.logoUrl2 || h.organisation?.logoUrl || null,
+      stages: (() => {
+        const parsedStages: any[] = [];
+        const rounds = h.opportunity_rounds || h.rounds || h.stages || [];
+        if (Array.isArray(rounds)) {
+          for (const r of rounds) {
+            const name = r.name || r.title || r.round_name;
+            if (name) {
+              parsedStages.push({
+                name,
+                deadline: r.end_date || r.start_date || r.end_time ? new Date(r.end_date || r.start_date || r.end_time) : undefined,
+              });
+            }
+          }
+        }
+        if (parsedStages.length === 0) {
+          const regDeadline = h.regnRequirements?.end_regn_dt || h.end_date;
+          if (regDeadline) {
+            parsedStages.push({ name: "Registration Deadline", deadline: new Date(regDeadline) });
+          }
+          if (h.start_date) {
+            parsedStages.push({ name: "Hackathon Start", deadline: new Date(h.start_date) });
+          }
+          if (h.end_date) {
+            parsedStages.push({ name: "Hackathon End", deadline: new Date(h.end_date) });
+          }
+        }
+        return parsedStages;
+      })(),
       scrapedFromURL: "https://unstop.com/hackathons",
     };
   });

@@ -306,6 +306,7 @@ export default function formatDevfolio(rawData: any) {
             description,
             // Use featured_cover_img_v2, then featured_cover_img, then fallback to other fields
             coverImage: h.settings?.featured_cover_img_v2 || h.settings?.featured_cover_img || h.cover_img || h.settings?.cover_img || h.settings?.og_img || h.logo || h.settings?.logo || null,
+            stages: h._stages ?? [],
             scrapedFromURL: "https://devfolio.co/hackathons"
         };
     });

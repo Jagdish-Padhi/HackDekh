@@ -137,8 +137,54 @@ const enrichSingleDevfolioHackathon = async (hack: any): Promise<any> => {
       ? detailSettings.geographies
       : (Array.isArray(detailHackathon?.geographies) ? detailHackathon.geographies : null);
 
+    // --- Extract Stages ---
+    const detailStages: any[] = [];
+    if (Array.isArray(detailHackathon?.phases)) {
+      for (const phase of detailHackathon.phases) {
+        if (phase.name) {
+          detailStages.push({
+            name: phase.name,
+            deadline: phase.end_at ? new Date(phase.end_at) : undefined,
+          });
+        }
+      }
+    }
+    if (detailStages.length === 0 && Array.isArray(detailHackathon?.schedule)) {
+      for (const item of detailHackathon.schedule) {
+        if (item.title) {
+          detailStages.push({
+            name: item.title,
+            deadline: item.start_time ? new Date(item.start_time) : undefined,
+          });
+        }
+      }
+    }
+    if (detailStages.length === 0 && Array.isArray(detailHackathon?.timeline)) {
+      for (const item of detailHackathon.timeline) {
+        if (item.title || item.name) {
+          detailStages.push({
+            name: item.title || item.name,
+            deadline: item.date || item.end_time || item.start_time ? new Date(item.date || item.end_time || item.start_time) : undefined,
+          });
+        }
+      }
+    }
+    if (detailStages.length === 0) {
+      const regEnds = detailRegEndsAt || detailHackathon?.reg_ends_at;
+      if (regEnds) {
+        detailStages.push({ name: "Registration Deadline", deadline: new Date(regEnds) });
+      }
+      if (detailStartsAt) {
+        detailStages.push({ name: "Hackathon Starts", deadline: new Date(detailStartsAt) });
+      }
+      if (detailHackathon?.ends_at) {
+        detailStages.push({ name: "Hackathon Ends / Submission", deadline: new Date(detailHackathon.ends_at) });
+      }
+    }
+
     return {
       ...hack,
+      _stages: detailStages,
       // Cover image
       cover_img: hack?.cover_img ?? detailCoverImage,
       settings: {

@@ -86,8 +86,45 @@ const enrichSingleDevpostHackathon = async (hack: any): Promise<any> => {
       detailOrganizer = normalizeString(organizerEl.first().text());
     }
 
+    // --- Timeline / Stages ---
+    const detailStages: any[] = [];
+    const datesEl = $(".important-dates, #important-dates, .sidebar-section .important-dates");
+    if (datesEl.length) {
+      datesEl.find("dt").each((_i, el) => {
+        const title = normalizeString($(el).text());
+        const descEl = $(el).next("dd");
+        if (title && descEl.length) {
+          const dateText = normalizeString(descEl.text());
+          const timeTag = descEl.find("time");
+          const isoDate = timeTag.attr("datetime") || dateText;
+          if (isoDate) {
+            const parsed = new Date(isoDate);
+            if (!isNaN(parsed.getTime())) {
+              detailStages.push({
+                name: title,
+                deadline: parsed,
+              });
+            }
+          }
+        }
+      });
+    }
+
+    if (detailStages.length === 0) {
+      if (hack?.submission_deadline) {
+        detailStages.push({ name: "Submission Deadline", deadline: new Date(hack.submission_deadline) });
+      }
+      if (hack?.start_date) {
+        detailStages.push({ name: "Hackathon Start", deadline: new Date(hack.start_date) });
+      }
+      if (hack?.deadline) {
+        detailStages.push({ name: "Winners Announced", deadline: new Date(hack.deadline) });
+      }
+    }
+
     return {
       ...hack,
+      _stages: detailStages.length > 0 ? detailStages : null,
       _enriched_location: detailLocation || null,
       _enriched_description: detailDescription || null,
       _enriched_themes: detailThemes.length > 0 ? detailThemes : null,

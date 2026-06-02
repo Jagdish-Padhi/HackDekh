@@ -92,6 +92,22 @@ export default function formatHack2Skill(rawData: any[]) {
       location: locationStr,
       teamSize,
       coverImage: h.thumbnail || null,
+      stages: (() => {
+        const parsedStages: any[] = [];
+        if (h.registrationStart) {
+          parsedStages.push({ name: "Registration Starts", deadline: new Date(h.registrationStart) });
+        }
+        if (h.registrationEnd) {
+          parsedStages.push({ name: "Registration Ends (Deadline)", deadline: new Date(h.registrationEnd) });
+        }
+        if (h.eventStart || h.startDate) {
+          parsedStages.push({ name: "Hackathon Starts", deadline: new Date(h.eventStart || h.startDate) });
+        }
+        if (h.eventEnd || h.endDate) {
+          parsedStages.push({ name: "Hackathon Ends (Finale)", deadline: new Date(h.eventEnd || h.endDate) });
+        }
+        return parsedStages;
+      })(),
       scrapedFromURL: "https://hack2skill.com/hackathons",
     };
   });

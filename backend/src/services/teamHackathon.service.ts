@@ -2,6 +2,7 @@ import { Types } from 'mongoose';
 import Team from '../models/team.model.ts';
 import TeamHackathon from '../models/teamHackathon.model.ts';
 import Stage from '../models/stage.model.ts';
+import Hackathon from '../models/hackathon.model.ts';
 
 // ─── Link Team to Hackathon ────────────────────────────────────────────────
 export async function linkTeamToHackathon(
@@ -25,6 +26,11 @@ export async function linkTeamToHackathon(
         return { error: 'This team is already registered for that hackathon' };
     }
 
+    const hack = await Hackathon.findById(hackathonId);
+    if (!hack) {
+        return { error: 'Hackathon not found' };
+    }
+
     const participation = new TeamHackathon({
         team: teamId,
         hackathon: hackathonId,
@@ -33,14 +39,31 @@ export async function linkTeamToHackathon(
     });
     await participation.save();
 
-    if (firstStage?.name?.trim()) {
+    const createdStageIds: Types.ObjectId[] = [];
+
+    // If hackathon has template stages, populate them all!
+    if (hack.stages && hack.stages.length > 0) {
+        for (const tStage of hack.stages) {
+            const stage = new Stage({
+                name: tStage.name,
+                deadline: tStage.deadline || undefined,
+                teamHackathon: participation._id as Types.ObjectId,
+                result: 'pending',
+            });
+            await stage.save();
+            createdStageIds.push(stage._id as Types.ObjectId);
+        }
+    } else if (firstStage?.name?.trim()) {
+        // Fallback to custom firstStage
         const stageData: {
             name: string;
             teamHackathon: Types.ObjectId;
             deadline?: Date;
+            result: string;
         } = {
             name: firstStage.name.trim(),
             teamHackathon: participation._id as Types.ObjectId,
+            result: 'pending',
         };
         if (firstStage.deadline) {
             stageData.deadline = new Date(firstStage.deadline);
@@ -48,9 +71,22 @@ export async function linkTeamToHackathon(
 
         const stage = new Stage(stageData);
         await stage.save();
+        createdStageIds.push(stage._id as Types.ObjectId);
+    } else {
+        // Ultimate fallback
+        const stage = new Stage({
+            name: 'Registration & Prep',
+            teamHackathon: participation._id as Types.ObjectId,
+            result: 'pending',
+            deadline: hack.deadline || undefined,
+        });
+        await stage.save();
+        createdStageIds.push(stage._id as Types.ObjectId);
+    }
 
+    if (createdStageIds.length > 0) {
         await TeamHackathon.findByIdAndUpdate(participation._id, {
-            $push: { stages: stage._id },
+            $set: { stages: createdStageIds },
         });
     }
 

@@ -67,6 +67,18 @@ const hackSchema = new mongoose.Schema(
     description: {
       type: String,
     },
+
+    stages: [
+      {
+        name: {
+          type: String,
+          required: true,
+        },
+        deadline: {
+          type: Date,
+        },
+      },
+    ],
   },
   { timestamps: true }
 );
