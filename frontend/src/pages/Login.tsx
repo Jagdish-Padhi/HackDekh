@@ -397,7 +397,7 @@ const LoginPage = () => {
 
                   <button
                     type="submit"
-                    className="inline-flex w-full items-center justify-center gap-2 rounded-xl bg-blue-600 hover:bg-blue-500 dark:bg-blue-500 dark:hover:bg-blue-400 text-sm font-bold text-white py-2.5 shadow-md hover:-translate-y-0.5 transition-all duration-200 disabled:cursor-not-allowed disabled:opacity-70 mt-1.5 cursor-pointer"
+                    className="inline-flex w-full items-center justify-center gap-2 rounded-lg bg-blue-600 hover:bg-blue-500 dark:bg-blue-500 dark:hover:bg-blue-400 text-sm font-bold text-white py-2.5 shadow-md hover:-translate-y-0.5 transition-all duration-200 disabled:cursor-not-allowed disabled:opacity-70 mt-1.5 cursor-pointer"
                     disabled={loading || transitioning}
                   >
                     {loading || transitioning ? (
@@ -426,7 +426,7 @@ const LoginPage = () => {
                   <button
                     type="button"
                     onClick={handleGoogleLogin}
-                    className="inline-flex items-center justify-center gap-2 rounded-xl border border-zinc-200 dark:border-zinc-800 hover:bg-zinc-50 dark:hover:bg-zinc-800/50 py-2 text-xs font-semibold text-zinc-700 dark:text-zinc-300 transition duration-200 cursor-pointer"
+                    className="inline-flex items-center justify-center gap-2 rounded-lg border border-zinc-200 dark:border-zinc-800 hover:bg-zinc-50 dark:hover:bg-zinc-800/50 py-2 text-xs font-semibold text-zinc-700 dark:text-zinc-300 transition duration-200 cursor-pointer"
                   >
                     <svg className="h-4 w-4 shrink-0" viewBox="0 0 24 24">
                       <path
@@ -451,7 +451,7 @@ const LoginPage = () => {
                   <button
                     type="button"
                     onClick={handleGithubLogin}
-                    className="inline-flex items-center justify-center gap-2 rounded-xl border border-zinc-200 dark:border-zinc-800 hover:bg-zinc-50 dark:hover:bg-zinc-800/50 py-2 text-xs font-semibold text-zinc-700 dark:text-zinc-300 transition duration-200 cursor-pointer"
+                    className="inline-flex items-center justify-center gap-2 rounded-lg border border-zinc-200 dark:border-zinc-800 hover:bg-zinc-50 dark:hover:bg-zinc-800/50 py-2 text-xs font-semibold text-zinc-700 dark:text-zinc-300 transition duration-200 cursor-pointer"
                   >
                     <Github className="h-4 w-4 shrink-0 text-zinc-900 dark:text-white" />
                     GitHub

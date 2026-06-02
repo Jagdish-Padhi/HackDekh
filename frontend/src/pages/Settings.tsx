@@ -190,7 +190,7 @@ const SettingsPage = () => {
                   <button 
                     type="submit" 
                     disabled={profileLoading} 
-                    className="inline-flex items-center justify-center gap-2 rounded-xl bg-blue-600 hover:bg-blue-500 text-white px-5 py-2.5 text-sm font-bold shadow-xs transition duration-200 cursor-pointer disabled:opacity-60"
+                    className="inline-flex items-center justify-center gap-2 rounded-lg bg-blue-600 hover:bg-blue-500 text-white px-5 py-2.5 text-sm font-bold shadow-xs transition duration-200 cursor-pointer disabled:opacity-60"
                   >
                     {profileLoading && <Loader2 className="h-4.5 w-4.5 animate-spin" />}
                     Save details
@@ -263,7 +263,7 @@ const SettingsPage = () => {
                   <button 
                     type="submit" 
                     disabled={passwordLoading} 
-                    className="inline-flex items-center justify-center gap-2 rounded-xl bg-blue-600 hover:bg-blue-500 text-white px-5 py-2.5 text-sm font-bold shadow-xs transition duration-200 cursor-pointer disabled:opacity-60"
+                    className="inline-flex items-center justify-center gap-2 rounded-lg bg-blue-600 hover:bg-blue-500 text-white px-5 py-2.5 text-sm font-bold shadow-xs transition duration-200 cursor-pointer disabled:opacity-60"
                   >
                     {passwordLoading && <Loader2 className="h-4.5 w-4.5 animate-spin" />}
                     Change Password

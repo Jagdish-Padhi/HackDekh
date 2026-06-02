@@ -70,7 +70,7 @@ export default function GithubCallbackPage() {
           <p className="mt-2 text-sm text-zinc-500 dark:text-zinc-400 leading-relaxed">{error}</p>
           <button
             onClick={() => navigate("/login", { replace: true })}
-            className="mt-6 inline-flex w-full items-center justify-center rounded-xl bg-blue-600 px-4 py-2.5 text-sm font-semibold text-white shadow-sm hover:bg-blue-500 transition cursor-pointer"
+            className="mt-6 inline-flex w-full items-center justify-center rounded-lg bg-blue-600 px-4 py-2.5 text-sm font-semibold text-white shadow-sm hover:bg-blue-500 transition cursor-pointer"
           >
             Back to Login
           </button>

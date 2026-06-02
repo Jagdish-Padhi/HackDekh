@@ -607,7 +607,7 @@ export default function DashboardPage() {
                   </p>
                   <Link
                     to="/hackathons"
-                    className="mt-6 inline-flex items-center gap-1.5 rounded-xl bg-blue-600 px-4 py-2.5 text-xs font-bold text-white transition hover:bg-blue-500"
+                    className="mt-6 inline-flex items-center gap-1.5 rounded-lg bg-blue-600 px-4 py-2.5 text-xs font-bold text-white transition hover:bg-blue-500"
                   >
                     Browse Hackathons
                   </Link>
@@ -775,7 +775,7 @@ export default function DashboardPage() {
                                   <h4 className="text-sm font-bold uppercase tracking-wider text-zinc-800 dark:text-zinc-200">Stage timeline</h4>
                                   <button
                                     onClick={handleAddStage}
-                                    className="inline-flex items-center gap-2 rounded-xl bg-blue-600 px-3 py-2 text-xs font-semibold text-white transition hover:bg-blue-500 cursor-pointer"
+                                    className="inline-flex items-center gap-2 rounded-lg bg-blue-600 px-3 py-2 text-xs font-semibold text-white transition hover:bg-blue-500 cursor-pointer"
                                   >
                                     <Plus className="h-3.5 w-3.5" />
                                     Add Stage
@@ -923,13 +923,13 @@ export default function DashboardPage() {
                                                       setActiveReflectionStageId("");
                                                       setReflectionDraft("");
                                                     }}
-                                                    className="rounded-xl border border-zinc-200 bg-white px-3 py-2 text-xs font-semibold text-zinc-600 transition hover:bg-zinc-50 dark:border-zinc-800 dark:bg-zinc-900 dark:text-zinc-300 dark:hover:bg-zinc-800 cursor-pointer"
+                                                    className="rounded-lg border border-zinc-200 bg-white px-3 py-2 text-xs font-semibold text-zinc-600 transition hover:bg-zinc-50 dark:border-zinc-800 dark:bg-zinc-900 dark:text-zinc-300 dark:hover:bg-zinc-800 cursor-pointer"
                                                   >
                                                     Cancel
                                                   </button>
                                                   <button
                                                     onClick={handleAddReflection}
-                                                    className="inline-flex items-center gap-2 rounded-xl bg-blue-600 px-3 py-2 text-xs font-semibold text-white transition hover:bg-blue-500 cursor-pointer"
+                                                    className="inline-flex items-center gap-2 rounded-lg bg-blue-600 px-3 py-2 text-xs font-semibold text-white transition hover:bg-blue-500 cursor-pointer"
                                                   >
                                                     <Save className="h-3.5 w-3.5" />
                                                     Save reflection
@@ -962,7 +962,7 @@ export default function DashboardPage() {
                                 <div className="mt-3 flex justify-end">
                                   <button
                                     onClick={handleAddStage}
-                                    className="inline-flex items-center gap-2 rounded-xl bg-blue-600 px-4 py-2 text-sm font-semibold text-white transition hover:bg-blue-500 cursor-pointer"
+                                    className="inline-flex items-center gap-2 rounded-lg bg-blue-600 px-4 py-2 text-sm font-semibold text-white transition hover:bg-blue-500 cursor-pointer"
                                   >
                                     <Plus className="h-4 w-4" />
                                     Add Stage

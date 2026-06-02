@@ -323,7 +323,7 @@ export default function HackathonDetailsPage() {
           <p className="mt-2 text-sm text-zinc-600 dark:text-zinc-400">{error || "Hackathon not found"}</p>
           <button
             onClick={handleGoBack}
-            className="mt-6 inline-flex items-center gap-2 rounded-xl bg-blue-600 px-5 py-2.5 text-sm font-semibold text-white shadow-md transition-colors hover:bg-blue-500"
+            className="mt-6 inline-flex items-center gap-2 rounded-lg bg-blue-600 px-5 py-2.5 text-sm font-semibold text-white shadow-md transition-colors hover:bg-blue-500"
           >
             <ArrowLeft className="h-4 w-4" /> Go Back
           </button>
@@ -582,7 +582,7 @@ export default function HackathonDetailsPage() {
                   href={hackathon.applyLink}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="inline-flex items-center justify-center gap-2 rounded-2xl bg-blue-600 px-6 py-3 text-sm font-semibold text-white shadow-lg shadow-blue-500/20 transition-all duration-200 hover:-translate-y-0.5 hover:bg-blue-500 hover:shadow-blue-500/35"
+                  className="inline-flex items-center justify-center gap-2 rounded-lg bg-blue-600 px-6 py-3 text-sm font-semibold text-white shadow-lg shadow-blue-500/20 transition-all duration-200 hover:-translate-y-0.5 hover:bg-blue-500 hover:shadow-blue-500/35"
                 >
                   Apply on {hackathon.platform}
                   <ExternalLink className="h-4.5 w-4.5" />
@@ -610,13 +610,13 @@ export default function HackathonDetailsPage() {
                 <div className="flex gap-2">
                   <button
                     onClick={handleBeginRegistration}
-                    className="inline-flex items-center justify-center rounded-xl bg-blue-600 px-4 py-2 text-sm font-semibold text-white transition hover:bg-blue-500"
+                    className="inline-flex items-center justify-center rounded-lg bg-blue-600 px-4 py-2 text-sm font-semibold text-white transition hover:bg-blue-500"
                   >
                     Yes, I have
                   </button>
                   <button
                     onClick={() => setBannerDismissed(true)}
-                    className="inline-flex items-center justify-center rounded-xl border border-zinc-200 bg-white px-4 py-2 text-sm font-semibold text-zinc-600 transition hover:bg-zinc-50 dark:border-zinc-800 dark:bg-zinc-900 dark:text-zinc-300 dark:hover:bg-zinc-800"
+                    className="inline-flex items-center justify-center rounded-lg border border-zinc-200 bg-white px-4 py-2 text-sm font-semibold text-zinc-600 transition hover:bg-zinc-50 dark:border-zinc-800 dark:bg-zinc-900 dark:text-zinc-300 dark:hover:bg-zinc-800"
                   >
                     Dismiss
                   </button>
@@ -701,13 +701,13 @@ export default function HackathonDetailsPage() {
                   <div className="flex items-center justify-between gap-3 pt-2">
                     <button
                       onClick={() => setRegistrationModalOpen(false)}
-                      className="rounded-xl border border-zinc-200 bg-white px-4 py-2.5 text-sm font-semibold text-zinc-600 transition hover:bg-zinc-50 dark:border-zinc-800 dark:bg-zinc-900 dark:text-zinc-300 dark:hover:bg-zinc-800"
+                      className="rounded-lg border border-zinc-200 bg-white px-4 py-2.5 text-sm font-semibold text-zinc-600 transition hover:bg-zinc-50 dark:border-zinc-800 dark:bg-zinc-900 dark:text-zinc-300 dark:hover:bg-zinc-800"
                     >
                       Cancel
                     </button>
                     <button
                       onClick={() => setRegistrationStep(2)}
-                      className="inline-flex items-center gap-2 rounded-xl bg-blue-600 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-blue-500"
+                      className="inline-flex items-center gap-2 rounded-lg bg-blue-600 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-blue-500"
                     >
                       Continue
                       <ChevronRight className="h-4 w-4" />
@@ -741,14 +741,14 @@ export default function HackathonDetailsPage() {
                     <button
                       onClick={() => handleRegisterParticipation(true)}
                       disabled={registrationSaving || registrationDataLoading}
-                      className="rounded-xl border border-zinc-200 bg-white px-4 py-2.5 text-sm font-semibold text-zinc-600 transition hover:bg-zinc-50 disabled:cursor-not-allowed disabled:opacity-60 dark:border-zinc-800 dark:bg-zinc-900 dark:text-zinc-300 dark:hover:bg-zinc-800"
+                      className="rounded-lg border border-zinc-200 bg-white px-4 py-2.5 text-sm font-semibold text-zinc-600 transition hover:bg-zinc-50 disabled:cursor-not-allowed disabled:opacity-60 dark:border-zinc-800 dark:bg-zinc-900 dark:text-zinc-300 dark:hover:bg-zinc-800"
                     >
                       Skip for now
                     </button>
                     <button
                       onClick={() => handleRegisterParticipation(false)}
                       disabled={registrationSaving || registrationDataLoading}
-                      className="inline-flex items-center justify-center gap-2 rounded-xl bg-blue-600 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-blue-500 disabled:cursor-not-allowed disabled:opacity-60"
+                      className="inline-flex items-center justify-center gap-2 rounded-lg bg-blue-600 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-blue-500 disabled:cursor-not-allowed disabled:opacity-60"
                     >
                       {registrationSaving ? "Registering..." : "Register ✓"}
                     </button>

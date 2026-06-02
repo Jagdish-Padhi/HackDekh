@@ -140,13 +140,13 @@ const AcceptInvitationPage = () => {
               <div className="space-y-2">
                 <button
                   onClick={acceptInvitation}
-                  className="w-full rounded-full border border-blue-500/35 bg-blue-600 px-4 py-3 text-sm font-semibold text-white"
+                  className="w-full rounded-lg border border-blue-500/35 bg-blue-600 px-4 py-3 text-sm font-semibold text-white"
                 >
                   Try Again
                 </button>
                 <button
                   onClick={handleSwitchAccount}
-                  className="w-full rounded-full border border-indigo-400/40 bg-white px-4 py-3 text-sm font-semibold text-indigo-700 dark:bg-zinc-900 dark:text-indigo-300"
+                  className="w-full rounded-lg border border-indigo-400/40 bg-white px-4 py-3 text-sm font-semibold text-indigo-700 dark:bg-zinc-900 dark:text-indigo-300"
                 >
                   Switch Account
                 </button>
@@ -155,7 +155,7 @@ const AcceptInvitationPage = () => {
 
             <button
               onClick={() => navigate('/teams')}
-              className="w-full rounded-full border border-zinc-300 bg-zinc-50 px-4 py-3 text-sm font-semibold text-zinc-900 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-100"
+              className="w-full rounded-lg border border-zinc-300 bg-zinc-50 px-4 py-3 text-sm font-semibold text-zinc-900 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-100"
             >
               Back to Teams
             </button>
@@ -178,7 +178,7 @@ const AcceptInvitationPage = () => {
 
             <button
               onClick={() => navigate('/teams')}
-              className="w-full rounded-full border border-blue-500/35 bg-blue-600 px-4 py-3 text-sm font-semibold text-white dark:border-blue-400/40 dark:bg-blue-500"
+              className="w-full rounded-lg border border-blue-500/35 bg-blue-600 px-4 py-3 text-sm font-semibold text-white dark:border-blue-400/40 dark:bg-blue-500"
             >
               Go to Teams Now
             </button>
@@ -227,13 +227,13 @@ const AcceptInvitationPage = () => {
             <div className="grid grid-cols-2 gap-2">
               <a
                 href={getAuthUrl('/login')}
-                className="rounded-full border border-blue-500/35 bg-blue-600 px-4 py-2 text-center text-sm font-semibold text-white"
+                className="rounded-lg border border-blue-500/35 bg-blue-600 px-4 py-2 text-center text-sm font-semibold text-white"
               >
                 Login
               </a>
               <button
                 onClick={() => navigate('/teams')}
-                className="rounded-full border border-zinc-300 bg-zinc-50 px-4 py-2 text-center text-sm font-semibold text-zinc-900 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-100"
+                className="rounded-lg border border-zinc-300 bg-zinc-50 px-4 py-2 text-center text-sm font-semibold text-zinc-900 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-100"
               >
                 Back to Teams
               </button>
