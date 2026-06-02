@@ -24,7 +24,7 @@ import {
   Star,
   AlertTriangle
 } from "lucide-react";
-import { useAuth } from "../context/AuthContext";
+import { useAuth, useCache } from "../context";
 import { usePageChrome } from "../context/pageChrome";
 import { teamApi } from "../services";
 import LogoTransition from "../components/LogoAnimation";
@@ -100,13 +100,15 @@ export default function TeamsPage() {
   const { setPageActions, closeSidebar, sidebarExpanded, toggleSidebar } = usePageChrome();
   const [sidebarWasExpanded, setSidebarWasExpanded] = useState(false);
 
+  const { teamsData, setTeamsData } = useCache();
+
   // Core Data States
-  const [teams, setTeams] = useState<Team[]>([]);
-  const [allParticipations, setAllParticipations] = useState<Record<string, TeamHackathon[]>>({});
+  const [teams, setTeams] = useState<Team[]>(teamsData?.teams || []);
+  const [allParticipations, setAllParticipations] = useState<Record<string, TeamHackathon[]>>(teamsData?.allParticipations || {});
   const [selectedTeamId, setSelectedTeamId] = useState<string>("");
   const [activeTab, setActiveTab] = useState<WorkspaceTab>("Hackathons");
   const [teamParticipations, setTeamParticipations] = useState<TeamParticipation[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(!teamsData);
   const [loadingTeamData, setLoadingTeamData] = useState(false);
 
   // Filters & Search
@@ -184,8 +186,10 @@ export default function TeamsPage() {
     return [...withIndex].reverse();
   }, [teamParticipations, stripSort]);
 
-  const loadTeams = async () => {
-    setLoading(true);
+  const loadTeams = async (isSilent = false) => {
+    if (!isSilent) {
+      setLoading(true);
+    }
     try {
       const data = await teamApi.getUserTeams();
       setTeams(data);
@@ -205,6 +209,11 @@ export default function TeamsPage() {
       );
       setAllParticipations(participationsMap);
       
+      setTeamsData({
+        teams: data,
+        allParticipations: participationsMap,
+      });
+
       // Preserve selected team if it exists in the new teams list, otherwise default to empty grid
       setSelectedTeamId((current) => data.some(t => t._id === current) ? current : "");
     } catch (error) {
@@ -214,35 +223,54 @@ export default function TeamsPage() {
     }
   };
 
-  const loadTeamWorkspace = async (teamId: string) => {
+  const loadTeamWorkspace = async (teamId: string, isSilent = false) => {
     if (!teamId) return;
-    setLoadingTeamData(true);
+    
+    const cachedParticipations = allParticipations[teamId];
+    const team = teams.find((candidate) => candidate._id === teamId);
+    
+    if (cachedParticipations && team) {
+      setTeamParticipations(cachedParticipations.map((participation) => ({ ...participation, teamInfo: team })));
+    }
+
+    if (!cachedParticipations && !isSilent) {
+      setLoadingTeamData(true);
+    }
     try {
       const participations = await teamApi.getTeamHackathons(teamId);
-      const team = teams.find((candidate) => candidate._id === teamId);
       if (team) {
-        setTeamParticipations(participations.map((participation) => ({ ...participation, teamInfo: team })));
+        const mapped = participations.map((participation) => ({ ...participation, teamInfo: team }));
+        setTeamParticipations(mapped);
         
         // Update local map as well
-        setAllParticipations(prev => ({ ...prev, [teamId]: participations }));
+        setAllParticipations(prev => {
+          const next = { ...prev, [teamId]: participations };
+          setTeamsData({
+            teams,
+            allParticipations: next,
+          });
+          return next;
+        });
       } else {
         setTeamParticipations([]);
       }
     } catch (error) {
       console.error("Failed to load team workspace", error);
-      setTeamParticipations([]);
+      if (!cachedParticipations) {
+        setTeamParticipations([]);
+      }
     } finally {
       setLoadingTeamData(false);
     }
   };
 
   useEffect(() => {
-    loadTeams();
+    loadTeams(!!teamsData);
   }, []);
 
   useEffect(() => {
     if (selectedTeamId) {
-      loadTeamWorkspace(selectedTeamId);
+      loadTeamWorkspace(selectedTeamId, !!allParticipations[selectedTeamId]);
       setSelectedParticipationId("");
       setInviteLink(null);
       setWorkspaceMessage(null);
