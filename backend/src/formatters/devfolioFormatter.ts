@@ -255,26 +255,59 @@ const extractDevfolioLocation = (h: any): string | null => {
 };
 
 export default function formatDevfolio(rawData: any) {
-    const formatedData = rawData.map((h: any) => ({
-        title: h.name,
-        startDate: h.starts_at,
-        slug: h.slug,
-        deadline: h.settings?.reg_ends_at ?? null,
-        mode: h.is_online ? "Online" : "Offline",
-        platform: "Devfolio",
-        applyLink: `https://${h.slug}.devfolio.co/overview`,
-        organization: h.settings?.organization_name ?? null,
-        tags: h.settings?.themes ?? [],
-        prize: extractDevfolioPrize({
-            ...(h.settings ?? {}),
-            aggregatePrizeValue: h.aggregatePrizeValue,
-            aggregatePrizeCurrency: h.aggregatePrizeCurrency,
-            prizeDetails: h.prizeDetails,
-        }),
-        location: extractDevfolioLocation(h),
-        // Use featured_cover_img_v2, then featured_cover_img, then fallback to other fields
-        coverImage: h.settings?.featured_cover_img_v2 || h.settings?.featured_cover_img || h.cover_img || h.settings?.cover_img || h.settings?.og_img || h.logo || h.settings?.logo || null,
-        scrapedFromURL: "https://devfolio.co/hackathons"
-    }));
+    const formatedData = rawData.map((h: any) => {
+        // --- Team Size ---
+        const minTeam = h?.settings?.min_team_size ?? h?.min_team_size ?? null;
+        const maxTeam = h?.settings?.max_team_size ?? h?.max_team_size ?? null;
+        let teamSize: string | null = null;
+        if (typeof minTeam === "number" && typeof maxTeam === "number" && minTeam > 0 && maxTeam > 0) {
+            teamSize = minTeam === maxTeam ? `${minTeam}` : `${minTeam}-${maxTeam}`;
+        } else if (typeof maxTeam === "number" && maxTeam > 0) {
+            teamSize = `1-${maxTeam}`;
+        } else if (typeof minTeam === "number" && minTeam > 0) {
+            teamSize = `${minTeam}+`;
+        }
+
+        // --- Organization ---
+        const organization = h.settings?.organization_name
+            || h.organization_name
+            || null;
+
+        // --- Tags (merge themes from list + detail) ---
+        const themes = Array.isArray(h.settings?.themes) ? h.settings.themes : [];
+        const uniqueTags = themes
+            .filter((t: any) => typeof t === "string" && t.trim().length > 0)
+            .map((t: string) => t.trim());
+
+        // --- Description ---
+        const description = h?.desc || h?.description || h?.settings?.desc || null;
+
+        // --- Mode (prefer detail-page is_online over list-page) ---
+        const isOnline = h.is_online === true;
+
+        return {
+            title: h.name,
+            startDate: h.starts_at,
+            slug: h.slug,
+            deadline: h.settings?.reg_ends_at ?? null,
+            mode: isOnline ? "Online" : "Offline",
+            platform: "Devfolio",
+            applyLink: `https://${h.slug}.devfolio.co/overview`,
+            organization,
+            tags: uniqueTags,
+            prize: extractDevfolioPrize({
+                ...(h.settings ?? {}),
+                aggregatePrizeValue: h.aggregatePrizeValue,
+                aggregatePrizeCurrency: h.aggregatePrizeCurrency,
+                prizeDetails: h.prizeDetails,
+            }),
+            location: extractDevfolioLocation(h),
+            teamSize,
+            description,
+            // Use featured_cover_img_v2, then featured_cover_img, then fallback to other fields
+            coverImage: h.settings?.featured_cover_img_v2 || h.settings?.featured_cover_img || h.cover_img || h.settings?.cover_img || h.settings?.og_img || h.logo || h.settings?.logo || null,
+            scrapedFromURL: "https://devfolio.co/hackathons"
+        };
+    });
     return formatedData;
 }

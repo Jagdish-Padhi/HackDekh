@@ -48,6 +48,30 @@ export default function formatDevpost(rawData: any[]) {
       prize = h.prize_amount.replace(/<[^>]*>/g, "").trim();
     }
 
+    // --- Use enriched data from detail pages ---
+    // Location: prefer enriched location over basic displayed_location
+    const enrichedLocation = h._enriched_location || null;
+    let finalLocation = enrichedLocation || locationStr || null;
+
+    // Team size from detail page
+    const teamSize = h._enriched_teamSize || null;
+
+    // Description from detail page
+    const description = h._enriched_description || null;
+
+    // Organization: prefer enriched organizer over basic
+    const organization = h._enriched_organizer || h.organization_name || null;
+
+    // Tags: merge original themes with enriched themes
+    const originalTags = Array.isArray(h.themes) ? h.themes.map((t: any) => t.name || t) : [];
+    const enrichedTags = Array.isArray(h._enriched_themes) ? h._enriched_themes : [];
+    const allTags = [...originalTags];
+    for (const tag of enrichedTags) {
+      if (typeof tag === "string" && !allTags.some((t: string) => t.toLowerCase() === tag.toLowerCase())) {
+        allTags.push(tag);
+      }
+    }
+
     return {
       title: h.title,
       startDate,
@@ -56,10 +80,12 @@ export default function formatDevpost(rawData: any[]) {
       mode,
       platform: "Devpost",
       applyLink: h.url || `https://devpost.com/challenges/${slug}`,
-      organization: h.organization_name || "Unknown",
-      tags: Array.isArray(h.themes) ? h.themes.map((t: any) => t.name) : [],
+      organization: organization || "Unknown",
+      tags: allTags,
       prize,
-      location: locationStr || null,
+      location: finalLocation || null,
+      teamSize,
+      description,
       coverImage: h.thumbnail_url ? (h.thumbnail_url.startsWith("http") ? h.thumbnail_url : `https:${h.thumbnail_url}`) : null,
       scrapedFromURL: "https://devpost.com/hackathons",
     };

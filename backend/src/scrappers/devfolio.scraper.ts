@@ -40,6 +40,20 @@ const getDetailOverviewData = async (slug: string): Promise<any | null> => {
   return json?.props?.pageProps ?? null;
 };
 
+const mergeUniqueThemes = (existing: unknown, incoming: string[]): string[] => {
+  const existingArr = Array.isArray(existing) ? existing : [];
+  const merged = [...existingArr];
+  for (const theme of incoming) {
+    if (typeof theme === "string" && theme.trim().length > 0) {
+      const normalized = theme.trim();
+      if (!merged.some((t: any) => typeof t === "string" && t.trim().toLowerCase() === normalized.toLowerCase())) {
+        merged.push(normalized);
+      }
+    }
+  }
+  return merged;
+};
+
 const enrichSingleDevfolioHackathon = async (hack: any): Promise<any> => {
   const slug = normalizeString(hack?.slug);
   if (!slug) {
@@ -53,12 +67,16 @@ const enrichSingleDevfolioHackathon = async (hack: any): Promise<any> => {
     }
 
     const detailHackathon = pageProps?.hackathon ?? {};
+    const detailSettings = detailHackathon?.settings ?? {};
+
+    // --- Cover Image ---
     const detailCoverImage =
       normalizeString(detailHackathon?.cover_img) ||
-      normalizeString(detailHackathon?.settings?.featured_cover_img_v2) ||
-      normalizeString(detailHackathon?.settings?.featured_cover_img) ||
+      normalizeString(detailSettings?.featured_cover_img_v2) ||
+      normalizeString(detailSettings?.featured_cover_img) ||
       null;
 
+    // --- Prize Data ---
     const aggregatePrizeValue =
       typeof pageProps?.aggregatePrizeValue === "number" &&
       Number.isFinite(pageProps.aggregatePrizeValue)
@@ -75,8 +93,53 @@ const enrichSingleDevfolioHackathon = async (hack: any): Promise<any> => {
       ? pageProps.prizeDetails
       : [];
 
+    // --- Location fields (THE KEY FIX for TBD locations) ---
+    const detailLocation = normalizeString(detailSettings?.event_location)
+      || normalizeString(detailSettings?.venue)
+      || normalizeString(detailSettings?.address)
+      || normalizeString(detailSettings?.location)
+      || normalizeString(detailHackathon?.location)
+      || normalizeString(detailHackathon?.venue)
+      || normalizeString(detailHackathon?.address)
+      || null;
+
+    const detailCity = normalizeString(detailSettings?.city) || normalizeString(detailHackathon?.city) || null;
+    const detailState = normalizeString(detailSettings?.state) || normalizeString(detailHackathon?.state) || null;
+    const detailCountry = detailSettings?.country || detailHackathon?.country || null;
+
+    // --- Organization ---
+    const detailOrganization = normalizeString(detailSettings?.organization_name)
+      || normalizeString(detailHackathon?.organization_name)
+      || null;
+
+    // --- Themes / Tags ---
+    const detailThemes = Array.isArray(detailSettings?.themes) ? detailSettings.themes : [];
+
+    // --- Team Size ---
+    const detailMinTeam = detailSettings?.min_team_size ?? detailHackathon?.min_team_size ?? null;
+    const detailMaxTeam = detailSettings?.max_team_size ?? detailHackathon?.max_team_size ?? null;
+
+    // --- Mode (online/offline) ---
+    const detailIsOnline = detailHackathon?.is_online ?? null;
+
+    // --- Dates ---
+    const detailStartsAt = normalizeString(detailHackathon?.starts_at) || null;
+    const detailRegEndsAt = normalizeString(detailSettings?.reg_ends_at) || null;
+
+    // --- Description ---
+    const detailDescription = normalizeString(detailHackathon?.desc)
+      || normalizeString(detailHackathon?.description)
+      || normalizeString(detailSettings?.desc)
+      || null;
+
+    // --- Geographies ---
+    const detailGeographies = Array.isArray(detailSettings?.geographies)
+      ? detailSettings.geographies
+      : (Array.isArray(detailHackathon?.geographies) ? detailHackathon.geographies : null);
+
     return {
       ...hack,
+      // Cover image
       cover_img: hack?.cover_img ?? detailCoverImage,
       settings: {
         ...(hack?.settings ?? {}),
@@ -84,7 +147,45 @@ const enrichSingleDevfolioHackathon = async (hack: any): Promise<any> => {
           hack?.settings?.featured_cover_img ?? detailCoverImage,
         featured_cover_img_v2:
           hack?.settings?.featured_cover_img_v2 ?? detailCoverImage,
+        // Merge location fields from detail into settings
+        event_location: hack?.settings?.event_location ?? detailSettings?.event_location ?? null,
+        venue: hack?.settings?.venue ?? detailSettings?.venue ?? null,
+        address: hack?.settings?.address ?? detailSettings?.address ?? null,
+        location: hack?.settings?.location ?? detailSettings?.location ?? null,
+        city: hack?.settings?.city ?? detailSettings?.city ?? null,
+        state: hack?.settings?.state ?? detailSettings?.state ?? null,
+        country: hack?.settings?.country ?? detailSettings?.country ?? null,
+        geographies: hack?.settings?.geographies ?? detailGeographies ?? null,
+        // Organization
+        organization_name: hack?.settings?.organization_name ?? detailOrganization ?? null,
+        // Themes — merge unique
+        themes: mergeUniqueThemes(hack?.settings?.themes, detailThemes),
+        // Team size
+        min_team_size: hack?.settings?.min_team_size ?? detailMinTeam,
+        max_team_size: hack?.settings?.max_team_size ?? detailMaxTeam,
+        // Deadline
+        reg_ends_at: hack?.settings?.reg_ends_at ?? detailRegEndsAt,
       },
+      // Top-level location fields from detail
+      location: hack?.location ?? detailLocation,
+      venue: hack?.venue ?? normalizeString(detailHackathon?.venue),
+      address: hack?.address ?? normalizeString(detailHackathon?.address),
+      city: hack?.city ?? detailCity,
+      state: hack?.state ?? detailState,
+      country: hack?.country ?? detailCountry,
+      geographies: hack?.geographies ?? detailGeographies,
+      // Mode
+      is_online: hack?.is_online ?? detailIsOnline,
+      // Organization
+      organization_name: hack?.organization_name ?? detailOrganization,
+      // Dates
+      starts_at: hack?.starts_at ?? detailStartsAt,
+      // Description
+      desc: hack?.desc ?? detailDescription,
+      // Team size at top level too
+      min_team_size: hack?.min_team_size ?? detailMinTeam,
+      max_team_size: hack?.max_team_size ?? detailMaxTeam,
+      // Prize
       aggregatePrizeValue: hack?.aggregatePrizeValue ?? aggregatePrizeValue,
       aggregatePrizeCurrency:
         hack?.aggregatePrizeCurrency ?? aggregatePrizeCurrency,

@@ -63,6 +63,10 @@ const hackSchema = new mongoose.Schema(
     coverImage: {
       type: String,
     },
+
+    description: {
+      type: String,
+    },
   },
   { timestamps: true }
 );
