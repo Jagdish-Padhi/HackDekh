@@ -65,27 +65,31 @@ textarea {
 	font: inherit;
 }
 
-body::-webkit-scrollbar {
-	width: 12px;
+/* Premium customized scrollbars globally */
+::-webkit-scrollbar {
+	width: 6px;
+	height: 6px;
 }
 
-body::-webkit-scrollbar-track {
-	background: #F4F4F5;
+::-webkit-scrollbar-track {
+	background: transparent;
 }
 
-body::-webkit-scrollbar-thumb {
-	background: linear-gradient(180deg, rgba(59, 130, 246, 0.45), rgba(59, 130, 246, 0.18));
-	border: 3px solid #F4F4F5;
+::-webkit-scrollbar-thumb {
+	background: rgba(161, 161, 170, 0.35);
 	border-radius: 999px;
 }
 
-html.dark body::-webkit-scrollbar-track {
-	background: #09090B;
+::-webkit-scrollbar-thumb:hover {
+	background: rgba(161, 161, 170, 0.6);
 }
 
-html.dark body::-webkit-scrollbar-thumb {
-	background: linear-gradient(180deg, rgba(79, 140, 255, 0.45), rgba(79, 140, 255, 0.18));
-	border: 3px solid #09090B;
+html.dark ::-webkit-scrollbar-thumb {
+	background: rgba(63, 63, 70, 0.55);
+}
+
+html.dark ::-webkit-scrollbar-thumb:hover {
+	background: rgba(82, 82, 91, 0.8);
 }
 
 .app-background-light {
