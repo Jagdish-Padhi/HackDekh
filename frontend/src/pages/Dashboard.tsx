@@ -1,8 +1,7 @@
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Link, useSearchParams } from "react-router-dom";
 import { AnimatePresence, motion } from "framer-motion";
 import {
-  ArrowUpRight,
   BookOpen,
   Check,
   ChevronRight,
@@ -19,13 +18,12 @@ import {
   X,
   Calendar,
   AlertTriangle,
-  Sparkles,
   Trophy,
   Bookmark,
   LayoutDashboard
 } from "lucide-react";
 import axiosInstance from "../utils/axiosInstance";
-import { useAuth } from "../context/AuthContext";
+import { useAuth, useCache } from "../context";
 import { usePageChrome } from "../context/pageChrome";
 import HackathonCard from "../components/HackathonCard";
 import { teamApi, userApi } from "../services";
@@ -34,7 +32,6 @@ import type { HackathonLite, Stage, Team, TeamHackathon } from "../types";
 type SavedHackathon = HackathonLite;
 type Participation = TeamHackathon & { teamInfo: Team };
 
-const TRACKER_STATUSES: Array<Participation["status"] | "all"> = ["all", "active", "finalist", "won", "eliminated"];
 const STAGE_RESULTS: Array<Stage["result"]> = ["pending", "qualified", "rejected"];
 
 const defaultImages = [
@@ -91,12 +88,16 @@ export default function DashboardPage() {
   const { setPageActions } = usePageChrome();
   const [searchParams, setSearchParams] = useSearchParams();
   const activeTab = searchParams.get("tab") || "overview";
+  
+  const { dashboardData, setDashboardData } = useCache();
+  const isInitialMountRef = useRef(true);
 
-  const [savedHackathons, setSavedHackathons] = useState<SavedHackathon[]>([]);
-  const [participations, setParticipations] = useState<Participation[]>([]);
-  const [pendingReflections, setPendingReflections] = useState<Stage[]>([]);
-  const [loadingData, setLoadingData] = useState(true);
-  const [statusFilter, setStatusFilter] = useState<Participation["status"] | "all">("all");
+  const [savedHackathons, setSavedHackathons] = useState<SavedHackathon[]>(dashboardData?.savedHackathons || []);
+  const [participations, setParticipations] = useState<Participation[]>(dashboardData?.participations || []);
+  const [pendingReflections, setPendingReflections] = useState<Stage[]>(dashboardData?.pendingReflections || []);
+  const [loadingData, setLoadingData] = useState(!dashboardData);
+  const [trackerSubFilter, setTrackerSubFilter] = useState<"tracking" | "registered" | "finished">( "tracking");
+  const [overviewFilter, setOverviewFilter] = useState<"all" | "won" | "finalist" | "eliminated">("all");
   const [selectedParticipationId, setSelectedParticipationId] = useState<string>("");
   const [focusedStageId, setFocusedStageId] = useState<string>("");
   const [loadingParticipationId, setLoadingParticipationId] = useState<string | null>(null);
@@ -107,8 +108,10 @@ export default function DashboardPage() {
   const [newStageName, setNewStageName] = useState("");
   const [newStageDeadline, setNewStageDeadline] = useState("");
 
-  const loadDashboardData = useCallback(async () => {
-    setLoadingData(true);
+  const loadDashboardData = useCallback(async (isSilent = false) => {
+    if (!isSilent) {
+      setLoadingData(true);
+    }
     try {
       const [savedRes, teamsRes, pendingRes] = await Promise.all([
         axiosInstance.get("/users/saved"),
@@ -116,8 +119,8 @@ export default function DashboardPage() {
         userApi.getPendingReflections(),
       ]);
 
-      setSavedHackathons(savedRes.data?.data || savedRes.data || []);
-      setPendingReflections(pendingRes);
+      const fetchedSavedHackathons = savedRes.data?.data || savedRes.data || [];
+      const fetchedPendingReflections = pendingRes;
 
       const teamParticipations = await Promise.all(
         teamsRes.map(async (team) => {
@@ -131,18 +134,31 @@ export default function DashboardPage() {
         })
       );
 
-      setParticipations(teamParticipations.flat());
+      const fetchedParticipations = teamParticipations.flat();
+
+      setSavedHackathons(fetchedSavedHackathons);
+      setPendingReflections(fetchedPendingReflections);
+      setParticipations(fetchedParticipations);
+      
+      setDashboardData({
+        savedHackathons: fetchedSavedHackathons,
+        pendingReflections: fetchedPendingReflections,
+        participations: fetchedParticipations,
+      });
     } catch (error) {
       console.error("Failed to load dashboard data", error);
     } finally {
       setLoadingData(false);
     }
-  }, []);
+  }, [setDashboardData]);
 
   useEffect(() => {
-    loadDashboardData();
+    const isInitialMount = isInitialMountRef.current;
+    isInitialMountRef.current = false;
 
-    const onFocus = () => loadDashboardData();
+    loadDashboardData(isInitialMount && !!dashboardData);
+
+    const onFocus = () => loadDashboardData(true);
     window.addEventListener("focus", onFocus);
 
     return () => {
@@ -151,16 +167,29 @@ export default function DashboardPage() {
   }, [loadDashboardData]);
 
   useEffect(() => {
-    if (!selectedParticipationId && participations.length > 0) {
-      setSelectedParticipationId(participations[0]._id);
+    if (participations.length > 0) {
+      setSelectedParticipationId(prev => prev || participations[0]._id);
     }
-  }, [participations, selectedParticipationId]);
+  }, [participations]);
 
   useEffect(() => {
-    if (activeTab === "tracker" && !selectedParticipationId && participations.length > 0) {
-      setSelectedParticipationId(participations[0]._id);
+    if (activeTab === "tracker") {
+      if (trackerSubFilter === "tracking") {
+        setSelectedParticipationId("");
+      } else {
+        const list = trackerSubFilter === "registered"
+          ? participations.filter(p => p.status === 'active')
+          : participations.filter(p => ['won', 'finalist', 'eliminated'].includes(p.status));
+        
+        setSelectedParticipationId(prev => {
+          const exists = list.some(p => p._id === prev);
+          if (exists) return prev;
+          return list.length > 0 ? list[0]._id : "";
+        });
+      }
     }
-  }, [activeTab, participations, selectedParticipationId]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [activeTab, trackerSubFilter, participations]);
 
   const handleTabChange = (tabName: string) => {
     setSearchParams({ tab: tabName });
@@ -182,10 +211,6 @@ export default function DashboardPage() {
     [participations, selectedParticipationId]
   );
 
-  const filteredParticipations = useMemo(() => {
-    if (statusFilter === "all") return participations;
-    return participations.filter((participation) => participation.status === statusFilter);
-  }, [participations, statusFilter]);
 
   const currentStageLabel = useMemo(() => {
     if (!selectedParticipation) return "No stages yet";
@@ -398,197 +423,266 @@ export default function DashboardPage() {
         <div className="min-h-[40vh]">
           {/* TAB: OVERVIEW */}
           {activeTab === "overview" && (
-            <div className="grid gap-6 lg:grid-cols-3">
-              {/* Upcoming Deadlines Column */}
-              <div className="lg:col-span-2 space-y-6">
-                <div className="rounded-[2.2rem] border border-zinc-200/90 bg-white p-6 shadow-xs dark:border-zinc-800 dark:bg-zinc-950/40">
-                  <div className="flex items-center justify-between mb-5">
-                    <div className="flex items-center gap-2">
-                      <Calendar className="h-5 w-5 text-blue-600 dark:text-blue-400" />
-                      <h2 className="text-base font-bold text-zinc-900 dark:text-zinc-100">Upcoming Stages & Deadlines</h2>
+            <div className="space-y-6">
+              {/* Analytics Dashboard Banner */}
+              {(() => {
+                const trackingCount = participations.filter(p => p.status === 'tracking').length;
+                const registeredCount = participations.filter(p => p.status === 'active').length;
+                const finishedCount = participations.filter(p => ["won", "finalist", "eliminated"].includes(p.status)).length;
+
+                return (
+                  <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4 rounded-3xl border border-zinc-200/90 bg-gradient-to-r from-blue-50/45 to-indigo-50/25 p-4.5 dark:border-zinc-800 dark:from-zinc-900/30 dark:to-zinc-900/15 shadow-xs">
+                    {/* Circle Loader Centerpiece */}
+                    <div className="flex items-center gap-4 bg-white dark:bg-zinc-950 p-4 rounded-2xl border border-zinc-150 dark:border-zinc-900 shadow-xs justify-center lg:justify-start">
+                      <div className="relative flex items-center justify-center h-16 w-16 shrink-0">
+                        {/* Rotating animated theme border */}
+                        <div className="absolute inset-0 rounded-full border-[5px] border-blue-600/15 border-t-blue-600 dark:border-blue-500/15 dark:border-t-blue-500 animate-[spin_3s_linear_infinite]" />
+                        <div className="flex flex-col items-center justify-center z-10">
+                          <span className="text-xl font-black text-zinc-900 dark:text-white leading-none">{trackingCount}</span>
+                          <span className="text-[7.5px] font-black text-zinc-400 dark:text-zinc-500 uppercase tracking-widest mt-0.5">Tracking</span>
+                        </div>
+                      </div>
+                      <div className="min-w-0">
+                        <h4 className="text-[10px] font-bold text-zinc-450 dark:text-zinc-500 uppercase tracking-wider truncate">Queue Size</h4>
+                        <p className="text-base font-black text-zinc-800 dark:text-zinc-200 truncate">{trackingCount} Tracked</p>
+                      </div>
                     </div>
-                    <span className="rounded-full bg-zinc-100 dark:bg-zinc-900 px-3 py-1 text-xs font-medium text-zinc-600 dark:text-zinc-400">
-                      {upcomingDeadlines.length} pending
-                    </span>
+
+                    {/* Metric Card 2 */}
+                    <div className="flex items-center gap-4 bg-white dark:bg-zinc-950 p-4 rounded-2xl border border-zinc-150 dark:border-zinc-900 shadow-xs">
+                      <div className="h-12 w-12 rounded-xl bg-blue-500/10 flex items-center justify-center text-blue-600 dark:text-blue-400 shrink-0">
+                        <Trophy className="h-5.5 w-5.5" />
+                      </div>
+                      <div className="min-w-0">
+                        <h4 className="text-[10px] font-bold text-zinc-450 dark:text-zinc-500 uppercase tracking-wider truncate">Active Tracker</h4>
+                        <p className="text-base font-black text-zinc-800 dark:text-zinc-200 truncate">{registeredCount} Registered</p>
+                      </div>
+                    </div>
+
+                    {/* Metric Card 3 */}
+                    <div className="flex items-center gap-4 bg-white dark:bg-zinc-950 p-4 rounded-2xl border border-zinc-150 dark:border-zinc-900 shadow-xs">
+                      <div className="h-12 w-12 rounded-xl bg-amber-500/10 flex items-center justify-center text-amber-600 dark:text-amber-400 shrink-0">
+                        <AlertTriangle className="h-5.5 w-5.5" />
+                      </div>
+                      <div className="min-w-0">
+                        <h4 className="text-[10px] font-bold text-zinc-450 dark:text-zinc-500 uppercase tracking-wider truncate">Reflections</h4>
+                        <p className="text-base font-black text-zinc-800 dark:text-zinc-200 truncate">{pendingReflections.length} Pending</p>
+                      </div>
+                    </div>
+
+                    {/* Metric Card 4 */}
+                    <div className="flex items-center gap-4 bg-white dark:bg-zinc-950 p-4 rounded-2xl border border-zinc-150 dark:border-zinc-900 shadow-xs">
+                      <div className="h-12 w-12 rounded-xl bg-emerald-500/10 flex items-center justify-center text-emerald-600 dark:text-emerald-400 shrink-0">
+                        <Check className="h-5.5 w-5.5" />
+                      </div>
+                      <div className="min-w-0">
+                        <h4 className="text-[10px] font-bold text-zinc-450 dark:text-zinc-500 uppercase tracking-wider truncate">Finished</h4>
+                        <p className="text-base font-black text-zinc-800 dark:text-zinc-200 truncate">{finishedCount} Completed</p>
+                      </div>
+                    </div>
+                  </div>
+                );
+              })()}
+
+              <div className="grid gap-6 lg:grid-cols-3">
+                {/* Upcoming Deadlines Column */}
+                <div className="lg:col-span-2 space-y-6">
+                  <div className="rounded-3xl border border-zinc-200/90 bg-white p-6 shadow-xs dark:border-zinc-800 dark:bg-zinc-950/40">
+                    <div className="flex items-center justify-between mb-5">
+                      <div className="flex items-center gap-2">
+                        <Calendar className="h-5 w-5 text-blue-600 dark:text-blue-400" />
+                        <h2 className="text-sm font-extrabold text-zinc-900 dark:text-zinc-100 uppercase tracking-wider">Upcoming Stages & Deadlines</h2>
+                      </div>
+                      <span className="rounded-full bg-zinc-100 dark:bg-zinc-900 px-3 py-1 text-xs font-medium text-zinc-600 dark:text-zinc-400">
+                        {upcomingDeadlines.length} pending
+                      </span>
+                    </div>
+
+                    {upcomingDeadlines.length === 0 ? (
+                      <div className="py-10 text-center">
+                        <Check className="mx-auto h-10 w-10 text-emerald-500 bg-emerald-500/10 p-2 rounded-full" />
+                        <h4 className="mt-3 text-sm font-bold text-zinc-900 dark:text-zinc-100">All caught up!</h4>
+                        <p className="text-xs text-zinc-500 dark:text-zinc-400 mt-1">No upcoming deadlines found in your tracker.</p>
+                      </div>
+                    ) : (
+                      <div className="relative border-l border-zinc-200 dark:border-zinc-800 pl-5 ml-2.5 space-y-6">
+                        {upcomingDeadlines.map(({ stage, participation, daysRemaining }) => {
+                          const statusColor = daysRemaining < 0 
+                            ? "bg-rose-500" 
+                            : daysRemaining <= 3 
+                            ? "bg-amber-500" 
+                            : "bg-blue-600";
+
+                          return (
+                            <div key={stage._id} className="relative group">
+                              {/* Marker dot */}
+                              <span className={`absolute -left-[27px] top-1 h-3.5 w-3.5 rounded-full border-2 border-white dark:border-zinc-950 ${statusColor}`} />
+                              
+                              <div className="space-y-1">
+                                <div className="flex flex-wrap items-center justify-between gap-2">
+                                  <h3 className="text-sm font-bold text-zinc-900 dark:text-zinc-100 group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors">
+                                    {stage.name}
+                                  </h3>
+                                  <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${
+                                    daysRemaining < 0 
+                                      ? "bg-rose-500/10 text-rose-600 dark:text-rose-400" 
+                                      : daysRemaining <= 3 
+                                      ? "bg-amber-500/10 text-amber-600 dark:text-amber-400" 
+                                      : "bg-zinc-100 dark:bg-zinc-900 text-zinc-600 dark:text-zinc-400"
+                                  }`}>
+                                    {daysRemaining < 0 
+                                      ? "Overdue" 
+                                      : daysRemaining === 0 
+                                      ? "Due Today" 
+                                      : daysRemaining === 1 
+                                      ? "Tomorrow" 
+                                      : `${daysRemaining} days left`}
+                                  </span>
+                                </div>
+                                <p className="text-xs text-zinc-500 dark:text-zinc-400">
+                                  {participation.hackathon.title} • {getTeamName(participation.teamInfo)}
+                                </p>
+                                {stage.deadline && (
+                                  <p className="text-[10px] text-zinc-400 dark:text-zinc-500">
+                                    Deadline: {formatDate(stage.deadline)}
+                                  </p>
+                                )}
+                              </div>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    )}
                   </div>
 
-                  {upcomingDeadlines.length === 0 ? (
-                    <div className="py-10 text-center">
-                      <Check className="mx-auto h-10 w-10 text-emerald-500 bg-emerald-500/10 p-2 rounded-full" />
-                      <h4 className="mt-3 text-sm font-bold text-zinc-900 dark:text-zinc-100">All caught up!</h4>
-                      <p className="text-xs text-zinc-500 dark:text-zinc-400 mt-1">No upcoming deadlines found in your tracker.</p>
+                  {/* Team Quick Info summary with filters */}
+                  <div className="rounded-3xl border border-zinc-200/90 bg-white p-6 shadow-xs dark:border-zinc-800 dark:bg-zinc-950/40">
+                    <div className="flex flex-wrap items-center justify-between gap-4 mb-5 pb-3.5 border-b border-zinc-100 dark:border-zinc-900">
+                      <div className="flex items-center gap-2">
+                        <Trophy className="h-5 w-5 text-emerald-600 dark:text-emerald-400" />
+                        <h2 className="text-sm font-extrabold text-zinc-900 dark:text-zinc-100 uppercase tracking-wider">Registered Hackathons & Results</h2>
+                      </div>
+                      
+                      {/* Overview status tags filter */}
+                      <div className="flex gap-0.5 bg-zinc-100 dark:bg-zinc-900 p-0.5 rounded-lg border border-zinc-200/60 dark:border-zinc-800 shrink-0">
+                        {[
+                          { id: "all", label: "All Active" },
+                          { id: "won", label: "Won 🏆" },
+                          { id: "finalist", label: "Finalist 🚀" },
+                          { id: "eliminated", label: "Eliminated ❌" }
+                        ].map((opt) => (
+                          <button
+                            key={opt.id}
+                            onClick={() => setOverviewFilter(opt.id as any)}
+                            className={`rounded-md px-2.5 py-1 text-[10px] font-bold transition-all cursor-pointer ${
+                              overviewFilter === opt.id
+                                ? "bg-white dark:bg-zinc-700 text-blue-600 dark:text-blue-400 shadow-xs"
+                                : "text-zinc-500 hover:text-zinc-800 dark:text-zinc-400 dark:hover:text-zinc-200"
+                            }`}
+                          >
+                            {opt.label}
+                          </button>
+                        ))}
+                      </div>
                     </div>
-                  ) : (
-                    <div className="relative border-l border-zinc-200 dark:border-zinc-800 pl-5 ml-2.5 space-y-6">
-                      {upcomingDeadlines.map(({ stage, participation, daysRemaining }) => {
-                        const statusColor = daysRemaining < 0 
-                          ? "bg-rose-500" 
-                          : daysRemaining <= 3 
-                          ? "bg-amber-500" 
-                          : "bg-blue-600";
 
+                    {(() => {
+                      const list = participations.filter(p => p.status !== 'tracking');
+                      const filtered = overviewFilter === "all" ? list : list.filter(p => p.status === overviewFilter);
+
+                      if (filtered.length === 0) {
                         return (
-                          <div key={stage._id} className="relative group">
-                            {/* Marker dot */}
-                            <span className={`absolute -left-[27px] top-1 h-3.5 w-3.5 rounded-full border-2 border-white dark:border-zinc-950 ${statusColor}`} />
-                            
-                            <div className="space-y-1">
-                              <div className="flex flex-wrap items-center justify-between gap-2">
-                                <h3 className="text-sm font-bold text-zinc-900 dark:text-zinc-100 group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors">
-                                  {stage.name}
-                                </h3>
-                                <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${
-                                  daysRemaining < 0 
-                                    ? "bg-rose-500/10 text-rose-600 dark:text-rose-400" 
-                                    : daysRemaining <= 3 
-                                    ? "bg-amber-500/10 text-amber-600 dark:text-amber-400" 
-                                    : "bg-zinc-100 dark:bg-zinc-900 text-zinc-600 dark:text-zinc-400"
-                                }`}>
-                                  {daysRemaining < 0 
-                                    ? "Overdue" 
-                                    : daysRemaining === 0 
-                                    ? "Due Today" 
-                                    : daysRemaining === 1 
-                                    ? "Tomorrow" 
-                                    : `${daysRemaining} days left`}
-                                </span>
+                          <div className="py-6 text-center">
+                            <p className="text-xs text-zinc-500 dark:text-zinc-400">No hackathons match this result filter.</p>
+                          </div>
+                        );
+                      }
+
+                      return (
+                        <div className="grid gap-3 sm:grid-cols-2">
+                          {filtered.map((part) => (
+                            <div key={part._id} className="flex items-center justify-between p-3.5 bg-zinc-50 dark:bg-zinc-900/50 rounded-2xl border border-zinc-100 dark:border-zinc-800/80">
+                              <div className="min-w-0">
+                                <p className="text-xs font-extrabold text-zinc-800 dark:text-zinc-200 truncate">{part.hackathon.title}</p>
+                                <p className="text-[10px] text-zinc-500 dark:text-zinc-400 truncate mt-0.5">Team: {getTeamName(part.teamInfo)}</p>
                               </div>
-                              <p className="text-xs text-zinc-500 dark:text-zinc-400">
-                                {participation.hackathon.title} • {getTeamName(participation.teamInfo)}
-                              </p>
-                              {stage.deadline && (
-                                <p className="text-[10px] text-zinc-400 dark:text-zinc-500">
-                                  Deadline: {formatDate(stage.deadline)}
-                                </p>
+                              <span className={`text-[10px] font-bold px-2 py-0.5 rounded-md uppercase tracking-wider ${getParticipationStatusClass(part.status)}`}>
+                                {part.status}
+                              </span>
+                            </div>
+                          ))}
+                        </div>
+                      );
+                    })()}
+                  </div>
+                </div>
+
+                {/* Reflections Column */}
+                <div className="space-y-6">
+                  {/* Reflection Warnings Panel */}
+                  <div className="rounded-3xl border border-amber-500/20 bg-amber-500/5 p-6 dark:bg-amber-500/10">
+                    <div className="flex items-center gap-2 mb-3">
+                      <AlertTriangle className="h-5 w-5 text-amber-600 dark:text-amber-400" />
+                      <h3 className="text-sm font-extrabold text-zinc-900 dark:text-zinc-100 uppercase tracking-wider">Pending Reflections</h3>
+                    </div>
+
+                    {pendingReflections.length === 0 ? (
+                      <p className="text-xs text-zinc-600 dark:text-zinc-400 leading-normal">
+                        Excellent work! You have no pending timeline reflection entries.
+                      </p>
+                    ) : (
+                      <div className="space-y-4">
+                        <p className="text-xs text-zinc-600 dark:text-zinc-400 leading-normal">
+                          Submit notes or feedback regarding your performance in completed phases to close them out.
+                        </p>
+                        
+                        {pendingReflections.map((stage) => {
+                          const isReflecting = activeReflectionStageId === stage._id;
+                          return (
+                            <div key={stage._id} className="p-3 bg-white dark:bg-zinc-950 rounded-2xl border border-amber-500/20">
+                              <p className="text-xs font-bold text-zinc-900 dark:text-zinc-100">{stage.name}</p>
+                              <p className="text-[10px] text-zinc-500 dark:text-zinc-400 mt-0.5">Stage Result: {stage.result}</p>
+                              
+                              {!isReflecting ? (
+                                <button
+                                  onClick={() => {
+                                    setActiveReflectionStageId(stage._id);
+                                    setSelectedParticipationId(typeof stage.teamHackathon === "object" ? stage.teamHackathon._id : "");
+                                    setReflectionDraft("");
+                                  }}
+                                  className="mt-2.5 text-[10px] font-bold text-blue-600 dark:text-blue-400 hover:underline inline-flex items-center gap-0.5"
+                                >
+                                  Submit Reflection <ChevronRight className="h-3 w-3" />
+                                </button>
+                              ) : (
+                                <div className="mt-2 space-y-2">
+                                  <textarea
+                                    value={reflectionDraft}
+                                    onChange={(e) => setReflectionDraft(e.target.value)}
+                                    placeholder="Write notes on lessons, problems faced, or team status..."
+                                    className="w-full min-h-[60px] p-2 text-[11px] rounded-lg border border-zinc-200 dark:border-zinc-800 bg-zinc-50 dark:bg-zinc-900 text-zinc-800 dark:text-zinc-200 outline-none"
+                                  />
+                                  <div className="flex justify-end gap-1.5">
+                                    <button
+                                      onClick={() => setActiveReflectionStageId("")}
+                                      className="px-2 py-1 text-[10px] font-semibold border border-zinc-200 dark:border-zinc-800 rounded-md hover:bg-zinc-50 dark:hover:bg-zinc-900"
+                                    >
+                                      Cancel
+                                    </button>
+                                    <button
+                                      onClick={handleAddReflection}
+                                      className="px-2 py-1 text-[10px] font-semibold bg-blue-600 hover:bg-blue-500 text-white rounded-md"
+                                    >
+                                      Save
+                                    </button>
+                                  </div>
+                                </div>
                               )}
                             </div>
-                          </div>
-                        );
-                      })}
-                    </div>
-                  )}
-                </div>
-
-                {/* Team Quick Info summary */}
-                <div className="rounded-[2.2rem] border border-zinc-200/90 bg-white p-6 shadow-xs dark:border-zinc-800 dark:bg-zinc-950/40">
-                  <div className="flex items-center gap-2 mb-4">
-                    <Trophy className="h-5 w-5 text-emerald-600 dark:text-emerald-400" />
-                    <h2 className="text-base font-bold text-zinc-900 dark:text-zinc-100">Competing Teams Summary</h2>
-                  </div>
-
-                  {participations.length === 0 ? (
-                    <div className="py-6 text-center">
-                      <p className="text-xs text-zinc-500 dark:text-zinc-400">You are not participating with any team yet.</p>
-                      <Link to="/teams" className="mt-3 inline-flex text-xs font-bold text-blue-600 dark:text-blue-400 hover:underline">
-                        {"Manage teams →"}
-                      </Link>
-                    </div>
-                  ) : (
-                    <div className="grid gap-3 sm:grid-cols-2">
-                      {participations.map((part) => (
-                        <div key={part._id} className="flex items-center justify-between p-3.5 bg-zinc-50 dark:bg-zinc-900/50 rounded-2xl border border-zinc-100 dark:border-zinc-800/80">
-                          <div className="min-w-0">
-                            <p className="text-xs font-extrabold text-zinc-800 dark:text-zinc-200 truncate">{part.hackathon.title}</p>
-                            <p className="text-[10px] text-zinc-500 dark:text-zinc-400 truncate mt-0.5">Team: {getTeamName(part.teamInfo)}</p>
-                          </div>
-                          <span className={`text-[10px] font-bold px-2 py-0.5 rounded-md uppercase tracking-wider ${getParticipationStatusClass(part.status)}`}>
-                            {part.status}
-                          </span>
-                        </div>
-                      ))}
-                    </div>
-                  )}
-                </div>
-              </div>
-
-              {/* Reflections & Actions Column */}
-              <div className="space-y-6">
-                {/* Reflection Warnings Panel */}
-                <div className="rounded-[2.2rem] border border-amber-500/20 bg-amber-500/5 p-6 dark:bg-amber-500/10">
-                  <div className="flex items-center gap-2 mb-3">
-                    <AlertTriangle className="h-5 w-5 text-amber-600 dark:text-amber-400" />
-                    <h3 className="text-sm font-bold text-zinc-900 dark:text-zinc-100">Pending Reflections</h3>
-                  </div>
-
-                  {pendingReflections.length === 0 ? (
-                    <p className="text-xs text-zinc-600 dark:text-zinc-400 leading-normal">
-                      Excellent work! You have no pending timeline reflection entries.
-                    </p>
-                  ) : (
-                    <div className="space-y-4">
-                      <p className="text-xs text-zinc-600 dark:text-zinc-400 leading-normal">
-                        Submit notes or feedback regarding your performance in completed phases to close them out.
-                      </p>
-                      
-                      {pendingReflections.map((stage) => {
-                        const isReflecting = activeReflectionStageId === stage._id;
-                        return (
-                          <div key={stage._id} className="p-3 bg-white dark:bg-zinc-950 rounded-2xl border border-amber-500/20">
-                            <p className="text-xs font-bold text-zinc-900 dark:text-zinc-100">{stage.name}</p>
-                            <p className="text-[10px] text-zinc-500 dark:text-zinc-400 mt-0.5">Stage Result: {stage.result}</p>
-                            
-                            {!isReflecting ? (
-                              <button
-                                onClick={() => {
-                                  setActiveReflectionStageId(stage._id);
-                                  setSelectedParticipationId(typeof stage.teamHackathon === "object" ? stage.teamHackathon._id : "");
-                                  setReflectionDraft("");
-                                }}
-                                className="mt-2.5 text-[10px] font-bold text-blue-600 dark:text-blue-400 hover:underline inline-flex items-center gap-0.5"
-                              >
-                                Submit Reflection <ChevronRight className="h-3 w-3" />
-                              </button>
-                            ) : (
-                              <div className="mt-2 space-y-2">
-                                <textarea
-                                  value={reflectionDraft}
-                                  onChange={(e) => setReflectionDraft(e.target.value)}
-                                  placeholder="Write notes on lessons, problems faced, or team status..."
-                                  className="w-full min-h-[60px] p-2 text-[11px] rounded-lg border border-zinc-200 dark:border-zinc-800 bg-zinc-50 dark:bg-zinc-900 text-zinc-800 dark:text-zinc-200 outline-none"
-                                />
-                                <div className="flex justify-end gap-1.5">
-                                  <button
-                                    onClick={() => setActiveReflectionStageId("")}
-                                    className="px-2 py-1 text-[10px] font-semibold border border-zinc-200 dark:border-zinc-800 rounded-md hover:bg-zinc-50 dark:hover:bg-zinc-900"
-                                  >
-                                    Cancel
-                                  </button>
-                                  <button
-                                    onClick={handleAddReflection}
-                                    className="px-2 py-1 text-[10px] font-semibold bg-blue-600 hover:bg-blue-500 text-white rounded-md"
-                                  >
-                                    Save
-                                  </button>
-                                </div>
-                              </div>
-                            )}
-                          </div>
-                        );
-                      })}
-                    </div>
-                  )}
-                </div>
-
-                {/* Quick actions box */}
-                <div className="rounded-[2.2rem] border border-zinc-200/90 bg-white p-6 shadow-xs dark:border-zinc-800 dark:bg-zinc-950/40">
-                  <div className="flex items-center gap-2 mb-4">
-                    <Sparkles className="h-5 w-5 text-blue-600 dark:text-blue-400" />
-                    <h2 className="text-base font-bold text-zinc-900 dark:text-zinc-100">Quick Actions</h2>
-                  </div>
-                  
-                  <div className="space-y-2">
-                    <Link to="/hackathons" className="flex items-center justify-between p-3 bg-zinc-50 hover:bg-zinc-100 dark:bg-zinc-900/50 dark:hover:bg-zinc-900 rounded-xl transition duration-200">
-                      <span className="text-xs font-semibold text-zinc-700 dark:text-zinc-300">Find new hackathons</span>
-                      <ArrowUpRight className="h-4 w-4 text-zinc-400" />
-                    </Link>
-                    <Link to="/teams" className="flex items-center justify-between p-3 bg-zinc-50 hover:bg-zinc-100 dark:bg-zinc-900/50 dark:hover:bg-zinc-900 rounded-xl transition duration-200">
-                      <span className="text-xs font-semibold text-zinc-700 dark:text-zinc-300">Manage developer teams</span>
-                      <ArrowUpRight className="h-4 w-4 text-zinc-400" />
-                    </Link>
-                    <Link to="/settings" className="flex items-center justify-between p-3 bg-zinc-50 hover:bg-zinc-100 dark:bg-zinc-900/50 dark:hover:bg-zinc-900 rounded-xl transition duration-200">
-                      <span className="text-xs font-semibold text-zinc-700 dark:text-zinc-300">Configure notifications</span>
-                      <ArrowUpRight className="h-4 w-4 text-zinc-400" />
-                    </Link>
+                          );
+                        })}
+                      </div>
+                    )}
                   </div>
                 </div>
               </div>
@@ -632,382 +726,450 @@ export default function DashboardPage() {
           {/* TAB: HACKATHON TRACKER */}
           {activeTab === "tracker" && (
             <div className="space-y-6">
-              <div className="flex flex-wrap items-center gap-2">
-                {TRACKER_STATUSES.map((status) => (
-                  <button
-                    key={status}
-                    onClick={() => setStatusFilter(status)}
-                    className={`rounded-full border px-4 py-2 text-sm font-semibold transition cursor-pointer ${
-                      statusFilter === status
-                        ? "border-blue-600 bg-blue-600 text-white"
-                        : "border-zinc-200 bg-white text-zinc-600 hover:bg-zinc-50 dark:border-zinc-800 dark:bg-zinc-950 dark:text-zinc-300 dark:hover:bg-zinc-900"
-                    }`}
-                  >
-                    {status === "all" ? "All" : status[0].toUpperCase() + status.slice(1)}
-                  </button>
-                ))}
+              {/* Top Panel sub-filters */}
+              <div className="flex flex-wrap items-center justify-between gap-4 pb-3.5 border-b border-zinc-150 dark:border-zinc-800">
+                <div className="flex gap-0.5 bg-zinc-100 dark:bg-zinc-900/60 p-0.5 rounded-lg border border-zinc-200/60 dark:border-zinc-800 shrink-0">
+                  {[
+                    { id: "tracking", label: "Tracking" },
+                    { id: "registered", label: "Registered" },
+                    { id: "finished", label: "Finished" }
+                  ].map((tag) => (
+                    <button
+                      key={tag.id}
+                      onClick={() => {
+                        setTrackerSubFilter(tag.id as any);
+                        setSelectedParticipationId("");
+                      }}
+                      className={`rounded-md px-4 py-2 text-xs font-bold transition-all cursor-pointer ${
+                        trackerSubFilter === tag.id
+                          ? "bg-white dark:bg-zinc-700 text-blue-600 dark:text-blue-400 shadow-xs"
+                          : "text-zinc-500 hover:text-zinc-850 dark:text-zinc-400 dark:hover:text-zinc-200"
+                      }`}
+                    >
+                      {tag.label}
+                    </button>
+                  ))}
+                </div>
               </div>
 
-              {filteredParticipations.length === 0 ? (
-                <div className="rounded-[2rem] border border-dashed border-zinc-300 bg-zinc-50/50 p-12 text-center dark:border-zinc-800 dark:bg-zinc-950/20">
-                  <Flag className="mx-auto h-12 w-12 text-zinc-400" />
-                  <h3 className="mt-4 text-lg font-bold text-zinc-900 dark:text-zinc-100">No team hackathons yet</h3>
-                  <p className="mx-auto mt-2 max-w-sm text-sm text-zinc-600 dark:text-zinc-400">
-                    Register a team on a hackathon detail page and it will appear here automatically.
-                  </p>
-                </div>
-              ) : (
-                <div className="grid gap-4 xl:grid-cols-[1fr_420px]">
-                  <div className="space-y-3">
-                    {filteredParticipations.map((participation) => {
-                      const coverSrc = participation.hackathon.coverImage?.trim() || getStableDefaultImage(`${participation.hackathon._id}:${participation.hackathon.title}`);
-                      const stageProgress = participation.stages.length === 0 ? "No stages yet" : currentStageLabel;
-                      const isSelected = selectedParticipationId === participation._id;
-                      return (
-                        <button
-                          key={participation._id}
-                          onClick={() => {
-                            setSelectedParticipationId(participation._id);
-                            setFocusedStageId("");
-                          }}
-                          className={`w-full rounded-[1.7rem] border bg-white p-4 text-left shadow-sm transition-all hover:-translate-y-0.5 hover:shadow-md dark:bg-zinc-950/60 cursor-pointer ${
-                            isSelected ? "border-blue-500/40 ring-2 ring-blue-500/20" : "border-zinc-200 dark:border-zinc-800"
-                          }`}
-                        >
-                          <div className="flex items-center gap-4">
-                            <div className="h-16 w-16 shrink-0 overflow-hidden rounded-2xl border border-zinc-200 bg-zinc-100 dark:border-zinc-800 dark:bg-zinc-900">
-                              <img
-                                src={coverSrc}
-                                alt={participation.hackathon.title}
-                                className="h-full w-full object-cover"
-                                onError={(event) => {
-                                  event.currentTarget.onerror = null;
-                                  event.currentTarget.src = "/BrandImages/HackDekh.png";
-                                }}
-                              />
-                            </div>
-                            <div className="min-w-0 flex-1">
-                              <div className="flex flex-wrap items-center gap-2">
-                                <h3 className="truncate text-base font-bold text-zinc-900 dark:text-zinc-100">{participation.hackathon.title}</h3>
-                                <span className="rounded-md bg-zinc-100 px-2 py-0.5 text-[0.65rem] font-bold uppercase tracking-wide text-zinc-600 dark:bg-zinc-900 dark:text-zinc-400">
-                                  {participation.hackathon.platform}
-                                </span>
-                              </div>
-                              <div className="mt-2 flex flex-wrap items-center gap-2 text-sm text-zinc-500 dark:text-zinc-400">
-                                <span className="rounded-full bg-zinc-100 px-3 py-1 text-xs font-semibold text-zinc-600 dark:bg-zinc-900 dark:text-zinc-300">
-                                  {getTeamName(participation.teamInfo)}
-                                </span>
-                                <span className={`rounded-full border px-3 py-1 text-xs font-semibold ${getParticipationStatusClass(participation.status)}`}>
-                                  {participation.status}
-                                </span>
-                                <span className="inline-flex items-center gap-1 text-xs font-medium text-zinc-500 dark:text-zinc-400">
-                                  <Clock3 className="h-3.5 w-3.5" />
-                                  {stageProgress}
-                                </span>
-                              </div>
-                            </div>
-                            <ChevronRight className="h-5 w-5 text-zinc-400" />
-                          </div>
-                        </button>
-                      );
-                    })}
+              {/* TRACKING SUB-TAB (Grid format) */}
+              {trackerSubFilter === "tracking" && (() => {
+                const trackingQueue = participations.filter(p => p.status === 'tracking');
+                if (trackingQueue.length === 0) {
+                  return (
+                    <div className="rounded-3xl border border-dashed border-zinc-300 bg-zinc-50/50 p-12 text-center dark:border-zinc-800 dark:bg-zinc-950/20">
+                      <Flag className="mx-auto h-12 w-12 text-zinc-400" />
+                      <h3 className="mt-4 text-lg font-bold text-zinc-900 dark:text-zinc-100">No tracked hackathons in queue</h3>
+                      <p className="mx-auto mt-2 max-w-sm text-sm text-zinc-600 dark:text-zinc-400">
+                        Search and track hackathons from the Discover tab to add them to your queue.
+                      </p>
+                    </div>
+                  );
+                }
+
+                return (
+                  <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-4">
+                    {trackingQueue.map((part, index) => (
+                      <div key={part._id} className="relative group">
+                        <HackathonCard
+                          hackathon={part.hackathon}
+                          displayIndex={index}
+                          extraActions={[
+                            { label: "TRACKED_TRUE", onClick: () => {} }
+                          ]}
+                        />
+                        {/* Mark Registered Overlay Button */}
+                        <div className="absolute top-2 left-2 z-30">
+                          <button
+                            onClick={() => handleUpdateParticipationStatus(part._id, "active")}
+                            className="flex items-center gap-1.5 rounded-lg bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-[10px] font-black uppercase tracking-wider text-white px-2.5 py-1.5 shadow-md shadow-blue-500/20 hover:shadow-lg transition-all duration-300 animate-pulse"
+                            title="Move to Registered track"
+                          >
+                            <Check className="h-3.5 w-3.5" /> Mark Registered
+                          </button>
+                        </div>
+                      </div>
+                    ))}
                   </div>
+                );
+              })()}
 
-                  <AnimatePresence>
-                    {selectedParticipation && (
-                      <motion.aside
-                        initial={{ opacity: 0, x: 30 }}
-                        animate={{ opacity: 1, x: 0 }}
-                        exit={{ opacity: 0, x: 30 }}
-                        className="sticky top-6 h-[calc(100vh-8rem)] overflow-hidden rounded-[2rem] border border-zinc-200 bg-white shadow-xl dark:border-zinc-800 dark:bg-zinc-950/80"
-                      >
-                        <div className="flex h-full flex-col">
-                          <div className="border-b border-zinc-200 p-5 dark:border-zinc-800">
-                            <div className="flex items-start justify-between gap-4">
-                              <div className="min-w-0">
-                                <p className="text-xs font-bold uppercase tracking-wider text-blue-600 dark:text-blue-400">Participation detail</p>
-                                <h3 className="mt-1 truncate text-xl font-bold text-zinc-900 dark:text-zinc-100">{selectedParticipation.hackathon.title}</h3>
-                                <p className="mt-1 text-sm text-zinc-500 dark:text-zinc-400">{getTeamName(selectedParticipation.teamInfo)}</p>
-                              </div>
-                              <button
-                                onClick={() => setSelectedParticipationId("")}
-                                className="rounded-xl p-2 text-zinc-400 transition hover:bg-zinc-100 hover:text-zinc-700 dark:hover:bg-zinc-900 dark:hover:text-zinc-200"
-                              >
-                                <X className="h-4 w-4" />
-                              </button>
-                            </div>
+              {/* REGISTERED & FINISHED SUB-TABS (Split List-Timeline layout) */}
+              {(trackerSubFilter === "registered" || trackerSubFilter === "finished") && (() => {
+                const list = trackerSubFilter === "registered" 
+                  ? participations.filter(p => p.status === 'active')
+                  : participations.filter(p => ['won', 'finalist', 'eliminated'].includes(p.status));
 
-                            <div className="mt-4 flex flex-wrap items-center gap-3">
-                              <div className="inline-flex items-center gap-2 rounded-full border border-zinc-200 bg-zinc-100 px-3 py-1.5 text-xs font-semibold text-zinc-700 dark:border-zinc-800 dark:bg-zinc-900 dark:text-zinc-300">
-                                <Users className="h-3.5 w-3.5" />
-                                {selectedParticipation.teamInfo.members.length} members
-                              </div>
-                              <div className={`inline-flex items-center rounded-full border px-3 py-1.5 text-xs font-semibold ${getParticipationStatusClass(selectedParticipation.status)}`}>
-                                {selectedParticipation.status}
-                              </div>
-                              <div className="inline-flex items-center gap-2 rounded-full border border-zinc-200 bg-white px-3 py-1.5 text-xs font-semibold text-zinc-700 dark:border-zinc-800 dark:bg-zinc-950 dark:text-zinc-300">
-                                <GripVertical className="h-3.5 w-3.5" />
-                                {currentStageLabel}
-                              </div>
-                            </div>
+                if (list.length === 0) {
+                  return (
+                    <div className="rounded-3xl border border-dashed border-zinc-300 bg-zinc-50/50 p-12 text-center dark:border-zinc-800 dark:bg-zinc-950/20">
+                      <Flag className="mx-auto h-12 w-12 text-zinc-400" />
+                      <h3 className="mt-4 text-lg font-bold text-zinc-900 dark:text-zinc-100">No hackathons found</h3>
+                      <p className="mx-auto mt-2 max-w-sm text-sm text-zinc-600 dark:text-zinc-400">
+                        No hackathons found under the {trackerSubFilter} track.
+                      </p>
+                    </div>
+                  );
+                }
 
-                            <div className="mt-4 flex items-center gap-3">
-                              <label className="text-xs font-bold uppercase tracking-wider text-zinc-500 dark:text-zinc-400">Status</label>
-                              <select
-                                value={selectedParticipation.status}
-                                onChange={(event) => handleUpdateParticipationStatus(selectedParticipation._id, event.target.value as Participation["status"])}
-                                disabled={loadingParticipationId === selectedParticipation._id}
-                                className="rounded-xl border border-zinc-200 bg-zinc-50 px-3 py-2 text-sm font-semibold text-zinc-700 outline-none transition focus:border-blue-400 dark:border-zinc-800 dark:bg-zinc-950 dark:text-zinc-200"
-                              >
-                                <option value="active">Active</option>
-                                <option value="finalist">Finalist</option>
-                                <option value="won">Won</option>
-                                <option value="eliminated">Eliminated</option>
-                              </select>
-                              {loadingParticipationId === selectedParticipation._id && <Loader2 className="h-4 w-4 animate-spin text-blue-600" />}
-                            </div>
-                          </div>
+                const selectedParticipation = list.find(p => p._id === selectedParticipationId) || null;
+                const stageProgress = selectedParticipation ? (selectedParticipation.stages.length === 0 ? "No stages yet" : currentStageLabel) : "";
 
-                          <div className="flex-1 overflow-y-auto p-5">
-                            <div className="space-y-6">
-                              <section>
-                                <div className="mb-3 flex items-center justify-between">
-                                  <h4 className="text-sm font-bold uppercase tracking-wider text-zinc-800 dark:text-zinc-200">Stage timeline</h4>
-                                  <button
-                                    onClick={handleAddStage}
-                                    className="inline-flex items-center gap-2 rounded-lg bg-blue-600 px-3 py-2 text-xs font-semibold text-white transition hover:bg-blue-500 cursor-pointer"
-                                  >
-                                    <Plus className="h-3.5 w-3.5" />
-                                    Add Stage
-                                  </button>
+                return (
+                  <div className="grid gap-4 xl:grid-cols-[1fr_420px]">
+                    <div className="space-y-3">
+                      {list.map((participation) => {
+                        const coverSrc = participation.hackathon.coverImage?.trim() || getStableDefaultImage(`${participation.hackathon._id}:${participation.hackathon.title}`);
+                        const currentProgress = participation.stages.length === 0 ? "No stages yet" : (participation._id === selectedParticipationId ? currentStageLabel : "Stage Tracking");
+                        const isSelected = selectedParticipation?._id === participation._id;
+                        return (
+                          <button
+                            key={participation._id}
+                            onClick={() => {
+                              setSelectedParticipationId(participation._id);
+                              setFocusedStageId("");
+                            }}
+                            className={`w-full rounded-[1.7rem] border bg-white p-4 text-left shadow-sm transition-all hover:-translate-y-0.5 hover:shadow-md dark:bg-zinc-950/60 cursor-pointer ${
+                              isSelected ? "border-blue-500/40 ring-2 ring-blue-500/20" : "border-zinc-200 dark:border-zinc-800"
+                            }`}
+                          >
+                            <div className="flex items-center gap-4">
+                              <div className="h-16 w-16 shrink-0 overflow-hidden rounded-2xl border border-zinc-200 bg-zinc-100 dark:border-zinc-800 dark:bg-zinc-900">
+                                <img
+                                  src={coverSrc}
+                                  alt={participation.hackathon.title}
+                                  className="h-full w-full object-cover"
+                                  onError={(event) => {
+                                    event.currentTarget.onerror = null;
+                                    event.currentTarget.src = "/BrandImages/HackDekh.png";
+                                  }}
+                                />
+                              </div>
+                              <div className="min-w-0 flex-1">
+                                <div className="flex flex-wrap items-center gap-2">
+                                  <h3 className="truncate text-base font-bold text-zinc-900 dark:text-zinc-100">{participation.hackathon.title}</h3>
+                                  <span className="rounded-md bg-zinc-100 px-2 py-0.5 text-[0.65rem] font-bold uppercase tracking-wide text-zinc-600 dark:bg-zinc-900 dark:text-zinc-400">
+                                    {participation.hackathon.platform}
+                                  </span>
                                 </div>
+                                <div className="mt-2 flex flex-wrap items-center gap-2 text-sm text-zinc-500 dark:text-zinc-400">
+                                  <span className="rounded-full bg-zinc-100 px-3 py-1 text-xs font-semibold text-zinc-600 dark:bg-zinc-900 dark:text-zinc-300">
+                                    {getTeamName(participation.teamInfo)}
+                                  </span>
+                                  <span className={`rounded-full border px-3 py-1 text-xs font-semibold ${getParticipationStatusClass(participation.status)}`}>
+                                    {participation.status}
+                                  </span>
+                                  <span className="inline-flex items-center gap-1 text-xs font-medium text-zinc-500 dark:text-zinc-400">
+                                    <Clock3 className="h-3.5 w-3.5" />
+                                    {currentProgress}
+                                  </span>
+                                </div>
+                              </div>
+                              <ChevronRight className="h-5 w-5 text-zinc-400" />
+                            </div>
+                          </button>
+                        );
+                      })}
+                    </div>
 
-                                <div className="space-y-3">
-                                  {selectedParticipation.stages.length === 0 ? (
-                                    <div className="rounded-2xl border border-dashed border-zinc-300 bg-zinc-50 p-4 text-sm text-zinc-500 dark:border-zinc-800 dark:bg-zinc-950/40 dark:text-zinc-400">
-                                      No stages yet. Add the first stage to start tracking.
-                                    </div>
-                                  ) : (
-                                    selectedParticipation.stages.map((stage, index) => {
-                                      const isFocused = focusedStageId === stage._id;
-                                      const failedStageIdx = selectedParticipation.stages.findIndex(s => s.result === 'rejected');
-                                      const isDisqualified = failedStageIdx !== -1 && index > failedStageIdx;
-                                      return (
-                                        <div
-                                          key={stage._id}
-                                          className={`rounded-[1.4rem] border p-4 transition ${
-                                            isDisqualified
-                                              ? "border-zinc-200/50 bg-zinc-100/30 dark:border-zinc-800/40 dark:bg-zinc-950/10 opacity-50"
-                                              : isFocused
-                                                ? "border-blue-500/40 bg-blue-500/5"
-                                                : "border-zinc-200 bg-zinc-50/70 dark:border-zinc-800 dark:bg-zinc-950/40"
-                                          }`}
-                                        >
-                                          <div className="flex items-start justify-between gap-3">
-                                            <div className="flex items-start gap-3">
-                                              <div className="mt-1 flex h-7 w-7 items-center justify-center rounded-full bg-zinc-200 text-xs font-bold text-zinc-700 dark:bg-zinc-900 dark:text-zinc-300">
-                                                {index + 1}
-                                              </div>
-                                              <div className="space-y-3">
-                                                <div className="flex items-center gap-2">
-                                                  {isDisqualified && (
-                                                    <span className="inline-flex items-center gap-1 rounded-md bg-zinc-200 px-2 py-0.5 text-[9px] font-black uppercase text-zinc-600 dark:bg-zinc-800 dark:text-zinc-400 shrink-0">
-                                                      Disqualified
-                                                    </span>
-                                                  )}
-                                                  <input
-                                                    disabled={isDisqualified}
-                                                    defaultValue={stage.name}
-                                                    onBlur={(event) => {
-                                                      if (event.target.value !== stage.name) {
-                                                        handleStageFieldSave(selectedParticipation._id, stage._id, { name: event.target.value });
-                                                      }
-                                                    }}
-                                                    className="w-full rounded-xl border border-zinc-200 bg-white px-3 py-2 text-sm font-semibold text-zinc-900 outline-none transition focus:border-blue-400 dark:border-zinc-800 dark:bg-zinc-950 dark:text-zinc-100 disabled:cursor-not-allowed"
-                                                  />
+                    <AnimatePresence>
+                      {selectedParticipation && (
+                        <motion.aside
+                          key={selectedParticipation._id}
+                          initial={{ opacity: 0, x: 30 }}
+                          animate={{ opacity: 1, x: 0 }}
+                          exit={{ opacity: 0, x: 30 }}
+                          className="sticky top-6 h-[calc(100vh-8rem)] overflow-hidden rounded-[2rem] border border-zinc-200 bg-white shadow-xl dark:border-zinc-800 dark:bg-zinc-950/80"
+                        >
+                          <div className="flex h-full flex-col">
+                            <div className="border-b border-zinc-200 p-5 dark:border-zinc-800">
+                              <div className="flex items-start justify-between gap-4">
+                                <div className="min-w-0">
+                                  <p className="text-xs font-bold uppercase tracking-wider text-blue-600 dark:text-blue-400">Participation detail</p>
+                                  <h3 className="mt-1 truncate text-xl font-bold text-zinc-900 dark:text-zinc-100">{selectedParticipation.hackathon.title}</h3>
+                                  <p className="mt-1 text-sm text-zinc-500 dark:text-zinc-400">{getTeamName(selectedParticipation.teamInfo)}</p>
+                                </div>
+                                <button
+                                  onClick={() => setSelectedParticipationId("")}
+                                  className="rounded-xl p-2 text-zinc-400 transition hover:bg-zinc-100 hover:text-zinc-700 dark:hover:bg-zinc-900 dark:hover:text-zinc-200"
+                                >
+                                  <X className="h-4 w-4" />
+                                </button>
+                              </div>
+
+                              <div className="mt-4 flex flex-wrap items-center gap-3">
+                                <div className="inline-flex items-center gap-2 rounded-full border border-zinc-200 bg-zinc-100 px-3 py-1.5 text-xs font-semibold text-zinc-700 dark:border-zinc-800 dark:bg-zinc-900 dark:text-zinc-300">
+                                  <Users className="h-3.5 w-3.5" />
+                                  {selectedParticipation.teamInfo.members.length} members
+                                </div>
+                                <div className={`inline-flex items-center rounded-full border px-3 py-1.5 text-xs font-semibold ${getParticipationStatusClass(selectedParticipation.status)}`}>
+                                  {selectedParticipation.status}
+                                </div>
+                                <div className="inline-flex items-center gap-2 rounded-full border border-zinc-200 bg-white px-3 py-1.5 text-xs font-semibold text-zinc-700 dark:border-zinc-800 dark:bg-zinc-950/40 dark:text-zinc-300">
+                                  <GripVertical className="h-3.5 w-3.5" />
+                                  {stageProgress}
+                                </div>
+                              </div>
+
+                              <div className="mt-4 flex items-center gap-3">
+                                <label className="text-xs font-bold uppercase tracking-wider text-zinc-500 dark:text-zinc-400">Status</label>
+                                <select
+                                  value={selectedParticipation.status}
+                                  onChange={(event) => handleUpdateParticipationStatus(selectedParticipation._id, event.target.value as Participation["status"])}
+                                  disabled={loadingParticipationId === selectedParticipation._id}
+                                  className="rounded-xl border border-zinc-200 bg-zinc-50 px-3 py-2 text-sm font-semibold text-zinc-700 outline-none transition focus:border-blue-400 dark:border-zinc-800 dark:bg-zinc-950 dark:text-zinc-200"
+                                >
+                                  <option value="tracking">Tracking</option>
+                                  <option value="active">Active</option>
+                                  <option value="finalist">Finalist</option>
+                                  <option value="won">Won</option>
+                                  <option value="eliminated">Eliminated</option>
+                                </select>
+                                {loadingParticipationId === selectedParticipation._id && <Loader2 className="h-4 w-4 animate-spin text-blue-600" />}
+                              </div>
+                            </div>
+
+                            <div className="flex-1 overflow-y-auto overflow-x-hidden p-5">
+                              <div className="space-y-6">
+                                <section>
+                                  <div className="mb-3 flex items-center justify-between">
+                                    <h4 className="text-sm font-bold uppercase tracking-wider text-zinc-800 dark:text-zinc-200">Stage timeline</h4>
+                                    <button
+                                      onClick={handleAddStage}
+                                      className="inline-flex items-center gap-2 rounded-lg bg-blue-600 px-3 py-2 text-xs font-semibold text-white transition hover:bg-blue-500 cursor-pointer"
+                                    >
+                                      <Plus className="h-3.5 w-3.5" />
+                                      Add Stage
+                                    </button>
+                                  </div>
+
+                                  <div className="space-y-3">
+                                    {selectedParticipation.stages.length === 0 ? (
+                                      <div className="rounded-2xl border border-dashed border-zinc-300 bg-zinc-50 p-4 text-sm text-zinc-500 dark:border-zinc-800 dark:bg-zinc-950/40 dark:text-zinc-400">
+                                        No stages yet. Add the first stage to start tracking.
+                                      </div>
+                                    ) : (
+                                      selectedParticipation.stages.map((stage, index) => {
+                                        const isFocused = focusedStageId === stage._id;
+                                        const failedStageIdx = selectedParticipation.stages.findIndex(s => s.result === 'rejected');
+                                        const isDisqualified = failedStageIdx !== -1 && index > failedStageIdx;
+                                        return (
+                                          <div
+                                            key={stage._id}
+                                            className={`rounded-[1.4rem] border p-4 transition ${
+                                              isDisqualified
+                                                ? "border-zinc-200/50 bg-zinc-100/30 dark:border-zinc-800/40 dark:bg-zinc-950/10 opacity-50"
+                                                : isFocused
+                                                  ? "border-blue-500/40 bg-blue-500/5"
+                                                  : "border-zinc-200 bg-zinc-50/70 dark:border-zinc-800 dark:bg-zinc-950/40"
+                                            }`}
+                                          >
+                                            <div className="flex items-start justify-between gap-3">
+                                              <div className="flex items-start gap-3">
+                                                <div className="mt-1 flex h-7 w-7 items-center justify-center rounded-full bg-zinc-200 text-xs font-bold text-zinc-700 dark:bg-zinc-900 dark:text-zinc-300">
+                                                  {index + 1}
                                                 </div>
-                                                <div className="flex flex-wrap items-center gap-2 text-xs text-zinc-500 dark:text-zinc-400">
-                                                  <span className="inline-flex items-center gap-1 rounded-full border border-zinc-200 bg-white px-2.5 py-1 dark:border-zinc-800 dark:bg-zinc-950">
-                                                    <Clock3 className="h-3.5 w-3.5" />
-                                                    {formatDate(stage.deadline || undefined)}
-                                                  </span>
-                                                  {!isDisqualified && isCurrentUserPending(stage, user?._id) && (
-                                                    <span className="inline-flex items-center gap-1 rounded-full border border-amber-500/20 bg-amber-500/10 px-2.5 py-1 text-amber-700 dark:text-amber-300">
-                                                      pending reflection
+                                                <div className="space-y-3">
+                                                  <div className="flex items-center gap-2">
+                                                    {isDisqualified && (
+                                                      <span className="inline-flex items-center gap-1 rounded-md bg-zinc-200 px-2 py-0.5 text-[9px] font-black uppercase text-zinc-655 shrink-0">
+                                                        Disqualified
+                                                      </span>
+                                                    )}
+                                                    <input
+                                                      disabled={isDisqualified}
+                                                      defaultValue={stage.name}
+                                                      onBlur={(event) => {
+                                                        if (event.target.value !== stage.name) {
+                                                          handleStageFieldSave(selectedParticipation._id, stage._id, { name: event.target.value });
+                                                        }
+                                                      }}
+                                                      className="w-full rounded-xl border border-zinc-200 bg-white px-3 py-2 text-sm font-semibold text-zinc-900 outline-none transition focus:border-blue-400 dark:border-zinc-800 dark:bg-zinc-950 dark:text-zinc-100 disabled:cursor-not-allowed"
+                                                    />
+                                                  </div>
+                                                  <div className="flex flex-wrap items-center gap-2 text-xs text-zinc-500 dark:text-zinc-400">
+                                                    <span className="inline-flex items-center gap-1 rounded-full border border-zinc-200 bg-white px-2.5 py-1 dark:border-zinc-800 dark:bg-zinc-950">
+                                                      <Clock3 className="h-3.5 w-3.5" />
+                                                      {formatDate(stage.deadline || undefined)}
                                                     </span>
-                                                  )}
+                                                    {!isDisqualified && isCurrentUserPending(stage, user?._id) && (
+                                                      <span className="inline-flex items-center gap-1 rounded-full border border-amber-500/20 bg-amber-500/10 px-2.5 py-1 text-amber-700 dark:text-amber-300">
+                                                        pending reflection
+                                                      </span>
+                                                    )}
+                                                  </div>
                                                 </div>
                                               </div>
-                                            </div>
-                                            <button
-                                              onClick={() => handleDeleteStage(selectedParticipation._id, stage._id)}
-                                              className="rounded-lg p-2 text-zinc-400 transition hover:bg-rose-500/10 hover:text-rose-500 cursor-pointer"
-                                              title="Delete stage"
-                                            >
-                                              <Trash2 className="h-4 w-4" />
-                                            </button>
-                                          </div>
-
-                                          <div className="mt-4 grid gap-3 sm:grid-cols-[1fr_auto]">
-                                            <input
-                                              disabled={isDisqualified}
-                                              type="date"
-                                              defaultValue={stage.deadline ? new Date(stage.deadline).toISOString().slice(0, 10) : ""}
-                                              onBlur={(event) => {
-                                                const nextValue = event.target.value || null;
-                                                const currentValue = stage.deadline ? new Date(stage.deadline).toISOString().slice(0, 10) : "";
-                                                if (nextValue !== currentValue) {
-                                                  handleStageFieldSave(selectedParticipation._id, stage._id, { deadline: nextValue });
-                                                }
-                                              }}
-                                              className="rounded-xl border border-zinc-200 bg-white px-3 py-2 text-sm text-zinc-700 outline-none transition focus:border-blue-400 dark:border-zinc-800 dark:bg-zinc-950 dark:text-zinc-200 disabled:cursor-not-allowed"
-                                            />
-                                            <button
-                                              disabled={isDisqualified}
-                                              onClick={() => handleCycleStageResult(selectedParticipation._id, stage._id)}
-                                              className={`inline-flex items-center justify-center gap-2 rounded-lg border px-3 py-2 text-xs font-semibold cursor-pointer disabled:cursor-not-allowed ${isDisqualified ? "border-zinc-200 bg-zinc-150 text-zinc-500 dark:border-zinc-800 dark:bg-zinc-900/50" : getStageResultClass(stage.result)}`}
-                                            >
-                                              <CircleDot className="h-3.5 w-3.5" />
-                                              {isDisqualified ? "disqualified" : stage.result}
-                                            </button>
-                                          </div>
-
-                                          <textarea
-                                            disabled={isDisqualified}
-                                            defaultValue={stage.notes || ""}
-                                            onBlur={(event) => {
-                                              if (event.target.value !== (stage.notes || "")) {
-                                                handleStageFieldSave(selectedParticipation._id, stage._id, { notes: event.target.value });
-                                              }
-                                            }}
-                                            placeholder="Stage notes"
-                                            className="mt-3 min-h-[92px] w-full rounded-2xl border border-zinc-200 bg-white px-3 py-2 text-sm text-zinc-700 outline-none transition focus:border-blue-400 dark:border-zinc-800 dark:bg-zinc-950 dark:text-zinc-200"
-                                          />
-
-                                          {noteSavingStatus[stage._id] && (
-                                            <div className="mt-2 text-xs font-semibold text-zinc-500 dark:text-zinc-400">
-                                              {noteSavingStatus[stage._id] === "saving" && "Saving stage details..."}
-                                              {noteSavingStatus[stage._id] === "saved" && "Saved"}
-                                              {noteSavingStatus[stage._id] === "error" && "Save failed"}
-                                            </div>
-                                          )}
-
-                                          <div className="mt-4 space-y-3">
-                                            <div className="flex items-center justify-between">
-                                              <h5 className="text-xs font-bold uppercase tracking-wider text-zinc-500 dark:text-zinc-400">Reflections</h5>
                                               <button
-                                                onClick={() => {
-                                                  setActiveReflectionStageId(stage._id);
-                                                  setReflectionDraft("");
-                                                }}
-                                                className="inline-flex items-center gap-1 rounded-lg bg-zinc-100 px-2.5 py-1 text-xs font-semibold text-zinc-700 transition hover:bg-zinc-200 dark:bg-zinc-900 dark:text-zinc-300 dark:hover:bg-zinc-800 cursor-pointer"
+                                                onClick={() => handleDeleteStage(selectedParticipation._id, stage._id)}
+                                                className="rounded-lg p-2 text-zinc-400 transition hover:bg-rose-500/10 hover:text-rose-500 cursor-pointer"
+                                                title="Delete stage"
                                               >
-                                                <Plus className="h-3 w-3" />
-                                                Add reflection
+                                                <Trash2 className="h-4 w-4" />
                                               </button>
                                             </div>
 
-                                            {stage.reflections.length > 0 ? (
-                                              <div className="space-y-2">
-                                                {stage.reflections.map((reflection, reflectionIndex) => (
-                                                  <div key={`${stage._id}-${reflectionIndex}`} className="rounded-2xl border border-zinc-200 bg-white px-3 py-2 text-sm dark:border-zinc-800 dark:bg-zinc-950">
-                                                    <div className="text-xs font-semibold text-zinc-500 dark:text-zinc-400">
-                                                      {typeof reflection.user === "string" ? "Teammate" : reflection.user.fullName || reflection.user.username || "Teammate"}
+                                            <div className="mt-4 grid grid-cols-2 gap-2">
+                                              <input
+                                                disabled={isDisqualified}
+                                                type="date"
+                                                defaultValue={stage.deadline ? new Date(stage.deadline).toISOString().slice(0, 10) : ""}
+                                                onBlur={(event) => {
+                                                  const nextValue = event.target.value || null;
+                                                  const currentValue = stage.deadline ? new Date(stage.deadline).toISOString().slice(0, 10) : "";
+                                                  if (nextValue !== currentValue) {
+                                                    handleStageFieldSave(selectedParticipation._id, stage._id, { deadline: nextValue });
+                                                  }
+                                                }}
+                                                className="rounded-xl border border-zinc-200 bg-white px-3 py-2 text-sm text-zinc-700 outline-none transition focus:border-blue-400 dark:border-zinc-800 dark:bg-zinc-950 dark:text-zinc-200 disabled:cursor-not-allowed"
+                                              />
+                                              <button
+                                                disabled={isDisqualified}
+                                                onClick={() => handleCycleStageResult(selectedParticipation._id, stage._id)}
+                                                className={`inline-flex items-center justify-center gap-2 rounded-lg border px-3 py-2 text-xs font-semibold cursor-pointer disabled:cursor-not-allowed ${isDisqualified ? "border-zinc-200 bg-zinc-150 text-zinc-500 dark:border-zinc-800 dark:bg-zinc-900/50" : getStageResultClass(stage.result)}`}
+                                              >
+                                                <CircleDot className="h-3.5 w-3.5" />
+                                                {isDisqualified ? "disqualified" : stage.result}
+                                              </button>
+                                            </div>
+
+                                            <textarea
+                                              disabled={isDisqualified}
+                                              defaultValue={stage.notes || ""}
+                                              onBlur={(event) => {
+                                                if (event.target.value !== (stage.notes || "")) {
+                                                  handleStageFieldSave(selectedParticipation._id, stage._id, { notes: event.target.value });
+                                                }
+                                              }}
+                                              placeholder="Stage notes"
+                                              className="mt-3 min-h-[92px] w-full rounded-2xl border border-zinc-200 bg-white px-3 py-2 text-sm text-zinc-700 outline-none transition focus:border-blue-400 dark:border-zinc-800 dark:bg-zinc-950 dark:text-zinc-200"
+                                            />
+
+                                            {noteSavingStatus[stage._id] && (
+                                              <div className="mt-2 text-xs font-semibold text-zinc-500 dark:text-zinc-400">
+                                                {noteSavingStatus[stage._id] === "saving" && "Saving stage details..."}
+                                                {noteSavingStatus[stage._id] === "saved" && "Saved"}
+                                                {noteSavingStatus[stage._id] === "error" && "Save failed"}
+                                              </div>
+                                            )}
+
+                                            <div className="mt-4 space-y-3">
+                                              <div className="flex items-center justify-between">
+                                                <h5 className="text-xs font-bold uppercase tracking-wider text-zinc-500 dark:text-zinc-400">Reflections</h5>
+                                                <button
+                                                  onClick={() => {
+                                                    setActiveReflectionStageId(stage._id);
+                                                    setReflectionDraft("");
+                                                  }}
+                                                  className="inline-flex items-center gap-1 rounded-lg bg-zinc-100 px-2.5 py-1 text-xs font-semibold text-zinc-700 transition hover:bg-zinc-200 dark:bg-zinc-900 dark:text-zinc-300 dark:hover:bg-zinc-800 cursor-pointer"
+                                                >
+                                                  <Plus className="h-3 w-3" />
+                                                  Add reflection
+                                                </button>
+                                              </div>
+
+                                              {stage.reflections.length > 0 ? (
+                                                <div className="space-y-2">
+                                                  {stage.reflections.map((reflection, reflectionIndex) => (
+                                                    <div key={`${stage._id}-${reflectionIndex}`} className="rounded-2xl border border-zinc-200 bg-white px-3 py-2 text-sm dark:border-zinc-800 dark:bg-zinc-950">
+                                                      <div className="text-xs font-semibold text-zinc-500 dark:text-zinc-400">
+                                                        {typeof reflection.user === "string" ? "Teammate" : reflection.user.fullName || reflection.user.username || "Teammate"}
+                                                      </div>
+                                                      <p className="mt-1 text-zinc-700 dark:text-zinc-200">{reflection.note}</p>
                                                     </div>
-                                                    <p className="mt-1 text-zinc-700 dark:text-zinc-200">{reflection.note}</p>
-                                                  </div>
-                                                ))}
-                                              </div>
-                                            ) : (
-                                              <div className="rounded-2xl border border-dashed border-zinc-300 bg-zinc-50 px-3 py-4 text-sm text-zinc-500 dark:border-zinc-800 dark:bg-zinc-950/40 dark:text-zinc-400">
-                                                No reflections yet.
-                                              </div>
-                                            )}
-
-                                            {activeReflectionStageId === stage._id && (
-                                              <div className="rounded-2xl border border-blue-500/20 bg-blue-500/5 p-3">
-                                                <textarea
-                                                  value={reflectionDraft}
-                                                  onChange={(event) => setReflectionDraft(event.target.value)}
-                                                  placeholder={`Add reflection for ${stage.name}`}
-                                                  className="min-h-[88px] w-full rounded-xl border border-zinc-200 bg-white px-3 py-2 text-sm text-zinc-700 outline-none transition focus:border-blue-400 dark:border-zinc-800 dark:bg-zinc-950 dark:text-zinc-200"
-                                                />
-                                                <div className="mt-3 flex justify-end gap-2">
-                                                  <button
-                                                    onClick={() => {
-                                                      setActiveReflectionStageId("");
-                                                      setReflectionDraft("");
-                                                    }}
-                                                    className="rounded-lg border border-zinc-200 bg-white px-3 py-2 text-xs font-semibold text-zinc-600 transition hover:bg-zinc-50 dark:border-zinc-800 dark:bg-zinc-900 dark:text-zinc-300 dark:hover:bg-zinc-800 cursor-pointer"
-                                                  >
-                                                    Cancel
-                                                  </button>
-                                                  <button
-                                                    onClick={handleAddReflection}
-                                                    className="inline-flex items-center gap-2 rounded-lg bg-blue-600 px-3 py-2 text-xs font-semibold text-white transition hover:bg-blue-500 cursor-pointer"
-                                                  >
-                                                    <Save className="h-3.5 w-3.5" />
-                                                    Save reflection
-                                                  </button>
+                                                  ))}
                                                 </div>
-                                              </div>
-                                            )}
+                                              ) : (
+                                                <div className="rounded-2xl border border-dashed border-zinc-300 bg-zinc-50 px-3 py-4 text-sm text-zinc-500 dark:border-zinc-855">
+                                                  No reflections yet.
+                                                </div>
+                                              )}
+
+                                              {activeReflectionStageId === stage._id && (
+                                                <div className="rounded-2xl border border-blue-500/20 bg-blue-500/5 p-3">
+                                                  <textarea
+                                                    value={reflectionDraft}
+                                                    onChange={(event) => setReflectionDraft(event.target.value)}
+                                                    placeholder={`Add reflection for ${stage.name}`}
+                                                    className="min-h-[88px] w-full rounded-xl border border-zinc-200 bg-white px-3 py-2 text-sm text-zinc-700 outline-none transition focus:border-blue-400 dark:border-zinc-800 dark:bg-zinc-950 dark:text-zinc-200"
+                                                  />
+                                                  <div className="mt-3 flex justify-end gap-2">
+                                                    <button
+                                                      onClick={() => {
+                                                        setActiveReflectionStageId("");
+                                                        setReflectionDraft("");
+                                                      }}
+                                                      className="rounded-lg border border-zinc-200 bg-white px-3 py-2 text-xs font-semibold text-zinc-600 transition hover:bg-zinc-50 dark:border-zinc-800 dark:bg-zinc-900 dark:text-zinc-300 dark:hover:bg-zinc-800 cursor-pointer"
+                                                    >
+                                                      Cancel
+                                                    </button>
+                                                    <button
+                                                      onClick={handleAddReflection}
+                                                      className="inline-flex items-center gap-2 rounded-lg bg-blue-600 px-3 py-2 text-xs font-semibold text-white transition hover:bg-blue-500 cursor-pointer"
+                                                    >
+                                                      <Save className="h-3.5 w-3.5" />
+                                                      Save reflection
+                                                    </button>
+                                                  </div>
+                                                </div>
+                                              )}
+                                            </div>
                                           </div>
+                                        );
+                                      })
+                                    )}
+                                  </div>
+
+                                  <div className="mt-4 flex flex-col gap-2.5">
+                                    <input
+                                      type="text"
+                                      value={newStageName}
+                                      onChange={(event) => setNewStageName(event.target.value)}
+                                      placeholder="Add a new stage"
+                                      className="rounded-xl border border-zinc-200 bg-white px-3 py-2 text-sm text-zinc-700 outline-none transition focus:border-blue-400 dark:border-zinc-800 dark:bg-zinc-950 dark:text-zinc-200"
+                                    />
+                                    <input
+                                      type="date"
+                                      value={newStageDeadline}
+                                      onChange={(event) => setNewStageDeadline(event.target.value)}
+                                      className="rounded-xl border border-zinc-200 bg-white px-3 py-2 text-sm text-zinc-700 outline-none transition focus:border-blue-400 dark:border-zinc-800 dark:bg-zinc-950 dark:text-zinc-200"
+                                    />
+                                  </div>
+                                  <div className="mt-3 flex justify-end">
+                                    <button
+                                      onClick={handleAddStage}
+                                      className="inline-flex items-center gap-2 rounded-lg bg-blue-600 px-4 py-2 text-sm font-semibold text-white transition hover:bg-blue-500 cursor-pointer"
+                                    >
+                                      <Plus className="h-4 w-4" />
+                                      Add Stage
+                                    </button>
+                                  </div>
+                                </section>
+
+                                <section>
+                                  <h4 className="mb-3 text-sm font-bold uppercase tracking-wider text-zinc-800 dark:text-zinc-200">Members</h4>
+                                  <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
+                                    {selectedParticipation.teamInfo.members.map((member) => (
+                                      <div key={member._id} className="rounded-2xl border border-zinc-200 bg-zinc-50 p-3 dark:border-zinc-800 dark:bg-zinc-950/40">
+                                        <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-blue-600/10 text-sm font-bold text-blue-700 dark:text-blue-400">
+                                          {(member.fullName || member.username || "U").slice(0, 2).toUpperCase()}
                                         </div>
-                                      );
-                                    })
-                                  )}
-                                </div>
-
-                                <div className="mt-4 grid gap-3 sm:grid-cols-[1fr_auto]">
-                                  <input
-                                    type="text"
-                                    value={newStageName}
-                                    onChange={(event) => setNewStageName(event.target.value)}
-                                    placeholder="Add a new stage"
-                                    className="rounded-xl border border-zinc-200 bg-white px-3 py-2 text-sm text-zinc-700 outline-none transition focus:border-blue-400 dark:border-zinc-800 dark:bg-zinc-950 dark:text-zinc-200"
-                                  />
-                                  <input
-                                    type="date"
-                                    value={newStageDeadline}
-                                    onChange={(event) => setNewStageDeadline(event.target.value)}
-                                    className="rounded-xl border border-zinc-200 bg-white px-3 py-2 text-sm text-zinc-700 outline-none transition focus:border-blue-400 dark:border-zinc-800 dark:bg-zinc-950 dark:text-zinc-200"
-                                  />
-                                </div>
-                                <div className="mt-3 flex justify-end">
-                                  <button
-                                    onClick={handleAddStage}
-                                    className="inline-flex items-center gap-2 rounded-lg bg-blue-600 px-4 py-2 text-sm font-semibold text-white transition hover:bg-blue-500 cursor-pointer"
-                                  >
-                                    <Plus className="h-4 w-4" />
-                                    Add Stage
-                                  </button>
-                                </div>
-                              </section>
-
-                              <section>
-                                <h4 className="mb-3 text-sm font-bold uppercase tracking-wider text-zinc-800 dark:text-zinc-200">Members</h4>
-                                <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
-                                  {selectedParticipation.teamInfo.members.map((member) => (
-                                    <div key={member._id} className="rounded-2xl border border-zinc-200 bg-zinc-50 p-3 dark:border-zinc-800 dark:bg-zinc-950/40">
-                                      <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-blue-600/10 text-sm font-bold text-blue-700 dark:text-blue-400">
-                                        {(member.fullName || member.username || "U").slice(0, 2).toUpperCase()}
+                                        <p className="mt-2 truncate text-sm font-semibold text-zinc-900 dark:text-zinc-100">
+                                          {member.fullName || member.username || member.email || "Member"}
+                                        </p>
                                       </div>
-                                      <p className="mt-2 truncate text-sm font-semibold text-zinc-900 dark:text-zinc-100">
-                                        {member.fullName || member.username || member.email || "Member"}
-                                      </p>
-                                    </div>
-                                  ))}
-                                </div>
-                              </section>
+                                    ))}
+                                  </div>
+                                </section>
+                              </div>
                             </div>
                           </div>
-                        </div>
-                      </motion.aside>
-                    )}
-                  </AnimatePresence>
-                </div>
-              )}
+                        </motion.aside>
+                      )}
+                    </AnimatePresence>
+                  </div>
+                );
+              })()}
             </div>
           )}
         </div>
