@@ -1,4 +1,4 @@
-import axios from "axios";
+import axios, { AxiosError } from "axios";
 import hackathon from "../models/hackathon.model.ts";
 import * as cheerio from "cheerio";
 import { universalFormatter } from "../formatters/universalFormatter.ts";
@@ -13,6 +13,25 @@ const HEADERS = {
   Origin: "https://unstop.com",
 };
 
+const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
+
+async function fetchOpportunityDetail(id: number): Promise<any | null> {
+  try {
+    const { data } = await axios.get(
+      `https://unstop.com/api/public/competition/${id}?round_lang=1&getSaasFeatures=true`,
+      {
+        headers: HEADERS,
+        timeout: 12000,
+      }
+    );
+    return data?.data?.competition ?? null;
+  } catch (err) {
+    const status = (err as AxiosError)?.response?.status;
+    console.error(`[Unstop Scraper] Error fetching detail for ID ${id}: HTTP ${status ?? "?"}`);
+    return null;
+  }
+}
+
 export const scrapeUnstop = asyncHandler(async (req: any, res: any) => {
   const data = await scrapeUnstopData();
   return res.status(200).json(new ApiResponse(200, { ok: true, count: data.length }, "Unstop hackathons scraped successfully!"));
@@ -23,11 +42,6 @@ export async function scrapeUnstopData() {
   let hackathons: any[] = [];
   let page: number = 1;
   let hasMoreData: boolean = true;
-
-  // The search API already returns ALL detail data per hackathon including:
-  // regnRequirements (team size, deadline), prizes, address_with_country_logo,
-  // details (HTML description), organisation, filters, required_skills, etc.
-  // No separate detail API call needed — the search endpoint IS the deep data source.
 
   while (hasMoreData) {
     console.log(`fetching page No. ${page}...`);
@@ -63,10 +77,46 @@ export async function scrapeUnstopData() {
     await new Promise((resolve) => setTimeout(resolve, 1000));
   }
 
-  console.log(`[Unstop Scraper] Fetched ${hackathons.length} hackathons (all detail data included from search API). Formatting...`);
+  console.log(`[Unstop Scraper] Fetched ${hackathons.length} hackathons (search results). Fetching deep details and rounds...`);
+
+  // Enrich each hackathon with detail/round data in batches of 5
+  const enrichedHackathons: any[] = [];
+  const batchSize = 5;
+  const totalItems = hackathons.length;
+
+  for (let i = 0; i < totalItems; i += batchSize) {
+    const batch = hackathons.slice(i, i + batchSize);
+    console.log(`[Unstop Scraper] Detail batch ${Math.floor(i / batchSize) + 1}/${Math.ceil(totalItems / batchSize)}...`);
+
+    const enrichedBatch = await Promise.all(
+      batch.map(async (h) => {
+        const id = h.id;
+        if (!id) {
+          console.warn(`[Unstop Scraper] Item "${h.title}" has no id field — skipping detail fetch`);
+          return h;
+        }
+        const detail = await fetchOpportunityDetail(id);
+        if (detail) {
+          return {
+            ...h,
+            opportunity_rounds: detail.rounds || [],
+            details: detail.details || detail.description || h.details,
+            cover_image: detail.logoUrl2 || detail.logoUrl || detail.cover_image || h.logoUrl2 || h.logoUrl,
+          };
+        }
+        return h;
+      })
+    );
+    enrichedHackathons.push(...enrichedBatch);
+    if (i + batchSize < totalItems) {
+      await sleep(1000);
+    }
+  }
+
+  console.log(`[Unstop Scraper] Enrichment done. Formatting...`);
 
   //Normalize the raw data
-  const normalizedList = universalFormatter(hackathons, "unstop");
+  const normalizedList = universalFormatter(enrichedHackathons, "unstop");
 
   // IMPORTANT CHALLENGE (Handling Duplicates): Remove duplicates from array
   const uniqueHackathons = normalizedList.filter(

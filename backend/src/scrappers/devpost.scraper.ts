@@ -19,6 +19,27 @@ const normalizeString = (value: unknown): string | null => {
   return trimmed.length ? trimmed : null;
 };
 
+const parseDevpostDateText = (text: string | null, year = new Date().getFullYear()): Date | null => {
+  if (!text) return null;
+  // Match "Month Day[, Year] at Time(am/pm) [TZ]"
+  const match = text.match(/([a-zA-Z]+)\s+(\d{1,2})(?:,\s*(\d{4}))?\s+at\s+(\d{1,2}:\d{2})\s*([ap]m)?\s*([a-zA-Z]{3,4})?/i);
+  if (match) {
+    const [_, month, day, matchedYear, time, ampm, tz] = match;
+    const finalYear = matchedYear || year.toString();
+    const formatted = `${month} ${day}, ${finalYear} ${time} ${ampm || ""} ${tz || ""}`.trim().replace(/\s+/g, ' ');
+    const parsed = new Date(formatted);
+    if (!isNaN(parsed.getTime())) {
+      return parsed;
+    }
+  }
+  // Try fallback with simple Date constructor
+  const parsed = new Date(text);
+  if (!isNaN(parsed.getTime())) {
+    return parsed;
+  }
+  return null;
+};
+
 const enrichSingleDevpostHackathon = async (hack: any): Promise<any> => {
   const url = hack?.url;
   if (!url) return hack;
@@ -88,37 +109,108 @@ const enrichSingleDevpostHackathon = async (hack: any): Promise<any> => {
 
     // --- Timeline / Stages ---
     const detailStages: any[] = [];
-    const datesEl = $(".important-dates, #important-dates, .sidebar-section .important-dates");
-    if (datesEl.length) {
-      datesEl.find("dt").each((_i, el) => {
-        const title = normalizeString($(el).text());
-        const descEl = $(el).next("dd");
-        if (title && descEl.length) {
-          const dateText = normalizeString(descEl.text());
-          const timeTag = descEl.find("time");
-          const isoDate = timeTag.attr("datetime") || dateText;
-          if (isoDate) {
-            const parsed = new Date(isoDate);
-            if (!isNaN(parsed.getTime())) {
+
+    // 1. Try to fetch details/dates subpage
+    try {
+      const datesUrl = url.endsWith('/') ? `${url}details/dates` : `${url}/details/dates`;
+      const { data: datesHtml } = await axios.get(datesUrl, {
+        headers: HEADERS,
+        timeout: 10000,
+      });
+      const $dates = cheerio.load(datesHtml);
+      $dates("table tr").each((_i, tr) => {
+        const cells = $dates(tr).find("td, th");
+        if (cells.length >= 3) {
+          const name = normalizeString($dates(cells.get(0)).text());
+          if (name && name !== "Period") {
+            const beginsText = normalizeString($dates(cells.get(1)).text());
+            const beginsDate = parseDevpostDateText(beginsText);
+            const endsText = normalizeString($dates(cells.get(2)).text());
+            const endsDate = parseDevpostDateText(endsText);
+            
+            if (beginsDate && !isNaN(beginsDate.getTime())) {
               detailStages.push({
-                name: title,
-                deadline: parsed,
+                name: `${name} Begins`,
+                deadline: beginsDate,
+              });
+            }
+            if (endsDate && !isNaN(endsDate.getTime())) {
+              detailStages.push({
+                name: `${name} Ends`,
+                deadline: endsDate,
               });
             }
           }
         }
       });
+    } catch (err: any) {
+      // Subpage might not exist or failed to fetch
     }
 
+    // 2. Fall back to sidebar dates on overview page
     if (detailStages.length === 0) {
-      if (hack?.submission_deadline) {
-        detailStages.push({ name: "Submission Deadline", deadline: new Date(hack.submission_deadline) });
+      const datesEl = $(".important-dates, #important-dates, .sidebar-section .important-dates");
+      if (datesEl.length) {
+        datesEl.find("dt").each((_i, el) => {
+          const title = normalizeString($(el).text());
+          const descEl = $(el).next("dd");
+          if (title && descEl.length) {
+            const dateText = normalizeString(descEl.text());
+            const timeTag = descEl.find("time");
+            const isoDate = timeTag.attr("datetime") || dateText;
+            if (isoDate) {
+              const parsed = new Date(isoDate);
+              if (!isNaN(parsed.getTime())) {
+                detailStages.push({
+                  name: title,
+                  deadline: parsed,
+                });
+              } else {
+                const parsedClean = parseDevpostDateText(dateText);
+                if (parsedClean) {
+                  detailStages.push({
+                    name: title,
+                    deadline: parsedClean,
+                  });
+                }
+              }
+            }
+          }
+        });
       }
-      if (hack?.start_date) {
-        detailStages.push({ name: "Hackathon Start", deadline: new Date(hack.start_date) });
+    }
+
+    // 3. Fall back to API dates
+    if (detailStages.length === 0) {
+      if (hack?.submission_period_dates) {
+        const parts = hack.submission_period_dates.split(" - ");
+        if (parts.length === 2) {
+          const startStr = parts[0].trim();
+          const endStr = parts[1].trim();
+          const yearMatch = endStr.match(/\d{4}/);
+          const year = yearMatch ? parseInt(yearMatch[0], 10) : new Date().getFullYear();
+          
+          const parsedStart = parseDevpostDateText(`${startStr} 12:00am`, year);
+          const parsedEnd = parseDevpostDateText(`${endStr} 11:59pm`, year);
+          
+          if (parsedStart && !isNaN(parsedStart.getTime())) {
+            detailStages.push({ name: "Submission Starts", deadline: parsedStart });
+          }
+          if (parsedEnd && !isNaN(parsedEnd.getTime())) {
+            detailStages.push({ name: "Submission Ends", deadline: parsedEnd });
+          }
+        } else {
+          const parsedDate = new Date(hack.submission_period_dates);
+          if (!isNaN(parsedDate.getTime())) {
+            detailStages.push({ name: "Submission Deadline", deadline: parsedDate });
+          }
+        }
       }
-      if (hack?.deadline) {
-        detailStages.push({ name: "Winners Announced", deadline: new Date(hack.deadline) });
+      if (hack?.winners_announced) {
+        const parsed = new Date(hack.winners_announced);
+        if (!isNaN(parsed.getTime())) {
+          detailStages.push({ name: "Winners Announced", deadline: parsed });
+        }
       }
     }
 

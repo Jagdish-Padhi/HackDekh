@@ -51,7 +51,6 @@ const getStableDefaultImage = (seed: string) => {
     return defaultImages[hash % defaultImages.length];
 };
 
-const SAFE_DEADLINE_BUFFER_DAYS = 3;
 const SAFE_DEADLINE_MIN_WINDOW_DAYS = 5;
 
 type DeadlineDisplay = {
@@ -107,16 +106,16 @@ const getDeadlineDisplay = (deadline?: string): DeadlineDisplay => {
         };
     }
 
-    if (daysUntilActualDeadline > SAFE_DEADLINE_MIN_WINDOW_DAYS) {
-        parsed.setDate(parsed.getDate() - SAFE_DEADLINE_BUFFER_DAYS);
-    }
-
     if (Number.isNaN(parsed.getTime())) {
         return { label: "TBD", isUrgent: false };
     }
 
+    const dd = String(parsed.getDate()).padStart(2, "0");
+    const mm = String(parsed.getMonth() + 1).padStart(2, "0");
+    const yyyy = parsed.getFullYear();
+
     return {
-        label: parsed.toISOString().slice(0, 10),
+        label: `${dd}-${mm}-${yyyy}`,
         isUrgent: false,
     };
 };

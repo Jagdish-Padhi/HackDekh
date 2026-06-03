@@ -310,17 +310,39 @@ export default function formatUnstop(rawData: any) {
       teamSize,
       description,
       // Try thumb, logoUrl2, logoUrl as possible cover images
-      coverImage: h.thumb || h.logoUrl2 || h.logoUrl || h.organisation?.logoUrl2 || h.organisation?.logoUrl || null,
+      coverImage: h.cover_image || h.thumb || h.logoUrl2 || h.logoUrl || h.organisation?.logoUrl2 || h.organisation?.logoUrl || null,
       stages: (() => {
         const parsedStages: any[] = [];
         const rounds = h.opportunity_rounds || h.rounds || h.stages || [];
         if (Array.isArray(rounds)) {
-          for (const r of rounds) {
-            const name = r.name || r.title || r.round_name;
+          for (let i = 0; i < rounds.length; i++) {
+            const r = rounds[i];
+            const rd = Array.isArray(r.details) && r.details.length > 0 ? r.details[0] : {};
+            
+            const name =
+              rd.title ||
+              rd.name ||
+              r.name ||
+              r.title ||
+              rd.round_name ||
+              r.round_name ||
+              `Round ${r.round_order || r.id || i + 1}`;
+
+            const deadlineRaw =
+              rd.end_date ||
+              rd.end_time ||
+              r.end_date ||
+              r.end_time ||
+              rd.submission_deadline ||
+              rd.deadline ||
+              rd.start_date ||
+              r.start_date ||
+              null;
+
             if (name) {
               parsedStages.push({
-                name,
-                deadline: r.end_date || r.start_date || r.end_time ? new Date(r.end_date || r.start_date || r.end_time) : undefined,
+                name: String(name).trim(),
+                deadline: deadlineRaw && !isNaN(Date.parse(deadlineRaw)) ? new Date(deadlineRaw) : undefined,
               });
             }
           }

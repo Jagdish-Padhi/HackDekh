@@ -4,9 +4,6 @@ import { ApiResponse } from "../utils/apiResponse.ts";
 import { ApiError } from "../utils/apiError.ts";
 import axios from "axios";
 
-const SAFE_DEADLINE_BUFFER_DAYS = 3;
-const SAFE_DEADLINE_MIN_WINDOW_DAYS = 5;
-
 const isUnavailablePrize = (value: string) =>
   /^(?:tbd|na|n\/a|none|null|undefined|not\s*(?:announced|disclosed)|to\s*be\s*announced|--?)$/i.test(value.trim());
 
@@ -24,13 +21,6 @@ const getComparableDeadlineDate = (deadline?: Date | string | null) => {
 
   if (typeof deadline === "string" && /^\d{4}-\d{2}-\d{2}$/.test(rawDeadline)) {
     parsed.setHours(23, 59, 59, 999);
-  }
-
-  const msPerDay = 1000 * 60 * 60 * 24;
-  const daysUntilActualDeadline = Math.ceil((parsed.getTime() - Date.now()) / msPerDay);
-
-  if (daysUntilActualDeadline > SAFE_DEADLINE_MIN_WINDOW_DAYS) {
-    parsed.setDate(parsed.getDate() - SAFE_DEADLINE_BUFFER_DAYS);
   }
 
   return Number.isNaN(parsed.getTime()) ? null : parsed;
