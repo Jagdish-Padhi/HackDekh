@@ -172,10 +172,19 @@ export default function HackathonDetailsPage() {
       .get(`/hackathons/${id}`)
       .then((res) => {
         if (!isMounted) return;
+        let hackData: any = null;
         if (res.data?.success && res.data?.data) {
-          setHackathon(res.data.data);
+          hackData = res.data.data;
         } else if (res.data) {
-          setHackathon(res.data);
+          hackData = res.data;
+        }
+
+        if (hackData) {
+          setHackathon(hackData);
+          if (hackData.applyLink) {
+            window.location.replace(hackData.applyLink);
+            return;
+          }
         } else {
           setError("Failed to parse hackathon details");
         }

@@ -1200,13 +1200,25 @@ export default function TeamsPage() {
                                   <h4 className="text-sm font-bold text-zinc-900 dark:text-white truncate" title={participation.hackathon.title}>
                                     {participation.hackathon.title}
                                   </h4>
-                                  <Link
-                                    to={`/hackathons/${participation.hackathon._id}`}
-                                    className="text-zinc-400 hover:text-zinc-700 dark:hover:text-zinc-200 p-0.5 shrink-0"
-                                    title="View Hackathon Details"
-                                  >
-                                    <ExternalLink className="h-3.5 w-3.5" />
-                                  </Link>
+                                  {participation.hackathon.applyLink ? (
+                                    <a
+                                      href={participation.hackathon.applyLink}
+                                      target="_blank"
+                                      rel="noopener noreferrer"
+                                      className="text-zinc-400 hover:text-zinc-700 dark:hover:text-zinc-200 p-0.5 shrink-0"
+                                      title="Open Official Site"
+                                    >
+                                      <ExternalLink className="h-3.5 w-3.5" />
+                                    </a>
+                                  ) : (
+                                    <Link
+                                      to={`/hackathons/${participation.hackathon._id}`}
+                                      className="text-zinc-400 hover:text-zinc-700 dark:hover:text-zinc-200 p-0.5 shrink-0"
+                                      title="View Hackathon Details"
+                                    >
+                                      <ExternalLink className="h-3.5 w-3.5" />
+                                    </Link>
+                                  )}
                                 </div>
                                 <div className="flex items-center gap-2 mt-1">
                                   <span className={`text-[10px] font-extrabold uppercase ${
