@@ -233,12 +233,6 @@ export const getHackathons = asyncHandler(async (req: any, res: any) => {
   // Filter out explicit 0 or no cash prizes
   list = list.filter((h) => !isZeroOrNoCashPrize(h.prize));
 
-  // Filter expired hackathons by default
-  const isShowExpired = showExpired === "true";
-  if (!isShowExpired) {
-    list = list.filter((h) => !hasDeadlinePassed(h.deadline));
-  }
-
   // Sort
   if (sortBy) {
     list.sort((a: any, b: any) => {

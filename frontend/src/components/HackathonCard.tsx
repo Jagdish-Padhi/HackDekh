@@ -56,6 +56,7 @@ const SAFE_DEADLINE_MIN_WINDOW_DAYS = 5;
 type DeadlineDisplay = {
     label: string;
     isUrgent: boolean;
+    isExpired?: boolean;
 };
 
 const isUnavailablePrize = (value: string) =>
@@ -95,6 +96,14 @@ const getDeadlineDisplay = (deadline?: string): DeadlineDisplay => {
 
     const msPerDay = 1000 * 60 * 60 * 24;
     const daysUntilActualDeadline = Math.ceil((parsed.getTime() - Date.now()) / msPerDay);
+
+    if (daysUntilActualDeadline < 0) {
+        return {
+            label: "Expired",
+            isUrgent: false,
+            isExpired: true,
+        };
+    }
 
     if (daysUntilActualDeadline >= 0 && daysUntilActualDeadline <= SAFE_DEADLINE_MIN_WINDOW_DAYS) {
         const daysLeft = Math.max(daysUntilActualDeadline, 1);
@@ -203,13 +212,22 @@ const HackathonCard = ({ hackathon, displayIndex, extraActions = [] }: Hackathon
     const isTracked = extraActions.some(action => action.label === "TRACKED_TRUE");
     const trackHandler = extraActions.find(action => action.label === "TRACK_HANDLER")?.onClick;
 
+    const isExpired = !!deadlineDisplay.isExpired;
+
     return (
         <div
             ref={cardRef}
-            className={`group premium-border-card relative flex h-full flex-col overflow-hidden rounded-[1.75rem] border border-zinc-200/80 bg-white p-4 shadow-sm transition-all duration-500 ease-out hover:-translate-y-1 hover:border-zinc-300 hover:shadow-lg dark:border-zinc-800 dark:bg-zinc-900 dark:shadow-md dark:hover:border-zinc-700 dark:hover:shadow-lg ${isVisible ? "translate-x-0 translate-y-0 opacity-100" : "-translate-x-3 translate-y-2 opacity-0"}`}
+            className={`group premium-border-card relative flex h-full flex-col overflow-hidden rounded-[1.75rem] border border-zinc-200/80 bg-white p-4 shadow-sm transition-all duration-500 ease-out hover:-translate-y-1 hover:border-zinc-300 hover:shadow-lg dark:border-zinc-800 dark:bg-zinc-900 dark:shadow-md dark:hover:border-zinc-700 dark:hover:shadow-lg ${isExpired ? "expired opacity-80" : ""} ${isVisible ? "translate-x-0 translate-y-0 opacity-100" : "-translate-x-3 translate-y-2 opacity-0"}`}
             style={{ transitionDelay: isVisible ? `${revealDelay}ms` : "0ms" }}
         >
             <div className="relative mb-3.5 block h-28 w-full overflow-hidden rounded-xl border border-zinc-200 bg-zinc-100 dark:border-zinc-800 dark:bg-zinc-900/60">
+                {isExpired && (
+                    <div className="absolute right-2 top-2 z-20">
+                        <span className="inline-flex items-center rounded-md bg-rose-600/95 px-2 py-0.5 text-[0.62rem] font-bold uppercase tracking-wider text-white border border-rose-500/30 shadow-sm">
+                            Expired
+                        </span>
+                    </div>
+                )}
                 {/* Floating Tags Overlay */}
                 <div className="absolute left-2 top-2 z-10 flex flex-wrap gap-1">
                     <span className="inline-flex items-center rounded-md bg-zinc-900/80 backdrop-blur-md px-2 py-0.5 text-[0.62rem] font-bold uppercase tracking-wider text-white border border-white/10">

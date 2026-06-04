@@ -191,6 +191,16 @@ html.dark ::-webkit-scrollbar-thumb:hover {
 	animation: border-angle-rotate 4s linear infinite;
 }
 
+.premium-border-card.expired {
+	border-color: rgba(239, 68, 68, 0.25) !important;
+	--border-glow-1: #ef4444;
+	--border-glow-2: #b91c1c;
+}
+
+.premium-border-card.expired:hover {
+	border-color: rgba(239, 68, 68, 0.5) !important;
+}
+
 /* Professional Color Palette */
 :root {
 	--border-glow-1: #3b82f6;
