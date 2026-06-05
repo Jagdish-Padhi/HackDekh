@@ -125,6 +125,8 @@ type FilterPanelProps = {
     setSortBy: (value: string) => void
     locationFilter: string
     setLocationFilter: (value: string) => void
+    showExpired: boolean
+    setShowExpired: (value: boolean) => void
 }
 
 const platformOptions: Option[] = [
@@ -173,6 +175,8 @@ const FilterPanel = ({
     setSortBy,
     locationFilter,
     setLocationFilter,
+    showExpired,
+    setShowExpired,
 }: FilterPanelProps) => (
     <div className="flex w-full flex-col gap-2 overflow-visible sm:flex-row sm:flex-wrap sm:items-center lg:w-auto lg:flex-nowrap">
         <Dropdown
@@ -199,6 +203,18 @@ const FilterPanel = ({
             options={locationOptions}
             placeholder="City"
         />
+        <button
+            type="button"
+            onClick={() => setShowExpired(!showExpired)}
+            className={`flex h-10 items-center justify-center gap-2 rounded-xl border px-4 py-2 text-[0.82rem] font-bold shadow-sm transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md focus:outline-none focus:ring-3 w-full sm:w-auto shrink-0 ${
+                showExpired
+                    ? 'border-rose-500/40 bg-rose-50/50 text-rose-600 ring-3 ring-rose-500/10 dark:border-rose-800 dark:bg-rose-950/20 dark:text-rose-400 dark:ring-rose-400/20'
+                    : 'border-zinc-200 bg-white text-zinc-650 hover:border-zinc-300 dark:border-zinc-800 dark:bg-zinc-900 dark:text-zinc-400 dark:hover:border-zinc-700'
+            }`}
+        >
+            <span className={`h-2 w-2 rounded-full transition-all duration-300 ${showExpired ? 'bg-rose-500 animate-pulse' : 'bg-zinc-300 dark:bg-zinc-600'}`} />
+            <span>Show Expired</span>
+        </button>
     </div>
 )
 

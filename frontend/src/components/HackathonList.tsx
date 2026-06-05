@@ -48,6 +48,7 @@ const HackathonList = () => {
     const [mode, setMode] = useState(hackathonsFilters.mode)
     const [sortBy, setSortBy] = useState<SortBy>(hackathonsFilters.sortBy as SortBy)
     const [locationFilter, setLocationFilter] = useState(hackathonsFilters.locationFilter)
+    const [showExpired, setShowExpired] = useState(hackathonsFilters.showExpired)
     const { isAuthenticated } = useAuth()
     const [isDesktopView, setIsDesktopView] = useState<boolean>(() => {
         if (typeof window === 'undefined') {
@@ -178,8 +179,9 @@ const HackathonList = () => {
             mode,
             locationFilter,
             sortBy,
+            showExpired,
         });
-    }, [deferredSearch, platform, mode, locationFilter, sortBy, setHackathonsFilters]);
+    }, [deferredSearch, platform, mode, locationFilter, sortBy, showExpired, setHackathonsFilters]);
 
     useEffect(() => {
         let isMounted = true
@@ -213,7 +215,8 @@ const HackathonList = () => {
                     platform,
                     mode,
                     location: locationFilter,
-                    sortBy
+                    sortBy,
+                    showExpired: showExpired ? "true" : "false"
                 },
                 onDownloadProgress: event => {
                     if (!isMounted || !event.total) {
@@ -273,7 +276,7 @@ const HackathonList = () => {
             }
         }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [refreshNonce, deferredSearch, platform, mode, locationFilter, sortBy, setCachedHackathons])
+    }, [refreshNonce, deferredSearch, platform, mode, locationFilter, sortBy, showExpired, setCachedHackathons])
 
     const isStillLoading = loading || !hasLoadedFromServer
 
@@ -326,6 +329,8 @@ const HackathonList = () => {
                     setSortBy={value => setSortBy(value as SortBy)}
                     locationFilter={locationFilter}
                     setLocationFilter={setLocationFilter}
+                    showExpired={showExpired}
+                    setShowExpired={setShowExpired}
                 />
             </div>
         )
@@ -335,6 +340,7 @@ const HackathonList = () => {
         mode,
         sortBy,
         locationFilter,
+        showExpired,
         handleRefresh,
         isStillLoading,
         isRefreshing,
@@ -378,6 +384,8 @@ const HackathonList = () => {
                         setSortBy={value => setSortBy(value as SortBy)}
                         locationFilter={locationFilter}
                         setLocationFilter={setLocationFilter}
+                        showExpired={showExpired}
+                        setShowExpired={setShowExpired}
                     />
                 </div>
             </div>

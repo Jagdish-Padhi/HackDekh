@@ -220,14 +220,15 @@ const HackathonCard = ({ hackathon, displayIndex, extraActions = [] }: Hackathon
             className={`group premium-border-card relative flex h-full flex-col overflow-hidden rounded-[1.75rem] border border-zinc-200/80 bg-white p-4 shadow-sm transition-all duration-500 ease-out hover:-translate-y-1 hover:border-zinc-300 hover:shadow-lg dark:border-zinc-800 dark:bg-zinc-900 dark:shadow-md dark:hover:border-zinc-700 dark:hover:shadow-lg ${isExpired ? "expired opacity-80" : ""} ${isVisible ? "translate-x-0 translate-y-0 opacity-100" : "-translate-x-3 translate-y-2 opacity-0"}`}
             style={{ transitionDelay: isVisible ? `${revealDelay}ms` : "0ms" }}
         >
-            <div className="relative mb-3.5 block h-28 w-full overflow-hidden rounded-xl border border-zinc-200 bg-zinc-100 dark:border-zinc-800 dark:bg-zinc-900/60">
-                {isExpired && (
-                    <div className="absolute right-2 top-2 z-20">
-                        <span className="inline-flex items-center rounded-md bg-rose-600/95 px-2 py-0.5 text-[0.62rem] font-bold uppercase tracking-wider text-white border border-rose-500/30 shadow-sm">
-                            Expired
-                        </span>
+            {isExpired && (
+                <div className="absolute inset-0 pointer-events-none z-30 flex items-center justify-center overflow-hidden">
+                    <div className="border-[4px] border-double border-rose-500/40 dark:border-rose-450 rounded-2xl px-5 py-2 rotate-[-12deg] bg-white/95 dark:bg-zinc-950/95 shadow-[0_8px_30px_rgba(239,68,68,0.15)] select-none">
+                        <span className="block text-[8px] font-black uppercase tracking-[0.2em] text-rose-500/85 dark:text-rose-400/85 text-center leading-none">REGISTRATION</span>
+                        <span className="block text-2xl font-black tracking-[0.15em] text-rose-600 dark:text-rose-500 text-center leading-none mt-1">EXPIRED</span>
                     </div>
-                )}
+                </div>
+            )}
+            <div className="relative mb-3.5 block h-28 w-full overflow-hidden rounded-xl border border-zinc-200 bg-zinc-100 dark:border-zinc-800 dark:bg-zinc-900/60">
                 {/* Floating Tags Overlay */}
                 <div className="absolute left-2 top-2 z-10 flex flex-wrap gap-1">
                     <span className="inline-flex items-center rounded-md bg-zinc-900/80 backdrop-blur-md px-2 py-0.5 text-[0.62rem] font-bold uppercase tracking-wider text-white border border-white/10">
