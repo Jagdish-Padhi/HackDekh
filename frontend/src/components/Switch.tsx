@@ -1,56 +1,30 @@
-import { useEffect, useState } from 'react';
 import styled from 'styled-components';
 
-const DarkModeToggle = () => {
-  const [isDark, setIsDark] = useState(false);
+type SwitchProps = {
+  id: string;
+  checked: boolean;
+  onChange: () => void;
+  activeBg?: string;
+};
 
-  useEffect(() => {
-    const savedTheme = window.localStorage.getItem('theme') === 'dark';
-    setIsDark(savedTheme);
-    document.documentElement.classList.toggle('dark', savedTheme);
-  }, []);
-
-  useEffect(() => {
-    const onThemeSync = (event: Event) => {
-      const detail = (event as CustomEvent<'light' | 'dark'>).detail;
-      setIsDark(detail === 'dark');
-    };
-
-    window.addEventListener('hackdekh-theme-change', onThemeSync);
-    return () => {
-      window.removeEventListener('hackdekh-theme-change', onThemeSync);
-    };
-  }, []);
-
-  const handleChange = () => {
-    const nextIsDark = !isDark;
-    setIsDark(nextIsDark);
-    document.documentElement.classList.toggle('dark', nextIsDark);
-    window.localStorage.setItem('theme', nextIsDark ? 'dark' : 'light');
-    window.dispatchEvent(
-      new CustomEvent('hackdekh-theme-change', {
-        detail: nextIsDark ? 'dark' : 'light',
-      })
-    );
-  };
-
+const Switch = ({ id, checked, onChange, activeBg }: SwitchProps) => {
   return (
-    <StyledWrapper>
-      <div className="checkbox-apple" title="Toggle dark mode">
+    <StyledWrapper $activeBg={activeBg}>
+      <div className="checkbox-apple">
         <input
           className="yep"
-          id="theme-checkbox-apple"
+          id={id}
           type="checkbox"
-          checked={isDark}
-          onChange={handleChange}
+          checked={checked}
+          onChange={onChange}
         />
-        <label htmlFor="theme-checkbox-apple" />
+        <label htmlFor={id} />
       </div>
     </StyledWrapper>
   );
 };
 
-const StyledWrapper = styled.div`
+const StyledWrapper = styled.div<{ $activeBg?: string }>`
   .checkbox-apple {
     position: relative;
     width: 50px;
@@ -96,7 +70,7 @@ const StyledWrapper = styled.div`
   }
 
   .checkbox-apple input[type="checkbox"]:checked + label {
-    background: linear-gradient(to bottom, #4cd964, #5de24e);
+    background: ${props => props.$activeBg || 'linear-gradient(to bottom, #4cd964, #5de24e)'};
   }
 
   .checkbox-apple input[type="checkbox"]:checked + label:after {
@@ -120,4 +94,4 @@ const StyledWrapper = styled.div`
   }
 `;
 
-export default DarkModeToggle;
+export default Switch;
