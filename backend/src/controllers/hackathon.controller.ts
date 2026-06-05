@@ -239,32 +239,75 @@ export const getHackathons = asyncHandler(async (req: any, res: any) => {
     list = list.filter((h) => !hasDeadlinePassed(h.deadline));
   }
 
-  // Sort
-  if (sortBy) {
-    list.sort((a: any, b: any) => {
-      if (sortBy === "deadline-asc") {
-        const da = getComparableDeadlineDate(a.deadline)?.getTime() ?? null;
-        const db = getComparableDeadlineDate(b.deadline)?.getTime() ?? null;
-        return compareNullableNumbers(da, db, "asc");
-      }
+  // Partition active vs expired list
+  const activeList = list.filter((h) => !hasDeadlinePassed(h.deadline));
+  const expiredList = list.filter((h) => hasDeadlinePassed(h.deadline));
 
-      if (sortBy === "deadline-desc") {
-        const da = getComparableDeadlineDate(a.deadline)?.getTime() ?? null;
-        const db = getComparableDeadlineDate(b.deadline)?.getTime() ?? null;
-        return compareNullableNumbers(da, db, "desc");
-      }
+  const sortOption = sortBy || "deadline-asc";
 
-      if (sortBy === "prize-asc") {
-        return compareNullableNumbers(getPrizeAmountInINR(a.prize, a.platform, usdToInrRate), getPrizeAmountInINR(b.prize, b.platform, usdToInrRate), "asc");
-      }
+  // Sort active hackathons
+  activeList.sort((a: any, b: any) => {
+    if (sortOption === "deadline-asc") {
+      const da = getComparableDeadlineDate(a.deadline)?.getTime() ?? null;
+      const db = getComparableDeadlineDate(b.deadline)?.getTime() ?? null;
+      return compareNullableNumbers(da, db, "asc");
+    }
 
-      if (sortBy === "prize-desc") {
-        return compareNullableNumbers(getPrizeAmountInINR(a.prize, a.platform, usdToInrRate), getPrizeAmountInINR(b.prize, b.platform, usdToInrRate), "desc");
-      }
+    if (sortOption === "deadline-desc") {
+      const da = getComparableDeadlineDate(a.deadline)?.getTime() ?? null;
+      const db = getComparableDeadlineDate(b.deadline)?.getTime() ?? null;
+      return compareNullableNumbers(da, db, "desc");
+    }
 
-      return 0;
-    });
-  }
+    if (sortOption === "prize-asc") {
+      return compareNullableNumbers(
+        getPrizeAmountInINR(a.prize, a.platform, usdToInrRate),
+        getPrizeAmountInINR(b.prize, b.platform, usdToInrRate),
+        "asc"
+      );
+    }
+
+    if (sortOption === "prize-desc") {
+      return compareNullableNumbers(
+        getPrizeAmountInINR(a.prize, a.platform, usdToInrRate),
+        getPrizeAmountInINR(b.prize, b.platform, usdToInrRate),
+        "desc"
+      );
+    }
+
+    return 0;
+  });
+
+  // Sort expired hackathons
+  expiredList.sort((a: any, b: any) => {
+    // For expired events, deadline-asc or no-sort defaults to showing most recently expired first
+    if (!sortBy || sortOption === "deadline-asc" || sortOption === "deadline-desc") {
+      const da = getComparableDeadlineDate(a.deadline)?.getTime() ?? null;
+      const db = getComparableDeadlineDate(b.deadline)?.getTime() ?? null;
+      return compareNullableNumbers(da, db, "desc");
+    }
+
+    if (sortOption === "prize-asc") {
+      return compareNullableNumbers(
+        getPrizeAmountInINR(a.prize, a.platform, usdToInrRate),
+        getPrizeAmountInINR(b.prize, b.platform, usdToInrRate),
+        "asc"
+      );
+    }
+
+    if (sortOption === "prize-desc") {
+      return compareNullableNumbers(
+        getPrizeAmountInINR(a.prize, a.platform, usdToInrRate),
+        getPrizeAmountInINR(b.prize, b.platform, usdToInrRate),
+        "desc"
+      );
+    }
+
+    return 0;
+  });
+
+  // Combine lists: active first, followed by expired
+  list = [...activeList, ...expiredList];
 
   // Format prize strings in returned list to attractive INR-only format
   const plainList = list.map((h: any) => {
