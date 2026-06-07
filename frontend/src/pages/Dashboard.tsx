@@ -967,15 +967,15 @@ export default function DashboardPage() {
                 })();
 
                 return (
-                  <div className="flex flex-col lg:flex-row gap-8 items-start w-full">
+                  <div className="flex flex-col lg:flex-row gap-8 w-full lg:h-[calc(100vh-12rem)] lg:overflow-hidden">
                     {/* Left Column: Hackathons List (Fixed Width Sidebar) */}
-                    <div className="w-full lg:w-80 shrink-0 space-y-4">
-                      <div className="flex items-center justify-between px-1">
+                    <div className="w-full lg:w-80 shrink-0 flex flex-col h-auto lg:h-full overflow-hidden space-y-4">
+                      <div className="flex items-center justify-between px-1 shrink-0">
                         <span className="text-[10px] font-black uppercase tracking-wider text-zinc-400 dark:text-zinc-500">
                           Workspace List ({list.length})
                         </span>
                       </div>
-                      <div className="space-y-3 lg:max-h-[calc(100vh-14rem)] lg:overflow-y-auto pr-1">
+                      <div className="flex-1 min-h-0 overflow-y-auto pr-1 space-y-3">
                         {list.map((participation) => {
                           const coverSrc = participation.hackathon.coverImage?.trim() || getStableDefaultImage(`${participation.hackathon._id}:${participation.hackathon.title}`);
                           const currentProgress = participation.stages.length === 0 ? "No stages yet" : (participation._id === selectedParticipationId ? currentStageLabel : "Stage Tracking");
@@ -1028,7 +1028,7 @@ export default function DashboardPage() {
                     </div>
 
                     {/* Right Column: Workspace Details */}
-                    <div className="flex-1 min-w-0 w-full">
+                    <div className="flex-1 min-w-0 w-full h-auto lg:h-full lg:overflow-y-auto pr-1">
                       <AnimatePresence mode="wait">
                         {!activePart ? (
                           <motion.div
