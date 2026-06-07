@@ -39,7 +39,7 @@ export const ToastProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   return (
     <ToastContext.Provider value={{ showToast }}>
       {children}
-      <div className="fixed top-[72px] lg:top-16 left-0 right-0 z-[9999] pointer-events-none w-full">
+      <div className="fixed top-24 right-0 sm:right-4 z-[9999] pointer-events-none flex flex-col items-end gap-3 w-full sm:max-w-sm px-4 sm:px-0">
         <AnimatePresence mode="wait">
           {activeToast && (
             <ToastBanner key={activeToast.id} toast={activeToast} onClose={closeToast} />
@@ -67,10 +67,10 @@ const ToastBanner: React.FC<{ toast: Toast; onClose: () => void }> = ({ toast, o
     : 'text-blue-600 dark:text-blue-400';
 
   const iconBgClass = isError
-    ? 'bg-rose-500/10 text-rose-500'
+    ? 'bg-rose-500/10 text-rose-500 border border-rose-500/10'
     : isSuccess
-    ? 'bg-emerald-500/10 text-emerald-500'
-    : 'bg-blue-500/10 text-blue-500';
+    ? 'bg-emerald-500/10 text-emerald-500 border border-emerald-500/10'
+    : 'bg-blue-500/10 text-blue-500 border border-blue-500/10';
 
   const progressBgClass = isError
     ? 'bg-rose-500'
@@ -82,35 +82,38 @@ const ToastBanner: React.FC<{ toast: Toast; onClose: () => void }> = ({ toast, o
 
   return (
     <motion.div
-      initial={{ y: -64, opacity: 0 }}
-      animate={{ y: 0, opacity: 1 }}
-      exit={{ y: -64, opacity: 0 }}
-      transition={{ type: 'spring', damping: 28, stiffness: 220 }}
-      className="pointer-events-auto w-full bg-white/95 dark:bg-zinc-950/95 backdrop-blur-md border-b border-zinc-200 dark:border-zinc-800 shadow-md relative overflow-hidden"
+      initial={{ x: 300, opacity: 0, scale: 0.95 }}
+      animate={{ x: 0, opacity: 1, scale: 1 }}
+      exit={{ x: 300, opacity: 0, scale: 0.95 }}
+      transition={{ type: 'spring', damping: 25, stiffness: 220 }}
+      className="pointer-events-auto w-full bg-white/95 dark:bg-zinc-950/95 backdrop-blur-md border border-zinc-200 dark:border-zinc-800/80 shadow-lg rounded-xl overflow-hidden relative flex flex-col"
     >
-      <div className="mx-auto max-w-7xl px-4 py-3.5 sm:px-6 lg:px-8 flex items-center justify-between gap-4">
-        <div className="flex items-center gap-3 min-w-0">
-          <div className={`flex items-center justify-center rounded-lg ${iconBgClass} p-1.5 shrink-0`}>
-            {isError ? (
-              <AlertTriangle className="h-4 w-4" />
-            ) : isSuccess ? (
-              <Check className="h-4 w-4" />
-            ) : (
-              <Info className="h-4 w-4" />
-            )}
-          </div>
-          <div className="flex items-baseline gap-2 truncate">
-            <span className={`text-[10px] font-black uppercase tracking-wider ${labelColorClass} shrink-0`}>
-              {title}
-            </span>
-            <p className="text-sm font-semibold text-zinc-900 dark:text-zinc-100 truncate">
-              {toast.message}
-            </p>
-          </div>
+      <div className="p-4 flex items-start gap-3">
+        {/* Status Icon */}
+        <div className={`flex items-center justify-center rounded-lg ${iconBgClass} p-2 shrink-0 mt-0.5`}>
+          {isError ? (
+            <AlertTriangle className="h-4 w-4" />
+          ) : isSuccess ? (
+            <Check className="h-4 w-4" />
+          ) : (
+            <Info className="h-4 w-4" />
+          )}
         </div>
+
+        {/* Text Content */}
+        <div className="flex-1 min-w-0 pr-1">
+          <span className={`text-[10px] font-bold uppercase tracking-wider ${labelColorClass}`}>
+            {title}
+          </span>
+          <p className="text-sm font-semibold text-zinc-900 dark:text-zinc-100 mt-0.5 leading-relaxed break-words">
+            {toast.message}
+          </p>
+        </div>
+
+        {/* Close Button */}
         <button
           onClick={onClose}
-          className="text-zinc-400 hover:text-zinc-650 dark:hover:text-zinc-200 transition-colors cursor-pointer shrink-0 p-1"
+          className="text-zinc-400 hover:text-zinc-650 dark:hover:text-zinc-200 transition-colors cursor-pointer shrink-0 p-1 rounded-lg hover:bg-zinc-100 dark:hover:bg-zinc-800 mt-0.5"
         >
           <X className="h-4 w-4" />
         </button>
@@ -118,7 +121,7 @@ const ToastBanner: React.FC<{ toast: Toast; onClose: () => void }> = ({ toast, o
       
       {/* Horizontal reducing progress bar */}
       <motion.div
-        className={`absolute bottom-0 left-0 h-[3px] ${progressBgClass}`}
+        className={`absolute bottom-0 left-0 h-[2.5px] ${progressBgClass}`}
         initial={{ width: '100%' }}
         animate={{ width: '0%' }}
         transition={{ duration: 4, ease: 'linear' }}
