@@ -41,9 +41,12 @@ export async function linkTeamToHackathon(
 
     const createdStageIds: Types.ObjectId[] = [];
 
+    const isRegistrationStageName = (name: string) => /register|registration|apply|application|prep|regn/i.test(name);
+
     // If hackathon has template stages, populate them all!
     if (hack.stages && hack.stages.length > 0) {
         for (const tStage of hack.stages) {
+            if (isRegistrationStageName(tStage.name)) continue;
             const stage = new Stage({
                 name: tStage.name,
                 deadline: tStage.deadline || undefined,
@@ -70,16 +73,6 @@ export async function linkTeamToHackathon(
         }
 
         const stage = new Stage(stageData);
-        await stage.save();
-        createdStageIds.push(stage._id as Types.ObjectId);
-    } else {
-        // Ultimate fallback
-        const stage = new Stage({
-            name: 'Registration & Prep',
-            teamHackathon: participation._id as Types.ObjectId,
-            result: 'pending',
-            deadline: hack.deadline || undefined,
-        });
         await stage.save();
         createdStageIds.push(stage._id as Types.ObjectId);
     }
@@ -132,10 +125,45 @@ export async function updateParticipationStatus(
     const isOwner = String(team.owner) === String(userId);
     if (!isOwner) return null;
 
+    // Lock reversion to 'tracking' once the hackathon has been marked as registered/active/etc.
+    if (participation.status !== 'tracking' && status === 'tracking') {
+        throw new Error('REVERSION_LOCKED');
+    }
+
     participation.status = status as any;
     await participation.save();
 
     return getPopulatedParticipation(thId);
+}
+
+// ─── Unlink Team from Hackathon (Untrack) ──────────────────────────────────
+export async function unlinkTeamFromHackathon(
+    teamId: string,
+    hackathonId: string,
+    userId: Types.ObjectId
+): Promise<{ error: string } | { success: boolean }> {
+    if (!Types.ObjectId.isValid(teamId) || !Types.ObjectId.isValid(hackathonId)) {
+        return { error: 'Invalid team or hackathon ID' };
+    }
+
+    const team = await Team.findById(teamId);
+    if (!team) return { error: 'Team not found' };
+
+    const isMember = team.members.some((m) => String(m) === String(userId));
+    if (!isMember) return { error: 'You are not a member of this team' };
+
+    const participation = await TeamHackathon.findOne({ team: teamId, hackathon: hackathonId });
+    if (!participation) {
+        return { error: 'Tracking record not found' };
+    }
+
+    // Delete all associated stages
+    await Stage.deleteMany({ teamHackathon: participation._id });
+
+    // Delete the participation itself
+    await TeamHackathon.findByIdAndDelete(participation._id);
+
+    return { success: true };
 }
 
 // ─── Helper: Get Fully Populated Participation ──────────────────────────────
@@ -147,3 +175,4 @@ async function getPopulatedParticipation(thId: string) {
             model: 'Stage',
         });
 }
+

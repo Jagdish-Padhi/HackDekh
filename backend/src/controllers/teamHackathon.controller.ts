@@ -56,17 +56,48 @@ export const updateParticipationStatus = asyncHandler(async (req: AuthRequest, r
         throw new ApiError(400, `status must be one of: ${validStatuses.join(', ')}`);
     }
 
-    const updated = await thService.updateParticipationStatus(
-        String(req.params.thId),
-        req.user._id,
-        status
+    try {
+        const updated = await thService.updateParticipationStatus(
+            String(req.params.thId),
+            req.user._id,
+            status
+        );
+
+        if (!updated) {
+            throw new ApiError(404, 'Participation not found or you are not the team owner');
+        }
+
+        return res
+            .status(200)
+            .json(new ApiResponse(200, updated, 'Participation status updated'));
+    } catch (error: any) {
+        if (error.message === 'REVERSION_LOCKED') {
+            throw new ApiError(400, 'Cannot revert registered hackathon back to tracking status');
+        }
+        throw error;
+    }
+});
+
+// DELETE /teams/:id/hackathons/:hackathonId
+export const unlinkTeamFromHackathon = asyncHandler(async (req: AuthRequest, res: Response) => {
+    const { hackathonId } = req.params;
+
+    if (!hackathonId || typeof hackathonId !== 'string') {
+        throw new ApiError(400, 'hackathonId is required');
+    }
+
+    const result = await thService.unlinkTeamFromHackathon(
+        String(req.params.id),
+        hackathonId,
+        req.user._id
     );
 
-    if (!updated) {
-        throw new ApiError(404, 'Participation not found or you are not the team owner');
+    if ('error' in result && result.error) {
+        throw new ApiError(400, result.error);
     }
 
     return res
         .status(200)
-        .json(new ApiResponse(200, updated, 'Participation status updated'));
+        .json(new ApiResponse(200, null, 'Hackathon untracked successfully'));
 });
+

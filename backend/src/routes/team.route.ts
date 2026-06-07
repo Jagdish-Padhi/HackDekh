@@ -16,6 +16,7 @@ import {
     linkTeamToHackathon,
     getTeamHackathons,
     updateParticipationStatus,
+    unlinkTeamFromHackathon,
 } from "../controllers/teamHackathon.controller.ts";
 import {
     addStage,
@@ -48,6 +49,7 @@ router.route("/:id/members/:userId").delete(removeTeamMember);
 
 // ─── Team–Hackathon participations ───────────────────────────────────────────
 router.route("/:id/hackathons").post(linkTeamToHackathon).get(getTeamHackathons);
+router.route("/:id/hackathons/:hackathonId").delete(unlinkTeamFromHackathon);
 router.route("/:id/hackathons/:thId/status").patch(updateParticipationStatus);
 
 // Stages
