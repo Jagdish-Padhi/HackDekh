@@ -1047,8 +1047,8 @@ export default function TeamsPage() {
     return (
       <div className="mx-auto flex min-h-[60vh] max-w-7xl flex-col items-center justify-center px-4 py-10">
         <div className="flex flex-col items-center max-w-sm text-center">
-          <div className="w-[330px] h-[198px] flex items-center justify-center overflow-visible scale-60 origin-center -my-6">
-            <LogoTransition width={550} height={330} loop={true} />
+          <div className="flex items-center justify-center overflow-visible py-2">
+            <LogoTransition width={220} height={140} loop={true} />
           </div>
           <h3 className="text-sm font-extrabold text-zinc-800 dark:text-zinc-200 mt-2 tracking-tight">
             Assembling Workspace
