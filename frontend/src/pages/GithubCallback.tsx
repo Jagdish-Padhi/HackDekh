@@ -87,9 +87,6 @@ export default function GithubCallbackPage() {
           {apiCompleted ? "Secured" : "GitHub Connecting"}
         </p>
         <div className="flex items-center gap-2 mt-1.5 justify-center">
-          {!apiCompleted && (
-            <span className="h-3.5 w-3.5 animate-spin rounded-full border-2 border-blue-600/30 border-t-blue-600" />
-          )}
           <p className="text-sm font-medium text-zinc-650 dark:text-zinc-450">
             {apiCompleted ? "Preparing your workspace..." : loadingText}
           </p>

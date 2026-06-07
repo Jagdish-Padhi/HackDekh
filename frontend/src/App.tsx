@@ -13,6 +13,7 @@ import SettingsPage from './pages/Settings';
 import GithubCallbackPage from './pages/GithubCallback';
 import ProtectedRoute from './components/ProtectedRoute';
 import { AuthProvider, useAuth, CacheProvider, ToastProvider } from './context';
+import LogoTransition from './components/LogoAnimation';
 
 function AppContent() {
   const { isLoading } = useAuth();
@@ -21,8 +22,8 @@ function AppContent() {
   if (isLoading) {
     return (
       <div className="fixed inset-0 z-50 flex flex-col items-center justify-center bg-white dark:bg-zinc-950 transition-colors duration-300">
-        <span className="h-10 w-10 animate-spin rounded-full border-4 border-blue-600/20 border-t-blue-600" />
-        <p className="text-sm font-semibold text-zinc-500 dark:text-zinc-400 mt-4">
+        <LogoTransition width={220} height={140} loop={true} />
+        <p className="text-sm font-semibold text-zinc-550 dark:text-zinc-400 mt-2">
           Loading HackDekh Workspace...
         </p>
       </div>

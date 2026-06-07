@@ -3,6 +3,7 @@ import { useNavigate, useSearchParams } from 'react-router-dom';
 import { CheckCircle2, Clock3, ShieldCheck, Users } from 'lucide-react';
 import { teamApi } from '../services';
 import type { InvitationPreview, Team } from '../types';
+import LogoTransition from '../components/LogoAnimation';
 
 const AcceptInvitationPage = () => {
   const [searchParams] = useSearchParams();
@@ -123,9 +124,11 @@ const AcceptInvitationPage = () => {
 
       <div className="relative w-full max-w-lg rounded-3xl border border-zinc-200/90 bg-white/95 p-8 shadow-xl backdrop-blur-sm dark:border-zinc-800 dark:bg-zinc-900/90">
         {showBusyState ? (
-          <div className="space-y-4 text-center">
-            <div className="inline-block h-8 w-8 animate-spin rounded-full border-4 border-zinc-300 border-t-blue-600 dark:border-zinc-700 dark:border-t-blue-400" />
-            <p className="text-sm text-zinc-600 dark:text-zinc-400">
+          <div className="flex flex-col items-center justify-center space-y-3 text-center">
+            <div className="flex items-center justify-center overflow-visible py-1">
+              <LogoTransition width={140} height={90} loop={true} />
+            </div>
+            <p className="text-sm text-zinc-650 dark:text-zinc-400">
               {redirectingToAuth ? 'Redirecting to login...' : accepting ? 'Accepting invitation...' : 'Loading invitation details...'}
             </p>
           </div>

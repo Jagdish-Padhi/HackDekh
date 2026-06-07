@@ -231,10 +231,7 @@ const LoginPage = () => {
               }
             </p>
             <div className="flex items-center gap-2 mt-1.5 justify-center">
-              {!apiCompleted && (
-                <span className="h-3.5 w-3.5 animate-spin rounded-full border-2 border-blue-600/30 border-t-blue-600" />
-              )}
-              <p className="text-sm font-medium text-zinc-600 dark:text-zinc-400">
+              <p className="text-sm font-medium text-zinc-650 dark:text-zinc-400">
                 {apiCompleted
                   ? (pendingDestination === 'login-mode' ? 'Taking you to sign in…' : 'Preparing your workspace…')
                   : (isLogin ? 'Verifying secure credentials…' : 'Setting up your profile…')
@@ -402,7 +399,7 @@ const LoginPage = () => {
                   >
                     {loading || transitioning ? (
                       <>
-                        <span className="h-4 w-4 animate-spin rounded-full border-2 border-white/30 border-t-white" />
+                        <LogoTransition width={28} height={18} loop={true} />
                         Please wait...
                       </>
                     ) : (
