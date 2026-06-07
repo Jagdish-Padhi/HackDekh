@@ -179,30 +179,35 @@ const LogoTransition = forwardRef<LogoTransitionRef, LogoTransitionProps>(
         >
           <defs>
             <linearGradient id="bktL" x1="100%" y1="0%" x2="0%" y2="100%">
-              <stop offset="0%" stopColor="#3a4d72" />
-              <stop offset="30%" stopColor="#1e2d50" />
-              <stop offset="70%" stopColor="#131d38" />
-              <stop offset="100%" stopColor="#0d1428" />
+              <stop offset="0%" stopColor="#4f75b3" />
+              <stop offset="30%" stopColor="#24375a" />
+              <stop offset="70%" stopColor="#11192e" />
+              <stop offset="100%" stopColor="#080c16" />
             </linearGradient>
             <linearGradient id="bktR" x1="0%" y1="0%" x2="100%" y2="100%">
-              <stop offset="0%" stopColor="#3a4d72" />
-              <stop offset="30%" stopColor="#1e2d50" />
-              <stop offset="70%" stopColor="#131d38" />
-              <stop offset="100%" stopColor="#0d1428" />
+              <stop offset="0%" stopColor="#4f75b3" />
+              <stop offset="30%" stopColor="#24375a" />
+              <stop offset="70%" stopColor="#11192e" />
+              <stop offset="100%" stopColor="#080c16" />
+            </linearGradient>
+            <linearGradient id="bktStroke" x1="0%" y1="0%" x2="100%" y2="100%">
+              <stop offset="0%" stopColor="#4f8ff7" />
+              <stop offset="100%" stopColor="#2563eb" />
             </linearGradient>
             <linearGradient id="bltFill" x1="20%" y1="0%" x2="80%" y2="100%">
-              <stop offset="0%" stopColor="#3d50e8" />
-              <stop offset="40%" stopColor="#2438cc" />
-              <stop offset="100%" stopColor="#131a88" />
+              <stop offset="0%" stopColor="#4f46e5" />
+              <stop offset="50%" stopColor="#3b82f6" />
+              <stop offset="100%" stopColor="#1d4ed8" />
             </linearGradient>
-            <linearGradient id="bltStroke" x1="0%" y1="0%" x2="30%" y2="100%">
-              <stop offset="0%" stopColor="#9966ff" />
-              <stop offset="50%" stopColor="#4488ff" />
-              <stop offset="100%" stopColor="#00ccff" />
+            <linearGradient id="bltStroke" x1="0%" y1="0%" x2="100%" y2="100%">
+              <stop offset="0%" stopColor="#c084fc" />
+              <stop offset="50%" stopColor="#60a5fa" />
+              <stop offset="100%" stopColor="#22d3ee" />
             </linearGradient>
             <linearGradient id="bltSpec" x1="0%" y1="0%" x2="100%" y2="60%">
-              <stop offset="0%" stopColor="#7788ff" stopOpacity=".8" />
-              <stop offset="100%" stopColor="#1a2299" stopOpacity="0" />
+              <stop offset="0%" stopColor="#ffffff" stopOpacity="0.95" />
+              <stop offset="35%" stopColor="#a5b4fc" stopOpacity="0.6" />
+              <stop offset="100%" stopColor="#4f46e5" stopOpacity="0" />
             </linearGradient>
           </defs>
           <style>{`
@@ -277,15 +282,21 @@ const LogoTransition = forwardRef<LogoTransitionRef, LogoTransitionProps>(
 
           {/* Left bracket */}
           <polygon
-            points="112,40 130,40 58,107 58,113 130,180 112,180 40,113 40,107"
+            points="106,40 124,40 64,107 64,113 124,180 106,180 46,113 46,107"
             fill="url(#bktL)"
+            stroke="url(#bktStroke)"
+            strokeWidth="1.6"
+            strokeLinejoin="round"
             className="bkt-left-anim"
           />
 
           {/* Right bracket */}
           <polygon
-            points="208,40 190,40 262,107 262,113 190,180 208,180 280,113 280,107"
+            points="214,40 196,40 256,107 256,113 196,180 214,180 274,113 274,107"
             fill="url(#bktR)"
+            stroke="url(#bktStroke)"
+            strokeWidth="1.6"
+            strokeLinejoin="round"
             className="bkt-right-anim"
           />
 
@@ -332,13 +343,23 @@ const LogoTransition = forwardRef<LogoTransitionRef, LogoTransitionProps>(
           <svg width="108" height="148" viewBox="0 0 108 152" overflow="visible" xmlns="http://www.w3.org/2000/svg">
             <defs>
               <linearGradient id="bktL-t" x1="100%" y1="0%" x2="0%" y2="100%">
-                <stop offset="0%" stopColor="#3a4d72"/>
-                <stop offset="30%" stopColor="#1e2d50"/>
-                <stop offset="70%" stopColor="#131d38"/>
-                <stop offset="100%" stopColor="#0d1428"/>
+                <stop offset="0%" stopColor="#4f75b3" />
+                <stop offset="30%" stopColor="#24375a" />
+                <stop offset="70%" stopColor="#11192e" />
+                <stop offset="100%" stopColor="#080c16" />
+              </linearGradient>
+              <linearGradient id="bktStroke-t" x1="0%" y1="0%" x2="100%" y2="100%">
+                <stop offset="0%" stopColor="#4f8ff7" />
+                <stop offset="100%" stopColor="#2563eb" />
               </linearGradient>
             </defs>
-            <polygon points="78,8 96,8 24,75 24,81 96,148 78,148 6,81 6,75" fill="url(#bktL-t)"/>
+            <polygon
+              points="72,8 90,8 30,75 30,81 90,148 72,148 12,81 12,75"
+              fill="url(#bktL-t)"
+              stroke="url(#bktStroke-t)"
+              strokeWidth="1.6"
+              strokeLinejoin="round"
+            />
           </svg>
         </div>
 
@@ -356,13 +377,23 @@ const LogoTransition = forwardRef<LogoTransitionRef, LogoTransitionProps>(
           <svg width="108" height="148" viewBox="0 0 108 152" overflow="visible" xmlns="http://www.w3.org/2000/svg">
             <defs>
               <linearGradient id="bktR-t" x1="0%" y1="0%" x2="100%" y2="100%">
-                <stop offset="0%" stopColor="#3a4d72"/>
-                <stop offset="30%" stopColor="#1e2d50"/>
-                <stop offset="70%" stopColor="#131d38"/>
-                <stop offset="100%" stopColor="#0d1428"/>
+                <stop offset="0%" stopColor="#4f75b3" />
+                <stop offset="30%" stopColor="#24375a" />
+                <stop offset="70%" stopColor="#11192e" />
+                <stop offset="100%" stopColor="#080c16" />
+              </linearGradient>
+              <linearGradient id="bktStroke-t" x1="0%" y1="0%" x2="100%" y2="100%">
+                <stop offset="0%" stopColor="#4f8ff7" />
+                <stop offset="100%" stopColor="#2563eb" />
               </linearGradient>
             </defs>
-            <polygon points="30,8 12,8 84,75 84,81 12,148 30,148 102,81 102,75" fill="url(#bktR-t)"/>
+            <polygon
+              points="30,8 12,8 84,75 84,81 12,148 30,148 102,81 102,75"
+              fill="url(#bktR-t)"
+              stroke="url(#bktStroke-t)"
+              strokeWidth="1.6"
+              strokeLinejoin="round"
+            />
           </svg>
         </div>
 
@@ -380,18 +411,19 @@ const LogoTransition = forwardRef<LogoTransitionRef, LogoTransitionProps>(
           <svg width="88" height="214" viewBox="0 0 80 200" overflow="visible" xmlns="http://www.w3.org/2000/svg">
             <defs>
               <linearGradient id="bltFill-t" x1="20%" y1="0%" x2="80%" y2="100%">
-                <stop offset="0%" stopColor="#3d50e8"/>
-                <stop offset="40%" stopColor="#2438cc"/>
-                <stop offset="100%" stopColor="#131a88"/>
+                <stop offset="0%" stopColor="#4f46e5" />
+                <stop offset="50%" stopColor="#3b82f6" />
+                <stop offset="100%" stopColor="#1d4ed8" />
               </linearGradient>
-              <linearGradient id="bltStroke-t" x1="0%" y1="0%" x2="30%" y2="100%">
-                <stop offset="0%" stopColor="#9966ff"/>
-                <stop offset="50%" stopColor="#4488ff"/>
-                <stop offset="100%" stopColor="#00ccff"/>
+              <linearGradient id="bltStroke-t" x1="0%" y1="0%" x2="100%" y2="100%">
+                <stop offset="0%" stopColor="#c084fc" />
+                <stop offset="50%" stopColor="#60a5fa" />
+                <stop offset="100%" stopColor="#22d3ee" />
               </linearGradient>
               <linearGradient id="bltSpec-t" x1="0%" y1="0%" x2="100%" y2="60%">
-                <stop offset="0%" stopColor="#7788ff" stopOpacity=".8"/>
-                <stop offset="100%" stopColor="#1a2299" stopOpacity="0"/>
+                <stop offset="0%" stopColor="#ffffff" stopOpacity="0.95" />
+                <stop offset="35%" stopColor="#a5b4fc" stopOpacity="0.6" />
+                <stop offset="100%" stopColor="#4f46e5" stopOpacity="0" />
               </linearGradient>
             </defs>
             <polygon points="52,6 12,119 40,119 24,194 70,81 40,81" fill="url(#bltFill-t)" stroke="url(#bltStroke-t)" strokeWidth="2.2" strokeLinejoin="round"/>
