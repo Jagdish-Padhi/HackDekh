@@ -206,35 +206,75 @@ const LogoTransition = forwardRef<LogoTransitionRef, LogoTransitionProps>(
             </linearGradient>
           </defs>
           <style>{`
-            @keyframes bktLeftPulse {
-              0% { transform: translateX(0px); opacity: 0.85; }
-              50% { transform: translateX(3px); opacity: 1; }
-              100% { transform: translateX(0px); opacity: 0.85; }
+            @keyframes bktLeftCollision {
+              0% { transform: translateX(0px) scale(1); opacity: 0.85; }
+              20% { transform: translateX(0px) scale(1); opacity: 0.85; }
+              30% { transform: translateX(23px) scale(0.95); opacity: 1; }
+              32% { transform: translateX(23px) scale(0.95); opacity: 1; }
+              45% { transform: translateX(-15px) scale(1.05); opacity: 0.9; }
+              60% { transform: translateX(4px) scale(0.98); opacity: 0.95; }
+              75% { transform: translateX(-2px) scale(1.01); opacity: 1; }
+              90% { transform: translateX(0px) scale(1); opacity: 1; }
+              100% { transform: translateX(0px) scale(1); opacity: 0.85; }
             }
-            @keyframes bktRightPulse {
-              0% { transform: translateX(0px); opacity: 0.85; }
-              50% { transform: translateX(-3px); opacity: 1; }
-              100% { transform: translateX(0px); opacity: 0.85; }
+            @keyframes bktRightCollision {
+              0% { transform: translateX(0px) scale(1); opacity: 0.85; }
+              20% { transform: translateX(0px) scale(1); opacity: 0.85; }
+              30% { transform: translateX(-23px) scale(0.95); opacity: 1; }
+              32% { transform: translateX(-23px) scale(0.95); opacity: 1; }
+              45% { transform: translateX(15px) scale(1.05); opacity: 0.9; }
+              60% { transform: translateX(-4px) scale(0.98); opacity: 0.95; }
+              75% { transform: translateX(2px) scale(1.01); opacity: 1; }
+              90% { transform: translateX(0px) scale(1); opacity: 1; }
+              100% { transform: translateX(0px) scale(1); opacity: 0.85; }
             }
-            @keyframes boltPulse {
-              0% { transform: scale(0.96) rotate(-1deg); opacity: 0.9; filter: drop-shadow(0 0 3px rgba(61,80,232,0.3)); }
-              50% { transform: scale(1.04) rotate(1deg); opacity: 1; filter: drop-shadow(0 0 10px rgba(61,80,232,0.6)); }
-              100% { transform: scale(0.96) rotate(-1deg); opacity: 0.9; filter: drop-shadow(0 0 3px rgba(61,80,232,0.3)); }
+            @keyframes boltImpact {
+              0% { transform: scale(0.9) rotate(-1deg); opacity: 0.75; filter: drop-shadow(0 0 2px rgba(61,80,232,0.2)); }
+              28% { transform: scale(0.9) rotate(-1deg); opacity: 0.75; }
+              30% { transform: scale(1.2) rotate(4deg); opacity: 1; filter: drop-shadow(0 0 18px rgba(99,102,241,0.95)) brightness(1.8); }
+              32% { transform: scale(1.2) rotate(4deg); opacity: 1; filter: drop-shadow(0 0 18px rgba(99,102,241,0.95)) brightness(1.8); }
+              45% { transform: scale(0.95) rotate(-2deg); opacity: 0.85; filter: drop-shadow(0 0 6px rgba(61,80,232,0.4)) brightness(1.2); }
+              60% { transform: scale(1.02) rotate(1deg); opacity: 0.9; filter: drop-shadow(0 0 8px rgba(61,80,232,0.5)) brightness(1.1); }
+              75% { transform: scale(0.98) rotate(-0.5deg); opacity: 0.85; }
+              90% { transform: scale(1) rotate(0deg); opacity: 0.85; }
+              100% { transform: scale(0.9) rotate(-1deg); opacity: 0.75; }
+            }
+            @keyframes shockwavePulse {
+              0% { transform: scale(0); opacity: 0; }
+              29% { transform: scale(0); opacity: 0; }
+              30% { transform: scale(0.05); opacity: 0.95; }
+              55% { transform: scale(1.35); opacity: 0; }
+              100% { transform: scale(1.35); opacity: 0; }
             }
             .bkt-left-anim {
               transform-origin: 87px 110px;
-              animation: bktLeftPulse 1.8s ease-in-out infinite;
+              animation: bktLeftCollision 2.0s cubic-bezier(0.25, 1, 0.5, 1) infinite;
             }
             .bkt-right-anim {
               transform-origin: 233px 110px;
-              animation: bktRightPulse 1.8s ease-in-out infinite;
+              animation: bktRightCollision 2.0s cubic-bezier(0.25, 1, 0.5, 1) infinite;
             }
             .bolt-anim {
               transform-origin: 160px 110px;
-              animation: boltPulse 1.8s ease-in-out infinite;
+              animation: boltImpact 2.0s cubic-bezier(0.25, 1, 0.5, 1) infinite;
+            }
+            .shockwave-anim {
+              transform-origin: 160px 110px;
+              animation: shockwavePulse 2.0s cubic-bezier(0.1, 0.8, 0.3, 1) infinite;
             }
           `}</style>
           
+          {/* Shockwave circle ring */}
+          <circle
+            cx="160"
+            cy="110"
+            r="80"
+            fill="none"
+            stroke="url(#bltStroke)"
+            strokeWidth="3.5"
+            className="shockwave-anim"
+          />
+
           {/* Left bracket */}
           <polygon
             points="120,40 130,40 130,60 56,108 56,112 130,160 130,180 120,180 44,128 44,112 44,96"
