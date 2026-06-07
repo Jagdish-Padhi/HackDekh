@@ -292,7 +292,7 @@ const LogoTransition = forwardRef<LogoTransitionRef, LogoTransitionProps>(
           {/* Energy Bolt */}
           <g className="bolt-anim">
             <polygon
-              points="171,6 131,96 153,96 143,194 189,104 165,104"
+              points="171,6 131,119 160,119 143,194 189,81 160,81"
               fill="url(#bltFill)"
               stroke="url(#bltStroke)"
               strokeWidth="2.2"
@@ -394,7 +394,7 @@ const LogoTransition = forwardRef<LogoTransitionRef, LogoTransitionProps>(
                 <stop offset="100%" stopColor="#1a2299" stopOpacity="0"/>
               </linearGradient>
             </defs>
-            <polygon points="52,6 12,96 34,96 24,194 70,104 46,104" fill="url(#bltFill-t)" stroke="url(#bltStroke-t)" strokeWidth="2.2" strokeLinejoin="round"/>
+            <polygon points="52,6 12,119 40,119 24,194 70,81 40,81" fill="url(#bltFill-t)" stroke="url(#bltStroke-t)" strokeWidth="2.2" strokeLinejoin="round"/>
             <polygon points="52,6 36,56 46,56" fill="url(#bltSpec-t)"/>
           </svg>
         </div>
