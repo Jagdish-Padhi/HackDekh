@@ -96,7 +96,7 @@ const StyledWrapper = styled.div`
   }
 
   .checkbox-apple input[type="checkbox"]:checked + label {
-    background: linear-gradient(to bottom, #4cd964, #5de24e);
+    background: linear-gradient(to bottom, #4A90E2, #007AFF);
   }
 
   .checkbox-apple input[type="checkbox"]:checked + label:after {

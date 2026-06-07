@@ -55,6 +55,10 @@ export const teamApi = {
     return unwrap(response);
   },
 
+  unlinkHackathon: async (teamId: string, hackathonId: string): Promise<void> => {
+    await axiosInstance.delete<ApiResponse<null>>(`/teams/${teamId}/hackathons/${hackathonId}`);
+  },
+
   updateStatus: async (teamId: string, thId: string, status: TeamHackathon['status']): Promise<TeamHackathon> => {
     const response = await axiosInstance.patch<ApiResponse<TeamHackathon>>(`/teams/${teamId}/hackathons/${thId}/status`, {
       status,

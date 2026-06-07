@@ -27,6 +27,8 @@ type HackathonCardProps = {
     isBookmarked?: boolean;
     onToggleBookmark?: () => void;
     extraActions?: CardAction[];
+    trackingStatus?: 'tracking' | 'active' | 'eliminated' | 'finalist' | 'won';
+    onUntrack?: () => void;
 };
 
 const defaultImages = [
@@ -129,7 +131,7 @@ const getDeadlineDisplay = (deadline?: string): DeadlineDisplay => {
     };
 };
 
-const HackathonCard = ({ hackathon, displayIndex, extraActions = [] }: HackathonCardProps) => {
+const HackathonCard = ({ hackathon, displayIndex, extraActions = [], trackingStatus, onUntrack }: HackathonCardProps) => {
     const cardRef = useRef<HTMLDivElement | null>(null);
     const hasBeenRevealed = revealedCardCache.has(hackathon._id);
     const fallbackImageRef = useRef<string>(getStableDefaultImage(`${hackathon._id}:${hackathon.title}`));
@@ -209,8 +211,8 @@ const HackathonCard = ({ hackathon, displayIndex, extraActions = [] }: Hackathon
     const revealDelay = (displayIndex % 4) * 65;
 
     // Read tracked state
-    const isTracked = extraActions.some(action => action.label === "TRACKED_TRUE");
     const trackHandler = extraActions.find(action => action.label === "TRACK_HANDLER")?.onClick;
+    const isRegistered = trackingStatus && trackingStatus !== 'tracking';
 
     const isExpired = !!deadlineDisplay.isExpired;
 
@@ -231,6 +233,11 @@ const HackathonCard = ({ hackathon, displayIndex, extraActions = [] }: Hackathon
             <div className="relative mb-3.5 block h-28 w-full overflow-hidden rounded-xl border border-zinc-200 bg-zinc-100 dark:border-zinc-800 dark:bg-zinc-900/60">
                 {/* Floating Tags Overlay */}
                 <div className="absolute left-2 top-2 z-10 flex flex-wrap gap-1">
+                    {isRegistered && (
+                        <span className="inline-flex items-center rounded-md bg-orange-500/90 backdrop-blur-md px-2 py-0.5 text-[0.62rem] font-bold uppercase tracking-wider text-white border border-orange-400/20 shadow-xs">
+                            Registered 🏆
+                        </span>
+                    )}
                     <span className="inline-flex items-center rounded-md bg-zinc-900/80 backdrop-blur-md px-2 py-0.5 text-[0.62rem] font-bold uppercase tracking-wider text-white border border-white/10">
                         {hackathon.platform}
                     </span>
@@ -274,6 +281,25 @@ const HackathonCard = ({ hackathon, displayIndex, extraActions = [] }: Hackathon
                     className="h-full w-full object-cover transition-transform duration-500 ease-out group-hover:scale-105"
                 />
             </div>
+
+            {/* Status and Untrack option below cover image */}
+            {trackingStatus && (
+                <div className="flex justify-between items-center mb-2 px-1 text-[10px] font-bold tracking-wide uppercase">
+                    <span className={trackingStatus === 'tracking' ? "text-amber-600 dark:text-amber-500" : "text-orange-500 dark:text-orange-400"}>
+                        {trackingStatus === 'tracking' ? 'Tracking' : 'Registered'}
+                    </span>
+                    <button
+                        onClick={(e) => {
+                            e.preventDefault();
+                            e.stopPropagation();
+                            onUntrack?.();
+                        }}
+                        className="text-rose-500 hover:text-rose-600 hover:underline transition-colors font-black cursor-pointer bg-transparent border-none p-0"
+                    >
+                        Untrack
+                    </button>
+                </div>
+            )}
 
             <div className="block">
                 <h2 className="line-clamp-2 h-11 text-[0.92rem] font-bold leading-5 text-zinc-900 dark:text-zinc-100 transition-colors duration-200">
@@ -345,13 +371,22 @@ const HackathonCard = ({ hackathon, displayIndex, extraActions = [] }: Hackathon
                             <ExternalLink className="ml-1 h-3 w-3" />
                         </a>
                     )}
-                    {isTracked ? (
-                        <button
-                            disabled
-                            className="flex-1 inline-flex items-center justify-center rounded-lg bg-emerald-500/10 border border-emerald-500/20 px-2.5 py-1.5 text-[11px] font-bold text-emerald-600 dark:text-emerald-400"
-                        >
-                            Tracking ✓
-                        </button>
+                    {trackingStatus ? (
+                        trackingStatus === 'tracking' ? (
+                            <button
+                                disabled
+                                className="flex-1 inline-flex items-center justify-center rounded-lg bg-zinc-100 border border-zinc-200 dark:bg-zinc-800/40 dark:border-zinc-700/50 px-2.5 py-1.5 text-[11px] font-bold text-zinc-500 dark:text-zinc-400"
+                            >
+                                Tracked
+                            </button>
+                        ) : (
+                            <a
+                                href="/dashboard?tab=tracker"
+                                className="flex-1 inline-flex items-center justify-center rounded-lg border border-orange-200 bg-orange-50/20 px-2.5 py-1.5 text-[11px] font-bold text-orange-600 shadow-sm transition hover:bg-orange-100/30 dark:border-orange-500/20 dark:bg-orange-950/20 dark:text-orange-400"
+                            >
+                                Workspace
+                            </a>
+                        )
                     ) : (
                         <button
                             onClick={trackHandler}
