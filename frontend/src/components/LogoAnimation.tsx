@@ -277,14 +277,14 @@ const LogoTransition = forwardRef<LogoTransitionRef, LogoTransitionProps>(
 
           {/* Left bracket */}
           <polygon
-            points="120,40 130,40 130,60 56,108 56,112 130,160 130,180 120,180 44,128 44,112 44,96"
+            points="112,40 130,40 58,107 58,113 130,180 112,180 40,113 40,107"
             fill="url(#bktL)"
             className="bkt-left-anim"
           />
 
           {/* Right bracket */}
           <polygon
-            points="200,40 190,40 190,60 264,108 264,112 190,160 190,180 200,180 276,128 276,112 276,96"
+            points="208,40 190,40 262,107 262,113 190,180 208,180 280,113 280,107"
             fill="url(#bktR)"
             className="bkt-right-anim"
           />
@@ -338,7 +338,7 @@ const LogoTransition = forwardRef<LogoTransitionRef, LogoTransitionProps>(
                 <stop offset="100%" stopColor="#0d1428"/>
               </linearGradient>
             </defs>
-            <polygon points="86,8 96,8 96,28 22,76 22,80 96,128 96,148 86,148 10,96 10,80 10,64" fill="url(#bktL-t)"/>
+            <polygon points="78,8 96,8 24,75 24,81 96,148 78,148 6,81 6,75" fill="url(#bktL-t)"/>
           </svg>
         </div>
 
@@ -362,7 +362,7 @@ const LogoTransition = forwardRef<LogoTransitionRef, LogoTransitionProps>(
                 <stop offset="100%" stopColor="#0d1428"/>
               </linearGradient>
             </defs>
-            <polygon points="22,8 12,8 12,28 86,76 86,80 12,128 12,148 22,148 98,96 98,80 98,64" fill="url(#bktR-t)"/>
+            <polygon points="30,8 12,8 84,75 84,81 12,148 30,148 102,81 102,75" fill="url(#bktR-t)"/>
           </svg>
         </div>
 
