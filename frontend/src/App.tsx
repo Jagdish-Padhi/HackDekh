@@ -12,7 +12,7 @@ import DashboardPage from './pages/Dashboard';
 import SettingsPage from './pages/Settings';
 import GithubCallbackPage from './pages/GithubCallback';
 import ProtectedRoute from './components/ProtectedRoute';
-import { AuthProvider, useAuth, CacheProvider } from './context';
+import { AuthProvider, useAuth, CacheProvider, ToastProvider } from './context';
 
 function AppContent() {
   const { isLoading } = useAuth();
@@ -89,7 +89,9 @@ function App() {
     <Router>
       <AuthProvider>
         <CacheProvider>
-          <AppContent />
+          <ToastProvider>
+            <AppContent />
+          </ToastProvider>
         </CacheProvider>
       </AuthProvider>
     </Router>
