@@ -9,7 +9,6 @@ import {
   Clock3,
   Flag,
   GripVertical,
-  Loader2,
   Plus,
   Save,
   Settings,
@@ -29,6 +28,7 @@ import { usePageChrome } from "../context/pageChrome";
 import HackathonCard from "../components/HackathonCard";
 import { teamApi, userApi } from "../services";
 import type { HackathonLite, Stage, Team, TeamHackathon } from "../types";
+import LogoTransition from "../components/LogoAnimation";
 
 type SavedHackathon = HackathonLite;
 type Participation = TeamHackathon & { teamInfo: Team };
@@ -534,7 +534,7 @@ export default function DashboardPage() {
     <div className="mx-auto w-full max-w-7xl px-4 py-2 md:px-6 space-y-6">
       {loadingData ? (
         <div className="flex h-60 w-full flex-col items-center justify-center gap-3">
-          <Loader2 className="h-8 w-8 animate-spin text-blue-600 dark:text-blue-500" />
+          <LogoTransition width={120} height={80} loop={true} />
           <p className="text-sm font-semibold text-zinc-500 dark:text-zinc-400">Loading your workspace details...</p>
         </div>
       ) : (
@@ -1077,7 +1077,7 @@ export default function DashboardPage() {
                                   <option value="won">Won</option>
                                   <option value="eliminated">Eliminated</option>
                                 </select>
-                                {loadingParticipationId === selectedParticipation._id && <Loader2 className="h-4 w-4 animate-spin text-blue-600" />}
+                                {loadingParticipationId === selectedParticipation._id && <LogoTransition width={36} height={22} loop={true} />}
                               </div>
                             </div>
 

@@ -5,12 +5,12 @@ import {
   UserCog, 
   Check, 
   X, 
-  Loader2, 
   User, 
   Lock 
 } from "lucide-react";
 import { useAuth } from "../context/AuthContext";
 import axiosInstance from "../utils/axiosInstance";
+import LogoTransition from "../components/LogoAnimation";
 
 type ProfileMessage = { type: "success" | "error"; text: string };
 
@@ -192,7 +192,7 @@ const SettingsPage = () => {
                     disabled={profileLoading} 
                     className="inline-flex items-center justify-center gap-2 rounded-lg bg-blue-600 hover:bg-blue-500 text-white px-5 py-2.5 text-sm font-bold shadow-xs transition duration-200 cursor-pointer disabled:opacity-60"
                   >
-                    {profileLoading && <Loader2 className="h-4.5 w-4.5 animate-spin" />}
+                    {profileLoading && <LogoTransition width={28} height={18} loop={true} />}
                     Save details
                   </button>
                 </div>
@@ -265,7 +265,7 @@ const SettingsPage = () => {
                     disabled={passwordLoading} 
                     className="inline-flex items-center justify-center gap-2 rounded-lg bg-blue-600 hover:bg-blue-500 text-white px-5 py-2.5 text-sm font-bold shadow-xs transition duration-200 cursor-pointer disabled:opacity-60"
                   >
-                    {passwordLoading && <Loader2 className="h-4.5 w-4.5 animate-spin" />}
+                    {passwordLoading && <LogoTransition width={28} height={18} loop={true} />}
                     Change Password
                   </button>
                 </div>

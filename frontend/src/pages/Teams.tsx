@@ -6,7 +6,6 @@ import {
   Calendar,
   Copy,
   ExternalLink,
-  Loader2,
   Plus,
   Save,
   Settings,
@@ -1353,8 +1352,9 @@ export default function TeamsPage() {
               {activeTab === "Hackathons" && (
                 <div className="space-y-4">
                   {loadingTeamData ? (
-                    <div className="flex items-center gap-3 rounded-xl border border-zinc-200/80 bg-white px-4 py-5 text-sm text-zinc-500 dark:border-zinc-800 dark:bg-zinc-900/40 dark:text-zinc-400 shadow-xs">
-                      <Loader2 className="h-4 w-4 animate-spin text-blue-600" /> Loading participations timeline...
+                    <div className="flex flex-col items-center justify-center gap-3 rounded-2xl border border-zinc-200/60 bg-white px-4 py-8 text-sm text-zinc-500 dark:border-zinc-800 dark:bg-zinc-900/40 dark:text-zinc-400 shadow-xs">
+                      <LogoTransition width={100} height={60} loop={true} />
+                      <p className="font-semibold">Loading participations timeline...</p>
                     </div>
                   ) : teamParticipations.length === 0 ? (
                     <div className="rounded-[1.5rem] border border-dashed border-zinc-300 bg-white/50 p-10 text-center dark:border-zinc-800 dark:bg-zinc-900/10">
@@ -1779,7 +1779,7 @@ export default function TeamsPage() {
                         disabled={savingTeam || !inviteEmail.trim()}
                         className="inline-flex w-full items-center justify-center gap-2 rounded-lg bg-blue-600 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-blue-500 disabled:cursor-not-allowed disabled:opacity-60 cursor-pointer"
                       >
-                        {savingTeam ? <Loader2 className="h-4 w-4 animate-spin" /> : <Shield className="h-4 w-4" />}
+                        {savingTeam ? <LogoTransition width={28} height={18} loop={true} /> : <Shield className="h-4 w-4" />}
                         Generate Link
                       </button>
 
@@ -1825,7 +1825,7 @@ export default function TeamsPage() {
                           disabled={memberGithubLoading || !memberGithubText.trim()}
                           className="inline-flex items-center justify-center rounded-xl bg-zinc-900 text-white dark:bg-zinc-800 px-3 text-[11px] font-semibold hover:bg-zinc-800 transition cursor-pointer disabled:opacity-50"
                         >
-                          {memberGithubLoading ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : "Search"}
+                          {memberGithubLoading ? <LogoTransition width={24} height={16} loop={true} /> : "Search"}
                         </button>
                       </div>
 
@@ -1884,8 +1884,9 @@ export default function TeamsPage() {
               {activeTab === "Stages" && (
                 <div className="space-y-6">
                   {loadingTeamData ? (
-                    <div className="flex items-center gap-3 rounded-xl border border-zinc-200/80 bg-white px-4 py-5 text-sm text-zinc-500 dark:border-zinc-800 dark:bg-zinc-900/40 dark:text-zinc-400 shadow-xs">
-                      <Loader2 className="h-4 w-4 animate-spin text-blue-600" /> Loading stages list...
+                    <div className="flex flex-col items-center justify-center gap-3 rounded-2xl border border-zinc-200/60 bg-white px-4 py-8 text-sm text-zinc-500 dark:border-zinc-800 dark:bg-zinc-900/40 dark:text-zinc-400 shadow-xs">
+                      <LogoTransition width={100} height={60} loop={true} />
+                      <p className="font-semibold">Loading stages list...</p>
                     </div>
                   ) : selectedParticipation ? (() => {
                     const competitiveStages = selectedParticipation.stages.filter(s => !isRegistrationStage(s.name));
@@ -2087,7 +2088,7 @@ export default function TeamsPage() {
                           disabled={savingTeam || !renameTeamName.trim()}
                           className="inline-flex items-center gap-2 rounded-lg bg-blue-600 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-blue-500 disabled:cursor-not-allowed disabled:opacity-60 cursor-pointer"
                         >
-                          {savingTeam ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
+                          {savingTeam ? <LogoTransition width={28} height={18} loop={true} /> : <Save className="h-4 w-4" />}
                           Save
                         </button>
                       </form>
@@ -2195,7 +2196,7 @@ export default function TeamsPage() {
                       disabled={githubSearchLoading || !githubSearchText.trim()}
                       className="inline-flex h-9.5 items-center justify-center rounded-xl bg-zinc-900 text-white dark:bg-zinc-800 px-4 text-xs font-semibold hover:bg-zinc-800 transition cursor-pointer disabled:opacity-50"
                     >
-                      {githubSearchLoading ? <Loader2 className="h-4.5 w-4.5 animate-spin" /> : <Github className="h-4.5 w-4.5 mr-1" />}
+                      {githubSearchLoading ? <LogoTransition width={28} height={18} loop={true} /> : <Github className="h-4.5 w-4.5 mr-1" />}
                       Search
                     </button>
                   </div>
@@ -2270,7 +2271,7 @@ export default function TeamsPage() {
                   disabled={savingTeam || !createTeamName.trim()}
                   className="px-4 py-2 bg-blue-600 hover:bg-blue-500 text-white rounded-lg text-xs font-semibold shadow-sm cursor-pointer disabled:opacity-50"
                 >
-                  {savingTeam ? <Loader2 className="h-4.5 w-4.5 animate-spin" /> : "Create Team"}
+                  {savingTeam ? <LogoTransition width={28} height={18} loop={true} /> : "Create Team"}
                 </button>
               </div>
             </motion.div>
@@ -2335,7 +2336,7 @@ export default function TeamsPage() {
                     disabled={savingTeam || !joinTokenInput.trim()}
                     className="px-4 py-2 bg-blue-600 hover:bg-blue-500 text-white rounded-lg text-xs font-semibold shadow-xs cursor-pointer disabled:opacity-50"
                   >
-                    {savingTeam ? <Loader2 className="h-4.5 w-4.5 animate-spin" /> : "Join Team"}
+                    {savingTeam ? <LogoTransition width={28} height={18} loop={true} /> : "Join Team"}
                   </button>
                 </div>
               </div>
@@ -2399,7 +2400,7 @@ export default function TeamsPage() {
                     disabled={savingTeam || deleteConfirmInput !== selectedTeam.name}
                     className="px-4 py-2 bg-rose-600 hover:bg-rose-500 disabled:bg-zinc-200 dark:disabled:bg-zinc-850 disabled:text-zinc-450 text-white rounded-lg text-xs font-semibold shadow-xs cursor-pointer disabled:opacity-50"
                   >
-                    {savingTeam ? <Loader2 className="h-4.5 w-4.5 animate-spin" /> : "Delete this team"}
+                    {savingTeam ? <LogoTransition width={28} height={18} loop={true} /> : "Delete this team"}
                   </button>
                 </div>
               </div>
