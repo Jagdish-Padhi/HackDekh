@@ -18,6 +18,16 @@ export const addStage = asyncHandler(async (req: AuthRequest, res: Response) => 
         throw new ApiError(400, 'Stage name is required');
     }
 
+    const isRegistrationStageName = (n: string) => /register|registration|apply|application|prep|regn/i.test(n);
+    if (isRegistrationStageName(name)) {
+        throw new ApiError(400, 'Registration is tracked automatically. Please add a competitive milestone (e.g. Ideation, Round 1).');
+    }
+
+    const exists = await stageService.stageExists(String(req.params.thId), name);
+    if (exists) {
+        throw new ApiError(400, 'Stage with this name already exists');
+    }
+
     const stage = await stageService.addStage(String(req.params.thId), req.user._id, {
         name,
         deadline,
@@ -33,6 +43,20 @@ export const addStage = asyncHandler(async (req: AuthRequest, res: Response) => 
 // PUT /teams/:id/hackathons/:thId/stages/:stageId
 export const updateStage = asyncHandler(async (req: AuthRequest, res: Response) => {
     const { name, deadline, result, notes } = req.body;
+
+    if (name !== undefined) {
+        if (typeof name !== 'string' || !name.trim()) {
+            throw new ApiError(400, 'Stage name cannot be empty');
+        }
+        const isRegistrationStageName = (n: string) => /register|registration|apply|application|prep|regn/i.test(n);
+        if (isRegistrationStageName(name)) {
+            throw new ApiError(400, 'Registration is tracked automatically. Please use a competitive milestone name.');
+        }
+        const exists = await stageService.stageExists(String(req.params.thId), name, String(req.params.stageId));
+        if (exists) {
+            throw new ApiError(400, 'Stage with this name already exists');
+        }
+    }
 
     const stage = await stageService.updateStage(String(req.params.stageId), req.user._id, {
         name,

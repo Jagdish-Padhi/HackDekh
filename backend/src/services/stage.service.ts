@@ -24,6 +24,55 @@ async function getTeamMembersForStage(stageId: string, userId: Types.ObjectId) {
     return { stage, members: team.members as Types.ObjectId[] };
 }
 
+// ─── Auto Update Team Hackathon Status ─────────────────────────────────────────
+async function autoUpdateTeamHackathonStatus(thId: string) {
+    const th = await TeamHackathon.findById(thId).populate('stages');
+    if (!th) return;
+
+    const stages = th.stages as any[];
+    const isRegistrationStageName = (name: string) => /register|registration|apply|application|prep|regn/i.test(name);
+    const competitiveStages = stages.filter(s => !isRegistrationStageName(s.name));
+
+    if (competitiveStages.length === 0) {
+        if (th.status !== 'tracking') {
+            th.status = 'active';
+            await th.save();
+        }
+        return;
+    }
+
+    const hasRejected = competitiveStages.some(s => s.result === 'rejected');
+    if (hasRejected) {
+        th.status = 'eliminated';
+        await th.save();
+        return;
+    }
+
+    const allQualified = competitiveStages.every(s => s.result === 'qualified');
+    if (allQualified) {
+        th.status = 'won';
+        await th.save();
+        return;
+    }
+
+    if (competitiveStages.length >= 2) {
+        const lastStage = competitiveStages[competitiveStages.length - 1];
+        const priorStages = competitiveStages.slice(0, -1);
+        const priorsQualified = priorStages.every(s => s.result === 'qualified');
+
+        if (lastStage.result === 'pending' && priorsQualified) {
+            th.status = 'finalist';
+            await th.save();
+            return;
+        }
+    }
+
+    if (th.status !== 'tracking' && ['eliminated', 'finalist', 'won'].includes(th.status)) {
+        th.status = 'active';
+        await th.save();
+    }
+}
+
 // ─── Add Stage ───────────────────────────────────────────────────────────────
 export async function addStage(
     thId: string,
@@ -56,6 +105,8 @@ export async function addStage(
         $push: { stages: stage._id },
     });
 
+    await autoUpdateTeamHackathonStatus(thId);
+
     return stage;
 }
 
@@ -81,6 +132,10 @@ export async function updateStage(
     if (payload.result !== undefined) stage.result = payload.result as any;
     if (payload.notes !== undefined) stage.notes = payload.notes;
 
+    if (payload.result === 'pending') {
+        stage.pendingReflectionFor = [];
+    }
+
     const resultChanged =
         payload.result !== undefined &&
         prevResult === 'pending' &&
@@ -101,6 +156,9 @@ export async function updateStage(
     }
 
     await stage.save();
+
+    await autoUpdateTeamHackathonStatus(String(stage.teamHackathon));
+
     return stage;
 }
 
@@ -109,11 +167,16 @@ export async function deleteStage(stageId: string, userId: Types.ObjectId) {
     const { stage } = await getTeamMembersForStage(stageId, userId);
     if (!stage) return null;
 
+    const thId = String(stage.teamHackathon);
+
     await TeamHackathon.findByIdAndUpdate(stage.teamHackathon, {
         $pull: { stages: stage._id },
     });
 
     await Stage.findByIdAndDelete(stageId);
+
+    await autoUpdateTeamHackathonStatus(thId);
+
     return true;
 }
 
@@ -159,4 +222,68 @@ export async function getPendingReflections(userId: Types.ObjectId) {
                 { path: 'team', select: 'name' },
             ],
         });
+}
+
+// ─── Deep Canonical Stage Name Helper ─────────────────────────────────────────
+export function getCanonicalStageName(name: string): string {
+    const val = name.trim().toLowerCase();
+    
+    const numWords: Record<string, string> = {
+        'one': '1', 'two': '2', 'three': '3', 'four': '4', 'five': '5',
+        'six': '6', 'seven': '7', 'eight': '8', 'nine': '9', 'ten': '10',
+        'first': '1', 'second': '2', 'third': '3', 'fourth': '4', 'fifth': '5',
+        'sixth': '6', 'seventh': '7', 'eighth': '8', 'ninth': '9', 'tenth': '10',
+        '1st': '1', '2nd': '2', '3rd': '3', '4th': '4', '5th': '5',
+        '6th': '6', '7th': '7', '8th': '8', '9th': '9', '10th': '10'
+    };
+
+    const rawTokens = val.split(/[^a-z0-9]+/);
+    const processedTokens: string[] = [];
+
+    for (const rawToken of rawTokens) {
+        if (!rawToken) continue;
+        
+        let token = rawToken;
+        const numWordMapped = numWords[token];
+        
+        if (numWordMapped) {
+            token = numWordMapped;
+        } else {
+            switch (token) {
+                case 'i': token = '1'; break;
+                case 'ii': token = '2'; break;
+                case 'iii': token = '3'; break;
+                case 'iv': token = '4'; break;
+                case 'v': token = '5'; break;
+                case 'vi': token = '6'; break;
+                case 'vii': token = '7'; break;
+                case 'viii': token = '8'; break;
+                case 'ix': token = '9'; break;
+                case 'x': token = '10'; break;
+            }
+        }
+
+        if (/^\d+$/.test(token)) {
+            token = parseInt(token, 10).toString();
+        }
+
+        processedTokens.push(token);
+    }
+
+    processedTokens.sort();
+    return processedTokens.join('');
+}
+
+// ─── Check duplicate stage ──────────────────────────────────────────────────
+export async function stageExists(thId: string, name: string, excludeStageId?: string): Promise<boolean> {
+    if (!Types.ObjectId.isValid(thId)) return false;
+    const stages = await Stage.find({ teamHackathon: thId }).select('name');
+    const targetCanonical = getCanonicalStageName(name);
+    return stages.some(s => {
+        if (excludeStageId && String(s._id) === String(excludeStageId)) {
+            return false;
+        }
+        const canonical = getCanonicalStageName(s.name);
+        return canonical === targetCanonical;
+    });
 }
