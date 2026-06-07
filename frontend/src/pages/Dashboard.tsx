@@ -534,8 +534,8 @@ export default function DashboardPage() {
     <div className="mx-auto w-full max-w-7xl px-4 py-2 md:px-6 space-y-6">
       {loadingData ? (
         <div className="flex h-60 w-full flex-col items-center justify-center gap-3">
-          <LogoTransition width={120} height={80} loop={true} />
-          <p className="text-sm font-semibold text-zinc-500 dark:text-zinc-400">Loading your workspace details...</p>
+          <LogoTransition width={220} height={140} loop={true} />
+          <p className="text-sm font-semibold text-zinc-550 dark:text-zinc-400">Loading your workspace details...</p>
         </div>
       ) : (
         <div className="min-h-[40vh]">

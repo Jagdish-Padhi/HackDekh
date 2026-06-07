@@ -17,7 +17,7 @@ const LoadingProgress = ({
     return (
         <div className="rounded-[2.25rem] border border-zinc-200 bg-white p-6 shadow-md dark:border-zinc-800 dark:bg-zinc-950 text-center max-w-sm mx-auto">
             <div className="flex items-center justify-center py-1 overflow-visible">
-                <LogoTransition width={140} height={90} loop={true} />
+                <LogoTransition width={220} height={140} loop={true} />
             </div>
             
             <div className="flex items-center justify-between gap-4 mt-3">

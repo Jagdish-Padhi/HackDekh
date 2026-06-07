@@ -1048,7 +1048,7 @@ export default function TeamsPage() {
       <div className="mx-auto flex min-h-[60vh] max-w-7xl flex-col items-center justify-center px-4 py-10">
         <div className="flex flex-col items-center max-w-sm text-center">
           <div className="flex items-center justify-center overflow-visible py-2">
-            <LogoTransition width={220} height={140} loop={true} />
+            <LogoTransition width={320} height={220} loop={true} />
           </div>
           <h3 className="text-sm font-extrabold text-zinc-800 dark:text-zinc-200 mt-2 tracking-tight">
             Assembling Workspace
@@ -1353,7 +1353,7 @@ export default function TeamsPage() {
                 <div className="space-y-4">
                   {loadingTeamData ? (
                     <div className="flex flex-col items-center justify-center gap-3 rounded-2xl border border-zinc-200/60 bg-white px-4 py-8 text-sm text-zinc-500 dark:border-zinc-800 dark:bg-zinc-900/40 dark:text-zinc-400 shadow-xs">
-                      <LogoTransition width={100} height={60} loop={true} />
+                      <LogoTransition width={200} height={130} loop={true} />
                       <p className="font-semibold">Loading participations timeline...</p>
                     </div>
                   ) : teamParticipations.length === 0 ? (
@@ -1885,7 +1885,7 @@ export default function TeamsPage() {
                 <div className="space-y-6">
                   {loadingTeamData ? (
                     <div className="flex flex-col items-center justify-center gap-3 rounded-2xl border border-zinc-200/60 bg-white px-4 py-8 text-sm text-zinc-500 dark:border-zinc-800 dark:bg-zinc-900/40 dark:text-zinc-400 shadow-xs">
-                      <LogoTransition width={100} height={60} loop={true} />
+                      <LogoTransition width={200} height={130} loop={true} />
                       <p className="font-semibold">Loading stages list...</p>
                     </div>
                   ) : selectedParticipation ? (() => {

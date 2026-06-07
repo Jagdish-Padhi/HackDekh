@@ -126,7 +126,7 @@ const AcceptInvitationPage = () => {
         {showBusyState ? (
           <div className="flex flex-col items-center justify-center space-y-3 text-center">
             <div className="flex items-center justify-center overflow-visible py-1">
-              <LogoTransition width={140} height={90} loop={true} />
+              <LogoTransition width={220} height={140} loop={true} />
             </div>
             <p className="text-sm text-zinc-650 dark:text-zinc-400">
               {redirectingToAuth ? 'Redirecting to login...' : accepting ? 'Accepting invitation...' : 'Loading invitation details...'}

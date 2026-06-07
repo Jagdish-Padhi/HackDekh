@@ -22,7 +22,7 @@ function AppContent() {
   if (isLoading) {
     return (
       <div className="fixed inset-0 z-50 flex flex-col items-center justify-center bg-white dark:bg-zinc-950 transition-colors duration-300">
-        <LogoTransition width={220} height={140} loop={true} />
+        <LogoTransition width={320} height={220} loop={true} />
         <p className="text-sm font-semibold text-zinc-550 dark:text-zinc-400 mt-2">
           Loading HackDekh Workspace...
         </p>
