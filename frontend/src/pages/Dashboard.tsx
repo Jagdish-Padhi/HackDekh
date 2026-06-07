@@ -20,10 +20,11 @@ import {
   AlertTriangle,
   Trophy,
   Bookmark,
-  LayoutDashboard
+  LayoutDashboard,
+  ExternalLink
 } from "lucide-react";
 import axiosInstance from "../utils/axiosInstance";
-import { useAuth, useCache } from "../context";
+import { useAuth, useCache, useToast } from "../context";
 import { usePageChrome } from "../context/pageChrome";
 import HackathonCard from "../components/HackathonCard";
 import { teamApi, userApi } from "../services";
@@ -33,6 +34,10 @@ type SavedHackathon = HackathonLite;
 type Participation = TeamHackathon & { teamInfo: Team };
 
 const STAGE_RESULTS: Array<Stage["result"]> = ["pending", "qualified", "rejected"];
+
+export const isRegistrationStage = (name: string): boolean => {
+  return /register|registration|apply|application|prep|regn/i.test(name);
+};
 
 const defaultImages = [
   "/images/hackathons/hackathon-default-1.svg",
@@ -83,8 +88,57 @@ const isCurrentUserPending = (stage: Stage, userId?: string) => {
   });
 };
 
+export const getCanonicalStageName = (name: string): string => {
+  const val = name.trim().toLowerCase();
+  
+  const numWords: Record<string, string> = {
+    'one': '1', 'two': '2', 'three': '3', 'four': '4', 'five': '5',
+    'six': '6', 'seven': '7', 'eight': '8', 'nine': '9', 'ten': '10',
+    'first': '1', 'second': '2', 'third': '3', 'fourth': '4', 'fifth': '5',
+    'sixth': '6', 'seventh': '7', 'eighth': '8', 'ninth': '9', 'tenth': '10',
+    '1st': '1', '2nd': '2', '3rd': '3', '4th': '4', '5th': '5',
+    '6th': '6', '7th': '7', '8th': '8', '9th': '9', '10th': '10'
+  };
+
+  const rawTokens = val.split(/[^a-z0-9]+/);
+  const processedTokens: string[] = [];
+
+  for (const rawToken of rawTokens) {
+    if (!rawToken) continue;
+    
+    let token = rawToken;
+    
+    if (numWords[token]) {
+      token = numWords[token];
+    } else {
+      switch (token) {
+        case 'i': token = '1'; break;
+        case 'ii': token = '2'; break;
+        case 'iii': token = '3'; break;
+        case 'iv': token = '4'; break;
+        case 'v': token = '5'; break;
+        case 'vi': token = '6'; break;
+        case 'vii': token = '7'; break;
+        case 'viii': token = '8'; break;
+        case 'ix': token = '9'; break;
+        case 'x': token = '10'; break;
+      }
+    }
+
+    if (/^\d+$/.test(token)) {
+      token = parseInt(token, 10).toString();
+    }
+
+    processedTokens.push(token);
+  }
+
+  processedTokens.sort();
+  return processedTokens.join('');
+};
+
 export default function DashboardPage() {
   const { user } = useAuth();
+  const { showToast } = useToast();
   const { setPageActions } = usePageChrome();
   const [searchParams, setSearchParams] = useSearchParams();
   const activeTab = searchParams.get("tab") || "overview";
@@ -107,6 +161,7 @@ export default function DashboardPage() {
   const [reflectionDraft, setReflectionDraft] = useState("");
   const [newStageName, setNewStageName] = useState("");
   const [newStageDeadline, setNewStageDeadline] = useState("");
+  const [isAddingStage, setIsAddingStage] = useState(false);
 
   const loadDashboardData = useCallback(async (isSilent = false) => {
     if (!isSilent) {
@@ -247,6 +302,25 @@ export default function DashboardPage() {
     const stage = participation?.stages.find((candidate) => candidate._id === stageId);
     if (!participation || !stage) return;
 
+    if (payload.name !== undefined) {
+      if (isRegistrationStage(payload.name)) {
+        showToast("Registration is tracked automatically. Please use a competitive milestone name.", "error");
+        setNoteSavingStatus((previous) => ({ ...previous, [stageId]: "error" }));
+        return;
+      }
+      if (payload.name.trim() !== stage.name) {
+        const canonicalName = getCanonicalStageName(payload.name);
+        const duplicate = participation.stages.some(
+          (s) => s._id !== stageId && getCanonicalStageName(s.name) === canonicalName
+        );
+        if (duplicate) {
+          showToast("A stage with this name already exists.", "error");
+          setNoteSavingStatus((previous) => ({ ...previous, [stageId]: "error" }));
+          return;
+        }
+      }
+    }
+
     setNoteSavingStatus((previous) => ({ ...previous, [stageId]: "saving" }));
     try {
       const updatedStage = await teamApi.updateStage(participation.teamInfo._id, participationId, stageId, payload);
@@ -255,8 +329,9 @@ export default function DashboardPage() {
         stages: current.stages.map((candidate) => (candidate._id === stageId ? { ...candidate, ...updatedStage } : candidate)),
       }));
       setNoteSavingStatus((previous) => ({ ...previous, [stageId]: "saved" }));
-    } catch (error) {
+    } catch (error: any) {
       console.error("Failed to save stage", error);
+      showToast(error.response?.data?.message || "Failed to save stage", "error");
       setNoteSavingStatus((previous) => ({ ...previous, [stageId]: "error" }));
     }
   };
@@ -274,8 +349,9 @@ export default function DashboardPage() {
         ...current,
         stages: current.stages.map((candidate) => (candidate._id === stageId ? { ...candidate, ...updatedStage } : candidate)),
       }));
-    } catch (error) {
+    } catch (error: any) {
       console.error("Failed to update stage result", error);
+      showToast(error.response?.data?.message || "Failed to update stage result", "error");
     }
   };
 
@@ -294,13 +370,30 @@ export default function DashboardPage() {
       if (focusedStageId === stageId) {
         setFocusedStageId("");
       }
-    } catch (error) {
+    } catch (error: any) {
       console.error("Failed to delete stage", error);
+      showToast(error.response?.data?.message || "Failed to delete stage", "error");
     }
   };
 
   const handleAddStage = async () => {
-    if (!selectedParticipation || !newStageName.trim()) return;
+    if (!selectedParticipation || !newStageName.trim() || isAddingStage) return;
+    
+    if (isRegistrationStage(newStageName)) {
+      showToast("Registration is tracked automatically. Please add a competitive milestone.", "error");
+      return;
+    }
+
+    const targetCanonical = getCanonicalStageName(newStageName);
+    const duplicate = selectedParticipation.stages.some(
+      (s) => getCanonicalStageName(s.name) === targetCanonical
+    );
+    if (duplicate) {
+      showToast("A stage with this name already exists.", "error");
+      return;
+    }
+
+    setIsAddingStage(true);
     try {
       const created = await teamApi.addStage(selectedParticipation.teamInfo._id, selectedParticipation._id, {
         name: newStageName.trim(),
@@ -312,8 +405,11 @@ export default function DashboardPage() {
       }));
       setNewStageName("");
       setNewStageDeadline("");
-    } catch (error) {
+    } catch (error: any) {
       console.error("Failed to add stage", error);
+      showToast(error.response?.data?.message || "Failed to add stage", "error");
+    } finally {
+      setIsAddingStage(false);
     }
   };
 
@@ -353,7 +449,29 @@ export default function DashboardPage() {
     now.setHours(0, 0, 0, 0);
 
     participations.forEach((participation) => {
+      // 1. If tracking, inject virtual registration deadline
+      if (participation.status === 'tracking' && participation.hackathon.deadline) {
+        const dlDate = new Date(participation.hackathon.deadline);
+        dlDate.setHours(0, 0, 0, 0);
+        const diff = dlDate.getTime() - now.getTime();
+        const days = Math.ceil(diff / (1000 * 60 * 60 * 24));
+        list.push({
+          stage: {
+            _id: `reg-${participation._id}`,
+            name: "Registration Deadline",
+            deadline: participation.hackathon.deadline,
+            result: "pending",
+            notes: "Register on the official platform to unlock competitive tracking.",
+            teamHackathon: participation._id
+          } as any,
+          participation,
+          daysRemaining: days
+        });
+      }
+
+      // 2. Regular competitive stages
       participation.stages.forEach((stage) => {
+        if (isRegistrationStage(stage.name)) return;
         if (stage.deadline && stage.result === "pending") {
           const dlDate = new Date(stage.deadline);
           dlDate.setHours(0, 0, 0, 0);
@@ -460,7 +578,19 @@ export default function DashboardPage() {
                     </div>
 
                     {/* Metric Card 3 */}
-                    <div className="flex items-center gap-4 bg-white dark:bg-zinc-950 p-4 rounded-2xl border border-zinc-150 dark:border-zinc-900 shadow-xs">
+                    <div 
+                      onClick={() => {
+                        const el = document.getElementById('pending-reflections-panel');
+                        if (el) {
+                          el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                          el.classList.add('ring-4', 'ring-amber-500/40', 'dark:ring-amber-400/40');
+                          setTimeout(() => {
+                            el.classList.remove('ring-4', 'ring-amber-500/40', 'dark:ring-amber-400/40');
+                          }, 3000);
+                        }
+                      }}
+                      className="flex items-center gap-4 bg-white dark:bg-zinc-950 p-4 rounded-2xl border border-zinc-150 dark:border-zinc-900 shadow-xs cursor-pointer hover:border-amber-400 dark:hover:border-amber-500/60 hover:-translate-y-0.5 transition-all duration-200"
+                    >
                       <div className="h-12 w-12 rounded-xl bg-amber-500/10 flex items-center justify-center text-amber-600 dark:text-amber-400 shrink-0">
                         <AlertTriangle className="h-5.5 w-5.5" />
                       </div>
@@ -514,11 +644,15 @@ export default function DashboardPage() {
                             : "bg-blue-600";
 
                           return (
-                            <div key={stage._id} className="relative group">
+                            <Link 
+                              key={stage._id}
+                              to={`/teams?teamId=${participation.teamInfo._id}&participationId=${participation._id}&tab=Stages&stageId=${stage._id}`}
+                              className="relative group block cursor-pointer hover:bg-zinc-50/50 dark:hover:bg-zinc-900/10 p-2 -m-2 rounded-2xl transition-all duration-200"
+                            >
                               {/* Marker dot */}
-                              <span className={`absolute -left-[27px] top-1 h-3.5 w-3.5 rounded-full border-2 border-white dark:border-zinc-950 ${statusColor}`} />
+                              <span className={`absolute -left-[19px] top-3 h-3.5 w-3.5 rounded-full border-2 border-white dark:border-zinc-950 ${statusColor}`} />
                               
-                              <div className="space-y-1">
+                              <div className="space-y-1 pl-2">
                                 <div className="flex flex-wrap items-center justify-between gap-2">
                                   <h3 className="text-sm font-bold text-zinc-900 dark:text-zinc-100 group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors">
                                     {stage.name}
@@ -548,7 +682,7 @@ export default function DashboardPage() {
                                   </p>
                                 )}
                               </div>
-                            </div>
+                            </Link>
                           );
                         })}
                       </div>
@@ -620,7 +754,7 @@ export default function DashboardPage() {
                 {/* Reflections Column */}
                 <div className="space-y-6">
                   {/* Reflection Warnings Panel */}
-                  <div className="rounded-3xl border border-amber-500/20 bg-amber-500/5 p-6 dark:bg-amber-500/10">
+                  <div id="pending-reflections-panel" className="rounded-3xl border border-amber-500/20 bg-amber-500/5 p-6 dark:bg-amber-500/10">
                     <div className="flex items-center gap-2 mb-3">
                       <AlertTriangle className="h-5 w-5 text-amber-600 dark:text-amber-400" />
                       <h3 className="text-sm font-extrabold text-zinc-900 dark:text-zinc-100 uppercase tracking-wider">Pending Reflections</h3>
@@ -640,7 +774,16 @@ export default function DashboardPage() {
                           const isReflecting = activeReflectionStageId === stage._id;
                           return (
                             <div key={stage._id} className="p-3 bg-white dark:bg-zinc-950 rounded-2xl border border-amber-500/20">
-                              <p className="text-xs font-bold text-zinc-900 dark:text-zinc-100">{stage.name}</p>
+                              <Link 
+                                to={
+                                  stage.teamHackathon && typeof stage.teamHackathon === "object" && stage.teamHackathon.team
+                                    ? `/teams?teamId=${(stage.teamHackathon.team as any)._id || stage.teamHackathon.team}&participationId=${stage.teamHackathon._id}&tab=Stages&stageId=${stage._id}`
+                                    : `/teams`
+                                }
+                                className="text-xs font-bold text-zinc-900 dark:text-zinc-100 hover:text-blue-600 dark:hover:text-blue-400 transition-colors block cursor-pointer"
+                              >
+                                {stage.name}
+                              </Link>
                               <p className="text-[10px] text-zinc-500 dark:text-zinc-400 mt-0.5">Stage Result: {stage.result}</p>
                               
                               {!isReflecting ? (
@@ -814,6 +957,13 @@ export default function DashboardPage() {
 
                 const selectedParticipation = list.find(p => p._id === selectedParticipationId) || null;
                 const stageProgress = selectedParticipation ? (selectedParticipation.stages.length === 0 ? "No stages yet" : currentStageLabel) : "";
+                const isTerminated = (() => {
+                  if (!selectedParticipation) return false;
+                  const competitiveStages = selectedParticipation.stages.filter(s => !isRegistrationStage(s.name));
+                  const failedStageIdx = competitiveStages.findIndex(s => s.result === 'rejected');
+                  const hasRejections = failedStageIdx !== -1;
+                  return hasRejections || ['won', 'eliminated'].includes(selectedParticipation.status);
+                })();
 
                 return (
                   <div className="grid gap-4 xl:grid-cols-[1fr_420px]">
@@ -919,7 +1069,9 @@ export default function DashboardPage() {
                                   disabled={loadingParticipationId === selectedParticipation._id}
                                   className="rounded-xl border border-zinc-200 bg-zinc-50 px-3 py-2 text-sm font-semibold text-zinc-700 outline-none transition focus:border-blue-400 dark:border-zinc-800 dark:bg-zinc-950 dark:text-zinc-200"
                                 >
-                                  <option value="tracking">Tracking</option>
+                                  {selectedParticipation.status === 'tracking' && (
+                                    <option value="tracking">Tracking</option>
+                                  )}
                                   <option value="active">Active</option>
                                   <option value="finalist">Finalist</option>
                                   <option value="won">Won</option>
@@ -931,12 +1083,73 @@ export default function DashboardPage() {
 
                             <div className="flex-1 overflow-y-auto overflow-x-hidden p-5">
                               <div className="space-y-6">
+                                {/* Registration Milestone Card */}
+                                <div className={`rounded-2xl border p-4 backdrop-blur-sm transition-all duration-350 ${
+                                  selectedParticipation.status === 'tracking'
+                                    ? 'border-amber-500/20 bg-amber-500/5 text-amber-900 dark:text-amber-200 shadow-sm shadow-amber-500/5'
+                                    : 'border-emerald-500/20 bg-emerald-500/5 text-emerald-950 dark:text-emerald-300 shadow-xs'
+                                }`}>
+                                  <div className="flex items-center gap-2.5">
+                                    <div className={`h-7 w-7 rounded-lg flex items-center justify-center shrink-0 shadow-xs ${
+                                      selectedParticipation.status === 'tracking'
+                                        ? 'bg-gradient-to-tr from-amber-500 to-orange-500 text-white'
+                                        : 'bg-gradient-to-tr from-emerald-500 to-teal-500 text-white'
+                                    }`}>
+                                      {selectedParticipation.status === 'tracking' ? (
+                                        <AlertTriangle className="h-4 w-4" />
+                                      ) : (
+                                        <Check className="h-4 w-4" />
+                                      )}
+                                    </div>
+                                    <div className="min-w-0 flex-1 text-left">
+                                      <p className="font-extrabold uppercase tracking-wide text-[10px]">
+                                        {selectedParticipation.status === 'tracking' ? 'Prerequisite: Register for Hackathon' : 'Registration Completed'}
+                                      </p>
+                                      <p className="mt-0.5 text-zinc-650 dark:text-zinc-400 font-semibold text-xs truncate">
+                                        {selectedParticipation.status === 'tracking' ? (
+                                          selectedParticipation.hackathon.deadline ? (
+                                            <span>
+                                              Deadline: {new Date(selectedParticipation.hackathon.deadline).toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' })}
+                                            </span>
+                                          ) : (
+                                            'Register soon!'
+                                          )
+                                        ) : (
+                                          'Registered & Active.'
+                                        )}
+                                      </p>
+                                    </div>
+                                  </div>
+
+                                  {selectedParticipation.status === 'tracking' && (
+                                    <div className="mt-3 flex items-center gap-2 justify-end">
+                                      {selectedParticipation.hackathon.applyLink && (
+                                        <a
+                                          href={selectedParticipation.hackathon.applyLink}
+                                          target="_blank"
+                                          rel="noopener noreferrer"
+                                          className="inline-flex items-center gap-1 rounded-lg border border-amber-500/25 hover:border-amber-500/40 bg-white hover:bg-zinc-50 dark:bg-zinc-950 dark:hover:bg-zinc-900 text-amber-700 dark:text-amber-450 px-2.5 py-1.5 text-xs font-bold transition-all duration-200 cursor-pointer"
+                                        >
+                                          Apply Site <ExternalLink className="h-3 w-3" />
+                                        </a>
+                                      )}
+                                      <button
+                                        onClick={() => handleUpdateParticipationStatus(selectedParticipation._id, 'active')}
+                                        className="inline-flex items-center gap-1.5 rounded-lg bg-gradient-to-r from-amber-600 to-orange-600 hover:from-amber-500 hover:to-orange-500 text-white px-2.5 py-1.5 text-xs font-bold shadow-md shadow-amber-500/10 hover:shadow-lg transition-all duration-300 cursor-pointer"
+                                      >
+                                        Mark Registered
+                                      </button>
+                                    </div>
+                                  )}
+                                </div>
+
                                 <section>
                                   <div className="mb-3 flex items-center justify-between">
                                     <h4 className="text-sm font-bold uppercase tracking-wider text-zinc-800 dark:text-zinc-200">Stage timeline</h4>
                                     <button
+                                      disabled={isTerminated}
                                       onClick={handleAddStage}
-                                      className="inline-flex items-center gap-2 rounded-lg bg-blue-600 px-3 py-2 text-xs font-semibold text-white transition hover:bg-blue-500 cursor-pointer"
+                                      className="inline-flex items-center gap-2 rounded-lg bg-blue-600 px-3 py-2 text-xs font-semibold text-white transition hover:bg-blue-500 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
                                     >
                                       <Plus className="h-3.5 w-3.5" />
                                       Add Stage
@@ -944,14 +1157,18 @@ export default function DashboardPage() {
                                   </div>
 
                                   <div className="space-y-3">
-                                    {selectedParticipation.stages.length === 0 ? (
-                                      <div className="rounded-2xl border border-dashed border-zinc-300 bg-zinc-50 p-4 text-sm text-zinc-500 dark:border-zinc-800 dark:bg-zinc-950/40 dark:text-zinc-400">
-                                        No stages yet. Add the first stage to start tracking.
-                                      </div>
-                                    ) : (
-                                      selectedParticipation.stages.map((stage, index) => {
+                                    {(() => {
+                                      const competitiveStages = selectedParticipation.stages.filter(s => !isRegistrationStage(s.name));
+                                      if (competitiveStages.length === 0) {
+                                        return (
+                                          <div className="rounded-2xl border border-dashed border-zinc-300 bg-zinc-50 p-4 text-sm text-zinc-500 dark:border-zinc-800 dark:bg-zinc-950/40 dark:text-zinc-400 text-left">
+                                            No competitive stages yet. Add your first stage to start tracking.
+                                          </div>
+                                        );
+                                      }
+                                      return competitiveStages.map((stage, index) => {
                                         const isFocused = focusedStageId === stage._id;
-                                        const failedStageIdx = selectedParticipation.stages.findIndex(s => s.result === 'rejected');
+                                        const failedStageIdx = competitiveStages.findIndex(s => s.result === 'rejected');
                                         const isDisqualified = failedStageIdx !== -1 && index > failedStageIdx;
                                         return (
                                           <div
@@ -977,14 +1194,14 @@ export default function DashboardPage() {
                                                       </span>
                                                     )}
                                                     <input
-                                                      disabled={isDisqualified}
+                                                      disabled={isDisqualified || isTerminated || isRegistrationStage(stage.name)}
                                                       defaultValue={stage.name}
                                                       onBlur={(event) => {
                                                         if (event.target.value !== stage.name) {
                                                           handleStageFieldSave(selectedParticipation._id, stage._id, { name: event.target.value });
                                                         }
                                                       }}
-                                                      className="w-full rounded-xl border border-zinc-200 bg-white px-3 py-2 text-sm font-semibold text-zinc-900 outline-none transition focus:border-blue-400 dark:border-zinc-800 dark:bg-zinc-950 dark:text-zinc-100 disabled:cursor-not-allowed"
+                                                      className="w-full rounded-xl border border-zinc-200 bg-white px-3 py-2 text-sm font-semibold text-zinc-900 outline-none transition focus:border-blue-400 dark:border-zinc-800 dark:bg-zinc-950 dark:text-zinc-100 disabled:cursor-not-allowed disabled:bg-zinc-50 dark:disabled:bg-zinc-900/40 disabled:text-zinc-400"
                                                     />
                                                   </div>
                                                   <div className="flex flex-wrap items-center gap-2 text-xs text-zinc-500 dark:text-zinc-400">
@@ -1001,8 +1218,9 @@ export default function DashboardPage() {
                                                 </div>
                                               </div>
                                               <button
+                                                disabled={isTerminated}
                                                 onClick={() => handleDeleteStage(selectedParticipation._id, stage._id)}
-                                                className="rounded-lg p-2 text-zinc-400 transition hover:bg-rose-500/10 hover:text-rose-500 cursor-pointer"
+                                                className="rounded-lg p-2 text-zinc-400 transition hover:bg-rose-500/10 hover:text-rose-500 cursor-pointer disabled:opacity-30 disabled:cursor-not-allowed"
                                                 title="Delete stage"
                                               >
                                                 <Trash2 className="h-4 w-4" />
@@ -1011,7 +1229,7 @@ export default function DashboardPage() {
 
                                             <div className="mt-4 grid grid-cols-2 gap-2">
                                               <input
-                                                disabled={isDisqualified}
+                                                disabled={isDisqualified || isTerminated}
                                                 type="date"
                                                 defaultValue={stage.deadline ? new Date(stage.deadline).toISOString().slice(0, 10) : ""}
                                                 onBlur={(event) => {
@@ -1021,12 +1239,12 @@ export default function DashboardPage() {
                                                     handleStageFieldSave(selectedParticipation._id, stage._id, { deadline: nextValue });
                                                   }
                                                 }}
-                                                className="rounded-xl border border-zinc-200 bg-white px-3 py-2 text-sm text-zinc-700 outline-none transition focus:border-blue-400 dark:border-zinc-800 dark:bg-zinc-950 dark:text-zinc-200 disabled:cursor-not-allowed"
+                                                className="rounded-xl border border-zinc-200 bg-white px-3 py-2 text-sm text-zinc-700 outline-none transition focus:border-blue-400 dark:border-zinc-800 dark:bg-zinc-950 dark:text-zinc-200 disabled:cursor-not-allowed disabled:bg-zinc-50 dark:disabled:bg-zinc-900/40 disabled:text-zinc-400"
                                               />
                                               <button
-                                                disabled={isDisqualified}
+                                                disabled={isDisqualified || isTerminated}
                                                 onClick={() => handleCycleStageResult(selectedParticipation._id, stage._id)}
-                                                className={`inline-flex items-center justify-center gap-2 rounded-lg border px-3 py-2 text-xs font-semibold cursor-pointer disabled:cursor-not-allowed ${isDisqualified ? "border-zinc-200 bg-zinc-150 text-zinc-500 dark:border-zinc-800 dark:bg-zinc-900/50" : getStageResultClass(stage.result)}`}
+                                                className={`inline-flex items-center justify-center gap-2 rounded-lg border px-3 py-2 text-xs font-semibold cursor-pointer disabled:cursor-not-allowed ${isDisqualified || isTerminated ? "border-zinc-200 bg-zinc-150 text-zinc-500 dark:border-zinc-800 dark:bg-zinc-900/50" : getStageResultClass(stage.result)}`}
                                               >
                                                 <CircleDot className="h-3.5 w-3.5" />
                                                 {isDisqualified ? "disqualified" : stage.result}
@@ -1034,7 +1252,7 @@ export default function DashboardPage() {
                                             </div>
 
                                             <textarea
-                                              disabled={isDisqualified}
+                                              disabled={isDisqualified || isTerminated}
                                               defaultValue={stage.notes || ""}
                                               onBlur={(event) => {
                                                 if (event.target.value !== (stage.notes || "")) {
@@ -1042,7 +1260,7 @@ export default function DashboardPage() {
                                                 }
                                               }}
                                               placeholder="Stage notes"
-                                              className="mt-3 min-h-[92px] w-full rounded-2xl border border-zinc-200 bg-white px-3 py-2 text-sm text-zinc-700 outline-none transition focus:border-blue-400 dark:border-zinc-800 dark:bg-zinc-950 dark:text-zinc-200"
+                                              className="mt-3 min-h-[92px] w-full rounded-2xl border border-zinc-200 bg-white px-3 py-2 text-sm text-zinc-700 outline-none transition focus:border-blue-400 dark:border-zinc-800 dark:bg-zinc-950 dark:text-zinc-200 disabled:cursor-not-allowed disabled:bg-zinc-50 dark:disabled:bg-zinc-900/40 disabled:text-zinc-400"
                                             />
 
                                             {noteSavingStatus[stage._id] && (
@@ -1116,29 +1334,37 @@ export default function DashboardPage() {
                                             </div>
                                           </div>
                                         );
-                                      })
-                                    )}
+                                      });
+                                    })()}
                                   </div>
 
                                   <div className="mt-4 flex flex-col gap-2.5">
+                                    {isTerminated && (
+                                      <p className="text-[11px] text-amber-605 dark:text-amber-405 font-bold leading-normal">
+                                        Milestone tracking locked (this participation is marked as won or eliminated, or has a rejection).
+                                      </p>
+                                    )}
                                     <input
                                       type="text"
                                       value={newStageName}
+                                      disabled={isTerminated}
                                       onChange={(event) => setNewStageName(event.target.value)}
                                       placeholder="Add a new stage"
-                                      className="rounded-xl border border-zinc-200 bg-white px-3 py-2 text-sm text-zinc-700 outline-none transition focus:border-blue-400 dark:border-zinc-800 dark:bg-zinc-950 dark:text-zinc-200"
+                                      className="rounded-xl border border-zinc-200 bg-white px-3 py-2 text-sm text-zinc-700 outline-none transition focus:border-blue-400 dark:border-zinc-800 dark:bg-zinc-950 dark:text-zinc-200 disabled:cursor-not-allowed disabled:bg-zinc-50 dark:disabled:bg-zinc-900/40 disabled:text-zinc-400"
                                     />
                                     <input
                                       type="date"
                                       value={newStageDeadline}
+                                      disabled={isTerminated}
                                       onChange={(event) => setNewStageDeadline(event.target.value)}
-                                      className="rounded-xl border border-zinc-200 bg-white px-3 py-2 text-sm text-zinc-700 outline-none transition focus:border-blue-400 dark:border-zinc-800 dark:bg-zinc-950 dark:text-zinc-200"
+                                      className="rounded-xl border border-zinc-200 bg-white px-3 py-2 text-sm text-zinc-700 outline-none transition focus:border-blue-400 dark:border-zinc-800 dark:bg-zinc-950 dark:text-zinc-200 disabled:cursor-not-allowed disabled:bg-zinc-50 dark:disabled:bg-zinc-900/40 disabled:text-zinc-400"
                                     />
                                   </div>
                                   <div className="mt-3 flex justify-end">
                                     <button
+                                      disabled={isTerminated}
                                       onClick={handleAddStage}
-                                      className="inline-flex items-center gap-2 rounded-lg bg-blue-600 px-4 py-2 text-sm font-semibold text-white transition hover:bg-blue-500 cursor-pointer"
+                                      className="inline-flex items-center gap-2 rounded-lg bg-blue-600 px-4 py-2 text-sm font-semibold text-white transition hover:bg-blue-500 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
                                     >
                                       <Plus className="h-4 w-4" />
                                       Add Stage

@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import React from "react";
-import { Link } from "react-router-dom";
+import { Link, useSearchParams } from "react-router-dom";
 import {
   ArrowRight,
   Calendar,
@@ -24,7 +24,7 @@ import {
   Star,
   AlertTriangle
 } from "lucide-react";
-import { useAuth, useCache } from "../context";
+import { useAuth, useCache, useToast } from "../context";
 import { usePageChrome } from "../context/pageChrome";
 import { teamApi } from "../services";
 import LogoTransition from "../components/LogoAnimation";
@@ -32,6 +32,58 @@ import type { GeneratedInvitationLink, Team, TeamHackathon, Stage } from "../typ
 import { motion, AnimatePresence } from "framer-motion";
 
 const teamTabs = ["Hackathons", "Members", "Stages", "Settings"] as const;
+
+export const isRegistrationStage = (name: string): boolean => {
+  return /register|registration|apply|application|prep|regn/i.test(name);
+};
+
+export const getCanonicalStageName = (name: string): string => {
+  const val = name.trim().toLowerCase();
+  
+  const numWords: Record<string, string> = {
+    'one': '1', 'two': '2', 'three': '3', 'four': '4', 'five': '5',
+    'six': '6', 'seven': '7', 'eight': '8', 'nine': '9', 'ten': '10',
+    'first': '1', 'second': '2', 'third': '3', 'fourth': '4', 'fifth': '5',
+    'sixth': '6', 'seventh': '7', 'eighth': '8', 'ninth': '9', 'tenth': '10',
+    '1st': '1', '2nd': '2', '3rd': '3', '4th': '4', '5th': '5',
+    '6th': '6', '7th': '7', '8th': '8', '9th': '9', '10th': '10'
+  };
+
+  const rawTokens = val.split(/[^a-z0-9]+/);
+  const processedTokens: string[] = [];
+
+  for (const rawToken of rawTokens) {
+    if (!rawToken) continue;
+    
+    let token = rawToken;
+    
+    if (numWords[token]) {
+      token = numWords[token];
+    } else {
+      switch (token) {
+        case 'i': token = '1'; break;
+        case 'ii': token = '2'; break;
+        case 'iii': token = '3'; break;
+        case 'iv': token = '4'; break;
+        case 'v': token = '5'; break;
+        case 'vi': token = '6'; break;
+        case 'vii': token = '7'; break;
+        case 'viii': token = '8'; break;
+        case 'ix': token = '9'; break;
+        case 'x': token = '10'; break;
+      }
+    }
+
+    if (/^\d+$/.test(token)) {
+      token = parseInt(token, 10).toString();
+    }
+
+    processedTokens.push(token);
+  }
+
+  processedTokens.sort();
+  return processedTokens.join('');
+};
 
 type WorkspaceTab = (typeof teamTabs)[number];
 
@@ -97,8 +149,10 @@ const getGradientClass = (name: string) => {
 
 export default function TeamsPage() {
   const { user } = useAuth();
+  const { showToast } = useToast();
   const { setPageActions, closeSidebar, sidebarExpanded, toggleSidebar } = usePageChrome();
   const [sidebarWasExpanded, setSidebarWasExpanded] = useState(false);
+  const [searchParams] = useSearchParams();
 
   const { teamsData, setTeamsData } = useCache();
 
@@ -141,6 +195,7 @@ export default function TeamsPage() {
   const [workspaceMessage, setWorkspaceMessage] = useState<string | null>(null);
   const [workspaceError, setWorkspaceError] = useState<string | null>(null);
   const [newStageDraft, setNewStageDraft] = useState<Record<string, { name: string; deadline: string }>>({});
+  const [isAddingStageMap, setIsAddingStageMap] = useState<Record<string, boolean>>({});
   const [selectedParticipationId, setSelectedParticipationId] = useState<string>("");
   const [stageSaving, setStageSaving] = useState<Record<string, "saved" | "saving" | "error">>({});
   const [stripSort, setStripSort] = useState<'most_qualified' | 'latest' | 'oldest'>('latest');
@@ -156,6 +211,11 @@ export default function TeamsPage() {
   // Deletion verification states
   const [showDeleteConfirmModal, setShowDeleteConfirmModal] = useState(false);
   const [deleteConfirmInput, setDeleteConfirmInput] = useState("");
+
+  // Untrack verification states
+  const [showUntrackConfirmModal, setShowUntrackConfirmModal] = useState(false);
+  const [participationToUntrack, setParticipationToUntrack] = useState<{ id: string; title: string } | null>(null);
+  const [isUntracking, setIsUntracking] = useState(false);
 
   const selectedTeam = useMemo(() => teams.find((team) => team._id === selectedTeamId) || null, [teams, selectedTeamId]);
   const selectedParticipation = useMemo(
@@ -173,8 +233,9 @@ export default function TeamsPage() {
     // Then apply the user's chosen sort
     if (stripSort === 'most_qualified') {
       const qualScore = (p: TeamParticipation) => {
-        const qualified = p.stages.filter(s => s.result === 'qualified').length;
-        const total = p.stages.length || 1;
+        const compStages = p.stages.filter(s => !isRegistrationStage(s.name));
+        const qualified = compStages.filter(s => s.result === 'qualified').length;
+        const total = compStages.length || 1;
         return qualified / total;
       };
       return [...withIndex].sort((a, b) => qualScore(b) - qualScore(a));
@@ -268,10 +329,30 @@ export default function TeamsPage() {
     loadTeams(!!teamsData);
   }, []);
 
+  // Sync route query parameters on change or load
+  useEffect(() => {
+    const teamIdParam = searchParams.get("teamId");
+    const tabParam = searchParams.get("tab");
+
+    if (teamIdParam) {
+      setSelectedTeamId(teamIdParam);
+    }
+    if (tabParam && teamTabs.includes(tabParam as any)) {
+      setActiveTab(tabParam as WorkspaceTab);
+    }
+  }, [searchParams]);
+
   useEffect(() => {
     if (selectedTeamId) {
       loadTeamWorkspace(selectedTeamId, !!allParticipations[selectedTeamId]);
-      setSelectedParticipationId("");
+      
+      const participationIdParam = searchParams.get("participationId");
+      if (participationIdParam) {
+        setSelectedParticipationId(participationIdParam);
+      } else {
+        setSelectedParticipationId("");
+      }
+
       setInviteLink(null);
       setWorkspaceMessage(null);
       setWorkspaceError(null);
@@ -292,10 +373,31 @@ export default function TeamsPage() {
   }, [selectedTeamId]);
 
   useEffect(() => {
-    if (!selectedParticipationId && teamParticipations.length > 0) {
+    const participationIdParam = searchParams.get("participationId");
+    if (participationIdParam && teamParticipations.some(p => p._id === participationIdParam)) {
+      setSelectedParticipationId(participationIdParam);
+    } else if (!selectedParticipationId && teamParticipations.length > 0) {
       setSelectedParticipationId(teamParticipations[0]._id);
     }
-  }, [teamParticipations, selectedParticipationId]);
+  }, [teamParticipations, selectedParticipationId, searchParams]);
+
+  // Smooth scroll and highlight focus stage
+  useEffect(() => {
+    const stageIdParam = searchParams.get("stageId");
+    if (activeTab === "Stages" && selectedParticipationId && stageIdParam) {
+      const timer = setTimeout(() => {
+        const el = document.getElementById(`stage-${stageIdParam}`);
+        if (el) {
+          el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+          el.classList.add('ring-4', 'ring-blue-500/40', 'dark:ring-blue-400/40');
+          setTimeout(() => {
+            el.classList.remove('ring-4', 'ring-blue-500/40', 'dark:ring-blue-400/40');
+          }, 3000);
+        }
+      }, 700);
+      return () => clearTimeout(timer);
+    }
+  }, [activeTab, selectedParticipationId, searchParams]);
 
   // GitHub User Lookup
   const handleGithubSearch = async () => {
@@ -687,7 +789,7 @@ export default function TeamsPage() {
   const handleDeleteTeam = async () => {
     if (!selectedTeam) return;
     if (deleteConfirmInput !== selectedTeam.name) {
-      alert("Verification name does not match.");
+      showToast("Verification name does not match.", "error");
       return;
     }
     setSavingTeam(true);
@@ -703,19 +805,86 @@ export default function TeamsPage() {
     } catch (error: any) {
       console.error("Failed to delete team", error);
       setWorkspaceError(error.response?.data?.message || "Failed to delete team.");
+      showToast(error.response?.data?.message || "Failed to delete team.", "error");
     } finally {
       setSavingTeam(false);
+    }
+  };
+
+  const handleUpdateParticipationStatus = async (participationId: string, nextStatus: string) => {
+    const participation = teamParticipations.find((p) => p._id === participationId);
+    if (!participation) return;
+    try {
+      const updated = await teamApi.updateStatus(participation.teamInfo._id, participationId, nextStatus as any);
+      setTeamParticipations((current) =>
+        current.map((item) =>
+          item._id === participationId
+            ? { ...item, status: updated.status }
+            : item
+        )
+      );
+      showToast(`Workspace status updated to "${nextStatus}" successfully!`, "success");
+    } catch (error: any) {
+      console.error("Failed to update participation status", error);
+      showToast(error.response?.data?.message || "Failed to update workspace status", "error");
+    }
+  };
+
+  const handleInitiateUntrack = (participationId: string, hackathonTitle: string) => {
+    setParticipationToUntrack({ id: participationId, title: hackathonTitle });
+    setShowUntrackConfirmModal(true);
+  };
+
+  const handleConfirmUntrack = async () => {
+    if (!participationToUntrack || !selectedTeam) return;
+    const part = teamParticipations.find(p => p._id === participationToUntrack.id);
+    if (!part) return;
+
+    setIsUntracking(true);
+    try {
+      await teamApi.unlinkHackathon(selectedTeam._id, part.hackathon._id);
+      
+      // Update local states
+      setTeamParticipations(current => current.filter(p => p._id !== part._id));
+      setAllParticipations(current => ({
+        ...current,
+        [selectedTeam._id]: (current[selectedTeam._id] || []).filter(p => p._id !== part._id)
+      }));
+
+      showToast(`Successfully untracked "${participationToUntrack.title}"`, "success");
+      setShowUntrackConfirmModal(false);
+      setParticipationToUntrack(null);
+    } catch (error: any) {
+      console.error("Failed to untrack hackathon", error);
+      showToast(error.response?.data?.message || "Failed to untrack hackathon", "error");
+    } finally {
+      setIsUntracking(false);
     }
   };
 
   // Stages operations
   const handleAddStage = async (participationId: string) => {
     const draft = newStageDraft[participationId];
-    if (!draft?.name?.trim()) return;
+    if (!draft?.name?.trim() || isAddingStageMap[participationId]) return;
 
     const participation = teamParticipations.find((item) => item._id === participationId);
     if (!participation) return;
 
+    if (isRegistrationStage(draft.name)) {
+      showToast("Registration is tracked automatically. Please add a competitive milestone.", "error");
+      return;
+    }
+
+    const targetCanonical = getCanonicalStageName(draft.name);
+    const duplicate = participation.stages.some(
+      (s) => getCanonicalStageName(s.name) === targetCanonical
+    );
+    if (duplicate) {
+      showToast("A stage with this name already exists.", "error");
+      return;
+    }
+
+    setIsAddingStageMap((prev) => ({ ...prev, [participationId]: true }));
     try {
       const createdStage = await teamApi.addStage(participation.teamInfo._id, participationId, {
         name: draft.name.trim(),
@@ -733,14 +902,37 @@ export default function TeamsPage() {
           p._id === participationId ? { ...p, stages: [...p.stages, createdStage] } : p
         )
       }));
-    } catch (error) {
+    } catch (error: any) {
       console.error("Failed to add stage", error);
+      showToast(error.response?.data?.message || "Failed to add stage", "error");
+    } finally {
+      setIsAddingStageMap((prev) => ({ ...prev, [participationId]: false }));
     }
   };
 
   const handleUpdateStage = async (participationId: string, stageId: string, payload: { name?: string; deadline?: string | null; result?: Stage["result"] }) => {
     const participation = teamParticipations.find((item) => item._id === participationId);
     if (!participation) return;
+
+    if (payload.name !== undefined) {
+      if (isRegistrationStage(payload.name)) {
+        showToast("Registration is tracked automatically. Please use a competitive milestone name.", "error");
+        setStageSaving((current) => ({ ...current, [stageId]: "error" }));
+        return;
+      }
+      const stage = participation.stages.find((s) => s._id === stageId);
+      if (stage && payload.name.trim() !== stage.name) {
+        const canonicalName = getCanonicalStageName(payload.name);
+        const duplicate = participation.stages.some(
+          (s) => s._id !== stageId && getCanonicalStageName(s.name) === canonicalName
+        );
+        if (duplicate) {
+          showToast("A stage with this name already exists.", "error");
+          setStageSaving((current) => ({ ...current, [stageId]: "error" }));
+          return;
+        }
+      }
+    }
 
     setStageSaving((current) => ({ ...current, [stageId]: "saving" }));
     try {
@@ -758,8 +950,9 @@ export default function TeamsPage() {
       }));
 
       setStageSaving((current) => ({ ...current, [stageId]: "saved" }));
-    } catch (error) {
+    } catch (error: any) {
       console.error("Failed to update stage", error);
+      showToast(error.response?.data?.message || "Failed to update stage", "error");
       setStageSaving((current) => ({ ...current, [stageId]: "error" }));
     }
   };
@@ -780,8 +973,9 @@ export default function TeamsPage() {
         ...prev,
         [participation.teamInfo._id]: updater(prev[participation.teamInfo._id])
       }));
-    } catch (error) {
+    } catch (error: any) {
       console.error("Failed to delete stage", error);
+      showToast(error.response?.data?.message || "Failed to delete stage", "error");
     }
   };
 
@@ -1173,197 +1367,250 @@ export default function TeamsPage() {
                   ) : (
                     <div className="space-y-4">
                       {sortedParticipations.map((participation) => {
-                        const failedStageIdx = participation.stages.findIndex(s => s.result === 'rejected');
+                        const competitiveStages = participation.stages.filter(s => !isRegistrationStage(s.name));
+                        const failedStageIdx = competitiveStages.findIndex(s => s.result === 'rejected');
                         const segmentDuration = 0.5;
                         return (
                           <div
                             key={participation._id}
-                            className="relative flex flex-col lg:flex-row lg:items-center gap-6 lg:gap-8 py-5 px-5 lg:py-6 lg:px-6 rounded-2xl border border-zinc-200 bg-white hover:shadow-md hover:border-zinc-300 dark:border-zinc-800 dark:bg-zinc-900/60 dark:hover:border-zinc-700 transition-all duration-300 overflow-visible w-full"
+                            className="relative flex flex-col lg:flex-row lg:items-start gap-6 lg:gap-8 py-5 px-5 lg:py-6 lg:px-6 rounded-2xl border border-zinc-200 bg-white hover:shadow-md hover:border-zinc-300 dark:border-zinc-800 dark:bg-zinc-900/60 dark:hover:border-zinc-700 transition-all duration-300 overflow-visible w-full"
                           >
                             {/* Sequence pill badge — muted zinc, inside top-left of card */}
                             <span className="absolute top-3 left-3.5 inline-flex items-center px-1.5 py-0.5 rounded-md bg-zinc-100 dark:bg-zinc-800 text-zinc-500 dark:text-zinc-400 border border-zinc-200 dark:border-zinc-700 text-[9px] font-semibold tabular-nums select-none leading-none tracking-wide">
                               {participation.seqNum}
                             </span>
 
-                            {/* Left: Hackathon info with date tag */}
-                            <div className="flex items-center gap-3 w-full lg:w-60 shrink-0 min-w-0">
-                              <img
-                                src={participation.hackathon.coverImage?.trim() || getStableDefaultImage(`${participation.hackathon._id}:${participation.hackathon.title}`)}
-                                onError={(e) => {
-                                  e.currentTarget.src = "/BrandImages/HackDekh.png";
-                                }}
-                                className="h-14 w-14 md:h-16 md:w-16 rounded-xl object-cover border border-zinc-200 dark:border-zinc-800 shadow-xs shrink-0"
-                                alt="Hackathon cover"
-                              />
-                              <div className="min-w-0 flex-1">
-                                <div className="flex items-center gap-2">
-                                  <h4 className="text-sm font-bold text-zinc-900 dark:text-white truncate" title={participation.hackathon.title}>
-                                    {participation.hackathon.title}
-                                  </h4>
-                                  {participation.hackathon.applyLink ? (
-                                    <a
-                                      href={participation.hackathon.applyLink}
-                                      target="_blank"
-                                      rel="noopener noreferrer"
-                                      className="text-zinc-400 hover:text-zinc-700 dark:hover:text-zinc-200 p-0.5 shrink-0"
-                                      title="Open Official Site"
-                                    >
-                                      <ExternalLink className="h-3.5 w-3.5" />
-                                    </a>
-                                  ) : (
-                                    <Link
-                                      to={`/hackathons/${participation.hackathon._id}`}
-                                      className="text-zinc-400 hover:text-zinc-700 dark:hover:text-zinc-200 p-0.5 shrink-0"
-                                      title="View Hackathon Details"
-                                    >
-                                      <ExternalLink className="h-3.5 w-3.5" />
-                                    </Link>
-                                  )}
+                            {/* Left Panel: Hackathon logo, details & Action Buttons */}
+                            <div className="flex flex-col gap-3.5 w-full lg:w-[280px] shrink-0 min-w-0 lg:mt-2">
+                              {/* Hackathon logo and details */}
+                              <div className="flex items-start gap-3.5 min-w-0">
+                                <img
+                                  src={participation.hackathon.coverImage?.trim() || getStableDefaultImage(`${participation.hackathon._id}:${participation.hackathon.title}`)}
+                                  onError={(e) => {
+                                    e.currentTarget.src = "/BrandImages/HackDekh.png";
+                                  }}
+                                  className="h-12 w-12 rounded-xl object-cover border border-zinc-200 dark:border-zinc-800 shadow-xs shrink-0 animate-fade-in mt-0.5"
+                                  alt="Hackathon cover"
+                                />
+
+                                <div className="min-w-0 flex-1 flex flex-col justify-start gap-1">
+                                  <div className="flex items-start gap-1 justify-between">
+                                    <h4 className="text-sm font-bold text-zinc-900 dark:text-white leading-snug line-clamp-2 break-words flex-1 pr-1" title={participation.hackathon.title}>
+                                      {participation.hackathon.title}
+                                    </h4>
+                                    {participation.hackathon.applyLink ? (
+                                      <a
+                                        href={participation.hackathon.applyLink}
+                                        target="_blank"
+                                        rel="noopener noreferrer"
+                                        className="text-zinc-405 hover:text-zinc-700 dark:hover:text-zinc-200 p-0.5 shrink-0 transition-colors duration-200 ease-in-out mt-0.5"
+                                        title="Open Official Site"
+                                      >
+                                        <ExternalLink className="h-3.5 w-3.5" />
+                                      </a>
+                                    ) : (
+                                      <Link
+                                        to={`/hackathons/${participation.hackathon._id}`}
+                                        className="text-zinc-405 hover:text-zinc-700 dark:hover:text-zinc-200 p-0.5 shrink-0 transition-colors duration-200 ease-in-out mt-0.5"
+                                        title="View Hackathon Details"
+                                      >
+                                        <ExternalLink className="h-3.5 w-3.5" />
+                                      </Link>
+                                    )}
+                                  </div>
+
+                                  <div className="flex items-center gap-2 mt-0.5 flex-wrap">
+                                    <span className={`text-[9px] font-extrabold uppercase tracking-wider px-2 py-0.5 rounded-md border ${
+                                      participation.status === 'won' ? 'text-emerald-600 dark:text-emerald-400 bg-emerald-500/5 dark:bg-emerald-500/10 border-emerald-500/15' :
+                                      participation.status === 'eliminated' ? 'text-rose-600 dark:text-rose-400 bg-rose-500/5 dark:bg-rose-500/10 border-rose-500/15' :
+                                      'text-blue-600 dark:text-blue-400 bg-blue-500/5 dark:bg-blue-500/10 border-blue-500/15'
+                                    }`}>{participation.status}</span>
+                                    <span className="w-px h-3.5 bg-zinc-200 dark:bg-zinc-800" />
+                                    <span className="inline-flex items-center gap-1.5 text-[10px] text-zinc-450 dark:text-zinc-500 tabular-nums font-medium">
+                                      <Calendar className="h-3 w-3 text-zinc-450 dark:text-zinc-500" />
+                                      {formatDateTag(participation.createdAt)}
+                                    </span>
+                                  </div>
                                 </div>
-                                <div className="flex items-center gap-2 mt-1">
-                                  <span className={`text-[10px] font-extrabold uppercase ${
-                                    participation.status === 'won' ? 'text-emerald-600 dark:text-emerald-400' :
-                                    participation.status === 'eliminated' ? 'text-rose-600 dark:text-rose-400' :
-                                    'text-blue-600 dark:text-blue-400'
-                                  }`}>{participation.status}</span>
-                                  <span className="w-px h-3 bg-zinc-200 dark:bg-zinc-700" />
-                                  <span className="inline-flex items-center gap-1 text-[10px] text-zinc-400 dark:text-zinc-500 tabular-nums">
-                                    <Calendar className="h-2.5 w-2.5" />
-                                    {formatDateTag(participation.createdAt)}
-                                  </span>
-                                </div>
+                              </div>
+
+                              {/* Inline Actions */}
+                              <div className="flex items-center gap-2 mt-1 flex-wrap">
+                                {/* Button 1: Registered Badge/Action */}
+                                {participation.status === 'tracking' ? (
+                                  <button
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      handleUpdateParticipationStatus(participation._id, 'active');
+                                    }}
+                                    className="inline-flex items-center justify-center gap-1 h-7 px-2.5 rounded-lg bg-emerald-600 hover:bg-emerald-500 active:bg-emerald-700 text-white text-[10px] font-bold transition duration-150 cursor-pointer shadow-xs active:scale-95 leading-none shrink-0"
+                                  >
+                                    Register
+                                  </button>
+                                ) : (
+                                  <div className="inline-flex items-center gap-1 h-7 px-2.5 rounded-lg bg-emerald-500/10 dark:bg-emerald-500/15 border border-emerald-500/20 dark:border-emerald-500/10 text-emerald-600 dark:text-emerald-400 text-[10px] font-bold select-none leading-none shrink-0">
+                                    <CheckCircle2 className="h-3 w-3" /> Registered
+                                  </div>
+                                )}
+
+                                {/* Button 2: Untrack Button */}
+                                <button
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    handleInitiateUntrack(participation._id, participation.hackathon.title);
+                                  }}
+                                  className="inline-flex items-center justify-center gap-1 h-7 px-2.5 rounded-lg border border-zinc-200 dark:border-zinc-800 hover:border-zinc-300 dark:hover:border-zinc-700 hover:bg-zinc-50 dark:hover:bg-zinc-800/40 text-zinc-500 dark:text-zinc-400 hover:text-zinc-700 dark:hover:text-zinc-200 text-[10px] font-bold transition duration-150 cursor-pointer leading-none active:scale-95 shrink-0"
+                                >
+                                  <Trash2 className="h-3 w-3 text-zinc-400 dark:text-zinc-500" /> Untrack
+                                </button>
                               </div>
                             </div>
 
-                            {/* Right: Stage Progress Line */}
-                            <div className="flex-1 min-w-0 pt-16 pb-3 overflow-visible">
-                              {participation.stages.length === 0 ? (
-                                <p className="text-zinc-400 italic text-[11px] leading-relaxed">
-                                  No stages defined. Go to the &quot;Stages&quot; tab to add trackable milestones.
-                                </p>
-                              ) : (
-                                <div className="flex items-center gap-0 relative overflow-visible w-full">
-                                  {participation.stages.map((stage, sIdx) => {
-                                    const hasPrev = sIdx > 0;
-                                    const isFailedStage = sIdx === failedStageIdx;
-                                    const isPostDisqualification = failedStageIdx !== -1 && sIdx > failedStageIdx;
-                                    
-                                    // Color of connector line BEFORE this stage
-                                    let lineBg = 'bg-zinc-200 dark:bg-zinc-800';
-                                    if (hasPrev) {
-                                      const prevStageIdx = sIdx - 1;
-                                      if (failedStageIdx !== -1 && prevStageIdx >= failedStageIdx) {
-                                        // Line starts after failure
-                                        lineBg = 'bg-rose-500/30 dark:bg-rose-500/20';
-                                      } else {
-                                        const prevStageObj = participation.stages[prevStageIdx];
-                                        if (prevStageObj.result === 'qualified') {
-                                          lineBg = 'bg-emerald-500 dark:bg-emerald-400';
-                                        } else if (prevStageObj.result === 'rejected') {
-                                          lineBg = 'bg-rose-500 dark:bg-rose-400';
+                            {/* Right Panel: Tracker & Timeline */}
+                            <div className="flex-1 min-w-0 flex flex-col gap-4 overflow-visible w-full">
+                              {/* Registration Tracker Block */}
+                              {participation.status === 'tracking' && (
+                                <div className="w-full rounded-xl border p-3 flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs backdrop-blur-sm transition-all duration-350 border-amber-500/15 bg-amber-500/5 dark:bg-amber-500/3 text-amber-800 dark:text-amber-300 shadow-sm shadow-amber-500/5">
+                                  <div className="flex items-center gap-2.5 min-w-0">
+                                    <div className="h-7 w-7 rounded-lg flex items-center justify-center shrink-0 shadow-xs bg-gradient-to-tr from-amber-500 to-orange-500 text-white">
+                                      <AlertTriangle className="h-4 w-4" />
+                                    </div>
+                                    <div className="min-w-0 text-left">
+                                      <p className="font-extrabold uppercase tracking-wide text-[10px]">
+                                        Prerequisite: Register for Hackathon
+                                      </p>
+                                      <p className="mt-0.5 text-zinc-655 dark:text-zinc-400 font-semibold truncate text-[11px]">
+                                        {participation.hackathon.deadline ? (
+                                          <span>
+                                            Deadline: {new Date(participation.hackathon.deadline).toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' })}
+                                            {(() => {
+                                              const days = Math.ceil((new Date(participation.hackathon.deadline).getTime() - new Date().getTime()) / (1000 * 60 * 60 * 24));
+                                              if (days > 0) return ` (Ends in ${days} days)`;
+                                              if (days === 0) return ` (Ends today!)`;
+                                              return ` (Closed)`;
+                                            })()}
+                                          </span>
+                                        ) : (
+                                          'No official deadline specified. Register soon!'
+                                        )}
+                                      </p>
+                                    </div>
+                                  </div>
+
+                                  <div className="flex items-center gap-2 shrink-0 self-end sm:self-auto">
+                                    {participation.hackathon.applyLink && (
+                                      <a
+                                        href={participation.hackathon.applyLink}
+                                        target="_blank"
+                                        rel="noopener noreferrer"
+                                        className="inline-flex items-center gap-1.5 h-7.5 px-3.5 rounded-lg border border-amber-500/20 hover:border-amber-500/35 bg-white dark:bg-zinc-950 text-amber-700 dark:text-amber-400 font-bold transition-all duration-200 hover:bg-amber-500/5 text-[10.5px] cursor-pointer"
+                                      >
+                                        Register Site <ExternalLink className="h-3 w-3" />
+                                      </a>
+                                    )}
+                                    <button
+                                      onClick={() => handleUpdateParticipationStatus(participation._id, 'active')}
+                                      className="inline-flex items-center justify-center gap-1.5 h-7.5 px-3.5 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white font-bold transition duration-150 text-[10.5px] shadow-xs active:scale-95 cursor-pointer leading-none"
+                                    >
+                                      Mark Registered
+                                    </button>
+                                  </div>
+                                </div>
+                              )}
+
+                              {/* Stages Timeline */}
+                              <div className={`pt-1 pb-24 overflow-visible transition-all duration-300 ${
+                                participation.status === 'tracking' ? 'opacity-40 select-none' : ''
+                              }`}>
+                                {competitiveStages.length === 0 ? (
+                                  <div className="flex items-start gap-3 rounded-xl border border-zinc-200/60 dark:border-zinc-800/40 bg-zinc-50/40 dark:bg-zinc-900/5 px-4 py-3.5 text-zinc-500 dark:text-zinc-400 text-xs text-left max-w-md shadow-xs backdrop-blur-sm">
+                                    <Info className="h-4 w-4 text-zinc-400 dark:text-zinc-500 shrink-0 mt-0.5" />
+                                    <p className="leading-relaxed">
+                                      No competitive stages defined yet. Go to the <span className="font-semibold text-blue-650 dark:text-blue-400 cursor-pointer hover:underline" onClick={() => setActiveTab("Stages")}>Stages tab</span> to add custom tracker milestones.
+                                    </p>
+                                  </div>
+                                ) : (
+                                  <div 
+                                    className="flex items-start gap-0 relative overflow-visible w-full pt-1"
+                                    style={{ maxWidth: competitiveStages.length > 0 ? `${competitiveStages.length * 130}px` : '100%' }}
+                                  >
+                                    {competitiveStages.map((stage, sIdx) => {
+                                      const hasPrev = sIdx > 0;
+                                      const isFailedStage = sIdx === failedStageIdx;
+                                      const isPostDisqualification = failedStageIdx !== -1 && sIdx > failedStageIdx;
+                                      
+                                      // Color of connector line BEFORE this stage
+                                      let lineBg = 'bg-zinc-200 dark:bg-zinc-800';
+                                      if (hasPrev) {
+                                        const prevStageIdx = sIdx - 1;
+                                        if (failedStageIdx !== -1 && prevStageIdx >= failedStageIdx) {
+                                          // Line starts after failure
+                                          lineBg = 'bg-rose-500/30 dark:bg-rose-500/20';
+                                        } else {
+                                          const prevStageObj = competitiveStages[prevStageIdx];
+                                          if (prevStageObj.result === 'qualified') {
+                                            lineBg = 'bg-emerald-500 dark:bg-emerald-400';
+                                          } else if (prevStageObj.result === 'rejected') {
+                                            lineBg = 'bg-rose-500 dark:bg-rose-400';
+                                          }
                                         }
                                       }
-                                    }
 
-                                    // Determine dot styling (halo + dot)
-                                    let ringClass = 'border-zinc-200 bg-zinc-50 dark:border-zinc-800 dark:bg-zinc-900';
-                                    let hoverStatusText = stage.result;
+                                      // Determine dot styling (halo + dot) - Solid Backgrounds to mask connector line
+                                      let ringClass = 'border-zinc-200 bg-white dark:border-zinc-800 dark:bg-zinc-900';
+                                      let hoverStatusText = stage.result;
 
-                                    const isFirstPending = failedStageIdx === -1 && participation.stages.findIndex(st => st.result === 'pending') === sIdx;
+                                      const isFirstPending = failedStageIdx === -1 && competitiveStages.findIndex(st => st.result === 'pending') === sIdx;
 
-                                    if (isPostDisqualification) {
-                                      // Faded red / Disqualified
-                                      ringClass = 'border-rose-500/20 bg-rose-50/5 dark:border-rose-500/20 dark:bg-rose-950/5 text-rose-500/50 dark:text-rose-400/50';
-                                      hoverStatusText = 'disqualified';
-                                    } else if (isFailedStage) {
-                                      // Active failed stage
-                                      ringClass = 'border-rose-500/30 bg-rose-50/50 dark:border-rose-500/40 dark:bg-rose-950/20 shadow-[0_0_12px_rgba(239,68,68,0.15)] text-rose-600 dark:text-rose-400';
-                                    } else if (stage.result === 'qualified') {
-                                      // Active success stage
-                                      ringClass = 'border-emerald-500/30 bg-emerald-50/50 dark:border-emerald-500/45 dark:bg-emerald-950/20 shadow-[0_0_12px_rgba(16,185,129,0.15)] text-emerald-600 dark:text-emerald-400';
-                                    } else if (isFirstPending) {
-                                      // Active pending
-                                      ringClass = 'border-blue-500/30 bg-blue-50/50 dark:border-blue-500/40 dark:bg-blue-950/20 ring-4 ring-blue-500/5 text-blue-600 dark:text-blue-400';
-                                    } else {
-                                      // Future pending
-                                      ringClass = 'border-zinc-200 bg-zinc-50 dark:border-zinc-800 dark:bg-zinc-900/50 text-zinc-300 dark:text-zinc-700';
-                                    }
+                                      if (isPostDisqualification) {
+                                        // Faded red / Disqualified
+                                        ringClass = 'border-rose-500/25 bg-white dark:border-rose-500/20 dark:bg-zinc-900 text-rose-500/30 dark:text-rose-400/30';
+                                        hoverStatusText = 'disqualified';
+                                      } else if (isFailedStage) {
+                                        // Active failed stage
+                                        ringClass = 'border-rose-500/50 bg-rose-50 dark:border-rose-500/40 dark:bg-rose-955 shadow-[0_0_12px_rgba(239,68,68,0.15)] text-rose-600 dark:text-rose-400';
+                                      } else if (stage.result === 'qualified') {
+                                        // Active success stage
+                                        ringClass = 'border-emerald-500/50 bg-emerald-50 dark:border-emerald-500/40 dark:bg-emerald-950 shadow-[0_0_12px_rgba(16,185,129,0.15)] text-emerald-600 dark:text-emerald-400';
+                                      } else if (isFirstPending) {
+                                        // Active pending
+                                        ringClass = 'border-blue-500/50 bg-blue-50 dark:border-blue-500/40 dark:bg-blue-950 ring-4 ring-blue-500/5 text-blue-600 dark:text-blue-400';
+                                      } else {
+                                        // Future pending
+                                        ringClass = 'border-zinc-200 bg-white dark:border-zinc-800 dark:bg-zinc-900 text-zinc-400 dark:text-zinc-500';
+                                      }
 
-                                    return (
-                                      <React.Fragment key={stage._id}>
-                                        {hasPrev && (
-                                          <div className="flex-1 h-[2px] bg-zinc-200 dark:bg-zinc-800 relative">
-                                            <motion.div
-                                              initial={{ scaleX: 0 }}
-                                              animate={{ scaleX: 1 }}
-                                              transition={{ delay: (sIdx - 1) * segmentDuration + 0.15, duration: 0.35, ease: "easeInOut" }}
-                                              className={`absolute inset-0 origin-left ${lineBg}`}
-                                            />
-                                          </div>
-                                        )}
+                                      // Determine text color for status text
+                                      const statusColorLabel =
+                                        hoverStatusText === 'qualified'
+                                          ? 'text-emerald-600 dark:text-emerald-455'
+                                          : hoverStatusText === 'rejected' || hoverStatusText === 'disqualified'
+                                            ? 'text-rose-555 dark:text-rose-455'
+                                            : 'text-blue-500 dark:text-blue-400';
+
+                                      return (
                                         <motion.div
+                                          key={stage._id}
                                           initial={{ scale: 0, opacity: 0 }}
                                           animate={{ scale: 1, opacity: 1 }}
                                           transition={{ delay: sIdx * segmentDuration, duration: 0.25, ease: "backOut" }}
-                                          className="relative flex flex-col items-center group overflow-visible cursor-pointer"
+                                          className="relative flex flex-col items-center group overflow-visible cursor-pointer flex-1 min-w-0 hover:z-50 pt-3"
                                           onClick={() => {
                                             setSelectedParticipationId(participation._id);
                                             setActiveTab("Stages");
                                           }}
                                         >
-                                          {/* Smart edge-aware elegant tooltip */}
-                                          {(() => {
-                                            const totalStages = participation.stages.length;
-                                            const isFirst = sIdx === 0;
-                                            const isLast = sIdx === totalStages - 1;
-
-                                            // Positional anchor
-                                            const outerAnchor = isFirst
-                                              ? 'left-0 items-start'
-                                              : isLast
-                                                ? 'right-0 items-end'
-                                                : 'items-center';
-
-                                            // Caret alignment under the box
-                                            const caretOffset = isFirst ? 'ml-[7px]' : isLast ? 'mr-[7px]' : '';
-
-                                            // Left accent color by status
-                                            const accentBorder =
-                                              hoverStatusText === 'qualified'
-                                                ? 'border-l-emerald-500'
-                                                : hoverStatusText === 'rejected' || hoverStatusText === 'disqualified'
-                                                  ? 'border-l-rose-500'
-                                                  : hoverStatusText === 'pending'
-                                                    ? 'border-l-blue-500'
-                                                    : 'border-l-zinc-300 dark:border-l-zinc-600';
-
-                                            const statusColor =
-                                              hoverStatusText === 'qualified'
-                                                ? 'text-emerald-600 dark:text-emerald-400'
-                                                : hoverStatusText === 'rejected' || hoverStatusText === 'disqualified'
-                                                  ? 'text-rose-500 dark:text-rose-400'
-                                                  : 'text-blue-500 dark:text-blue-400';
-
-                                            return (
-                                              <div className={`absolute bottom-full mb-3 flex flex-col pointer-events-none z-30 ${outerAnchor}`}>
-                                                <div className={`bg-white/95 dark:bg-zinc-900/95 backdrop-blur-sm border border-zinc-200/80 dark:border-zinc-700/80 border-l-2 ${accentBorder} rounded-lg shadow-lg shadow-zinc-900/8 dark:shadow-zinc-950/40 py-1.5 px-2.5 min-w-[100px] max-w-[130px]`}>
-                                                  <p className="text-[10px] font-bold text-zinc-800 dark:text-zinc-100 truncate leading-tight">{stage.name}</p>
-                                                  <p className="text-[8px] text-zinc-400 dark:text-zinc-500 mt-0.5 leading-tight">{formatDate(stage.deadline)}</p>
-                                                  <p className={`text-[8px] font-bold uppercase tracking-widest mt-1 ${statusColor}`}>
-                                                    {hoverStatusText}
-                                                  </p>
-                                                  {stage.notes && (
-                                                    <p className="text-[7.5px] text-zinc-400 dark:text-zinc-500 italic mt-1 border-t border-zinc-100 dark:border-zinc-800 pt-1 leading-normal line-clamp-1">
-                                                      {stage.notes}
-                                                    </p>
-                                                  )}
-                                                </div>
-                                                {/* Caret */}
-                                                <div className={`w-1.5 h-1.5 bg-white dark:bg-zinc-900 border-r border-b border-zinc-200/80 dark:border-zinc-700/80 rotate-45 -mt-[3px] ${caretOffset}`} />
-                                              </div>
-                                            );
-                                          })()}
-                                          
+                                          {/* Connector line inside the node, positioned absolutely behind the dot */}
+                                          {hasPrev && (
+                                            <div className="absolute right-[50%] w-full h-[2px] bg-zinc-200 dark:bg-zinc-800 top-[21px] z-0 origin-right">
+                                              <motion.div
+                                                initial={{ scaleX: 0 }}
+                                                animate={{ scaleX: 1 }}
+                                                transition={{ delay: (sIdx - 1) * segmentDuration + 0.15, duration: 0.35, ease: "easeInOut" }}
+                                                className={`absolute inset-0 origin-left ${lineBg}`}
+                                              />
+                                            </div>
+                                          )}
 
                                           {/* Premium Halo Circle Indicator */}
                                           <div className={`h-5 w-5 rounded-full border flex items-center justify-center transition-all duration-300 z-10 cursor-pointer ${ringClass}`}>
@@ -1389,7 +1636,7 @@ export default function TeamsPage() {
                                                 />
                                               </svg>
                                             ) : isPostDisqualification ? (
-                                              <svg className="h-2.5 w-2.5 text-rose-505/60" viewBox="0 0 12 12" fill="none">
+                                              <svg className="h-2.5 w-2.5 text-rose-500/60" viewBox="0 0 12 12" fill="none">
                                                 <path
                                                   d="M2.5 2.5L9.5 9.5M9.5 2.5L2.5 9.5"
                                                   stroke="currentColor"
@@ -1418,12 +1665,67 @@ export default function TeamsPage() {
                                               <div className="h-1 w-1 rounded-full bg-zinc-300 dark:bg-zinc-700" />
                                             )}
                                           </div>
+
+                                          {/* Elegant Caret & Tooltip Card overlay below the dot */}
+                                          {(() => {
+                                            const totalStages = competitiveStages.length;
+                                            const isFirst = sIdx === 0;
+                                            const isLast = sIdx === totalStages - 1;
+
+                                            // Positional anchor (horizontal alignment)
+                                            const tooltipPositionClass = isFirst
+                                              ? 'left-[-20px]'
+                                              : isLast
+                                                ? 'right-[-20px]'
+                                                : 'left-1/2 -translate-x-1/2';
+
+                                            // Left accent border color by status
+                                            const accentBorder =
+                                              hoverStatusText === 'qualified'
+                                                ? 'border-l-emerald-500'
+                                                : hoverStatusText === 'rejected' || hoverStatusText === 'disqualified'
+                                                  ? 'border-l-rose-500'
+                                                  : hoverStatusText === 'pending'
+                                                    ? 'border-l-blue-500'
+                                                    : 'border-l-zinc-300 dark:border-l-zinc-650';
+
+                                            return (
+                                              <>
+                                                {/* Perfect Caret Indicator - always centered under the dot */}
+                                                <div className="absolute top-[32px] left-1/2 -translate-x-1/2 w-1.5 h-1.5 bg-white dark:bg-zinc-900 border-l border-t border-zinc-200/80 dark:border-zinc-700/80 rotate-45 z-31 pointer-events-none transition-transform duration-300 group-hover:-translate-y-0.5 group-hover:scale-103" />
+                                                
+                                                {/* Timeline Card content */}
+                                                <div className={`absolute top-[36px] ${tooltipPositionClass} pointer-events-auto z-30 w-[130px] h-[96px] group-hover:h-auto transition-all duration-300 group-hover:-translate-y-0.5 group-hover:scale-103`}>
+                                                  <div className={`bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 border-l-2 ${accentBorder} rounded-lg shadow-md hover:shadow-xl dark:shadow-zinc-950/50 py-2 px-2.5 text-left w-full h-full min-h-[94px] flex flex-col justify-between transition-shadow duration-300`}>
+                                                    <div className="min-w-0 flex-1 flex flex-col justify-start">
+                                                      <p className="text-[10px] font-bold text-zinc-900 dark:text-zinc-100 leading-tight line-clamp-2" title={stage.name}>
+                                                        {stage.name}
+                                                      </p>
+                                                    </div>
+                                                    <div className="mt-1.5 shrink-0">
+                                                      <p className="text-[8.5px] text-zinc-450 dark:text-zinc-500 font-semibold leading-none">
+                                                        Deadline: {formatDate(stage.deadline)}
+                                                      </p>
+                                                      <p className={`text-[8px] font-extrabold uppercase tracking-widest mt-1 leading-none ${statusColorLabel}`}>
+                                                        {hoverStatusText}
+                                                      </p>
+                                                    </div>
+                                                    {stage.notes && (
+                                                      <p className="text-[8.5px] text-zinc-500 dark:text-zinc-450 italic border-zinc-100 dark:border-zinc-800 leading-normal max-h-0 opacity-0 group-hover:max-h-[80px] group-hover:opacity-100 group-hover:mt-2 group-hover:border-t group-hover:pt-1.5 transition-all duration-300 ease-in-out overflow-y-auto custom-scrollbar whitespace-pre-wrap">
+                                                        {stage.notes}
+                                                      </p>
+                                                    )}
+                                                  </div>
+                                                </div>
+                                              </>
+                                            );
+                                          })()}
                                         </motion.div>
-                                      </React.Fragment>
-                                    );
-                                  })}
-                                </div>
-                              )}
+                                      );
+                                    })}
+                                  </div>
+                                )}
+                              </div>
                             </div>
                           </div>
                         );
@@ -1585,155 +1887,173 @@ export default function TeamsPage() {
                     <div className="flex items-center gap-3 rounded-xl border border-zinc-200/80 bg-white px-4 py-5 text-sm text-zinc-500 dark:border-zinc-800 dark:bg-zinc-900/40 dark:text-zinc-400 shadow-xs">
                       <Loader2 className="h-4 w-4 animate-spin text-blue-600" /> Loading stages list...
                     </div>
-                  ) : selectedParticipation ? (
-                    <>
-                      {/* Dropdown to pick which participation to edit */}
-                      <div className="flex items-center justify-between gap-4 pb-3.5 border-b border-zinc-150 dark:border-zinc-800">
-                        <span className="text-xs font-bold uppercase tracking-wider text-zinc-450 dark:text-zinc-500">Select hackathon:</span>
-                        <select
-                          value={selectedParticipationId}
-                          onChange={(event) => setSelectedParticipationId(event.target.value)}
-                          className="rounded-xl border border-zinc-200 bg-white px-3 py-2 text-sm text-zinc-800 dark:border-zinc-800 dark:bg-zinc-900 dark:text-zinc-205 outline-none shadow-xs"
-                        >
-                          {teamParticipations.map((participation) => (
-                            <option key={participation._id} value={participation._id}>
-                              {participation.hackathon.title}
-                            </option>
-                          ))}
-                        </select>
-                      </div>
+                  ) : selectedParticipation ? (() => {
+                    const competitiveStages = selectedParticipation.stages.filter(s => !isRegistrationStage(s.name));
+                    const failedStageIdx = competitiveStages.findIndex(s => s.result === 'rejected');
+                    const hasRejections = failedStageIdx !== -1;
+                    const isTerminated = hasRejections || ['won', 'eliminated'].includes(selectedParticipation.status);
 
-                      {/* Stages list editor */}
-                      <div className="space-y-4">
-                        {selectedParticipation.stages.length === 0 ? (
-                          <div className="rounded-xl border border-dashed border-zinc-200 bg-zinc-50/30 p-8 text-center dark:border-zinc-800 dark:bg-zinc-900/10">
-                            <CalendarRange className="mx-auto h-10 w-10 text-zinc-400" />
-                            <h4 className="mt-3 text-sm font-bold text-zinc-900 dark:text-white">No milestones defined</h4>
-                            <p className="mt-1 text-xs text-zinc-500 dark:text-zinc-400">Create stages like "Ideation", "Prototype Submission", etc.</p>
-                          </div>
-                        ) : (
-                          selectedParticipation.stages.map((stage, sIdx) => {
-                            const failedStageIdx = selectedParticipation.stages.findIndex(s => s.result === 'rejected');
-                            const isDisqualified = failedStageIdx !== -1 && sIdx > failedStageIdx;
+                    return (
+                      <>
+                        {/* Dropdown to pick which participation to edit */}
+                        <div className="flex items-center justify-between gap-4 pb-3.5 border-b border-zinc-150 dark:border-zinc-800">
+                          <span className="text-xs font-bold uppercase tracking-wider text-zinc-450 dark:text-zinc-500">Select hackathon:</span>
+                          <select
+                            value={selectedParticipationId}
+                            onChange={(event) => setSelectedParticipationId(event.target.value)}
+                            className="rounded-xl border border-zinc-200 bg-white px-3 py-2 text-sm text-zinc-800 dark:border-zinc-800 dark:bg-zinc-900 dark:text-zinc-205 outline-none shadow-xs"
+                          >
+                            {teamParticipations.map((participation) => (
+                              <option key={participation._id} value={participation._id}>
+                                {participation.hackathon.title}
+                              </option>
+                            ))}
+                          </select>
+                        </div>
 
-                            return (
-                              <div key={stage._id} className={`rounded-xl border p-4 transition-all duration-200 ${isDisqualified ? "border-dashed border-zinc-250 bg-zinc-50/50 dark:border-zinc-800/40 dark:bg-zinc-950/20 opacity-50" : "border-zinc-200 bg-white dark:border-zinc-800/60 dark:bg-zinc-900/60 shadow-xs hover:border-zinc-300 dark:hover:border-zinc-700"}`}>
-                                <div className="flex items-center justify-between gap-4">
-                                  <div className="flex-1 flex items-center gap-2">
-                                    {isDisqualified && (
-                                      <span className="inline-flex items-center gap-1 rounded-md bg-zinc-200 px-2 py-0.5 text-[9px] font-black uppercase text-zinc-655 dark:bg-zinc-800 dark:text-zinc-400 shrink-0">
-                                        Disqualified
-                                      </span>
-                                    )}
-                                    <input
-                                      disabled={isDisqualified}
-                                      defaultValue={stage.name}
-                                      onBlur={(event) => {
-                                        if (event.target.value !== stage.name) {
-                                          handleUpdateStage(selectedParticipation._id, stage._id, { name: event.target.value });
-                                        }
-                                      }}
-                                      className="w-full bg-transparent text-sm font-bold text-zinc-900 dark:text-white outline-none border-b border-transparent focus:border-blue-500 py-0.5 disabled:cursor-not-allowed"
-                                    />
-                                  </div>
-                                  <button
-                                    onClick={() => handleDeleteStage(selectedParticipation._id, stage._id)}
-                                    className="rounded-lg p-1.5 text-zinc-400 hover:bg-rose-500/10 hover:text-rose-500 transition cursor-pointer"
-                                    title="Delete stage"
-                                  >
-                                    <Trash2 className="h-4 w-4" />
-                                  </button>
+                        {/* Stages list editor */}
+                        <div className="space-y-4">
+                          {(() => {
+                            if (competitiveStages.length === 0) {
+                              return (
+                                <div className="rounded-xl border border-dashed border-zinc-200 bg-zinc-50/30 p-8 text-center dark:border-zinc-800 dark:bg-zinc-900/10">
+                                  <CalendarRange className="mx-auto h-10 w-10 text-zinc-400" />
+                                  <h4 className="mt-3 text-sm font-bold text-zinc-900 dark:text-white">No milestones defined</h4>
+                                  <p className="mt-1 text-xs text-zinc-500 dark:text-zinc-400">Create stages like "Ideation", "Prototype Submission", etc.</p>
                                 </div>
+                              );
+                            }
+                            return competitiveStages.map((stage, sIdx) => {
+                              const isDisqualified = failedStageIdx !== -1 && sIdx > failedStageIdx;
 
-                                <div className="flex flex-wrap items-center gap-3 pt-2.5 border-t border-zinc-100 dark:border-zinc-800/60 text-xs">
-                                  <div>
-                                    <label className="text-[9px] font-bold text-zinc-400 uppercase tracking-wider block mb-0.5">Deadline</label>
-                                    <input
-                                      type="date"
-                                      disabled={isDisqualified}
-                                      defaultValue={stage.deadline ? new Date(stage.deadline).toISOString().slice(0, 10) : ""}
-                                      onBlur={(event) => {
-                                        const nextDeadline = event.target.value || null;
-                                        const currentDeadline = stage.deadline ? new Date(stage.deadline).toISOString().slice(0, 10) : "";
-                                        if (nextDeadline !== currentDeadline) {
-                                          handleUpdateStage(selectedParticipation._id, stage._id, { deadline: nextDeadline });
-                                        }
-                                      }}
-                                      className="rounded-lg border border-zinc-200 bg-zinc-50/50 px-2.5 py-1 text-xs text-zinc-700 outline-none dark:border-zinc-800 dark:bg-zinc-900 dark:text-zinc-300 disabled:cursor-not-allowed"
-                                    />
-                                  </div>
-
-                                  <div>
-                                    <label className="text-[9px] font-bold text-zinc-400 uppercase tracking-wider block mb-0.5">Result</label>
+                              return (
+                                <div id={`stage-${stage._id}`} key={stage._id} className={`rounded-xl border p-4 transition-all duration-200 ${isDisqualified ? "border-dashed border-zinc-250 bg-zinc-50/50 dark:border-zinc-800/40 dark:bg-zinc-950/20 opacity-50" : "border-zinc-200 bg-white dark:border-zinc-800/60 dark:bg-zinc-900/60 shadow-xs hover:border-zinc-300 dark:hover:border-zinc-700"}`}>
+                                  <div className="flex items-center justify-between gap-4">
+                                    <div className="flex-1 flex items-center gap-2">
+                                      {isDisqualified && (
+                                        <span className="inline-flex items-center gap-1 rounded-md bg-zinc-200 px-2 py-0.5 text-[9px] font-black uppercase text-zinc-655 dark:bg-zinc-800 dark:text-zinc-400 shrink-0">
+                                          Disqualified
+                                        </span>
+                                      )}
+                                      <input
+                                        disabled={isDisqualified || isTerminated}
+                                        defaultValue={stage.name}
+                                        onBlur={(event) => {
+                                          if (event.target.value !== stage.name) {
+                                            handleUpdateStage(selectedParticipation._id, stage._id, { name: event.target.value });
+                                          }
+                                        }}
+                                        className="w-full bg-transparent text-sm font-bold text-zinc-900 dark:text-white outline-none border-b border-transparent focus:border-blue-500 py-0.5 disabled:cursor-not-allowed"
+                                      />
+                                    </div>
                                     <button
-                                      disabled={isDisqualified}
-                                      onClick={() => {
-                                        const resultOrder: Stage["result"][] = ["pending", "qualified", "rejected"];
-                                        const currentIndex = resultOrder.indexOf(stage.result as Stage["result"]);
-                                        const nextResult = resultOrder[(currentIndex + 1) % resultOrder.length];
-                                        handleUpdateStage(selectedParticipation._id, stage._id, { result: nextResult });
-                                      }}
-                                      className={`rounded-lg border px-2.5 py-1 text-xs font-semibold uppercase tracking-wider transition disabled:cursor-not-allowed ${isDisqualified ? "border-zinc-200 bg-zinc-100 text-zinc-400 dark:border-zinc-800 dark:bg-zinc-900/50" : stageResultClass(stage.result)}`}
+                                      onClick={() => handleDeleteStage(selectedParticipation._id, stage._id)}
+                                      disabled={isTerminated}
+                                      className="rounded-lg p-1.5 text-zinc-400 hover:bg-rose-500/10 hover:text-rose-500 transition cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed"
+                                      title="Delete stage"
                                     >
-                                      {isDisqualified ? "disqualified" : stage.result}
+                                      <Trash2 className="h-4 w-4" />
                                     </button>
                                   </div>
 
-                                  {stageSaving[stage._id] && (
-                                    <span className="text-[10px] text-zinc-400 ml-auto pt-4">
-                                      {stageSaving[stage._id] === "saving" ? "Saving..." : stageSaving[stage._id] === "saved" ? "Saved" : "Error"}
-                                    </span>
-                                  )}
-                                </div>
-                              </div>
-                            );
-                          })
-                        )}
-                      </div>
+                                  <div className="flex flex-wrap items-center gap-3 pt-2.5 border-t border-zinc-100 dark:border-zinc-800/60 text-xs">
+                                    <div>
+                                      <label className="text-[9px] font-bold text-zinc-400 uppercase tracking-wider block mb-0.5">Deadline</label>
+                                      <input
+                                        type="date"
+                                        disabled={isDisqualified || isTerminated}
+                                        defaultValue={stage.deadline ? new Date(stage.deadline).toISOString().slice(0, 10) : ""}
+                                        onBlur={(event) => {
+                                          const nextDeadline = event.target.value || null;
+                                          const currentDeadline = stage.deadline ? new Date(stage.deadline).toISOString().slice(0, 10) : "";
+                                          if (nextDeadline !== currentDeadline) {
+                                            handleUpdateStage(selectedParticipation._id, stage._id, { deadline: nextDeadline });
+                                          }
+                                        }}
+                                        className="rounded-lg border border-zinc-200 bg-zinc-50/50 px-2.5 py-1 text-xs text-zinc-700 outline-none dark:border-zinc-800 dark:bg-zinc-900 dark:text-zinc-300 disabled:cursor-not-allowed"
+                                      />
+                                    </div>
 
-                      {/* Add stage form */}
-                      <div className="rounded-xl border border-zinc-200 bg-white p-5 dark:border-zinc-800/60 dark:bg-zinc-900/60 shadow-xs mt-6">
-                        <h4 className="text-xs font-bold uppercase tracking-wider text-zinc-700 dark:text-zinc-300">Add Stage Milestone</h4>
-                        <div className="mt-3 grid gap-3 sm:grid-cols-[1fr_160px]">
-                          <input
-                            value={newStageDraft[selectedParticipation._id]?.name || ""}
-                            onChange={(event) =>
-                              setNewStageDraft((current) => ({
-                                ...current,
-                                [selectedParticipation._id]: {
-                                  name: event.target.value,
-                                  deadline: current[selectedParticipation._id]?.deadline || "",
-                                },
-                              }))
-                            }
-                            placeholder="e.g. Round 2: Video Pitch"
-                            className="rounded-xl border border-zinc-200 bg-white px-3.5 py-2 text-sm text-zinc-800 outline-none transition focus:border-blue-400 dark:border-zinc-800 dark:bg-zinc-950 dark:text-zinc-200"
-                          />
-                          <input
-                            type="date"
-                            value={newStageDraft[selectedParticipation._id]?.deadline || ""}
-                            onChange={(event) =>
-                              setNewStageDraft((current) => ({
-                                ...current,
-                                [selectedParticipation._id]: {
-                                  name: current[selectedParticipation._id]?.name || "",
-                                  deadline: event.target.value,
-                                },
-                              }))
-                            }
-                            className="rounded-xl border border-zinc-200 bg-white px-3 py-2 text-sm text-zinc-800 outline-none transition focus:border-blue-400 dark:border-zinc-800 dark:bg-zinc-950 dark:text-zinc-200"
-                          />
+                                    <div>
+                                      <label className="text-[9px] font-bold text-zinc-400 uppercase tracking-wider block mb-0.5">Result</label>
+                                      <button
+                                        disabled={isDisqualified || isTerminated}
+                                        onClick={() => {
+                                          const resultOrder: Stage["result"][] = ["pending", "qualified", "rejected"];
+                                          const currentIndex = resultOrder.indexOf(stage.result as Stage["result"]);
+                                          const nextResult = resultOrder[(currentIndex + 1) % resultOrder.length];
+                                          handleUpdateStage(selectedParticipation._id, stage._id, { result: nextResult });
+                                        }}
+                                        className={`rounded-lg border px-2.5 py-1 text-xs font-semibold uppercase tracking-wider transition disabled:cursor-not-allowed ${isDisqualified ? "border-zinc-200 bg-zinc-100 text-zinc-400 dark:border-zinc-800 dark:bg-zinc-900/50" : stageResultClass(stage.result)}`}
+                                      >
+                                        {isDisqualified ? "disqualified" : stage.result}
+                                      </button>
+                                    </div>
+
+                                    {stageSaving[stage._id] && (
+                                      <span className="text-[10px] text-zinc-400 ml-auto pt-4">
+                                        {stageSaving[stage._id] === "saving" ? "Saving..." : stageSaving[stage._id] === "saved" ? "Saved" : "Error"}
+                                      </span>
+                                    )}
+                                  </div>
+                                </div>
+                              );
+                            });
+                          })()}
                         </div>
-                        <button
-                          onClick={() => handleAddStage(selectedParticipation._id)}
-                          className="mt-3 inline-flex items-center gap-2 rounded-lg bg-blue-600 px-4 py-2 text-sm font-semibold text-white transition hover:bg-blue-500 cursor-pointer"
-                        >
-                          <Plus className="h-4 w-4" />
-                          Add Stage
-                        </button>
-                      </div>
-                    </>
-                  ) : (
+
+                        {/* Add stage form */}
+                        <div className="rounded-xl border border-zinc-200 bg-white p-5 dark:border-zinc-800/60 dark:bg-zinc-900/60 shadow-xs mt-6">
+                          <h4 className="text-xs font-bold uppercase tracking-wider text-zinc-700 dark:text-zinc-300">Add Stage Milestone</h4>
+                          {isTerminated && (
+                            <p className="mt-1 text-[11px] text-amber-600 dark:text-amber-400 font-semibold leading-normal">
+                              Milestone tracking locked (this participation is marked as won or eliminated). You cannot add new stages.
+                            </p>
+                          )}
+                          <div className="mt-3 grid gap-3 sm:grid-cols-[1fr_160px]">
+                            <input
+                              value={newStageDraft[selectedParticipation._id]?.name || ""}
+                              disabled={isTerminated}
+                              onChange={(event) =>
+                                setNewStageDraft((current) => ({
+                                  ...current,
+                                  [selectedParticipation._id]: {
+                                    name: event.target.value,
+                                    deadline: current[selectedParticipation._id]?.deadline || "",
+                                  },
+                                }))
+                              }
+                              placeholder="e.g. Round 2: Video Pitch"
+                              className="rounded-xl border border-zinc-200 bg-white px-3.5 py-2 text-sm text-zinc-800 outline-none transition focus:border-blue-400 dark:border-zinc-800 dark:bg-zinc-950 dark:text-zinc-200 disabled:cursor-not-allowed disabled:bg-zinc-50 dark:disabled:bg-zinc-900/40 disabled:text-zinc-400"
+                            />
+                            <input
+                              type="date"
+                              value={newStageDraft[selectedParticipation._id]?.deadline || ""}
+                              disabled={isTerminated}
+                              onChange={(event) =>
+                                setNewStageDraft((current) => ({
+                                  ...current,
+                                  [selectedParticipation._id]: {
+                                    name: current[selectedParticipation._id]?.name || "",
+                                    deadline: event.target.value,
+                                  },
+                                }))
+                              }
+                              className="rounded-xl border border-zinc-200 bg-white px-3 py-2 text-sm text-zinc-800 outline-none transition focus:border-blue-400 dark:border-zinc-800 dark:bg-zinc-950 dark:text-zinc-200 disabled:cursor-not-allowed disabled:bg-zinc-50 dark:disabled:bg-zinc-900/40 disabled:text-zinc-400"
+                            />
+                          </div>
+                          <button
+                            onClick={() => handleAddStage(selectedParticipation._id)}
+                            disabled={isTerminated}
+                            className="mt-3 inline-flex items-center gap-2 rounded-lg bg-blue-600 px-4 py-2 text-sm font-semibold text-white transition hover:bg-blue-500 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+                          >
+                            <Plus className="h-4 w-4" />
+                            Add Stage
+                          </button>
+                        </div>
+                      </>
+                    );
+                  })() : (
                     <div className="rounded-xl border border-dashed border-zinc-250 bg-zinc-50/30 p-8 text-center dark:border-zinc-800 dark:bg-zinc-900/10">
                       <CalendarRange className="mx-auto h-10 w-10 text-zinc-400" />
                       <h4 className="mt-3 text-sm font-bold text-zinc-900 dark:text-white">No active trackings</h4>
@@ -2088,6 +2408,47 @@ export default function TeamsPage() {
         )}
       </AnimatePresence>
 
+      {/* ───────────────────────────────────────────────────────────────────────────── */}
+      {/* UNTRACK HACKATHON CONFIRMATION MODAL */}
+      <AnimatePresence>
+        {showUntrackConfirmModal && participationToUntrack && (
+          <div className="fixed inset-0 z-[100] flex items-center justify-center bg-zinc-950/65 backdrop-blur-sm p-4">
+            <motion.div
+              initial={{ scale: 0.95, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0.95, opacity: 0 }}
+              className="relative w-full max-w-sm rounded-[2rem] border border-zinc-200 bg-white p-6 shadow-2xl dark:border-zinc-800 dark:bg-zinc-950 text-center animate-fade-in"
+            >
+              <div className="mx-auto h-12 w-12 rounded-full bg-rose-500/10 flex items-center justify-center text-rose-600 dark:text-rose-455 mb-4 shrink-0">
+                <AlertTriangle className="h-6 w-6" />
+              </div>
+              <h3 className="text-base font-extrabold text-zinc-900 dark:text-white mb-2">Untrack Hackathon?</h3>
+              <p className="text-xs text-zinc-550 dark:text-zinc-400 mb-6 leading-normal">
+                Are you sure you want to stop tracking <strong className="text-zinc-800 dark:text-zinc-150">"{participationToUntrack.title}"</strong>? This will permanently delete your timeline, stages, and reflections for this team's participation.
+              </p>
+
+              <div className="flex gap-2.5 pt-2 justify-end">
+                <button
+                  onClick={() => {
+                    setShowUntrackConfirmModal(false);
+                    setParticipationToUntrack(null);
+                  }}
+                  className="flex-1 rounded-xl border border-zinc-200 bg-white py-2.5 text-xs font-bold text-zinc-700 transition hover:bg-zinc-50 dark:border-zinc-800 dark:bg-zinc-950 dark:text-zinc-300 dark:hover:bg-zinc-900 cursor-pointer"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={handleConfirmUntrack}
+                  disabled={isUntracking}
+                  className="flex-1 rounded-xl bg-rose-600 py-2.5 text-xs font-bold text-white shadow-sm transition hover:bg-rose-500 disabled:opacity-60 disabled:cursor-not-allowed cursor-pointer"
+                >
+                  {isUntracking ? "Untracking..." : "Untrack"}
+                </button>
+              </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
     </div>
   );
 }
