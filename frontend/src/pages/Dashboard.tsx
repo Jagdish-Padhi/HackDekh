@@ -20,7 +20,8 @@ import {
   Trophy,
   Bookmark,
   LayoutDashboard,
-  ExternalLink
+  ExternalLink,
+  MessageSquare
 } from "lucide-react";
 import axiosInstance from "../utils/axiosInstance";
 import { useAuth, useCache, useToast } from "../context";
@@ -955,187 +956,251 @@ export default function DashboardPage() {
                   );
                 }
 
-                const selectedParticipation = list.find(p => p._id === selectedParticipationId) || null;
-                const stageProgress = selectedParticipation ? (selectedParticipation.stages.length === 0 ? "No stages yet" : currentStageLabel) : "";
+                const activePart = list.find(p => p._id === selectedParticipationId) || null;
+                const stageProgress = activePart ? (activePart.stages.length === 0 ? "No stages yet" : currentStageLabel) : "";
                 const isTerminated = (() => {
-                  if (!selectedParticipation) return false;
-                  const competitiveStages = selectedParticipation.stages.filter(s => !isRegistrationStage(s.name));
+                  if (!activePart) return false;
+                  const competitiveStages = activePart.stages.filter(s => !isRegistrationStage(s.name));
                   const failedStageIdx = competitiveStages.findIndex(s => s.result === 'rejected');
                   const hasRejections = failedStageIdx !== -1;
-                  return hasRejections || ['won', 'eliminated'].includes(selectedParticipation.status);
+                  return hasRejections || ['won', 'eliminated'].includes(activePart.status);
                 })();
 
                 return (
-                  <div className="grid gap-4 xl:grid-cols-[1fr_420px]">
-                    <div className="space-y-3">
-                      {list.map((participation) => {
-                        const coverSrc = participation.hackathon.coverImage?.trim() || getStableDefaultImage(`${participation.hackathon._id}:${participation.hackathon.title}`);
-                        const currentProgress = participation.stages.length === 0 ? "No stages yet" : (participation._id === selectedParticipationId ? currentStageLabel : "Stage Tracking");
-                        const isSelected = selectedParticipation?._id === participation._id;
-                        return (
-                          <button
-                            key={participation._id}
-                            onClick={() => {
-                              setSelectedParticipationId(participation._id);
-                              setFocusedStageId("");
-                            }}
-                            className={`w-full rounded-[1.7rem] border bg-white p-4 text-left shadow-sm transition-all hover:-translate-y-0.5 hover:shadow-md dark:bg-zinc-950/60 cursor-pointer ${
-                              isSelected ? "border-blue-500/40 ring-2 ring-blue-500/20" : "border-zinc-200 dark:border-zinc-800"
-                            }`}
-                          >
-                            <div className="flex items-center gap-4">
-                              <div className="h-16 w-16 shrink-0 overflow-hidden rounded-2xl border border-zinc-200 bg-zinc-100 dark:border-zinc-800 dark:bg-zinc-900">
-                                <img
-                                  src={coverSrc}
-                                  alt={participation.hackathon.title}
-                                  className="h-full w-full object-cover"
-                                  onError={(event) => {
-                                    event.currentTarget.onerror = null;
-                                    event.currentTarget.src = "/BrandImages/HackDekh.png";
-                                  }}
-                                />
-                              </div>
-                              <div className="min-w-0 flex-1">
-                                <div className="flex flex-wrap items-center gap-2">
-                                  <h3 className="truncate text-base font-bold text-zinc-900 dark:text-zinc-100">{participation.hackathon.title}</h3>
-                                  <span className="rounded-md bg-zinc-100 px-2 py-0.5 text-[0.65rem] font-bold uppercase tracking-wide text-zinc-600 dark:bg-zinc-900 dark:text-zinc-400">
-                                    {participation.hackathon.platform}
-                                  </span>
+                  <div className="flex flex-col lg:flex-row gap-8 items-start w-full">
+                    {/* Left Column: Hackathons List (Fixed Width Sidebar) */}
+                    <div className="w-full lg:w-80 shrink-0 space-y-4">
+                      <div className="flex items-center justify-between px-1">
+                        <span className="text-[10px] font-black uppercase tracking-wider text-zinc-400 dark:text-zinc-500">
+                          Workspace List ({list.length})
+                        </span>
+                      </div>
+                      <div className="space-y-3 lg:max-h-[calc(100vh-14rem)] lg:overflow-y-auto pr-1">
+                        {list.map((participation) => {
+                          const coverSrc = participation.hackathon.coverImage?.trim() || getStableDefaultImage(`${participation.hackathon._id}:${participation.hackathon.title}`);
+                          const currentProgress = participation.stages.length === 0 ? "No stages yet" : (participation._id === selectedParticipationId ? currentStageLabel : "Stage Tracking");
+                          const isSelected = participation._id === selectedParticipationId;
+                          return (
+                            <button
+                              key={participation._id}
+                              onClick={() => {
+                                setSelectedParticipationId(participation._id);
+                                setFocusedStageId("");
+                              }}
+                              className={`w-full rounded-2xl border p-3.5 text-left transition-all duration-300 hover:bg-zinc-900/30 hover:border-zinc-700/60 dark:bg-zinc-950/40 cursor-pointer ${
+                                isSelected 
+                                  ? "border-blue-500/50 bg-blue-950/10 dark:bg-blue-950/5 shadow-[0_0_15px_rgba(59,130,246,0.1)]" 
+                                  : "border-zinc-200 dark:border-zinc-800/80"
+                              }`}
+                            >
+                              <div className="flex items-center gap-3">
+                                <div className="h-12 w-12 shrink-0 overflow-hidden rounded-xl border border-zinc-200 bg-zinc-100 dark:border-zinc-800 dark:bg-zinc-900">
+                                  <img
+                                    src={coverSrc}
+                                    alt={participation.hackathon.title}
+                                    className="h-full w-full object-cover"
+                                    onError={(event) => {
+                                      event.currentTarget.onerror = null;
+                                      event.currentTarget.src = "/BrandImages/HackDekh.png";
+                                    }}
+                                  />
                                 </div>
-                                <div className="mt-2 flex flex-wrap items-center gap-2 text-sm text-zinc-500 dark:text-zinc-400">
-                                  <span className="rounded-full bg-zinc-100 px-3 py-1 text-xs font-semibold text-zinc-600 dark:bg-zinc-900 dark:text-zinc-300">
-                                    {getTeamName(participation.teamInfo)}
-                                  </span>
-                                  <span className={`rounded-full border px-3 py-1 text-xs font-semibold ${getParticipationStatusClass(participation.status)}`}>
-                                    {participation.status}
-                                  </span>
-                                  <span className="inline-flex items-center gap-1 text-xs font-medium text-zinc-500 dark:text-zinc-400">
-                                    <Clock3 className="h-3.5 w-3.5" />
-                                    {currentProgress}
-                                  </span>
+                                <div className="min-w-0 flex-1 space-y-1">
+                                  <div className="flex items-center justify-between gap-1.5">
+                                    <h3 className="truncate text-xs font-bold text-zinc-900 dark:text-zinc-100">{participation.hackathon.title}</h3>
+                                    <span className="rounded-md bg-zinc-100 dark:bg-zinc-900 px-1.5 py-0.5 text-[0.6rem] font-bold uppercase tracking-wide text-zinc-600 dark:text-zinc-400 shrink-0">
+                                      {participation.hackathon.platform}
+                                    </span>
+                                  </div>
+                                  <p className="truncate text-[10px] font-semibold text-zinc-500 dark:text-zinc-400">
+                                    Team: {getTeamName(participation.teamInfo)}
+                                  </p>
+                                  <div className="flex items-center gap-1 text-[9px] text-zinc-400 dark:text-zinc-500 pt-0.5">
+                                    <Clock3 className="h-3 w-3 text-zinc-400" />
+                                    <span>{currentProgress}</span>
+                                  </div>
                                 </div>
                               </div>
-                              <ChevronRight className="h-5 w-5 text-zinc-400" />
-                            </div>
-                          </button>
-                        );
-                      })}
+                            </button>
+                          );
+                        })}
+                      </div>
                     </div>
 
-                    <AnimatePresence>
-                      {selectedParticipation && (
-                        <motion.aside
-                          key={selectedParticipation._id}
-                          initial={{ opacity: 0, x: 30 }}
-                          animate={{ opacity: 1, x: 0 }}
-                          exit={{ opacity: 0, x: 30 }}
-                          className="sticky top-6 h-[calc(100vh-8rem)] overflow-hidden rounded-[2rem] border border-zinc-200 bg-white shadow-xl dark:border-zinc-800 dark:bg-zinc-950/80"
-                        >
-                          <div className="flex h-full flex-col">
-                            <div className="border-b border-zinc-200 p-5 dark:border-zinc-800">
-                              <div className="flex items-start justify-between gap-4">
-                                <div className="min-w-0">
-                                  <p className="text-xs font-bold uppercase tracking-wider text-blue-600 dark:text-blue-400">Participation detail</p>
-                                  <h3 className="mt-1 truncate text-xl font-bold text-zinc-900 dark:text-zinc-100">{selectedParticipation.hackathon.title}</h3>
-                                  <p className="mt-1 text-sm text-zinc-500 dark:text-zinc-400">{getTeamName(selectedParticipation.teamInfo)}</p>
+                    {/* Right Column: Workspace Details */}
+                    <div className="flex-1 min-w-0 w-full">
+                      <AnimatePresence mode="wait">
+                        {!activePart ? (
+                          <motion.div
+                            key="placeholder"
+                            initial={{ opacity: 0, y: 15 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            exit={{ opacity: 0, y: -15 }}
+                            className="rounded-3xl border border-dashed border-zinc-200 bg-zinc-50/20 p-12 text-center dark:border-zinc-850 dark:bg-zinc-900/10 flex flex-col items-center justify-center min-h-[420px] w-full"
+                          >
+                            <Trophy className="h-12 w-12 text-zinc-400 dark:text-zinc-650" />
+                            <h4 className="mt-4 text-base font-bold text-zinc-800 dark:text-zinc-200">No Hackathon Selected</h4>
+                            <p className="mt-2 text-xs text-zinc-500 dark:text-zinc-450 max-w-xs leading-normal">
+                              Select a project from the workspace list on the left to track progress, assign milestones, and log Reflections.
+                            </p>
+                          </motion.div>
+                        ) : (
+                          <motion.div
+                            key={activePart._id}
+                            initial={{ opacity: 0, y: 15 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            exit={{ opacity: 0, y: -15 }}
+                            className="w-full space-y-6"
+                          >
+                            {/* 1. Premium Header Banner */}
+                            <div className="rounded-3xl border border-zinc-200 dark:border-zinc-800/80 bg-gradient-to-r from-zinc-50 to-white dark:from-zinc-950 dark:to-zinc-900/40 p-6 shadow-xs relative overflow-hidden">
+                              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-6">
+                                <div className="min-w-0 space-y-1.5">
+                                  <span className="text-[9px] font-extrabold uppercase tracking-widest text-blue-600 dark:text-blue-400">
+                                    Project Workspace
+                                  </span>
+                                  <h3 className="truncate text-xl sm:text-2xl font-black text-zinc-900 dark:text-zinc-50 tracking-tight leading-tight">
+                                    {activePart.hackathon.title}
+                                  </h3>
+                                  <div className="flex flex-wrap items-center gap-3 text-xs text-zinc-500 dark:text-zinc-400">
+                                    <span className="font-semibold text-zinc-700 dark:text-zinc-300">
+                                      Team: {getTeamName(activePart.teamInfo)}
+                                    </span>
+                                    <span>•</span>
+                                    <span className="font-semibold px-2 py-0.5 rounded-md bg-zinc-100 dark:bg-zinc-800 text-[10px] uppercase tracking-wider">
+                                      {activePart.hackathon.platform}
+                                    </span>
+                                  </div>
                                 </div>
-                                <button
-                                  onClick={() => setSelectedParticipationId("")}
-                                  className="rounded-xl p-2 text-zinc-400 transition hover:bg-zinc-100 hover:text-zinc-700 dark:hover:bg-zinc-900 dark:hover:text-zinc-200"
-                                >
-                                  <X className="h-4 w-4" />
-                                </button>
+                                
+                                <div className="flex items-center gap-3 shrink-0 self-end sm:self-auto">
+                                  <div className="flex items-center gap-2 rounded-xl border border-zinc-200 dark:border-zinc-800/85 bg-zinc-55/45 dark:bg-zinc-950/60 px-3 py-1.5">
+                                    <span className="text-[9px] font-black uppercase text-zinc-400 dark:text-zinc-500">Status:</span>
+                                    <select
+                                      value={activePart.status}
+                                      onChange={(event) => handleUpdateParticipationStatus(activePart._id, event.target.value as Participation["status"])}
+                                      disabled={loadingParticipationId === activePart._id}
+                                      className="bg-transparent text-xs font-bold text-zinc-800 dark:text-zinc-100 outline-none cursor-pointer border-none p-0 pr-1 select-none"
+                                    >
+                                      {activePart.status === 'tracking' && (
+                                        <option value="tracking">Tracking</option>
+                                      )}
+                                      <option value="active">Active</option>
+                                      <option value="finalist">Finalist</option>
+                                      <option value="won">Won</option>
+                                      <option value="eliminated">Eliminated</option>
+                                    </select>
+                                  </div>
+                                  {loadingParticipationId === activePart._id && <LogoTransition width={28} height={18} loop={true} />}
+                                  
+                                  <button
+                                    onClick={() => setSelectedParticipationId("")}
+                                    className="rounded-xl p-2.5 text-zinc-400 border border-zinc-200 dark:border-zinc-800/80 hover:bg-zinc-100 hover:text-zinc-800 dark:hover:bg-zinc-900 dark:hover:text-zinc-100 transition duration-200"
+                                    title="Close workspace"
+                                  >
+                                    <X className="h-4 w-4" />
+                                  </button>
+                                </div>
                               </div>
 
-                              <div className="mt-4 flex flex-wrap items-center gap-3">
-                                <div className="inline-flex items-center gap-2 rounded-full border border-zinc-200 bg-zinc-100 px-3 py-1.5 text-xs font-semibold text-zinc-700 dark:border-zinc-800 dark:bg-zinc-900 dark:text-zinc-300">
-                                  <Users className="h-3.5 w-3.5" />
-                                  {selectedParticipation.teamInfo.members.length} members
+                              {/* Progress Lifecycle Stepper */}
+                              <div className="mt-6 pt-5 border-t border-zinc-150/80 dark:border-zinc-850/80">
+                                <div className="grid grid-cols-4 gap-2">
+                                  {[
+                                    { status: 'tracking', label: '1. Discovery', desc: 'Tracking' },
+                                    { status: 'active', label: '2. Preparation', desc: 'Registered' },
+                                    { status: 'finalist', label: '3. Evaluation', desc: 'Finalist' },
+                                    { status: 'won', label: '4. Outcome', desc: activePart.status === 'eliminated' ? 'Eliminated' : 'Won' }
+                                  ].map((step) => {
+                                    const isActive = activePart.status === step.status || 
+                                      (step.status === 'won' && activePart.status === 'eliminated') ||
+                                      (step.status === 'active' && ['finalist', 'won', 'eliminated'].includes(activePart.status)) ||
+                                      (step.status === 'finalist' && ['won', 'eliminated'].includes(activePart.status));
+                                    
+                                    return (
+                                      <div key={step.status} className="space-y-2 text-center">
+                                        <div className={`h-1.5 rounded-full transition-all duration-500 ${
+                                          isActive 
+                                            ? "bg-gradient-to-r from-blue-600 to-indigo-600 dark:from-blue-500 dark:to-indigo-500 shadow-[0_0_8px_rgba(59,130,246,0.3)]" 
+                                            : "bg-zinc-200 dark:bg-zinc-800"
+                                        }`} />
+                                        <div className="hidden sm:block">
+                                          <p className={`text-[10px] font-black uppercase tracking-wider ${isActive ? 'text-zinc-900 dark:text-zinc-100' : 'text-zinc-400 dark:text-zinc-600'}`}>
+                                            {step.label}
+                                          </p>
+                                          <p className={`text-[9px] font-semibold ${isActive ? 'text-zinc-500 dark:text-zinc-400' : 'text-zinc-400 dark:text-zinc-650'}`}>
+                                            {step.desc}
+                                          </p>
+                                        </div>
+                                        <div className="block sm:hidden">
+                                          <p className={`text-[9px] font-black uppercase tracking-wider ${isActive ? 'text-zinc-900 dark:text-zinc-100' : 'text-zinc-400 dark:text-zinc-600'}`}>
+                                            {step.desc}
+                                          </p>
+                                        </div>
+                                      </div>
+                                    );
+                                  })}
                                 </div>
-                                <div className={`inline-flex items-center rounded-full border px-3 py-1.5 text-xs font-semibold ${getParticipationStatusClass(selectedParticipation.status)}`}>
-                                  {selectedParticipation.status}
-                                </div>
-                                <div className="inline-flex items-center gap-2 rounded-full border border-zinc-200 bg-white px-3 py-1.5 text-xs font-semibold text-zinc-700 dark:border-zinc-800 dark:bg-zinc-950/40 dark:text-zinc-300">
-                                  <GripVertical className="h-3.5 w-3.5" />
-                                  {stageProgress}
-                                </div>
-                              </div>
-
-                              <div className="mt-4 flex items-center gap-3">
-                                <label className="text-xs font-bold uppercase tracking-wider text-zinc-500 dark:text-zinc-400">Status</label>
-                                <select
-                                  value={selectedParticipation.status}
-                                  onChange={(event) => handleUpdateParticipationStatus(selectedParticipation._id, event.target.value as Participation["status"])}
-                                  disabled={loadingParticipationId === selectedParticipation._id}
-                                  className="rounded-xl border border-zinc-200 bg-zinc-50 px-3 py-2 text-sm font-semibold text-zinc-700 outline-none transition focus:border-blue-400 dark:border-zinc-800 dark:bg-zinc-950 dark:text-zinc-200"
-                                >
-                                  {selectedParticipation.status === 'tracking' && (
-                                    <option value="tracking">Tracking</option>
-                                  )}
-                                  <option value="active">Active</option>
-                                  <option value="finalist">Finalist</option>
-                                  <option value="won">Won</option>
-                                  <option value="eliminated">Eliminated</option>
-                                </select>
-                                {loadingParticipationId === selectedParticipation._id && <LogoTransition width={36} height={22} loop={true} />}
                               </div>
                             </div>
 
-                            <div className="flex-1 overflow-y-auto overflow-x-hidden p-5">
+                            {/* 2. Dual Panel Content Section */}
+                            <div className="grid grid-cols-1 xl:grid-cols-[1.62fr_1fr] gap-6 items-start">
+                              {/* Left Columns: milestones/stages timeline (Spacious area) */}
                               <div className="space-y-6">
-                                {/* Registration Milestone Card */}
-                                <div className={`rounded-2xl border p-4 backdrop-blur-sm transition-all duration-350 ${
-                                  selectedParticipation.status === 'tracking'
-                                    ? 'border-amber-500/20 bg-amber-500/5 text-amber-900 dark:text-amber-200 shadow-sm shadow-amber-500/5'
-                                    : 'border-emerald-500/20 bg-emerald-500/5 text-emerald-950 dark:text-emerald-300 shadow-xs'
+                                {/* Registration Prerequisite card */}
+                                <div className={`rounded-2xl border p-4 backdrop-blur-sm transition-all duration-300 ${
+                                  activePart.status === 'tracking'
+                                    ? 'border-amber-500/20 bg-amber-500/5 text-amber-900 dark:text-amber-250 shadow-xs'
+                                    : 'border-emerald-500/20 bg-emerald-55/45 dark:bg-emerald-950/10 text-emerald-950 dark:text-emerald-300'
                                 }`}>
-                                  <div className="flex items-center gap-2.5">
-                                    <div className={`h-7 w-7 rounded-lg flex items-center justify-center shrink-0 shadow-xs ${
-                                      selectedParticipation.status === 'tracking'
-                                        ? 'bg-gradient-to-tr from-amber-500 to-orange-500 text-white'
-                                        : 'bg-gradient-to-tr from-emerald-500 to-teal-500 text-white'
+                                  <div className="flex items-center gap-3.5">
+                                    <div className={`h-9 w-9 rounded-xl flex items-center justify-center shrink-0 ${
+                                      activePart.status === 'tracking'
+                                        ? 'bg-gradient-to-tr from-amber-500 to-orange-500 text-white shadow-xs'
+                                        : 'bg-gradient-to-tr from-emerald-500 to-teal-500 text-white shadow-xs'
                                     }`}>
-                                      {selectedParticipation.status === 'tracking' ? (
-                                        <AlertTriangle className="h-4 w-4" />
+                                      {activePart.status === 'tracking' ? (
+                                        <AlertTriangle className="h-4.5 w-4.5" />
                                       ) : (
-                                        <Check className="h-4 w-4" />
+                                        <Check className="h-4.5 w-4.5" />
                                       )}
                                     </div>
                                     <div className="min-w-0 flex-1 text-left">
-                                      <p className="font-extrabold uppercase tracking-wide text-[10px]">
-                                        {selectedParticipation.status === 'tracking' ? 'Prerequisite: Register for Hackathon' : 'Registration Completed'}
+                                      <p className="font-extrabold uppercase tracking-wider text-[9px] text-zinc-500 dark:text-zinc-400">
+                                        Phase: Hackathon Registration
                                       </p>
-                                      <p className="mt-0.5 text-zinc-650 dark:text-zinc-400 font-semibold text-xs truncate">
-                                        {selectedParticipation.status === 'tracking' ? (
-                                          selectedParticipation.hackathon.deadline ? (
+                                      <p className="mt-0.5 text-zinc-800 dark:text-zinc-100 font-bold text-xs truncate">
+                                        {activePart.status === 'tracking' ? (
+                                          activePart.hackathon.deadline ? (
                                             <span>
-                                              Deadline: {new Date(selectedParticipation.hackathon.deadline).toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' })}
+                                              Register on official portal before {new Date(activePart.hackathon.deadline).toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' })}
                                             </span>
                                           ) : (
-                                            'Register soon!'
+                                            'Official Portal Registration Required.'
                                           )
                                         ) : (
-                                          'Registered & Active.'
+                                          'Registration completed successfully.'
                                         )}
                                       </p>
                                     </div>
                                   </div>
 
-                                  {selectedParticipation.status === 'tracking' && (
-                                    <div className="mt-3 flex items-center gap-2 justify-end">
-                                      {selectedParticipation.hackathon.applyLink && (
+                                  {activePart.status === 'tracking' && (
+                                    <div className="mt-4 flex items-center gap-2.5 justify-end">
+                                      {activePart.hackathon.applyLink && (
                                         <a
-                                          href={selectedParticipation.hackathon.applyLink}
+                                          href={activePart.hackathon.applyLink}
                                           target="_blank"
                                           rel="noopener noreferrer"
-                                          className="inline-flex items-center gap-1 rounded-lg border border-amber-500/25 hover:border-amber-500/40 bg-white hover:bg-zinc-50 dark:bg-zinc-950 dark:hover:bg-zinc-900 text-amber-700 dark:text-amber-450 px-2.5 py-1.5 text-xs font-bold transition-all duration-200 cursor-pointer"
+                                          className="inline-flex items-center gap-1 rounded-xl border border-amber-500/25 hover:border-amber-500/40 bg-white hover:bg-zinc-50 dark:bg-zinc-950 dark:hover:bg-zinc-900 text-amber-705 dark:text-amber-450 px-3 py-1.5 text-xs font-bold transition-all duration-200 cursor-pointer"
                                         >
-                                          Apply Site <ExternalLink className="h-3 w-3" />
+                                          Official Portal <ExternalLink className="h-3 w-3" />
                                         </a>
                                       )}
                                       <button
-                                        onClick={() => handleUpdateParticipationStatus(selectedParticipation._id, 'active')}
-                                        className="inline-flex items-center gap-1.5 rounded-lg bg-gradient-to-r from-amber-600 to-orange-600 hover:from-amber-500 hover:to-orange-500 text-white px-2.5 py-1.5 text-xs font-bold shadow-md shadow-amber-500/10 hover:shadow-lg transition-all duration-300 cursor-pointer"
+                                        onClick={() => handleUpdateParticipationStatus(activePart._id, 'active')}
+                                        className="inline-flex items-center gap-1.5 rounded-xl bg-gradient-to-r from-amber-600 to-orange-600 hover:from-amber-500 hover:to-orange-500 text-white px-3 py-1.5 text-xs font-bold shadow-md shadow-amber-500/10 hover:shadow-lg transition-all duration-300 cursor-pointer"
                                       >
                                         Mark Registered
                                       </button>
@@ -1143,26 +1208,25 @@ export default function DashboardPage() {
                                   )}
                                 </div>
 
-                                <section>
-                                  <div className="mb-3 flex items-center justify-between">
-                                    <h4 className="text-sm font-bold uppercase tracking-wider text-zinc-800 dark:text-zinc-200">Stage timeline</h4>
-                                    <button
-                                      disabled={isTerminated}
-                                      onClick={handleAddStage}
-                                      className="inline-flex items-center gap-2 rounded-lg bg-blue-600 px-3 py-2 text-xs font-semibold text-white transition hover:bg-blue-500 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
-                                    >
-                                      <Plus className="h-3.5 w-3.5" />
-                                      Add Stage
-                                    </button>
+                                {/* Milestone timeline panel */}
+                                <div className="rounded-3xl border border-zinc-200 dark:border-zinc-800/80 bg-white dark:bg-zinc-950/40 p-5 shadow-xs space-y-5">
+                                  <div className="flex items-center justify-between pb-3 border-b border-zinc-150/80 dark:border-zinc-850/80">
+                                    <h4 className="text-xs font-black uppercase tracking-wider text-zinc-500 dark:text-zinc-400">
+                                      Milestone Phases
+                                    </h4>
+                                    <div className="inline-flex items-center gap-1.5 rounded-full border border-zinc-150 dark:border-zinc-800 bg-zinc-55 dark:bg-zinc-900 px-2.5 py-1 text-xs font-bold text-zinc-650 dark:text-zinc-350">
+                                      <GripVertical className="h-3.5 w-3.5" />
+                                      <span>{stageProgress}</span>
+                                    </div>
                                   </div>
 
-                                  <div className="space-y-3">
+                                  <div className="relative border-l border-zinc-200 dark:border-zinc-800/80 pl-6 ml-3 space-y-6">
                                     {(() => {
-                                      const competitiveStages = selectedParticipation.stages.filter(s => !isRegistrationStage(s.name));
+                                      const competitiveStages = activePart.stages.filter(s => !isRegistrationStage(s.name));
                                       if (competitiveStages.length === 0) {
                                         return (
-                                          <div className="rounded-2xl border border-dashed border-zinc-300 bg-zinc-50 p-4 text-sm text-zinc-500 dark:border-zinc-800 dark:bg-zinc-950/40 dark:text-zinc-400 text-left">
-                                            No competitive stages yet. Add your first stage to start tracking.
+                                          <div className="-ml-3 rounded-2xl border border-dashed border-zinc-200 bg-zinc-55/20 p-5 text-sm text-zinc-500 dark:border-zinc-850 dark:text-zinc-400 text-left">
+                                            No milestone stages defined. Add a phase below to start competitive tracking.
                                           </div>
                                         );
                                       }
@@ -1170,165 +1234,143 @@ export default function DashboardPage() {
                                         const isFocused = focusedStageId === stage._id;
                                         const failedStageIdx = competitiveStages.findIndex(s => s.result === 'rejected');
                                         const isDisqualified = failedStageIdx !== -1 && index > failedStageIdx;
+                                        
+                                        // Dynamic indicator colors
+                                        const indicatorColor = isDisqualified 
+                                          ? "bg-zinc-300 border-zinc-400" 
+                                          : stage.result === "qualified" 
+                                            ? "bg-emerald-500 border-emerald-600 shadow-[0_0_8px_rgba(16,185,129,0.3)]" 
+                                            : stage.result === "rejected" 
+                                              ? "bg-rose-500 border-rose-600" 
+                                              : "bg-amber-500 border-amber-600 shadow-[0_0_8px_rgba(245,158,11,0.2)]";
+
                                         return (
-                                          <div
-                                            key={stage._id}
-                                            className={`rounded-[1.4rem] border p-4 transition ${
-                                              isDisqualified
-                                                ? "border-zinc-200/50 bg-zinc-100/30 dark:border-zinc-800/40 dark:bg-zinc-950/10 opacity-50"
-                                                : isFocused
-                                                  ? "border-blue-500/40 bg-blue-500/5"
-                                                  : "border-zinc-200 bg-zinc-50/70 dark:border-zinc-800 dark:bg-zinc-950/40"
-                                            }`}
-                                          >
-                                            <div className="flex items-start justify-between gap-3">
-                                              <div className="flex items-start gap-3">
-                                                <div className="mt-1 flex h-7 w-7 items-center justify-center rounded-full bg-zinc-200 text-xs font-bold text-zinc-700 dark:bg-zinc-900 dark:text-zinc-300">
-                                                  {index + 1}
-                                                </div>
-                                                <div className="space-y-3">
-                                                  <div className="flex items-center gap-2">
-                                                    {isDisqualified && (
-                                                      <span className="inline-flex items-center gap-1 rounded-md bg-zinc-200 px-2 py-0.5 text-[9px] font-black uppercase text-zinc-655 shrink-0">
-                                                        Disqualified
-                                                      </span>
-                                                    )}
-                                                    <input
-                                                      disabled={isDisqualified || isTerminated || isRegistrationStage(stage.name)}
-                                                      defaultValue={stage.name}
-                                                      onBlur={(event) => {
-                                                        if (event.target.value !== stage.name) {
-                                                          handleStageFieldSave(selectedParticipation._id, stage._id, { name: event.target.value });
-                                                        }
-                                                      }}
-                                                      className="w-full rounded-xl border border-zinc-200 bg-white px-3 py-2 text-sm font-semibold text-zinc-900 outline-none transition focus:border-blue-400 dark:border-zinc-800 dark:bg-zinc-950 dark:text-zinc-100 disabled:cursor-not-allowed disabled:bg-zinc-50 dark:disabled:bg-zinc-900/40 disabled:text-zinc-400"
-                                                    />
-                                                  </div>
-                                                  <div className="flex flex-wrap items-center gap-2 text-xs text-zinc-500 dark:text-zinc-400">
-                                                    <span className="inline-flex items-center gap-1 rounded-full border border-zinc-200 bg-white px-2.5 py-1 dark:border-zinc-800 dark:bg-zinc-950">
-                                                      <Clock3 className="h-3.5 w-3.5" />
-                                                      {formatDate(stage.deadline || undefined)}
-                                                    </span>
-                                                    {!isDisqualified && isCurrentUserPending(stage, user?._id) && (
-                                                      <span className="inline-flex items-center gap-1 rounded-full border border-amber-500/20 bg-amber-500/10 px-2.5 py-1 text-amber-700 dark:text-amber-300">
-                                                        pending reflection
-                                                      </span>
-                                                    )}
-                                                  </div>
-                                                </div>
-                                              </div>
-                                              <button
-                                                disabled={isTerminated}
-                                                onClick={() => handleDeleteStage(selectedParticipation._id, stage._id)}
-                                                className="rounded-lg p-2 text-zinc-400 transition hover:bg-rose-500/10 hover:text-rose-500 cursor-pointer disabled:opacity-30 disabled:cursor-not-allowed"
-                                                title="Delete stage"
-                                              >
-                                                <Trash2 className="h-4 w-4" />
-                                              </button>
-                                            </div>
+                                          <div key={stage._id} className="relative group/card">
+                                            {/* Left timeline dot */}
+                                            <span className={`absolute -left-[32px] top-3.5 h-3.5 w-3.5 rounded-full border-2 border-white dark:border-zinc-950 transition-all duration-300 ${indicatorColor}`} />
 
-                                            <div className="mt-4 grid grid-cols-2 gap-2">
-                                              <input
-                                                disabled={isDisqualified || isTerminated}
-                                                type="date"
-                                                defaultValue={stage.deadline ? new Date(stage.deadline).toISOString().slice(0, 10) : ""}
-                                                onBlur={(event) => {
-                                                  const nextValue = event.target.value || null;
-                                                  const currentValue = stage.deadline ? new Date(stage.deadline).toISOString().slice(0, 10) : "";
-                                                  if (nextValue !== currentValue) {
-                                                    handleStageFieldSave(selectedParticipation._id, stage._id, { deadline: nextValue });
-                                                  }
-                                                }}
-                                                className="rounded-xl border border-zinc-200 bg-white px-3 py-2 text-sm text-zinc-700 outline-none transition focus:border-blue-400 dark:border-zinc-800 dark:bg-zinc-950 dark:text-zinc-200 disabled:cursor-not-allowed disabled:bg-zinc-50 dark:disabled:bg-zinc-900/40 disabled:text-zinc-400"
-                                              />
-                                              <button
-                                                disabled={isDisqualified || isTerminated}
-                                                onClick={() => handleCycleStageResult(selectedParticipation._id, stage._id)}
-                                                className={`inline-flex items-center justify-center gap-2 rounded-lg border px-3 py-2 text-xs font-semibold cursor-pointer disabled:cursor-not-allowed ${isDisqualified || isTerminated ? "border-zinc-200 bg-zinc-150 text-zinc-500 dark:border-zinc-800 dark:bg-zinc-900/50" : getStageResultClass(stage.result)}`}
-                                              >
-                                                <CircleDot className="h-3.5 w-3.5" />
-                                                {isDisqualified ? "disqualified" : stage.result}
-                                              </button>
-                                            </div>
-
-                                            <textarea
-                                              disabled={isDisqualified || isTerminated}
-                                              defaultValue={stage.notes || ""}
-                                              onBlur={(event) => {
-                                                if (event.target.value !== (stage.notes || "")) {
-                                                  handleStageFieldSave(selectedParticipation._id, stage._id, { notes: event.target.value });
+                                            <div
+                                              onClick={(e) => {
+                                                // If clicked inside the container but not on inputs/buttons, focus reflection
+                                                if (e.target === e.currentTarget) {
+                                                  setFocusedStageId(stage._id);
                                                 }
                                               }}
-                                              placeholder="Stage notes"
-                                              className="mt-3 min-h-[92px] w-full rounded-2xl border border-zinc-200 bg-white px-3 py-2 text-sm text-zinc-700 outline-none transition focus:border-blue-400 dark:border-zinc-800 dark:bg-zinc-950 dark:text-zinc-200 disabled:cursor-not-allowed disabled:bg-zinc-50 dark:disabled:bg-zinc-900/40 disabled:text-zinc-400"
-                                            />
+                                              className={`rounded-2xl border p-4.5 transition-all duration-300 ${
+                                                isDisqualified
+                                                  ? "border-zinc-200/50 bg-zinc-100/30 dark:border-zinc-900/30 dark:bg-zinc-950/10 opacity-55"
+                                                  : isFocused
+                                                    ? "border-blue-500/50 bg-blue-50/10 dark:bg-blue-950/10 shadow-sm"
+                                                    : "border-zinc-200 bg-zinc-50/50 hover:bg-zinc-50 dark:border-zinc-800/80 dark:bg-zinc-900/10 hover:border-zinc-700/60"
+                                              }`}
+                                            >
+                                              <div className="flex items-start justify-between gap-4">
+                                                <div className="flex items-start gap-3 flex-1 min-w-0">
+                                                  <div className="mt-1.5 flex h-5 w-5 items-center justify-center rounded-lg bg-zinc-200 dark:bg-zinc-800 text-[10px] font-black text-zinc-600 dark:text-zinc-400 shrink-0">
+                                                    {index + 1}
+                                                  </div>
+                                                  
+                                                  <div className="space-y-1.5 flex-1 min-w-0">
+                                                    <div className="flex items-center gap-2">
+                                                      {isDisqualified && (
+                                                        <span className="inline-flex items-center gap-1 rounded bg-zinc-200 dark:bg-zinc-800 px-1.5 py-0.5 text-[8px] font-black uppercase text-zinc-500 shrink-0">
+                                                          Disqualified
+                                                        </span>
+                                                      )}
+                                                      <input
+                                                        disabled={isDisqualified || isTerminated || isRegistrationStage(stage.name)}
+                                                        defaultValue={stage.name}
+                                                        onFocus={() => setFocusedStageId(stage._id)}
+                                                        onBlur={(event) => {
+                                                          if (event.target.value !== stage.name) {
+                                                            handleStageFieldSave(activePart._id, stage._id, { name: event.target.value });
+                                                          }
+                                                        }}
+                                                        className="w-full bg-transparent border-b border-transparent hover:border-zinc-300 dark:hover:border-zinc-800 focus:border-blue-500 text-sm font-bold text-zinc-900 dark:text-zinc-100 outline-none pb-0.5 transition"
+                                                      />
+                                                    </div>
+                                                    
+                                                    <div className="flex flex-wrap items-center gap-2 text-[10px] text-zinc-450 dark:text-zinc-500">
+                                                      <span className="inline-flex items-center gap-1">
+                                                        <Clock3 className="h-3 w-3" />
+                                                        {formatDate(stage.deadline || undefined)}
+                                                      </span>
+                                                      {!isDisqualified && isCurrentUserPending(stage, user?._id) && (
+                                                        <span className="inline-flex items-center gap-1 rounded-full bg-amber-500/10 px-2 py-0.5 font-bold text-amber-600 dark:text-amber-400">
+                                                          pending reflection
+                                                        </span>
+                                                      )}
+                                                    </div>
+                                                  </div>
+                                                </div>
 
-                                            {noteSavingStatus[stage._id] && (
-                                              <div className="mt-2 text-xs font-semibold text-zinc-500 dark:text-zinc-400">
-                                                {noteSavingStatus[stage._id] === "saving" && "Saving stage details..."}
-                                                {noteSavingStatus[stage._id] === "saved" && "Saved"}
-                                                {noteSavingStatus[stage._id] === "error" && "Save failed"}
+                                                <div className="flex items-center gap-1 shrink-0">
+                                                  <button
+                                                    onClick={() => {
+                                                      setFocusedStageId(stage._id);
+                                                      setActiveReflectionStageId(stage._id);
+                                                    }}
+                                                    className="rounded-lg p-1.5 text-zinc-400 hover:bg-zinc-100 dark:hover:bg-zinc-800 hover:text-blue-500 transition cursor-pointer"
+                                                    title="Reflections Log"
+                                                  >
+                                                    <MessageSquare className="h-3.5 w-3.5" />
+                                                  </button>
+                                                  
+                                                  <button
+                                                    disabled={isTerminated}
+                                                    onClick={() => handleDeleteStage(activePart._id, stage._id)}
+                                                    className="rounded-lg p-1.5 text-zinc-450 hover:bg-rose-500/10 hover:text-rose-500 transition cursor-pointer disabled:opacity-30 disabled:cursor-not-allowed"
+                                                    title="Delete stage"
+                                                  >
+                                                    <Trash2 className="h-3.5 w-3.5" />
+                                                  </button>
+                                                </div>
                                               </div>
-                                            )}
 
-                                            <div className="mt-4 space-y-3">
-                                              <div className="flex items-center justify-between">
-                                                <h5 className="text-xs font-bold uppercase tracking-wider text-zinc-500 dark:text-zinc-400">Reflections</h5>
-                                                <button
-                                                  onClick={() => {
-                                                    setActiveReflectionStageId(stage._id);
-                                                    setReflectionDraft("");
+                                              {/* Actions Row */}
+                                              <div className="mt-4 pt-3 border-t border-zinc-150/80 dark:border-zinc-850/80 grid grid-cols-2 gap-3">
+                                                <input
+                                                  disabled={isDisqualified || isTerminated}
+                                                  type="date"
+                                                  onFocus={() => setFocusedStageId(stage._id)}
+                                                  defaultValue={stage.deadline ? new Date(stage.deadline).toISOString().slice(0, 10) : ""}
+                                                  onBlur={(event) => {
+                                                    const nextValue = event.target.value || null;
+                                                    const currentValue = stage.deadline ? new Date(stage.deadline).toISOString().slice(0, 10) : "";
+                                                    if (nextValue !== currentValue) {
+                                                      handleStageFieldSave(activePart._id, stage._id, { deadline: nextValue });
+                                                    }
                                                   }}
-                                                  className="inline-flex items-center gap-1 rounded-lg bg-zinc-100 px-2.5 py-1 text-xs font-semibold text-zinc-700 transition hover:bg-zinc-200 dark:bg-zinc-900 dark:text-zinc-300 dark:hover:bg-zinc-800 cursor-pointer"
+                                                  className="rounded-xl border border-zinc-200 bg-white px-3 py-1.5 text-xs text-zinc-700 outline-none transition focus:border-blue-400 dark:border-zinc-850 dark:bg-zinc-950 dark:text-zinc-200 disabled:cursor-not-allowed disabled:bg-zinc-50 dark:disabled:bg-zinc-900/40 disabled:text-zinc-450"
+                                                />
+                                                <button
+                                                  disabled={isDisqualified || isTerminated}
+                                                  onClick={() => handleCycleStageResult(activePart._id, stage._id)}
+                                                  className={`inline-flex items-center justify-center gap-1.5 rounded-xl border px-3 py-1.5 text-xs font-bold uppercase tracking-wider cursor-pointer disabled:cursor-not-allowed transition duration-200 ${isDisqualified || isTerminated ? "border-zinc-200 bg-zinc-150 text-zinc-500 dark:border-zinc-800 dark:bg-zinc-900/50" : getStageResultClass(stage.result)}`}
                                                 >
-                                                  <Plus className="h-3 w-3" />
-                                                  Add reflection
+                                                  <CircleDot className="h-3 w-3" />
+                                                  {isDisqualified ? "disqualified" : stage.result}
                                                 </button>
                                               </div>
 
-                                              {stage.reflections.length > 0 ? (
-                                                <div className="space-y-2">
-                                                  {stage.reflections.map((reflection, reflectionIndex) => (
-                                                    <div key={`${stage._id}-${reflectionIndex}`} className="rounded-2xl border border-zinc-200 bg-white px-3 py-2 text-sm dark:border-zinc-800 dark:bg-zinc-950">
-                                                      <div className="text-xs font-semibold text-zinc-500 dark:text-zinc-400">
-                                                        {typeof reflection.user === "string" ? "Teammate" : reflection.user.fullName || reflection.user.username || "Teammate"}
-                                                      </div>
-                                                      <p className="mt-1 text-zinc-700 dark:text-zinc-200">{reflection.note}</p>
-                                                    </div>
-                                                  ))}
-                                                </div>
-                                              ) : (
-                                                <div className="rounded-2xl border border-dashed border-zinc-300 bg-zinc-50 px-3 py-4 text-sm text-zinc-500 dark:border-zinc-855">
-                                                  No reflections yet.
-                                                </div>
-                                              )}
+                                              <textarea
+                                                disabled={isDisqualified || isTerminated}
+                                                onFocus={() => setFocusedStageId(stage._id)}
+                                                defaultValue={stage.notes || ""}
+                                                onBlur={(event) => {
+                                                  if (event.target.value !== (stage.notes || "")) {
+                                                    handleStageFieldSave(activePart._id, stage._id, { notes: event.target.value });
+                                                  }
+                                                }}
+                                                placeholder="Add plans, submission guidelines, or deliverables..."
+                                                className="mt-3 min-h-[64px] w-full rounded-xl border border-zinc-200 bg-white px-3 py-2 text-xs text-zinc-700 outline-none transition focus:border-blue-400 dark:border-zinc-850 dark:bg-zinc-950 dark:text-zinc-200 disabled:cursor-not-allowed disabled:bg-zinc-50 dark:disabled:bg-zinc-900/40 disabled:text-zinc-450"
+                                              />
 
-                                              {activeReflectionStageId === stage._id && (
-                                                <div className="rounded-2xl border border-blue-500/20 bg-blue-500/5 p-3">
-                                                  <textarea
-                                                    value={reflectionDraft}
-                                                    onChange={(event) => setReflectionDraft(event.target.value)}
-                                                    placeholder={`Add reflection for ${stage.name}`}
-                                                    className="min-h-[88px] w-full rounded-xl border border-zinc-200 bg-white px-3 py-2 text-sm text-zinc-700 outline-none transition focus:border-blue-400 dark:border-zinc-800 dark:bg-zinc-950 dark:text-zinc-200"
-                                                  />
-                                                  <div className="mt-3 flex justify-end gap-2">
-                                                    <button
-                                                      onClick={() => {
-                                                        setActiveReflectionStageId("");
-                                                        setReflectionDraft("");
-                                                      }}
-                                                      className="rounded-lg border border-zinc-200 bg-white px-3 py-2 text-xs font-semibold text-zinc-600 transition hover:bg-zinc-50 dark:border-zinc-800 dark:bg-zinc-900 dark:text-zinc-300 dark:hover:bg-zinc-800 cursor-pointer"
-                                                    >
-                                                      Cancel
-                                                    </button>
-                                                    <button
-                                                      onClick={handleAddReflection}
-                                                      className="inline-flex items-center gap-2 rounded-lg bg-blue-600 px-3 py-2 text-xs font-semibold text-white transition hover:bg-blue-500 cursor-pointer"
-                                                    >
-                                                      <Save className="h-3.5 w-3.5" />
-                                                      Save reflection
-                                                    </button>
-                                                  </div>
+                                              {noteSavingStatus[stage._id] && (
+                                                <div className="mt-1.5 text-[9px] font-black text-zinc-400 dark:text-zinc-500 uppercase tracking-wide">
+                                                  {noteSavingStatus[stage._id] === "saving" && "Saving details..."}
+                                                  {noteSavingStatus[stage._id] === "saved" && "Saved Successfully"}
+                                                  {noteSavingStatus[stage._id] === "error" && "Save Failed"}
                                                 </div>
                                               )}
                                             </div>
@@ -1338,65 +1380,184 @@ export default function DashboardPage() {
                                     })()}
                                   </div>
 
-                                  <div className="mt-4 flex flex-col gap-2.5">
+                                  {/* Add Milestone Form */}
+                                  <div className="border-t border-zinc-150/80 dark:border-zinc-850/80 pt-4 space-y-3">
+                                    <h5 className="text-[10px] font-black uppercase tracking-wider text-zinc-450 dark:text-zinc-500">
+                                      Add Competitive Phase
+                                    </h5>
+                                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                                      <input
+                                        type="text"
+                                        value={newStageName}
+                                        disabled={isTerminated}
+                                        onChange={(event) => setNewStageName(event.target.value)}
+                                        placeholder="Stage name (e.g. Prototype Video)"
+                                        className="rounded-xl border border-zinc-200 bg-white px-3 py-2 text-xs text-zinc-700 outline-none transition focus:border-blue-400 dark:border-zinc-850 dark:bg-zinc-950 dark:text-zinc-200 disabled:cursor-not-allowed disabled:bg-zinc-50 dark:disabled:bg-zinc-900/40 disabled:text-zinc-450"
+                                      />
+                                      <input
+                                        type="date"
+                                        value={newStageDeadline}
+                                        disabled={isTerminated}
+                                        onChange={(event) => setNewStageDeadline(event.target.value)}
+                                        className="rounded-xl border border-zinc-200 bg-white px-3 py-2 text-xs text-zinc-700 outline-none transition focus:border-blue-400 dark:border-zinc-850 dark:bg-zinc-950 dark:text-zinc-200 disabled:cursor-not-allowed disabled:bg-zinc-50 dark:disabled:bg-zinc-900/40 disabled:text-zinc-450"
+                                      />
+                                    </div>
+                                    
                                     {isTerminated && (
-                                      <p className="text-[11px] text-amber-605 dark:text-amber-405 font-bold leading-normal">
-                                        Milestone tracking locked (this participation is marked as won or eliminated, or has a rejection).
+                                      <p className="text-[10px] text-amber-600 dark:text-amber-400 font-bold">
+                                        milestone controls are locked for this status.
                                       </p>
                                     )}
-                                    <input
-                                      type="text"
-                                      value={newStageName}
-                                      disabled={isTerminated}
-                                      onChange={(event) => setNewStageName(event.target.value)}
-                                      placeholder="Add a new stage"
-                                      className="rounded-xl border border-zinc-200 bg-white px-3 py-2 text-sm text-zinc-700 outline-none transition focus:border-blue-400 dark:border-zinc-800 dark:bg-zinc-950 dark:text-zinc-200 disabled:cursor-not-allowed disabled:bg-zinc-50 dark:disabled:bg-zinc-900/40 disabled:text-zinc-400"
-                                    />
-                                    <input
-                                      type="date"
-                                      value={newStageDeadline}
-                                      disabled={isTerminated}
-                                      onChange={(event) => setNewStageDeadline(event.target.value)}
-                                      className="rounded-xl border border-zinc-200 bg-white px-3 py-2 text-sm text-zinc-700 outline-none transition focus:border-blue-400 dark:border-zinc-800 dark:bg-zinc-950 dark:text-zinc-200 disabled:cursor-not-allowed disabled:bg-zinc-50 dark:disabled:bg-zinc-900/40 disabled:text-zinc-400"
-                                    />
-                                  </div>
-                                  <div className="mt-3 flex justify-end">
-                                    <button
-                                      disabled={isTerminated}
-                                      onClick={handleAddStage}
-                                      className="inline-flex items-center gap-2 rounded-lg bg-blue-600 px-4 py-2 text-sm font-semibold text-white transition hover:bg-blue-500 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
-                                    >
-                                      <Plus className="h-4 w-4" />
-                                      Add Stage
-                                    </button>
-                                  </div>
-                                </section>
 
-                                <section>
-                                  <h4 className="mb-3 text-sm font-bold uppercase tracking-wider text-zinc-800 dark:text-zinc-200">Members</h4>
-                                  <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
-                                    {selectedParticipation.teamInfo.members.map((member) => (
-                                      <div key={member._id} className="rounded-2xl border border-zinc-200 bg-zinc-50 p-3 dark:border-zinc-800 dark:bg-zinc-950/40">
-                                        <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-blue-600/10 text-sm font-bold text-blue-700 dark:text-blue-400">
+                                    <div className="flex justify-end pt-1">
+                                      <button
+                                        disabled={isTerminated || !newStageName.trim()}
+                                        onClick={handleAddStage}
+                                        className="inline-flex items-center gap-1.5 rounded-xl bg-blue-600 px-4 py-2 text-xs font-bold text-white transition hover:bg-blue-500 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed shadow-xs"
+                                      >
+                                        <Plus className="h-4 w-4" /> Add Phase
+                                      </button>
+                                    </div>
+                                  </div>
+                                </div>
+                              </div>
+
+                              {/* Right Columns: Team roster and stage reflections */}
+                              <div className="space-y-6">
+                                {/* Team Roster Card */}
+                                <div className="rounded-3xl border border-zinc-200 dark:border-zinc-800/80 bg-white dark:bg-zinc-950/40 p-5 shadow-xs space-y-4">
+                                  <div className="flex items-center justify-between pb-3 border-b border-zinc-150/80 dark:border-zinc-850/80">
+                                    <h4 className="text-xs font-black uppercase tracking-wider text-zinc-500 dark:text-zinc-400 flex items-center gap-1.5">
+                                      <Users className="h-4 w-4" /> Team Roster
+                                    </h4>
+                                    <span className="rounded-full bg-blue-50 dark:bg-blue-950/40 px-2.5 py-0.5 text-[9px] font-black uppercase text-blue-600 dark:text-blue-400">
+                                      {activePart.teamInfo.members.length} members
+                                    </span>
+                                  </div>
+
+                                  <div className="space-y-2.5">
+                                    {activePart.teamInfo.members.map((member) => (
+                                      <div key={member._id} className="flex items-center gap-3 p-2 rounded-xl border border-zinc-150/80 bg-zinc-55/35 dark:border-zinc-850 dark:bg-zinc-900/10">
+                                        <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-blue-600/10 text-xs font-bold text-blue-700 dark:text-blue-400">
                                           {(member.fullName || member.username || "U").slice(0, 2).toUpperCase()}
                                         </div>
-                                        <p className="mt-2 truncate text-sm font-semibold text-zinc-900 dark:text-zinc-100">
-                                          {member.fullName || member.username || member.email || "Member"}
-                                        </p>
+                                        <div className="min-w-0 flex-1">
+                                          <p className="truncate text-xs font-bold text-zinc-800 dark:text-zinc-200">
+                                            {member.fullName || member.username || member.email || "Member"}
+                                          </p>
+                                          <p className="truncate text-[10px] text-zinc-450 dark:text-zinc-500">
+                                            {member.email}
+                                          </p>
+                                        </div>
                                       </div>
                                     ))}
                                   </div>
-                                </section>
+                                </div>
+
+                                {/* Milestone Reflections Card */}
+                                <div className="rounded-3xl border border-zinc-200 dark:border-zinc-800/80 bg-white dark:bg-zinc-950/40 p-5 shadow-xs space-y-4">
+                                  <div className="pb-3 border-b border-zinc-150/80 dark:border-zinc-850/80">
+                                    <h4 className="text-xs font-black uppercase tracking-wider text-zinc-800 dark:text-zinc-200 flex items-center gap-1.5">
+                                      <MessageSquare className="h-4 w-4 text-blue-500" /> Milestone Logs
+                                    </h4>
+                                    <p className="text-[10px] text-zinc-500 dark:text-zinc-400 mt-1 leading-normal">
+                                      Select a milestone stage from the left timeline to review and log async progress updates.
+                                    </p>
+                                  </div>
+
+                                  {(() => {
+                                    const competitiveStages = activePart.stages.filter(s => !isRegistrationStage(s.name));
+                                    const focusedStage = competitiveStages.find(s => s._id === focusedStageId);
+                                    
+                                    if (!focusedStage) {
+                                      return (
+                                        <div className="rounded-2xl border border-dashed border-zinc-200 bg-zinc-55/20 p-4 text-xs text-zinc-500 dark:border-zinc-850 dark:bg-zinc-900/10 dark:text-zinc-400 text-left">
+                                          Click a milestone stage card or reflections button to open reflection logging logs.
+                                        </div>
+                                      );
+                                    }
+
+                                    const activeStage = focusedStage as Stage;
+
+                                    return (
+                                      <div className="space-y-4">
+                                        <div className="flex items-center justify-between">
+                                          <span className="text-xs font-black text-blue-600 dark:text-blue-400 truncate max-w-[150px]">
+                                            Phase: {activeStage.name}
+                                          </span>
+                                          
+                                          {activeReflectionStageId !== activeStage._id && (
+                                            <button
+                                              onClick={() => {
+                                                setActiveReflectionStageId(activeStage._id);
+                                                setReflectionDraft("");
+                                              }}
+                                              className="inline-flex items-center gap-1 rounded-lg bg-blue-50 dark:bg-blue-950/40 px-2.5 py-1 text-[10px] font-bold text-blue-650 dark:text-blue-400 hover:bg-blue-100 dark:hover:bg-blue-900/40 transition cursor-pointer"
+                                            >
+                                              <Plus className="h-3 w-3" /> Log Reflection
+                                            </button>
+                                          )}
+                                        </div>
+
+                                        {activeStage.reflections.length > 0 ? (
+                                          <div className="space-y-2.5 max-h-56 overflow-y-auto pr-1">
+                                            {activeStage.reflections.map((reflection, reflectionIndex) => (
+                                              <div key={`${activeStage._id}-${reflectionIndex}`} className="rounded-xl border border-zinc-150/80 bg-zinc-50 dark:border-zinc-850 dark:bg-zinc-950 p-3 text-xs">
+                                                <div className="text-[9px] font-extrabold text-zinc-500 dark:text-zinc-450 uppercase tracking-wider">
+                                                  {typeof reflection.user === "string" ? "Teammate" : reflection.user.fullName || reflection.user.username || "Teammate"}
+                                                </div>
+                                                <p className="mt-1 text-zinc-800 dark:text-zinc-200 leading-relaxed font-semibold break-words">
+                                                  {reflection.note}
+                                                </p>
+                                              </div>
+                                            ))}
+                                          </div>
+                                        ) : (
+                                          <div className="rounded-xl border border-dashed border-zinc-200 bg-zinc-55/20 p-4 text-center text-xs text-zinc-500 dark:border-zinc-850 dark:bg-zinc-900/10">
+                                            No reflection logs logged yet for this milestone.
+                                          </div>
+                                        )}
+
+                                        {activeReflectionStageId === activeStage._id && (
+                                          <div className="rounded-2xl border border-blue-500/25 bg-blue-50/10 p-3.5 space-y-3">
+                                            <textarea
+                                              value={reflectionDraft}
+                                              onChange={(event) => setReflectionDraft(event.target.value)}
+                                              placeholder={`Write notes on milestones, takeaways, or team blocks...`}
+                                              className="min-h-[72px] w-full rounded-xl border border-zinc-250 bg-white px-3 py-2 text-xs text-zinc-700 outline-none transition focus:border-blue-400 dark:border-zinc-805 dark:bg-zinc-950 dark:text-zinc-205"
+                                            />
+                                            <div className="flex justify-end gap-2">
+                                              <button
+                                                onClick={() => {
+                                                  setActiveReflectionStageId("");
+                                                  setReflectionDraft("");
+                                                }}
+                                                className="rounded-lg border border-zinc-200 bg-white px-2.5 py-1.5 text-[10px] font-bold text-zinc-650 transition hover:bg-zinc-50 dark:border-zinc-800 dark:bg-zinc-900 dark:text-zinc-305 cursor-pointer"
+                                              >
+                                                Cancel
+                                              </button>
+                                              <button
+                                                onClick={handleAddReflection}
+                                                className="inline-flex items-center gap-1.5 rounded-lg bg-blue-600 px-3 py-1.5 text-[10px] font-bold text-white transition hover:bg-blue-500 cursor-pointer shadow-xs"
+                                              >
+                                                <Save className="h-3 w-3" /> Save Log
+                                              </button>
+                                            </div>
+                                          </div>
+                                        )}
+                                      </div>
+                                    );
+                                  })()}
+                                </div>
                               </div>
                             </div>
-                          </div>
-                        </motion.aside>
-                      )}
-                    </AnimatePresence>
+                          </motion.div>
+                        )}
+                      </AnimatePresence>
+                    </div>
                   </div>
                 );
-              })()}
-            </div>
+              })()}            </div>
           )}
         </div>
       )}
