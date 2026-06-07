@@ -432,20 +432,25 @@ const HackathonList = () => {
                 </div>
             </div>
 
-            <div className="space-y-4">
-                {isStillLoading ? (
-                    <div className="space-y-4">
-                        <LoadingProgress progress={progressDisplay} label={loadingLabel} />
-                        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
-                            {Array.from({ length: isDesktopView ? 8 : 6 }).map((_, index) => (
-                                <div
-                                    key={index}
-                                    className="h-84 rounded-3xl border border-zinc-200/90 bg-white p-4 shadow-sm dark:border-zinc-800 dark:bg-zinc-900"
-                                >
-                                    <div className="h-full w-full rounded-2xl bg-[linear-gradient(110deg,rgba(228,228,231,0.6),rgba(250,250,250,0.95),rgba(228,228,231,0.6))] bg-size-[200%_100%] animate-[shimmer_1.3s_linear_infinite] dark:bg-[linear-gradient(110deg,rgba(39,39,42,0.9),rgba(63,63,70,0.95),rgba(39,39,42,0.9))]" />
-                                </div>
-                            ))}
+            <div className="relative space-y-4">
+                {isStillLoading && (
+                    <div className="absolute inset-0 z-20 flex justify-center items-start pt-20 sm:items-center sm:pt-0 bg-zinc-950/5 dark:bg-black/10 backdrop-blur-[2.5px] p-4 rounded-3xl">
+                        <div className="w-full max-w-sm shrink-0">
+                            <LoadingProgress progress={progressDisplay} label={loadingLabel} />
                         </div>
+                    </div>
+                )}
+
+                {isStillLoading ? (
+                    <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4 opacity-40 select-none pointer-events-none">
+                        {Array.from({ length: isDesktopView ? 8 : 6 }).map((_, index) => (
+                            <div
+                                key={index}
+                                className="h-84 rounded-3xl border border-zinc-200/90 bg-white p-4 shadow-sm dark:border-zinc-800 dark:bg-zinc-900"
+                            >
+                                <div className="h-full w-full rounded-2xl bg-[linear-gradient(110deg,rgba(228,228,231,0.6),rgba(250,250,250,0.95),rgba(228,228,231,0.6))] bg-size-[200%_100%] animate-[shimmer_1.3s_linear_infinite] dark:bg-[linear-gradient(110deg,rgba(39,39,42,0.9),rgba(63,63,70,0.95),rgba(39,39,42,0.9))]" />
+                            </div>
+                        ))}
                     </div>
                 ) : visibleHackathons.length ? (
                     <div className={`grid grid-cols-1 gap-4 transition-all duration-300 sm:grid-cols-2 xl:grid-cols-4 ${showResults ? 'translate-y-0 opacity-100' : 'translate-y-1 opacity-0'}`}>
