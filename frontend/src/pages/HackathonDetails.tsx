@@ -379,15 +379,15 @@ export default function HackathonDetailsPage() {
             className={`h-full w-full object-cover transition-transform duration-700 hover:scale-105 ${imageLoaded ? "opacity-100" : "opacity-0"}`}
           />
           <div className="absolute left-6 top-6 flex flex-wrap gap-2">
-            <span className="inline-flex items-center rounded-md border border-white/10 bg-zinc-900/80 px-3 py-1 text-xs font-bold uppercase tracking-wider text-white backdrop-blur-md">
+            <span className="inline-flex items-center rounded border border-zinc-800 bg-zinc-950 px-3 py-1 text-xs font-extrabold uppercase tracking-wider text-white shadow-[0_2px_6px_rgba(0,0,0,0.3)]">
               {hackathon.platform}
             </span>
             {hackathon.mode && (
               <span
-                className={`inline-flex items-center rounded-md border px-3 py-1 text-xs font-bold uppercase tracking-wider text-white backdrop-blur-md ${
+                className={`inline-flex items-center rounded border px-3 py-1 text-xs font-extrabold uppercase tracking-wider text-white shadow-[0_2px_6px_rgba(0,0,0,0.3)] ${
                   /^online$/i.test(hackathon.mode)
-                    ? "border-emerald-500/20 bg-emerald-600/85"
-                    : "border-indigo-500/20 bg-indigo-600/85"
+                    ? "border-emerald-500 bg-emerald-600"
+                    : "border-indigo-500 bg-indigo-600"
                 }`}
               >
                 {hackathon.mode}

@@ -232,20 +232,20 @@ const HackathonCard = ({ hackathon, displayIndex, extraActions = [], trackingSta
             )}
             <div className="relative mb-3.5 block h-28 w-full overflow-hidden rounded-xl border border-zinc-200 bg-zinc-100 dark:border-zinc-800 dark:bg-zinc-900/60">
                 {/* Floating Tags Overlay */}
-                <div className="absolute left-2 top-2 z-10 flex flex-wrap gap-1">
+                <div className="absolute left-2.5 top-2.5 z-10 flex flex-wrap gap-1.5">
                     {isRegistered && (
-                        <span className="inline-flex items-center rounded-md bg-orange-500/90 backdrop-blur-md px-2 py-0.5 text-[0.62rem] font-bold uppercase tracking-wider text-white border border-orange-400/20 shadow-xs">
-                            Registered 🏆
+                        <span className="inline-flex items-center rounded bg-orange-600 px-2 py-0.5 text-[0.62rem] font-extrabold uppercase tracking-wider text-white border border-orange-500 shadow-[0_2px_6px_rgba(0,0,0,0.3)]">
+                            Registered
                         </span>
                     )}
-                    <span className="inline-flex items-center rounded-md bg-zinc-900/80 backdrop-blur-md px-2 py-0.5 text-[0.62rem] font-bold uppercase tracking-wider text-white border border-white/10">
+                    <span className="inline-flex items-center rounded bg-zinc-950 px-2 py-0.5 text-[0.62rem] font-extrabold uppercase tracking-wider text-white border border-zinc-800 shadow-[0_2px_6px_rgba(0,0,0,0.3)]">
                         {hackathon.platform}
                     </span>
                     {hackathon.mode && (
-                        <span className={`inline-flex items-center rounded-md backdrop-blur-md px-2 py-0.5 text-[0.62rem] font-bold uppercase tracking-wider text-white border ${
+                        <span className={`inline-flex items-center rounded px-2 py-0.5 text-[0.62rem] font-extrabold uppercase tracking-wider text-white border shadow-[0_2px_6px_rgba(0,0,0,0.3)] ${
                             /^online$/i.test(hackathon.mode)
-                                ? "bg-emerald-600/85 border-emerald-500/20"
-                                : "bg-indigo-600/85 border-indigo-500/20"
+                                ? "bg-emerald-600 border-emerald-500"
+                                : "bg-indigo-600 border-indigo-500"
                         }`}>
                             {hackathon.mode}
                         </span>
