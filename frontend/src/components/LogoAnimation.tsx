@@ -55,6 +55,7 @@ const LogoTransition = forwardRef<LogoTransitionRef, LogoTransitionProps>(
     const glRef     = useRef<HTMLDivElement>(null);
     const grRef     = useRef<HTMLDivElement>(null);
     const gsRef     = useRef<HTMLDivElement>(null);
+    const gcRef     = useRef<HTMLDivElement>(null);
     const rafRef    = useRef<number | null>(null);
     const running   = useRef<boolean>(false);
 
@@ -65,12 +66,14 @@ const LogoTransition = forwardRef<LogoTransitionRef, LogoTransitionProps>(
       const gl = glRef.current;
       const gr = grRef.current;
       const gs = gsRef.current;
+      const gc = gcRef.current;
       const ar = arenaRef.current;
-      if (!gl || !gr || !gs || !ar) return;
+      if (!gl || !gr || !gs || !ar || !gc) return;
 
       gl.style.cssText = "position:absolute;left:34px;top:50%;transform:translateY(-50%) translateX(-440px);opacity:0;will-change:transform,opacity;";
       gr.style.cssText = "position:absolute;right:34px;top:50%;transform:translateY(-50%) translateX(440px);opacity:0;will-change:transform,opacity;";
       gs.style.cssText = "position:absolute;left:50%;top:50%;transform:translate(-50%,-50%) scale(0) rotate(-14deg);opacity:0;filter:none;will-change:transform,opacity,filter;";
+      gc.style.cssText = "position:absolute;left:50%;top:50%;transform:translate(-50%,-50%) scale(0);opacity:0;will-change:transform,opacity;";
       ar.style.transform = "";
     }, []);
 
@@ -83,8 +86,9 @@ const LogoTransition = forwardRef<LogoTransitionRef, LogoTransitionProps>(
       const gl = glRef.current;
       const gr = grRef.current;
       const gs = gsRef.current;
+      const gc = gcRef.current;
       const ar = arenaRef.current;
-      if (!gl || !gr || !gs || !ar) return;
+      if (!gl || !gr || !gs || !ar || !gc) return;
 
       const T0 = performance.now();
 
@@ -121,6 +125,39 @@ const LogoTransition = forwardRef<LogoTransitionRef, LogoTransitionProps>(
           } else {
             ar.style.transform = "";
           }
+        }
+
+        // bolt impact glow & shockwave circle
+        if (el >= TL.impactAt) {
+          const st = clamp((el - TL.impactAt) / TL.shakeDur, 0, 1);
+          if (st < 1) {
+            const decay = 1 - ease.outExpo(st);
+            // bolt glow
+            const shadowRadius = (18 * decay).toFixed(1);
+            const brightnessVal = (1.0 + 0.8 * decay).toFixed(2);
+            gs.style.filter = `drop-shadow(0 0 ${shadowRadius}px rgba(99,102,241,0.95)) brightness(${brightnessVal})`;
+
+            // shockwave circle
+            const sc = lerp(0.05, 1.35, ease.outExpo(st));
+            const op = clamp(0.95 - st, 0, 1);
+            gc.style.transform = `translate(-50%,-50%) scale(${sc.toFixed(4)})`;
+            gc.style.opacity   = String(op);
+          } else {
+            gs.style.filter = "none";
+            gc.style.transform = "translate(-50%,-50%) scale(0)";
+            gc.style.opacity   = "0";
+          }
+        } else {
+          // pre-impact bolt glow (subtle)
+          if (el >= TL.bltDelay) {
+            const t  = clamp((el - TL.bltDelay) / TL.bltDur, 0, 1);
+            const shadowRadius = (2 * t).toFixed(1);
+            gs.style.filter = `drop-shadow(0 0 ${shadowRadius}px rgba(61,80,232,0.2))`;
+          } else {
+            gs.style.filter = "none";
+          }
+          gc.style.transform = "translate(-50%,-50%) scale(0)";
+          gc.style.opacity   = "0";
         }
 
         // outro
@@ -317,117 +354,172 @@ const LogoTransition = forwardRef<LogoTransitionRef, LogoTransitionProps>(
       );
     }
 
+    const scaleFactor = width / 400;
+
     return (
       <div
-        ref={arenaRef}
         style={{
-          position: "relative",
           width,
           height,
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
           overflow: "visible",
           background: "transparent",
         }}
       >
         <div
-          ref={glRef}
           style={{
-            position: "absolute",
-            left: 34,
-            top: "50%",
-            transform: "translateY(-50%) translateX(-440px)",
-            opacity: 0,
-            willChange: "transform,opacity",
+            width: 400,
+            height: 240,
+            transform: `scale(${scaleFactor})`,
+            transformOrigin: "center center",
+            flexShrink: 0,
+            position: "relative",
+            overflow: "visible",
           }}
         >
-          <svg width="108" height="148" viewBox="0 0 108 152" overflow="visible" xmlns="http://www.w3.org/2000/svg">
-            <defs>
-              <linearGradient id="bktL-t" x1="0%" y1="0%" x2="100%" y2="100%">
-                <stop offset="0%" stopColor="#4b5b7e" />
-                <stop offset="50%" stopColor="#1c253d" />
-                <stop offset="100%" stopColor="#0a0f1d" />
-              </linearGradient>
-              <linearGradient id="bktStroke-t" x1="0%" y1="0%" x2="100%" y2="100%">
-                <stop offset="0%" stopColor="#4f8ff7" />
-                <stop offset="50%" stopColor="#3b82f6" />
-                <stop offset="100%" stopColor="#6366f1" />
-              </linearGradient>
-            </defs>
-            <polygon
-              points="68,8 94,8 90,16 30,74 30,82 90,140 94,148 68,148 8,84 8,72"
-              fill="url(#bktL-t)"
-              stroke="url(#bktStroke-t)"
-              strokeWidth="1.6"
-              strokeLinejoin="round"
-            />
-          </svg>
-        </div>
+          <div
+            ref={arenaRef}
+            style={{
+              position: "absolute",
+              inset: 0,
+              overflow: "visible",
+            }}
+          >
+            <div
+              ref={glRef}
+              style={{
+                position: "absolute",
+                left: 34,
+                top: "50%",
+                transform: "translateY(-50%) translateX(-440px)",
+                opacity: 0,
+                willChange: "transform,opacity",
+              }}
+            >
+              <svg width="108" height="148" viewBox="0 0 108 152" overflow="visible" xmlns="http://www.w3.org/2000/svg">
+                <defs>
+                  <linearGradient id="bktL-t" x1="0%" y1="0%" x2="100%" y2="100%">
+                    <stop offset="0%" stopColor="#4b5b7e" />
+                    <stop offset="50%" stopColor="#1c253d" />
+                    <stop offset="100%" stopColor="#0a0f1d" />
+                  </linearGradient>
+                  <linearGradient id="bktStroke-t" x1="0%" y1="0%" x2="100%" y2="100%">
+                    <stop offset="0%" stopColor="#4f8ff7" />
+                    <stop offset="50%" stopColor="#3b82f6" />
+                    <stop offset="100%" stopColor="#6366f1" />
+                  </linearGradient>
+                </defs>
+                <polygon
+                  points="68,8 94,8 90,16 30,74 30,82 90,140 94,148 68,148 8,84 8,72"
+                  fill="url(#bktL-t)"
+                  stroke="url(#bktStroke-t)"
+                  strokeWidth="1.6"
+                  strokeLinejoin="round"
+                />
+              </svg>
+            </div>
 
-        <div
-          ref={grRef}
-          style={{
-            position: "absolute",
-            right: 34,
-            top: "50%",
-            transform: "translateY(-50%) translateX(440px)",
-            opacity: 0,
-            willChange: "transform,opacity",
-          }}
-        >
-          <svg width="108" height="148" viewBox="0 0 108 152" overflow="visible" xmlns="http://www.w3.org/2000/svg">
-            <defs>
-              <linearGradient id="bktR-t" x1="100%" y1="0%" x2="0%" y2="100%">
-                <stop offset="0%" stopColor="#4b5b7e" />
-                <stop offset="50%" stopColor="#1c253d" />
-                <stop offset="100%" stopColor="#0a0f1d" />
-              </linearGradient>
-              <linearGradient id="bktStroke-t" x1="0%" y1="0%" x2="100%" y2="100%">
-                <stop offset="0%" stopColor="#4f8ff7" />
-                <stop offset="50%" stopColor="#3b82f6" />
-                <stop offset="100%" stopColor="#6366f1" />
-              </linearGradient>
-            </defs>
-            <polygon
-              points="40,8 14,8 18,16 78,74 78,82 18,140 14,148 40,148 100,84 100,72"
-              fill="url(#bktR-t)"
-              stroke="url(#bktStroke-t)"
-              strokeWidth="1.6"
-              strokeLinejoin="round"
-            />
-          </svg>
-        </div>
+            <div
+              ref={grRef}
+              style={{
+                position: "absolute",
+                right: 34,
+                top: "50%",
+                transform: "translateY(-50%) translateX(440px)",
+                opacity: 0,
+                willChange: "transform,opacity",
+              }}
+            >
+              <svg width="108" height="148" viewBox="0 0 108 152" overflow="visible" xmlns="http://www.w3.org/2000/svg">
+                <defs>
+                  <linearGradient id="bktR-t" x1="100%" y1="0%" x2="0%" y2="100%">
+                    <stop offset="0%" stopColor="#4b5b7e" />
+                    <stop offset="50%" stopColor="#1c253d" />
+                    <stop offset="100%" stopColor="#0a0f1d" />
+                  </linearGradient>
+                  <linearGradient id="bktStroke-t" x1="0%" y1="0%" x2="100%" y2="100%">
+                    <stop offset="0%" stopColor="#4f8ff7" />
+                    <stop offset="50%" stopColor="#3b82f6" />
+                    <stop offset="100%" stopColor="#6366f1" />
+                  </linearGradient>
+                </defs>
+                <polygon
+                  points="40,8 14,8 18,16 78,74 78,82 18,140 14,148 40,148 100,84 100,72"
+                  fill="url(#bktR-t)"
+                  stroke="url(#bktStroke-t)"
+                  strokeWidth="1.6"
+                  strokeLinejoin="round"
+                />
+              </svg>
+            </div>
 
-        <div
-          ref={gsRef}
-          style={{
-            position: "absolute",
-            left: "50%",
-            top: "50%",
-            transform: "translate(-50%,-50%) scale(0) rotate(-14deg)",
-            opacity: 0,
-            willChange: "transform,opacity,filter",
-          }}
-        >
-          <svg width="88" height="214" viewBox="0 0 80 200" overflow="visible" xmlns="http://www.w3.org/2000/svg">
-            <defs>
-              <linearGradient id="bltFill-t" x1="20%" y1="0%" x2="80%" y2="100%">
-                <stop offset="0%" stopColor="#4f46e5" />
-                <stop offset="50%" stopColor="#3b82f6" />
-                <stop offset="100%" stopColor="#1d4ed8" />
-              </linearGradient>
-              <linearGradient id="bltStroke-t" x1="0%" y1="0%" x2="100%" y2="100%">
-                <stop offset="0%" stopColor="#c084fc" />
-                <stop offset="50%" stopColor="#60a5fa" />
-                <stop offset="100%" stopColor="#22d3ee" />
-              </linearGradient>
-              <linearGradient id="bltSpec-t" x1="0%" y1="0%" x2="100%" y2="60%">
-                <stop offset="0%" stopColor="#ffffff" stopOpacity="0.95" />
-                <stop offset="35%" stopColor="#a5b4fc" stopOpacity="0.6" />
-                <stop offset="100%" stopColor="#4f46e5" stopOpacity="0" />
-              </linearGradient>
-            </defs>
-            <polygon points="52,6 12,119 40,119 24,194 70,81 40,81" fill="url(#bltFill-t)" stroke="url(#bltStroke-t)" strokeWidth="2.2" strokeLinejoin="round"/>
-            <polygon points="52,6 36,56 46,56" fill="url(#bltSpec-t)"/>
-          </svg>
+            {/* Shockwave circle ring */}
+            <div
+              ref={gcRef}
+              style={{
+                position: "absolute",
+                left: "50%",
+                top: "50%",
+                transform: "translate(-50%,-50%) scale(0)",
+                opacity: 0,
+                willChange: "transform,opacity",
+              }}
+            >
+              <svg width="220" height="220" viewBox="0 0 220 220" overflow="visible" xmlns="http://www.w3.org/2000/svg">
+                <defs>
+                  <linearGradient id="bltStroke-t2" x1="0%" y1="0%" x2="100%" y2="100%">
+                    <stop offset="0%" stopColor="#c084fc" />
+                    <stop offset="50%" stopColor="#60a5fa" />
+                    <stop offset="100%" stopColor="#22d3ee" />
+                  </linearGradient>
+                </defs>
+                <circle
+                  cx="110"
+                  cy="110"
+                  r="80"
+                  fill="none"
+                  stroke="url(#bltStroke-t2)"
+                  strokeWidth="3.5"
+                />
+              </svg>
+            </div>
+
+            <div
+              ref={gsRef}
+              style={{
+                position: "absolute",
+                left: "50%",
+                top: "50%",
+                transform: "translate(-50%,-50%) scale(0) rotate(-14deg)",
+                opacity: 0,
+                willChange: "transform,opacity,filter",
+              }}
+            >
+              <svg width="88" height="214" viewBox="0 0 80 200" overflow="visible" xmlns="http://www.w3.org/2000/svg">
+                <defs>
+                  <linearGradient id="bltFill-t" x1="20%" y1="0%" x2="80%" y2="100%">
+                    <stop offset="0%" stopColor="#4f46e5" />
+                    <stop offset="50%" stopColor="#3b82f6" />
+                    <stop offset="100%" stopColor="#1d4ed8" />
+                  </linearGradient>
+                  <linearGradient id="bltStroke-t" x1="0%" y1="0%" x2="100%" y2="100%">
+                    <stop offset="0%" stopColor="#c084fc" />
+                    <stop offset="50%" stopColor="#60a5fa" />
+                    <stop offset="100%" stopColor="#22d3ee" />
+                  </linearGradient>
+                  <linearGradient id="bltSpec-t" x1="0%" y1="0%" x2="100%" y2="60%">
+                    <stop offset="0%" stopColor="#ffffff" stopOpacity="0.95" />
+                    <stop offset="35%" stopColor="#a5b4fc" stopOpacity="0.6" />
+                    <stop offset="100%" stopColor="#4f46e5" stopOpacity="0" />
+                  </linearGradient>
+                </defs>
+                <polygon points="52,6 12,119 40,119 24,194 70,81 40,81" fill="url(#bltFill-t)" stroke="url(#bltStroke-t)" strokeWidth="2.2" strokeLinejoin="round"/>
+                <polygon points="52,6 36,56 46,56" fill="url(#bltSpec-t)"/>
+              </svg>
+            </div>
+          </div>
         </div>
       </div>
     );
