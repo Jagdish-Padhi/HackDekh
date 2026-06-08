@@ -32,7 +32,7 @@ import LogoTransition from "../components/LogoAnimation";
 type SavedHackathon = HackathonLite;
 type Participation = TeamHackathon & { teamInfo: Team };
 
-const STAGE_RESULTS: Array<Stage["result"]> = ["pending", "qualified", "rejected"];
+
 
 export const isRegistrationStage = (name: string): boolean => {
   return /register|registration|apply|application|prep|regn/i.test(name);
@@ -168,6 +168,15 @@ export default function DashboardPage() {
     stageName: string;
   } | null>(null);
   const [isDeletingStage, setIsDeletingStage] = useState(false);
+
+  const [stageToReject, setStageToReject] = useState<{
+    participationId: string;
+    stageId: string;
+    currentNotes: string;
+    currentName: string;
+    currentDeadline: string | null;
+  } | null>(null);
+  const [isRejectingStage, setIsRejectingStage] = useState(false);
 
   const [showTeamModal, setShowTeamModal] = useState(false);
   const [showAddStageModal, setShowAddStageModal] = useState(false);
@@ -348,22 +357,54 @@ export default function DashboardPage() {
     }
   };
 
-  const handleCycleStageResult = async (participationId: string, stageId: string) => {
+  const handleStageResultSelect = async (participationId: string, stageId: string, result: Stage["result"]) => {
     const participation = participations.find((item) => item._id === participationId);
     const stage = participation?.stages.find((candidate) => candidate._id === stageId);
     if (!participation || !stage) return;
 
-    const nextResult = STAGE_RESULTS[(STAGE_RESULTS.indexOf(stage.result as Stage["result"]) + 1) % STAGE_RESULTS.length];
-    await handleStageFieldSave(participationId, stageId, { notes: stage.notes, name: stage.name, deadline: stage.deadline || null });
+    if (result === "rejected") {
+      setStageToReject({
+        participationId,
+        stageId,
+        currentNotes: stage.notes || "",
+        currentName: stage.name,
+        currentDeadline: stage.deadline || null
+      });
+      return;
+    }
+
+    await executeUpdateStageResult(participationId, stageId, result, stage.notes || "", stage.name, stage.deadline || null);
+  };
+
+  const executeUpdateStageResult = async (
+    participationId: string,
+    stageId: string,
+    result: Stage["result"],
+    notes: string,
+    name: string,
+    deadline: string | null
+  ) => {
+    const participation = participations.find((item) => item._id === participationId);
+    if (!participation) return;
+
+    if (result === "rejected") {
+      setIsRejectingStage(true);
+    }
+    await handleStageFieldSave(participationId, stageId, { notes, name, deadline });
     try {
-      const updatedStage = await teamApi.updateStage(participation.teamInfo._id, participationId, stageId, { result: nextResult });
+      const updatedStage = await teamApi.updateStage(participation.teamInfo._id, participationId, stageId, { result });
       patchParticipation(participationId, (current) => ({
         ...current,
         stages: current.stages.map((candidate) => (candidate._id === stageId ? { ...candidate, ...updatedStage } : candidate)),
       }));
+      showToast(`Stage result updated to ${result}`, "success");
     } catch (error: any) {
       console.error("Failed to update stage result", error);
       showToast(error.response?.data?.message || "Failed to update stage result", "error");
+    } finally {
+      if (result === "rejected") {
+        setIsRejectingStage(false);
+      }
     }
   };
 
@@ -1299,18 +1340,25 @@ export default function DashboardPage() {
                                             }}
                                             className="rounded-xl border border-zinc-250 bg-white dark:bg-zinc-55 px-3 py-1.5 text-xs text-zinc-805 outline-none transition focus:border-blue-650 disabled:cursor-not-allowed disabled:bg-zinc-150 disabled:text-zinc-450"
                                           />
-                                          <button
-                                            disabled={isDisqualified || isTerminated}
-                                            onClick={() => handleCycleStageResult(activePart._id, stage._id)}
-                                            className={`inline-flex items-center justify-center gap-1.5 rounded-xl border px-3 py-1.5 text-xs font-bold uppercase tracking-wider cursor-pointer disabled:cursor-not-allowed transition duration-200 ${
+                                          <div
+                                            className={`inline-flex items-center justify-center gap-1.5 rounded-xl border px-3 py-1.5 text-xs font-bold uppercase tracking-wider transition duration-200 ${
                                               isDisqualified || isTerminated 
                                                 ? "border-zinc-250 bg-zinc-150 text-zinc-450" 
                                                 : getStageResultClass(stage.result)
                                             }`}
                                           >
-                                            <CircleDot className="h-3.5 w-3.5" />
-                                            {isDisqualified ? "disqualified" : stage.result}
-                                          </button>
+                                            <CircleDot className="h-3.5 w-3.5 shrink-0" />
+                                            <select
+                                              disabled={isDisqualified || isTerminated}
+                                              value={isDisqualified ? "rejected" : stage.result}
+                                              onChange={(event) => handleStageResultSelect(activePart._id, stage._id, event.target.value as Stage["result"])}
+                                              className="bg-transparent border-none outline-none font-bold uppercase tracking-wider cursor-pointer p-0 select-none text-xs w-full text-center"
+                                            >
+                                              <option value="pending" className="bg-white dark:bg-zinc-150 text-zinc-805">pending</option>
+                                              <option value="qualified" className="bg-white dark:bg-zinc-150 text-zinc-805">qualified</option>
+                                              <option value="rejected" className="bg-white dark:bg-zinc-150 text-zinc-805">rejected</option>
+                                            </select>
+                                          </div>
                                         </div>
 
                                         {/* Notes Textarea */}
@@ -1465,6 +1513,56 @@ export default function DashboardPage() {
                   className="flex-1 rounded-xl bg-rose-505 hover:bg-rose-450 py-2.5 text-xs font-bold text-white shadow-sm transition disabled:opacity-60 disabled:cursor-not-allowed cursor-pointer flex items-center justify-center min-h-[36px]"
                 >
                   {isDeletingStage ? <LogoTransition width={28} height={18} loop={true} /> : "Delete"}
+                </button>
+              </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
+
+      {/* REJECT STAGE CONFIRMATION MODAL */}
+      <AnimatePresence>
+        {stageToReject && (
+          <div className="fixed inset-0 z-[100] flex items-center justify-center bg-zinc-950/65 backdrop-blur-sm p-4">
+            <motion.div
+              initial={{ scale: 0.95, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0.95, opacity: 0 }}
+              className="relative w-full max-w-sm rounded-[2rem] border border-zinc-250 bg-white dark:bg-zinc-150 p-6 shadow-2xl text-center"
+            >
+              <div className="mx-auto h-12 w-12 rounded-full bg-amber-500/10 flex items-center justify-center text-amber-705 mb-4 shrink-0">
+                <AlertTriangle className="h-6 w-6" />
+              </div>
+              <h3 className="text-base font-extrabold text-zinc-805 mb-2">Mark Stage as Rejected?</h3>
+              <p className="text-xs text-zinc-550 mb-6 leading-normal">
+                Are you sure you want to mark this milestone stage as <span className="text-rose-505 font-bold uppercase">Rejected</span>?
+                <br /><br />
+                <span className="text-[11px] font-black uppercase text-amber-705">⚠️ Warning:</span> This action will mark your project workspace as disqualified/terminated and prevent any future milestone additions or editing.
+              </p>
+
+              <div className="flex gap-2.5 pt-2 justify-end">
+                <button
+                  onClick={() => setStageToReject(null)}
+                  className="flex-1 rounded-xl border border-zinc-250 bg-white dark:bg-zinc-55 py-2.5 text-xs font-bold text-zinc-750 transition hover:bg-zinc-150 cursor-pointer"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={async () => {
+                    await executeUpdateStageResult(
+                      stageToReject.participationId,
+                      stageToReject.stageId,
+                      "rejected",
+                      stageToReject.currentNotes,
+                      stageToReject.currentName,
+                      stageToReject.currentDeadline
+                    );
+                    setStageToReject(null);
+                  }}
+                  disabled={isRejectingStage}
+                  className="flex-1 rounded-xl bg-rose-505 hover:bg-rose-450 py-2.5 text-xs font-bold text-white shadow-sm transition disabled:opacity-60 disabled:cursor-not-allowed cursor-pointer flex items-center justify-center min-h-[36px]"
+                >
+                  {isRejectingStage ? <LogoTransition width={28} height={18} loop={true} /> : "Reject"}
                 </button>
               </div>
             </motion.div>
