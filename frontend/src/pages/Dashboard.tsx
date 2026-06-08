@@ -552,7 +552,7 @@ export default function DashboardPage() {
                 return (
                   <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4 rounded-3xl border border-zinc-200/90 bg-gradient-to-r from-blue-50/45 to-indigo-50/25 p-4.5 dark:border-zinc-800 dark:from-zinc-900/30 dark:to-zinc-900/15 shadow-xs">
                     {/* Circle Loader Centerpiece */}
-                    <div className="flex items-center gap-4 bg-white dark:bg-zinc-950 p-4 rounded-2xl border border-zinc-150 dark:border-zinc-900 shadow-xs justify-center lg:justify-start">
+                    <div className="flex items-center gap-4 bg-white dark:bg-zinc-950 p-4 rounded-2xl border border-zinc-150 dark:border-zinc-850 shadow-xs justify-center lg:justify-start">
                       <div className="relative flex items-center justify-center h-16 w-16 shrink-0">
                         {/* Rotating animated theme border */}
                         <div className="absolute inset-0 rounded-full border-[5px] border-blue-600/15 border-t-blue-600 dark:border-blue-500/15 dark:border-t-blue-500 animate-[spin_3s_linear_infinite]" />
@@ -568,7 +568,7 @@ export default function DashboardPage() {
                     </div>
 
                     {/* Metric Card 2 */}
-                    <div className="flex items-center gap-4 bg-white dark:bg-zinc-950 p-4 rounded-2xl border border-zinc-150 dark:border-zinc-900 shadow-xs">
+                    <div className="flex items-center gap-4 bg-white dark:bg-zinc-950 p-4 rounded-2xl border border-zinc-150 dark:border-zinc-850 shadow-xs">
                       <div className="h-12 w-12 rounded-xl bg-blue-500/10 flex items-center justify-center text-blue-600 dark:text-blue-400 shrink-0">
                         <Trophy className="h-5.5 w-5.5" />
                       </div>
@@ -590,7 +590,7 @@ export default function DashboardPage() {
                           }, 3000);
                         }
                       }}
-                      className="flex items-center gap-4 bg-white dark:bg-zinc-950 p-4 rounded-2xl border border-zinc-150 dark:border-zinc-900 shadow-xs cursor-pointer hover:border-amber-400 dark:hover:border-amber-500/60 hover:-translate-y-0.5 transition-all duration-200"
+                      className="flex items-center gap-4 bg-white dark:bg-zinc-950 p-4 rounded-2xl border border-zinc-150 dark:border-zinc-850 shadow-xs cursor-pointer hover:border-amber-400 dark:hover:border-amber-500/60 hover:-translate-y-0.5 transition-all duration-200"
                     >
                       <div className="h-12 w-12 rounded-xl bg-amber-500/10 flex items-center justify-center text-amber-600 dark:text-amber-400 shrink-0">
                         <AlertTriangle className="h-5.5 w-5.5" />
@@ -602,7 +602,7 @@ export default function DashboardPage() {
                     </div>
 
                     {/* Metric Card 4 */}
-                    <div className="flex items-center gap-4 bg-white dark:bg-zinc-950 p-4 rounded-2xl border border-zinc-150 dark:border-zinc-900 shadow-xs">
+                    <div className="flex items-center gap-4 bg-white dark:bg-zinc-950 p-4 rounded-2xl border border-zinc-150 dark:border-zinc-850 shadow-xs">
                       <div className="h-12 w-12 rounded-xl bg-emerald-500/10 flex items-center justify-center text-emerald-600 dark:text-emerald-400 shrink-0">
                         <Check className="h-5.5 w-5.5" />
                       </div>
@@ -692,7 +692,7 @@ export default function DashboardPage() {
 
                   {/* Team Quick Info summary with filters */}
                   <div className="rounded-3xl border border-zinc-200/90 bg-white p-6 shadow-xs dark:border-zinc-800 dark:bg-zinc-950/40">
-                    <div className="flex flex-wrap items-center justify-between gap-4 mb-5 pb-3.5 border-b border-zinc-100 dark:border-zinc-900">
+                    <div className="flex flex-wrap items-center justify-between gap-4 mb-5 pb-3.5 border-b border-zinc-100 dark:border-zinc-850">
                       <div className="flex items-center gap-2">
                         <Trophy className="h-5 w-5 text-emerald-600 dark:text-emerald-400" />
                         <h2 className="text-sm font-extrabold text-zinc-900 dark:text-zinc-100 uppercase tracking-wider">Registered Hackathons & Results</h2>
@@ -1083,12 +1083,12 @@ export default function DashboardPage() {
                                       className="bg-transparent text-xs font-bold text-zinc-800 dark:text-zinc-100 outline-none cursor-pointer border-none p-0 pr-1 select-none"
                                     >
                                       {activePart.status === 'tracking' && (
-                                        <option value="tracking">Tracking</option>
+                                        <option value="tracking" className="bg-white text-zinc-900 dark:bg-zinc-900 dark:text-zinc-100">Tracking</option>
                                       )}
-                                      <option value="active">Active</option>
-                                      <option value="finalist">Finalist</option>
-                                      <option value="won">Won</option>
-                                      <option value="eliminated">Eliminated</option>
+                                      <option value="active" className="bg-white text-zinc-900 dark:bg-zinc-900 dark:text-zinc-100">Active</option>
+                                      <option value="finalist" className="bg-white text-zinc-900 dark:bg-zinc-900 dark:text-zinc-100">Finalist</option>
+                                      <option value="won" className="bg-white text-zinc-900 dark:bg-zinc-900 dark:text-zinc-100">Won</option>
+                                      <option value="eliminated" className="bg-white text-zinc-900 dark:bg-zinc-900 dark:text-zinc-100">Eliminated</option>
                                     </select>
                                   </div>
                                   {loadingParticipationId === activePart._id && <LogoTransition width={28} height={18} loop={true} />}
@@ -1258,10 +1258,10 @@ export default function DashboardPage() {
                                               }}
                                               className={`rounded-2xl border p-4.5 transition-all duration-300 ${
                                                 isDisqualified
-                                                  ? "border-zinc-200/50 bg-zinc-100/30 dark:border-zinc-900/30 dark:bg-zinc-950/10 opacity-55"
+                                                  ? "border-zinc-200/50 bg-zinc-100/30 dark:border-zinc-850/50 dark:bg-zinc-950/10 opacity-55"
                                                   : isFocused
-                                                    ? "border-blue-500/50 bg-blue-50/10 dark:bg-blue-950/10 shadow-sm"
-                                                    : "border-zinc-200 bg-zinc-50/50 hover:bg-zinc-50 dark:border-zinc-800/80 dark:bg-zinc-900/10 hover:border-zinc-700/60"
+                                                    ? "border-blue-500/50 bg-blue-50/15 dark:border-blue-500/50 dark:bg-zinc-900 shadow-sm"
+                                                    : "border-zinc-200 bg-zinc-50/50 hover:bg-zinc-50 dark:border-zinc-800/80 dark:bg-zinc-950/50 hover:border-zinc-300 dark:hover:border-zinc-700 dark:hover:bg-zinc-900/40"
                                               }`}
                                             >
                                               <div className="flex items-start justify-between gap-4">
@@ -1532,7 +1532,7 @@ export default function DashboardPage() {
                                                   setActiveReflectionStageId("");
                                                   setReflectionDraft("");
                                                 }}
-                                                className="rounded-lg border border-zinc-200 bg-white px-2.5 py-1.5 text-[10px] font-bold text-zinc-650 transition hover:bg-zinc-50 dark:border-zinc-800 dark:bg-zinc-900 dark:text-zinc-305 cursor-pointer"
+                                                className="rounded-lg border border-zinc-200 bg-white px-2.5 py-1.5 text-[10px] font-bold text-zinc-650 transition hover:bg-zinc-50 dark:hover:bg-zinc-800 dark:border-zinc-800 dark:bg-zinc-900 dark:text-zinc-305 cursor-pointer"
                                               >
                                                 Cancel
                                               </button>

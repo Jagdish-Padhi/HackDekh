@@ -286,7 +286,7 @@ const SettingsPage = () => {
               </div>
 
               <div className="space-y-4">
-                <div className="flex items-center justify-between py-3 border-b border-zinc-100 dark:border-zinc-900">
+                <div className="flex items-center justify-between py-3 border-b border-zinc-100 dark:border-zinc-800">
                   <div>
                     <p className="text-sm font-bold text-zinc-800 dark:text-zinc-200">Email Notifications</p>
                     <p className="text-xs text-zinc-500 dark:text-zinc-400">Receive summaries, platform news, and tips.</p>
@@ -299,7 +299,7 @@ const SettingsPage = () => {
                   />
                 </div>
 
-                <div className="flex items-center justify-between py-3 border-b border-zinc-100 dark:border-zinc-900">
+                <div className="flex items-center justify-between py-3 border-b border-zinc-100 dark:border-zinc-800">
                   <div>
                     <p className="text-sm font-bold text-zinc-800 dark:text-zinc-200">Team Invites</p>
                     <p className="text-xs text-zinc-500 dark:text-zinc-400">Alert me when a user invites me to join their roster.</p>
