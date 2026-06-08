@@ -77,14 +77,14 @@ export function PublicTeamsLanding() {
           <div className="flex w-full sm:w-auto flex-col sm:flex-row gap-3">
             <Link
               to="/signup?returnTo=/teams"
-              className="inline-flex items-center justify-center gap-2 rounded-2xl bg-blue-600 px-6 py-3 text-sm font-bold text-white shadow-lg shadow-blue-500/10 transition hover:-translate-y-0.5 hover:bg-blue-500"
+              className="btn btn-primary gap-2 px-6 py-3 h-auto"
             >
               Create Team Workspace
               <ArrowRight className="h-4 w-4" />
             </Link>
             <Link
               to="/login?returnTo=/teams"
-              className="inline-flex items-center justify-center rounded-2xl border border-zinc-200 bg-white px-6 py-3 text-sm font-bold text-zinc-700 transition hover:bg-zinc-50 dark:border-zinc-800 dark:bg-zinc-950 dark:text-zinc-200 dark:hover:bg-zinc-900"
+              className="btn btn-secondary px-6 py-3 h-auto"
             >
               Sign In
             </Link>
@@ -162,14 +162,14 @@ export function PublicDashboardLanding() {
           <div className="flex w-full sm:w-auto flex-col sm:flex-row gap-3">
             <Link
               to="/signup?returnTo=/dashboard"
-              className="inline-flex items-center justify-center gap-2 rounded-2xl bg-blue-600 px-6 py-3 text-sm font-bold text-white shadow-lg shadow-blue-500/10 transition hover:-translate-y-0.5 hover:bg-blue-500"
+              className="btn btn-primary gap-2 px-6 py-3 h-auto"
             >
               Unlock Tracker Dashboard
               <ArrowRight className="h-4 w-4" />
             </Link>
             <Link
               to="/login?returnTo=/dashboard"
-              className="inline-flex items-center justify-center rounded-2xl border border-zinc-200 bg-white px-6 py-3 text-sm font-bold text-zinc-700 transition hover:bg-zinc-50 dark:border-zinc-800 dark:bg-zinc-950 dark:text-zinc-200 dark:hover:bg-zinc-900"
+              className="btn btn-secondary px-6 py-3 h-auto"
             >
               Sign In
             </Link>

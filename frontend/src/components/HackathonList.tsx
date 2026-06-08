@@ -602,14 +602,14 @@ const HackathonList = () => {
                                     <div className="flex gap-2.5 pt-2">
                                         <button
                                             onClick={() => setShowTrackModal(false)}
-                                            className="flex-1 rounded-xl border border-zinc-200 bg-white py-2.5 text-xs font-bold text-zinc-700 transition hover:bg-zinc-50 dark:border-zinc-800 dark:bg-zinc-950 dark:text-zinc-300 dark:hover:bg-zinc-900 cursor-pointer"
+                                            className="btn btn-secondary flex-1"
                                         >
                                             Cancel
                                         </button>
                                         <button
                                             onClick={handleConfirmTrack}
                                             disabled={isTrackingSubmitting}
-                                            className="flex-1 rounded-xl bg-blue-600 py-2.5 text-xs font-bold text-white shadow-sm transition hover:bg-blue-500 disabled:opacity-60 disabled:cursor-not-allowed cursor-pointer"
+                                            className="btn btn-primary flex-1"
                                         >
                                             {isTrackingSubmitting ? "Tracking..." : "Confirm"}
                                         </button>
@@ -648,14 +648,14 @@ const HackathonList = () => {
                                         setShowUntrackConfirmModal(false);
                                         setHackathonIdToUntrack(null);
                                     }}
-                                    className="flex-1 rounded-xl border border-zinc-200 bg-white py-2.5 text-xs font-bold text-zinc-700 transition hover:bg-zinc-50 dark:border-zinc-800 dark:bg-zinc-950 dark:text-zinc-300 dark:hover:bg-zinc-900 cursor-pointer"
+                                    className="btn btn-secondary flex-1"
                                 >
                                     Cancel
                                 </button>
                                 <button
                                     onClick={handleConfirmUntrack}
                                     disabled={isUntrackingSubmitting}
-                                    className="flex-1 rounded-xl bg-rose-600 py-2.5 text-xs font-bold text-white shadow-sm transition hover:bg-rose-500 disabled:opacity-60 disabled:cursor-not-allowed cursor-pointer"
+                                    className="btn btn-danger flex-1"
                                 >
                                     {isUntrackingSubmitting ? "Untracking..." : "Untrack"}
                                 </button>

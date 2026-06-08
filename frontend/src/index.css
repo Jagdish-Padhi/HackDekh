@@ -373,3 +373,153 @@ html.dark .select-field option {
 	font-weight: 600;
 	border-radius: 0.625rem; /* rounded-lg */
 }
+
+/* ─── Industry-grade button system ────────────────────────────────────────── */
+/* Base button — always use this as the foundation */
+.btn {
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	gap: 0.375rem;
+	height: 2.375rem; /* 38px — comfortable h-9.5 */
+	padding: 0 1rem;
+	border-radius: 0.75rem; /* rounded-xl — the ONE standard */
+	border: 1px solid transparent;
+	font-size: 0.8125rem; /* ~text-[13px] */
+	font-weight: 600;
+	line-height: 1;
+	white-space: nowrap;
+	cursor: pointer;
+	transition:
+		background-color 120ms ease,
+		border-color 120ms ease,
+		box-shadow 120ms ease,
+		transform 120ms ease,
+		opacity 120ms ease;
+	outline: none;
+	text-decoration: none;
+	user-select: none;
+}
+
+.btn:disabled,
+.btn[disabled] {
+	opacity: 0.5;
+	cursor: not-allowed;
+	pointer-events: none;
+}
+
+.btn:focus-visible {
+	box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.18);
+}
+
+html.dark .btn:focus-visible {
+	box-shadow: 0 0 0 3px rgba(96, 165, 250, 0.22);
+}
+
+/* Primary — filled blue */
+.btn-primary {
+	background-color: var(--blue-650);
+	color: #ffffff;
+	box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.10);
+}
+
+.btn-primary:hover:not(:disabled) {
+	background-color: #3b82f6; /* slightly lighter */
+	transform: translateY(-1px);
+	box-shadow: 0 4px 10px 0 rgba(37, 99, 235, 0.22);
+}
+
+/* Secondary — ghost with border */
+.btn-secondary {
+	background-color: #ffffff;
+	border-color: var(--zinc-250);
+	color: var(--zinc-750);
+	box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.04);
+}
+
+.btn-secondary:hover:not(:disabled) {
+	background-color: var(--zinc-150);
+	border-color: var(--zinc-350);
+}
+
+html.dark .btn-secondary {
+	background-color: var(--zinc-150);
+	border-color: var(--zinc-250);
+	color: var(--zinc-550);
+}
+
+html.dark .btn-secondary:hover:not(:disabled) {
+	background-color: var(--zinc-250);
+}
+
+/* Danger — red for destructive actions */
+.btn-danger {
+	background-color: #e11d48; /* rose-600 */
+	color: #ffffff;
+	box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.10);
+}
+
+.btn-danger:hover:not(:disabled) {
+	background-color: #f43f5e;
+	transform: translateY(-1px);
+	box-shadow: 0 4px 10px 0 rgba(225, 29, 72, 0.22);
+}
+
+/* Ghost — no border, no bg; for subtle actions */
+.btn-ghost {
+	background-color: transparent;
+	border-color: transparent;
+	color: var(--zinc-550);
+}
+
+.btn-ghost:hover:not(:disabled) {
+	background-color: var(--zinc-150);
+	color: var(--zinc-805);
+}
+
+html.dark .btn-ghost {
+	color: var(--zinc-450);
+}
+
+html.dark .btn-ghost:hover:not(:disabled) {
+	background-color: var(--zinc-250);
+	color: var(--zinc-750);
+}
+
+/* Small variant — for compact areas */
+.btn-sm {
+	height: 2rem; /* h-8 */
+	padding: 0 0.75rem;
+	font-size: 0.75rem; /* text-xs */
+	border-radius: 0.625rem; /* rounded-lg — slightly less for small */
+}
+
+/* Icon-only square button */
+.btn-icon {
+	width: 2.375rem;
+	height: 2.375rem;
+	padding: 0;
+	border-radius: 0.75rem;
+	border: 1px solid var(--zinc-250);
+	background-color: #ffffff;
+	color: var(--zinc-550);
+	box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.04);
+}
+
+.btn-icon:hover:not(:disabled) {
+	border-color: var(--zinc-350);
+	background-color: var(--zinc-150);
+	color: var(--zinc-805);
+	transform: translateY(-0.5px);
+}
+
+html.dark .btn-icon {
+	background-color: var(--zinc-150);
+	border-color: var(--zinc-250);
+	color: var(--zinc-450);
+}
+
+html.dark .btn-icon:hover:not(:disabled) {
+	background-color: var(--zinc-250);
+	color: var(--zinc-750);
+}

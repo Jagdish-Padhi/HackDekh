@@ -658,7 +658,7 @@ export default function TeamsPage() {
         {/* Join Team Button */}
         <button
           onClick={() => setShowJoinModal(true)}
-          className="inline-flex h-10 items-center justify-center rounded-xl border border-zinc-200 bg-white px-4 text-sm font-semibold text-zinc-700 shadow-sm hover:bg-zinc-50 transition cursor-pointer dark:border-zinc-800 dark:bg-zinc-900 dark:text-zinc-200 dark:hover:bg-zinc-800"
+          className="btn btn-secondary"
         >
           Join Team
         </button>
@@ -672,7 +672,7 @@ export default function TeamsPage() {
             setCreateTeamName("");
             setShowCreateModal(true);
           }}
-          className="inline-flex h-10 items-center justify-center gap-1.5 rounded-lg bg-blue-600 hover:bg-blue-700 dark:bg-blue-500 dark:hover:bg-blue-400 text-sm font-semibold text-white px-4 shadow-sm transition-all duration-200 hover:-translate-y-0.5 cursor-pointer shrink-0"
+          className="btn btn-primary"
         >
           <Plus className="h-4 w-4" />
           Create Team
@@ -1153,7 +1153,7 @@ export default function TeamsPage() {
           <div className="flex gap-2 w-full">
             <button
               onClick={() => setShowJoinModal(true)}
-              className="flex-1 inline-flex h-10 items-center justify-center gap-2 rounded-xl border border-zinc-200 bg-white px-4 text-sm font-semibold text-zinc-700 hover:bg-zinc-50 transition cursor-pointer dark:border-zinc-800 dark:bg-zinc-900 dark:text-zinc-200 dark:hover:bg-zinc-800"
+              className="btn btn-secondary flex-1"
             >
               Join Team
             </button>
@@ -1165,7 +1165,7 @@ export default function TeamsPage() {
                 setCreateTeamName("");
                 setShowCreateModal(true);
               }}
-              className="flex-1 inline-flex h-10 items-center justify-center gap-2 rounded-lg bg-blue-600 hover:bg-blue-500 dark:bg-blue-500 dark:hover:bg-blue-400 text-sm font-semibold text-white px-4 shadow-sm transition-all duration-200 hover:-translate-y-0.5 cursor-pointer"
+              className="btn btn-primary flex-1"
             >
               <Plus className="h-4 w-4" />
               Create Team
@@ -2283,18 +2283,17 @@ export default function TeamsPage() {
                 )}
               </div>
 
-              {/* Footer */}
               <div className="pt-4 border-t border-zinc-100 dark:border-zinc-800 flex gap-2 justify-end mt-4">
                 <button
                   onClick={() => setShowCreateModal(false)}
-                  className="px-4 py-2 border border-zinc-200 dark:border-zinc-800 hover:bg-zinc-50 dark:hover:bg-zinc-900 rounded-lg text-xs font-semibold text-zinc-600 dark:text-zinc-400 cursor-pointer"
+                  className="btn btn-secondary"
                 >
                   Cancel
                 </button>
                 <button
                   onClick={handleCreateTeam}
                   disabled={savingTeam || !createTeamName.trim()}
-                  className="px-4 py-2 bg-blue-600 hover:bg-blue-500 text-white rounded-lg text-xs font-semibold shadow-sm cursor-pointer disabled:opacity-50"
+                  className="btn btn-primary"
                 >
                   {savingTeam ? <LogoTransition width={28} height={18} loop={true} /> : "Create Team"}
                 </button>
@@ -2322,7 +2321,7 @@ export default function TeamsPage() {
                   setJoinTokenInput("");
                   setJoinError("");
                 }}
-                className="absolute right-4 top-4 rounded-lg p-1.5 text-zinc-400 hover:bg-zinc-100 dark:hover:bg-zinc-900 transition"
+                className="absolute right-4 top-4 btn btn-ghost p-1.5 w-auto h-auto"
               >
                 <X className="h-4 w-4" />
               </button>
@@ -2352,14 +2351,14 @@ export default function TeamsPage() {
                       setJoinTokenInput("");
                       setJoinError("");
                     }}
-                    className="px-4 py-2 border border-zinc-200 dark:border-zinc-800 hover:bg-zinc-50 dark:hover:bg-zinc-900 rounded-lg text-xs font-semibold text-zinc-600 dark:text-zinc-400 cursor-pointer"
+                    className="btn btn-secondary"
                   >
                     Cancel
                   </button>
                   <button
                     onClick={handleJoinTeam}
                     disabled={savingTeam || !joinTokenInput.trim()}
-                    className="px-4 py-2 bg-blue-600 hover:bg-blue-500 text-white rounded-lg text-xs font-semibold shadow-xs cursor-pointer disabled:opacity-50"
+                    className="btn btn-primary"
                   >
                     {savingTeam ? <LogoTransition width={28} height={18} loop={true} /> : "Join Team"}
                   </button>
@@ -2387,7 +2386,7 @@ export default function TeamsPage() {
                   setShowDeleteConfirmModal(false);
                   setDeleteConfirmInput("");
                 }}
-                className="absolute right-4 top-4 rounded-lg p-1.5 text-zinc-400 hover:bg-zinc-100 dark:hover:bg-zinc-900 transition"
+                className="absolute right-4 top-4 btn btn-ghost p-1.5 w-auto h-auto"
               >
                 <X className="h-4 w-4" />
               </button>
@@ -2416,14 +2415,14 @@ export default function TeamsPage() {
                       setShowDeleteConfirmModal(false);
                       setDeleteConfirmInput("");
                     }}
-                    className="px-4 py-2 border border-zinc-200 dark:border-zinc-800 hover:bg-zinc-50 dark:hover:bg-zinc-900 rounded-lg text-xs font-semibold text-zinc-600 dark:text-zinc-400 cursor-pointer"
+                    className="btn btn-secondary"
                   >
                     Cancel
                   </button>
                   <button
                     onClick={handleDeleteTeam}
                     disabled={savingTeam || deleteConfirmInput !== selectedTeam.name}
-                    className="px-4 py-2 bg-rose-600 hover:bg-rose-500 disabled:bg-zinc-200 dark:disabled:bg-zinc-850 disabled:text-zinc-450 text-white rounded-lg text-xs font-semibold shadow-xs cursor-pointer disabled:opacity-50"
+                    className="btn btn-danger"
                   >
                     {savingTeam ? <LogoTransition width={28} height={18} loop={true} /> : "Delete this team"}
                   </button>
