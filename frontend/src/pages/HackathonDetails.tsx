@@ -680,7 +680,7 @@ export default function HackathonDetailsPage() {
                     <select
                       value={selectedTeamId}
                       onChange={(event) => setSelectedTeamId(event.target.value)}
-                      className="w-full rounded-2xl border border-zinc-200 bg-zinc-50 px-4 py-3 text-sm text-zinc-800 outline-none transition focus:border-blue-400 focus:bg-white focus:ring-2 focus:ring-blue-500/20 dark:border-zinc-800 dark:bg-zinc-950/40 dark:text-zinc-200"
+                      className="select-field"
                     >
                       <option value="" disabled className="bg-white text-zinc-800 dark:bg-zinc-905 dark:text-zinc-200">
                         Choose a team

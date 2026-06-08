@@ -288,3 +288,88 @@ html.dark {
 .animate-pulse-blink {
 	animation: pulse-blink 1.8s infinite ease-in-out;
 }
+
+/* ─── Industry-grade select field ─────────────────────────────────────────── */
+.select-field {
+	appearance: none;
+	-webkit-appearance: none;
+	display: block;
+	width: 100%;
+	height: 2.5rem; /* h-10 */
+	padding: 0 2.5rem 0 0.875rem; /* pr-10 pl-3.5 */
+	border-radius: 0.75rem; /* rounded-xl */
+	border: 1px solid var(--zinc-250);
+	background-color: #ffffff;
+	background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%2392929e' stroke-width='2.2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E");
+	background-repeat: no-repeat;
+	background-position: right 0.75rem center;
+	background-size: 1rem;
+	font-size: 0.875rem; /* text-sm */
+	font-weight: 500;
+	color: var(--zinc-805);
+	box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.04);
+	outline: none;
+	cursor: pointer;
+	transition:
+		border-color 150ms ease,
+		box-shadow 150ms ease,
+		transform 150ms ease;
+}
+
+.select-field:hover {
+	border-color: var(--zinc-350);
+	transform: translateY(-0.5px);
+	box-shadow: 0 2px 6px 0 rgba(0, 0, 0, 0.08);
+}
+
+.select-field:focus {
+	border-color: var(--blue-650);
+	box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.12), 0 1px 2px 0 rgba(0, 0, 0, 0.04);
+	transform: none;
+}
+
+.select-field:disabled {
+	opacity: 0.5;
+	cursor: not-allowed;
+	pointer-events: none;
+}
+
+/* Dark mode override */
+html.dark .select-field {
+	background-color: var(--zinc-150);
+	border-color: var(--zinc-250);
+	color: var(--zinc-805);
+	background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%2371717a' stroke-width='2.2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E");
+	box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.2);
+}
+
+html.dark .select-field:hover {
+	border-color: var(--zinc-350);
+	box-shadow: 0 2px 6px 0 rgba(0, 0, 0, 0.3);
+}
+
+html.dark .select-field:focus {
+	border-color: var(--blue-650);
+	box-shadow: 0 0 0 3px rgba(96, 165, 250, 0.18), 0 1px 2px 0 rgba(0, 0, 0, 0.2);
+}
+
+/* Option elements (scoped, best-effort for Firefox / Chromium) */
+.select-field option {
+	background-color: #ffffff;
+	color: var(--zinc-805);
+	font-weight: 500;
+}
+
+html.dark .select-field option {
+	background-color: #18181b; /* zinc-150 dark */
+	color: #f4f4f5; /* zinc-805 dark */
+}
+
+/* Compact variant for inline / tight spaces */
+.select-field-sm {
+	height: 2rem; /* h-8 */
+	padding: 0 2.25rem 0 0.75rem;
+	font-size: 0.78rem;
+	font-weight: 600;
+	border-radius: 0.625rem; /* rounded-lg */
+}

@@ -184,6 +184,7 @@ export default function DashboardPage() {
   const [reflectionModalStage, setReflectionModalStage] = useState<Stage | null>(null);
   const [reflectionModalDraft, setReflectionModalDraft] = useState("");
   const [showReflectionsMap, setShowReflectionsMap] = useState<Record<string, boolean>>({});
+  const [openResultDropdownId, setOpenResultDropdownId] = useState<string | null>(null);
 
   const loadDashboardData = useCallback(async (isSilent = false) => {
     if (!isSilent) {
@@ -1197,26 +1198,74 @@ export default function DashboardPage() {
 
                                 {/* Header Actions */}
                                 <div className="flex items-center gap-2.5">
-                                  {/* Status Dropdown */}
-                                  <div className="flex items-center gap-2 rounded-xl border border-zinc-250 bg-white dark:bg-zinc-150 px-3 py-1.5 shadow-xs">
-                                    <span className="text-[9px] font-black uppercase text-zinc-450">Status:</span>
-                                    <select
-                                      value={activePart.status}
-                                      onChange={(event) => handleUpdateParticipationStatus(activePart._id, event.target.value as Participation["status"])}
-                                      disabled={loadingParticipationId === activePart._id}
-                                      className="bg-transparent text-xs font-bold text-zinc-805 outline-none cursor-pointer border-none p-0 pr-1 select-none"
-                                    >
-                                      {activePart.status === 'tracking' && (
-                                        <option value="tracking" className="bg-white dark:bg-zinc-150 text-zinc-805">Tracking</option>
-                                      )}
-                                      <option value="active" className="bg-white dark:bg-zinc-150 text-zinc-805">Active</option>
-                                      <option value="finalist" className="bg-white dark:bg-zinc-150 text-zinc-805">Finalist</option>
-                                      <option value="won" className="bg-white dark:bg-zinc-150 text-zinc-805">Won</option>
-                                      <option value="eliminated" className="bg-white dark:bg-zinc-150 text-zinc-805">Eliminated</option>
-                                    </select>
-                                  </div>
-                                  
+                                  {/* Status Custom Dropdown */}
+                                  {(() => {
+                                    const statusOptions = [
+                                      ...(activePart.status === 'tracking' ? [{ value: 'tracking', label: 'Tracking', dot: 'bg-zinc-400' }] : []),
+                                      { value: 'active', label: 'Active', dot: 'bg-blue-500' },
+                                      { value: 'finalist', label: 'Finalist', dot: 'bg-violet-500' },
+                                      { value: 'won', label: 'Won', dot: 'bg-emerald-500' },
+                                      { value: 'eliminated', label: 'Eliminated', dot: 'bg-rose-500' },
+                                    ];
+                                    const isStatusOpen = openResultDropdownId === `status-${activePart._id}`;
+                                    const isStatusLoading = loadingParticipationId === activePart._id;
+                                    const selectedStatus = statusOptions.find(o => o.value === activePart.status) || statusOptions[0];
+
+                                    return (
+                                      <div className="relative">
+                                        <button
+                                          type="button"
+                                          disabled={isStatusLoading}
+                                          onClick={() => setOpenResultDropdownId(isStatusOpen ? null : `status-${activePart._id}`)}
+                                          className="inline-flex items-center gap-1.5 rounded-xl border border-zinc-250 bg-white dark:bg-zinc-150 px-3 py-1.5 shadow-xs hover:border-zinc-350 transition cursor-pointer disabled:opacity-60 disabled:cursor-not-allowed"
+                                        >
+                                          <span className="text-[9px] font-black uppercase text-zinc-450">Status:</span>
+                                          <span className="text-xs font-bold text-zinc-805">{selectedStatus?.label}</span>
+                                          <svg xmlns="http://www.w3.org/2000/svg" width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round" strokeLinejoin="round" className={`text-zinc-450 transition-transform duration-150 ${isStatusOpen ? 'rotate-180' : ''}`}>
+                                            <path d="M6 9l6 6 6-6" />
+                                          </svg>
+                                        </button>
+
+                                        {isStatusOpen && (
+                                          <>
+                                            <div className="fixed inset-0 z-40" onClick={() => setOpenResultDropdownId(null)} />
+                                            <div className="absolute left-0 top-full z-50 mt-1.5 w-44 origin-top-left overflow-hidden rounded-2xl border border-zinc-250 bg-white dark:bg-zinc-150 shadow-lg shadow-zinc-900/10 dark:shadow-zinc-950/40">
+                                              <div className="p-1.5 space-y-0.5">
+                                                {statusOptions.map(opt => (
+                                                  <button
+                                                    key={opt.value}
+                                                    type="button"
+                                                    onClick={() => {
+                                                      setOpenResultDropdownId(null);
+                                                      if (opt.value !== activePart.status) {
+                                                        handleUpdateParticipationStatus(activePart._id, opt.value as Participation['status']);
+                                                      }
+                                                    }}
+                                                    className={`flex w-full items-center gap-2.5 rounded-xl px-3 py-2 text-xs font-semibold transition-colors duration-100 cursor-pointer ${
+                                                      activePart.status === opt.value
+                                                        ? 'bg-zinc-150 dark:bg-zinc-250 text-zinc-805'
+                                                        : 'text-zinc-650 dark:text-zinc-450 hover:bg-zinc-150 dark:hover:bg-zinc-250'
+                                                    }`}
+                                                  >
+                                                    <span className={`h-2 w-2 shrink-0 rounded-full ${opt.dot}`} />
+                                                    <span className="flex-1 text-left">{opt.label}</span>
+                                                    {activePart.status === opt.value && (
+                                                      <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round" strokeLinejoin="round">
+                                                        <path d="M20 6L9 17l-5-5" />
+                                                      </svg>
+                                                    )}
+                                                  </button>
+                                                ))}
+                                              </div>
+                                            </div>
+                                          </>
+                                        )}
+                                      </div>
+                                    );
+                                  })()}
+
                                   {loadingParticipationId === activePart._id && <LogoTransition width={28} height={18} loop={true} />}
+
 
                                   {/* Team Info Button */}
                                   <button
@@ -1390,25 +1439,86 @@ export default function DashboardPage() {
                                             }}
                                             className="rounded-xl border border-zinc-250 bg-white dark:bg-zinc-55 px-3 py-1.5 text-xs text-zinc-805 outline-none transition focus:border-blue-650 disabled:cursor-not-allowed disabled:bg-zinc-150 disabled:text-zinc-450"
                                           />
-                                          <div
-                                            className={`inline-flex items-center justify-center gap-1.5 rounded-xl border px-3 py-1.5 text-xs font-bold uppercase tracking-wider transition duration-200 ${
-                                              isDisqualified || isTerminated 
-                                                ? "border-zinc-250 bg-zinc-150 text-zinc-450" 
-                                                : getStageResultClass(stage.result)
-                                            }`}
-                                          >
-                                            <CircleDot className="h-3.5 w-3.5 shrink-0" />
-                                            <select
-                                              disabled={isDisqualified || isTerminated}
-                                              value={isDisqualified ? "rejected" : stage.result}
-                                              onChange={(event) => handleStageResultSelect(activePart._id, stage._id, event.target.value as Stage["result"])}
-                                              className="bg-transparent border-none outline-none font-bold uppercase tracking-wider cursor-pointer p-0 select-none text-xs w-full text-center"
-                                            >
-                                              <option value="pending" className="bg-white dark:bg-zinc-150 text-zinc-805">pending</option>
-                                              <option value="qualified" className="bg-white dark:bg-zinc-150 text-zinc-805">qualified</option>
-                                              <option value="rejected" className="bg-white dark:bg-zinc-150 text-zinc-805">rejected</option>
-                                            </select>
-                                          </div>
+                                          {/* Custom Stage Result Dropdown */}
+                                          {(() => {
+                                            const resultValue = isDisqualified ? "rejected" : stage.result;
+                                            const isOpen = openResultDropdownId === stage._id;
+                                            const isLocked = isDisqualified || isTerminated;
+
+                                            const resultOptions = [
+                                              { value: "pending", label: "Pending", colorClass: "text-zinc-600 dark:text-zinc-300", dotClass: "bg-zinc-400" },
+                                              { value: "qualified", label: "Qualified", colorClass: "text-emerald-700 dark:text-emerald-400", dotClass: "bg-emerald-500" },
+                                              { value: "rejected", label: "Rejected", colorClass: "text-rose-700 dark:text-rose-400", dotClass: "bg-rose-500" },
+                                            ];
+
+                                            const selectedOption = resultOptions.find(o => o.value === resultValue) || resultOptions[0];
+
+                                            const triggerClass = isLocked
+                                              ? "border-zinc-250 bg-zinc-150 text-zinc-450 cursor-not-allowed"
+                                              : getStageResultClass(resultValue);
+
+                                            return (
+                                              <div className="relative">
+                                                {/* Trigger */}
+                                                <button
+                                                  type="button"
+                                                  disabled={isLocked}
+                                                  onClick={() => setOpenResultDropdownId(isOpen ? null : stage._id)}
+                                                  className={`inline-flex w-full items-center justify-center gap-1.5 rounded-xl border px-3 py-1.5 text-xs font-bold uppercase tracking-wider transition duration-150 select-none ${triggerClass}`}
+                                                >
+                                                  <CircleDot className="h-3.5 w-3.5 shrink-0" />
+                                                  <span>{selectedOption.label}</span>
+                                                  {!isLocked && (
+                                                    <svg xmlns="http://www.w3.org/2000/svg" width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round" strokeLinejoin="round" className={`shrink-0 opacity-60 transition-transform duration-150 ${isOpen ? 'rotate-180' : 'rotate-0'}`}>
+                                                      <path d="M6 9l6 6 6-6" />
+                                                    </svg>
+                                                  )}
+                                                </button>
+
+                                                {/* Dropdown Panel */}
+                                                {isOpen && (
+                                                  <>
+                                                    {/* Backdrop to close on outside click */}
+                                                    <div
+                                                      className="fixed inset-0 z-40"
+                                                      onClick={() => setOpenResultDropdownId(null)}
+                                                    />
+                                                    <div className="absolute right-0 top-full z-50 mt-1.5 w-40 origin-top-right overflow-hidden rounded-2xl border border-zinc-250 bg-white dark:bg-zinc-150 shadow-lg shadow-zinc-900/10 dark:shadow-zinc-950/40 animate-in fade-in slide-in-from-top-1 duration-100">
+                                                      <div className="p-1.5 space-y-0.5">
+                                                        {resultOptions.map(opt => (
+                                                          <button
+                                                            key={opt.value}
+                                                            type="button"
+                                                            onClick={() => {
+                                                              setOpenResultDropdownId(null);
+                                                              if (opt.value !== resultValue) {
+                                                                handleStageResultSelect(activePart._id, stage._id, opt.value as Stage["result"]);
+                                                              }
+                                                            }}
+                                                            className={`flex w-full items-center gap-2.5 rounded-xl px-3 py-2 text-xs font-semibold transition-colors duration-100 cursor-pointer ${
+                                                              resultValue === opt.value
+                                                                ? opt.value === 'qualified' ? 'bg-emerald-500/10 text-emerald-700 dark:text-emerald-400'
+                                                                  : opt.value === 'rejected' ? 'bg-rose-500/10 text-rose-700 dark:text-rose-400'
+                                                                  : 'bg-zinc-150 dark:bg-zinc-250 text-zinc-700 dark:text-zinc-300'
+                                                                : 'text-zinc-650 dark:text-zinc-450 hover:bg-zinc-150 dark:hover:bg-zinc-250'
+                                                            }`}
+                                                          >
+                                                            <span className={`h-2 w-2 shrink-0 rounded-full ${opt.dotClass}`} />
+                                                            <span className="flex-1 text-left">{opt.label}</span>
+                                                            {resultValue === opt.value && (
+                                                              <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round" strokeLinejoin="round">
+                                                                <path d="M20 6L9 17l-5-5" />
+                                                              </svg>
+                                                            )}
+                                                          </button>
+                                                        ))}
+                                                      </div>
+                                                    </div>
+                                                  </>
+                                                )}
+                                              </div>
+                                            );
+                                          })()}
                                         </div>
 
                                         {/* Notes Textarea */}

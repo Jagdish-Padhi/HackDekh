@@ -625,7 +625,7 @@ export default function TeamsPage() {
         <select
           value={platformFilter}
           onChange={e => setPlatformFilter(e.target.value)}
-          className="h-10 rounded-xl border border-zinc-200 bg-white px-3 py-2 text-sm text-zinc-800 outline-none focus:border-blue-500 shadow-sm dark:border-zinc-800 dark:bg-zinc-900 dark:text-zinc-200"
+          className="select-field"
         >
           <option value="" className="bg-white text-zinc-800 dark:bg-zinc-900 dark:text-zinc-200">All Platforms</option>
           <option value="devpost" className="bg-white text-zinc-800 dark:bg-zinc-900 dark:text-zinc-200">Devpost</option>
@@ -637,7 +637,7 @@ export default function TeamsPage() {
         <select
           value={statusFilter}
           onChange={e => setStatusFilter(e.target.value)}
-          className="h-10 rounded-xl border border-zinc-200 bg-white px-3 py-2 text-sm text-zinc-800 outline-none focus:border-blue-500 shadow-sm dark:border-zinc-800 dark:bg-zinc-900 dark:text-zinc-200"
+          className="select-field"
         >
           <option value="" className="bg-white text-zinc-800 dark:bg-zinc-900 dark:text-zinc-200">All Teams</option>
           <option value="active" className="bg-white text-zinc-800 dark:bg-zinc-900 dark:text-zinc-200">Active Competing</option>
@@ -648,7 +648,7 @@ export default function TeamsPage() {
         <select
           value={sortBy}
           onChange={e => setSortBy(e.target.value as any)}
-          className="h-10 rounded-xl border border-zinc-200 bg-white px-3 py-2 text-sm text-zinc-800 outline-none focus:border-blue-500 shadow-sm dark:border-zinc-800 dark:bg-zinc-900 dark:text-zinc-200"
+          className="select-field"
         >
           <option value="" className="bg-white text-zinc-800 dark:bg-zinc-900 dark:text-zinc-200">Default Order</option>
           <option value="winrate" className="bg-white text-zinc-800 dark:bg-zinc-900 dark:text-zinc-200">Highest Win Rate</option>
@@ -1119,7 +1119,7 @@ export default function TeamsPage() {
             <select
               value={platformFilter}
               onChange={e => setPlatformFilter(e.target.value)}
-              className="h-10 flex-1 min-w-[120px] rounded-xl border border-zinc-200 bg-white px-3 py-2 text-sm text-zinc-800 outline-none focus:border-blue-500 dark:border-zinc-800 dark:bg-zinc-900 dark:text-zinc-200"
+              className="select-field flex-1 min-w-[120px]"
             >
               <option value="" className="bg-white text-zinc-855 dark:bg-zinc-900 dark:text-zinc-200">All Platforms</option>
               <option value="devpost" className="bg-white text-zinc-855 dark:bg-zinc-900 dark:text-zinc-200">Devpost</option>
@@ -1131,7 +1131,7 @@ export default function TeamsPage() {
             <select
               value={statusFilter}
               onChange={e => setStatusFilter(e.target.value)}
-              className="h-10 flex-1 min-w-[120px] rounded-xl border border-zinc-200 bg-white px-3 py-2 text-sm text-zinc-800 outline-none focus:border-blue-500 dark:border-zinc-800 dark:bg-zinc-900 dark:text-zinc-200"
+              className="select-field flex-1 min-w-[120px]"
             >
               <option value="" className="bg-white text-zinc-855 dark:bg-zinc-900 dark:text-zinc-200">All Teams</option>
               <option value="active" className="bg-white text-zinc-855 dark:bg-zinc-900 dark:text-zinc-200">Active Competing</option>
@@ -1142,7 +1142,7 @@ export default function TeamsPage() {
             <select
               value={sortBy}
               onChange={e => setSortBy(e.target.value as any)}
-              className="h-10 flex-1 min-w-[120px] rounded-xl border border-zinc-200 bg-white px-3 py-2 text-sm text-zinc-800 outline-none focus:border-blue-500 dark:border-zinc-800 dark:bg-zinc-900 dark:text-zinc-200"
+              className="select-field flex-1 min-w-[120px]"
             >
               <option value="" className="bg-white text-zinc-855 dark:bg-zinc-900 dark:text-zinc-200">Default Order</option>
               <option value="winrate" className="bg-white text-zinc-855 dark:bg-zinc-900 dark:text-zinc-200">Highest Win Rate</option>
@@ -1927,7 +1927,7 @@ export default function TeamsPage() {
                           <select
                             value={selectedParticipationId}
                             onChange={(event) => setSelectedParticipationId(event.target.value)}
-                            className="rounded-xl border border-zinc-200 bg-white px-3 py-2 text-sm text-zinc-800 dark:border-zinc-800 dark:bg-zinc-900 dark:text-zinc-205 outline-none shadow-xs"
+                            className="select-field"
                           >
                             {teamParticipations.map((participation) => (
                               <option key={participation._id} value={participation._id} className="bg-white text-zinc-800 dark:bg-zinc-900 dark:text-zinc-200">
