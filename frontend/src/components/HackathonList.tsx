@@ -594,7 +594,7 @@ const HackathonList = () => {
                                             className="w-full rounded-xl border border-zinc-200 bg-zinc-50 px-3 py-2.5 text-sm text-zinc-800 outline-none dark:border-zinc-850 dark:bg-zinc-900 dark:text-zinc-200 focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
                                         >
                                             {teams.map(t => (
-                                                <option key={t._id} value={t._id}>{t.name}</option>
+                                                <option key={t._id} value={t._id} className="bg-white text-zinc-800 dark:bg-zinc-900 dark:text-zinc-200">{t.name}</option>
                                             ))}
                                         </select>
                                     </div>

@@ -619,10 +619,10 @@ export default function TeamsPage() {
           onChange={e => setPlatformFilter(e.target.value)}
           className="h-10 rounded-xl border border-zinc-200 bg-white px-3 py-2 text-sm text-zinc-800 outline-none focus:border-blue-500 shadow-sm dark:border-zinc-800 dark:bg-zinc-900 dark:text-zinc-200"
         >
-          <option value="">All Platforms</option>
-          <option value="devpost">Devpost</option>
-          <option value="devfolio">Devfolio</option>
-          <option value="unstop">Unstop</option>
+          <option value="" className="bg-white text-zinc-800 dark:bg-zinc-900 dark:text-zinc-200">All Platforms</option>
+          <option value="devpost" className="bg-white text-zinc-800 dark:bg-zinc-900 dark:text-zinc-200">Devpost</option>
+          <option value="devfolio" className="bg-white text-zinc-800 dark:bg-zinc-900 dark:text-zinc-200">Devfolio</option>
+          <option value="unstop" className="bg-white text-zinc-800 dark:bg-zinc-900 dark:text-zinc-200">Unstop</option>
         </select>
 
         {/* Track Status Filter */}
@@ -631,9 +631,9 @@ export default function TeamsPage() {
           onChange={e => setStatusFilter(e.target.value)}
           className="h-10 rounded-xl border border-zinc-200 bg-white px-3 py-2 text-sm text-zinc-800 outline-none focus:border-blue-500 shadow-sm dark:border-zinc-800 dark:bg-zinc-900 dark:text-zinc-200"
         >
-          <option value="">All Teams</option>
-          <option value="active">Active Competing</option>
-          <option value="winners">Winner Teams</option>
+          <option value="" className="bg-white text-zinc-800 dark:bg-zinc-900 dark:text-zinc-200">All Teams</option>
+          <option value="active" className="bg-white text-zinc-800 dark:bg-zinc-900 dark:text-zinc-200">Active Competing</option>
+          <option value="winners" className="bg-white text-zinc-800 dark:bg-zinc-900 dark:text-zinc-200">Winner Teams</option>
         </select>
 
         {/* Sort Filter */}
@@ -642,9 +642,9 @@ export default function TeamsPage() {
           onChange={e => setSortBy(e.target.value as any)}
           className="h-10 rounded-xl border border-zinc-200 bg-white px-3 py-2 text-sm text-zinc-800 outline-none focus:border-blue-500 shadow-sm dark:border-zinc-800 dark:bg-zinc-900 dark:text-zinc-200"
         >
-          <option value="">Default Order</option>
-          <option value="winrate">Highest Win Rate</option>
-          <option value="participations">Most Participations</option>
+          <option value="" className="bg-white text-zinc-800 dark:bg-zinc-900 dark:text-zinc-200">Default Order</option>
+          <option value="winrate" className="bg-white text-zinc-800 dark:bg-zinc-900 dark:text-zinc-200">Highest Win Rate</option>
+          <option value="participations" className="bg-white text-zinc-800 dark:bg-zinc-900 dark:text-zinc-200">Most Participations</option>
         </select>
 
         {/* Join Team Button */}
@@ -1096,10 +1096,10 @@ export default function TeamsPage() {
               onChange={e => setPlatformFilter(e.target.value)}
               className="h-10 flex-1 min-w-[120px] rounded-xl border border-zinc-200 bg-white px-3 py-2 text-sm text-zinc-800 outline-none focus:border-blue-500 dark:border-zinc-800 dark:bg-zinc-900 dark:text-zinc-200"
             >
-              <option value="">All Platforms</option>
-              <option value="devpost">Devpost</option>
-              <option value="devfolio">Devfolio</option>
-              <option value="unstop">Unstop</option>
+              <option value="" className="bg-white text-zinc-855 dark:bg-zinc-900 dark:text-zinc-200">All Platforms</option>
+              <option value="devpost" className="bg-white text-zinc-855 dark:bg-zinc-900 dark:text-zinc-200">Devpost</option>
+              <option value="devfolio" className="bg-white text-zinc-855 dark:bg-zinc-900 dark:text-zinc-200">Devfolio</option>
+              <option value="unstop" className="bg-white text-zinc-855 dark:bg-zinc-900 dark:text-zinc-200">Unstop</option>
             </select>
 
             {/* Status Filter */}
@@ -1108,9 +1108,9 @@ export default function TeamsPage() {
               onChange={e => setStatusFilter(e.target.value)}
               className="h-10 flex-1 min-w-[120px] rounded-xl border border-zinc-200 bg-white px-3 py-2 text-sm text-zinc-800 outline-none focus:border-blue-500 dark:border-zinc-800 dark:bg-zinc-900 dark:text-zinc-200"
             >
-              <option value="">All Teams</option>
-              <option value="active">Active Competing</option>
-              <option value="winners">Winner Teams</option>
+              <option value="" className="bg-white text-zinc-855 dark:bg-zinc-900 dark:text-zinc-200">All Teams</option>
+              <option value="active" className="bg-white text-zinc-855 dark:bg-zinc-900 dark:text-zinc-200">Active Competing</option>
+              <option value="winners" className="bg-white text-zinc-855 dark:bg-zinc-900 dark:text-zinc-200">Winner Teams</option>
             </select>
 
             {/* Sort Filter */}
@@ -1119,9 +1119,9 @@ export default function TeamsPage() {
               onChange={e => setSortBy(e.target.value as any)}
               className="h-10 flex-1 min-w-[120px] rounded-xl border border-zinc-200 bg-white px-3 py-2 text-sm text-zinc-800 outline-none focus:border-blue-500 dark:border-zinc-800 dark:bg-zinc-900 dark:text-zinc-200"
             >
-              <option value="">Default Order</option>
-              <option value="winrate">Highest Win Rate</option>
-              <option value="participations">Most Participations</option>
+              <option value="" className="bg-white text-zinc-855 dark:bg-zinc-900 dark:text-zinc-200">Default Order</option>
+              <option value="winrate" className="bg-white text-zinc-855 dark:bg-zinc-900 dark:text-zinc-200">Highest Win Rate</option>
+              <option value="participations" className="bg-white text-zinc-855 dark:bg-zinc-900 dark:text-zinc-200">Most Participations</option>
             </select>
           </div>
 
@@ -1905,7 +1905,7 @@ export default function TeamsPage() {
                             className="rounded-xl border border-zinc-200 bg-white px-3 py-2 text-sm text-zinc-800 dark:border-zinc-800 dark:bg-zinc-900 dark:text-zinc-205 outline-none shadow-xs"
                           >
                             {teamParticipations.map((participation) => (
-                              <option key={participation._id} value={participation._id}>
+                              <option key={participation._id} value={participation._id} className="bg-white text-zinc-800 dark:bg-zinc-900 dark:text-zinc-200">
                                 {participation.hackathon.title}
                               </option>
                             ))}

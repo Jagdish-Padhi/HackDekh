@@ -142,7 +142,7 @@ const Shell = ({ children }: MainLayoutProps) => {
                         <Link
                             to="/login"
                             onClick={() => setMobileMenuOpen(false)}
-                            className="w-full text-center rounded-xl border border-zinc-200 bg-white py-3 text-sm font-semibold text-zinc-700 transition hover:bg-zinc-50 dark:border-zinc-800 dark:bg-zinc-950 dark:text-zinc-200"
+                            className="w-full text-center rounded-xl border border-zinc-200 bg-white py-3 text-sm font-semibold text-zinc-700 transition hover:bg-zinc-50 dark:hover:bg-zinc-900 dark:border-zinc-800 dark:bg-zinc-950 dark:text-zinc-200"
                         >
                             Login
                         </Link>

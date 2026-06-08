@@ -682,15 +682,15 @@ export default function HackathonDetailsPage() {
                       onChange={(event) => setSelectedTeamId(event.target.value)}
                       className="w-full rounded-2xl border border-zinc-200 bg-zinc-50 px-4 py-3 text-sm text-zinc-800 outline-none transition focus:border-blue-400 focus:bg-white focus:ring-2 focus:ring-blue-500/20 dark:border-zinc-800 dark:bg-zinc-950/40 dark:text-zinc-200"
                     >
-                      <option value="" disabled>
+                      <option value="" disabled className="bg-white text-zinc-800 dark:bg-zinc-905 dark:text-zinc-200">
                         Choose a team
                       </option>
                       {userTeams.map((team) => (
-                        <option key={team._id} value={team._id}>
+                        <option key={team._id} value={team._id} className="bg-white text-zinc-800 dark:bg-zinc-905 dark:text-zinc-200">
                           {team.name}
                         </option>
                       ))}
-                      <option value="create-new">Create new team</option>
+                      <option value="create-new" className="bg-white text-zinc-800 dark:bg-zinc-905 dark:text-zinc-200">Create new team</option>
                     </select>
                   </div>
 
