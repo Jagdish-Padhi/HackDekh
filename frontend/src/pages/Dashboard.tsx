@@ -164,6 +164,13 @@ export default function DashboardPage() {
   const [newStageDeadline, setNewStageDeadline] = useState("");
   const [isAddingStage, setIsAddingStage] = useState(false);
 
+  const [stageToDelete, setStageToDelete] = useState<{
+    participationId: string;
+    stageId: string;
+    stageName: string;
+  } | null>(null);
+  const [isDeletingStage, setIsDeletingStage] = useState(false);
+
   const loadDashboardData = useCallback(async (isSilent = false) => {
     if (!isSilent) {
       setLoadingData(true);
@@ -356,13 +363,26 @@ export default function DashboardPage() {
     }
   };
 
-  const handleDeleteStage = async (participationId: string, stageId: string) => {
+  const handleDeleteStage = (participationId: string, stageId: string, stageName: string) => {
+    setStageToDelete({ participationId, stageId, stageName });
+  };
+
+  const handleConfirmDeleteStage = async () => {
+    if (!stageToDelete) return;
+    const { participationId, stageId } = stageToDelete;
     const participation = participations.find((item) => item._id === participationId);
-    if (!participation) return;
+    if (!participation) {
+      setStageToDelete(null);
+      return;
+    }
 
-    if (!window.confirm("Delete this stage?")) return;
-
+    setIsDeletingStage(true);
     try {
+      console.log("[DEBUG] handleDeleteStage inputs in Dashboard:", {
+        teamId: participation.teamInfo._id,
+        participationId,
+        stageId
+      });
       await teamApi.deleteStage(participation.teamInfo._id, participationId, stageId);
       patchParticipation(participationId, (current) => ({
         ...current,
@@ -371,9 +391,13 @@ export default function DashboardPage() {
       if (focusedStageId === stageId) {
         setFocusedStageId("");
       }
+      showToast("Stage deleted successfully", "success");
     } catch (error: any) {
       console.error("Failed to delete stage", error);
       showToast(error.response?.data?.message || "Failed to delete stage", "error");
+    } finally {
+      setIsDeletingStage(false);
+      setStageToDelete(null);
     }
   };
 
@@ -1318,7 +1342,7 @@ export default function DashboardPage() {
                                                   
                                                   <button
                                                     disabled={isTerminated}
-                                                    onClick={() => handleDeleteStage(activePart._id, stage._id)}
+                                                    onClick={() => handleDeleteStage(activePart._id, stage._id, stage.name)}
                                                     className="rounded-lg p-1.5 text-zinc-450 hover:bg-rose-500/10 hover:text-rose-500 transition cursor-pointer disabled:opacity-30 disabled:cursor-not-allowed"
                                                     title="Delete stage"
                                                   >
@@ -1561,6 +1585,44 @@ export default function DashboardPage() {
           )}
         </div>
       )}
+
+      {/* DELETE STAGE CONFIRMATION MODAL */}
+      <AnimatePresence>
+        {stageToDelete && (
+          <div className="fixed inset-0 z-[100] flex items-center justify-center bg-zinc-950/65 backdrop-blur-sm p-4">
+            <motion.div
+              initial={{ scale: 0.95, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0.95, opacity: 0 }}
+              className="relative w-full max-w-sm rounded-[2rem] border border-zinc-200 bg-white p-6 shadow-2xl dark:border-zinc-800 dark:bg-zinc-950 text-center"
+            >
+              <div className="mx-auto h-12 w-12 rounded-full bg-rose-500/10 flex items-center justify-center text-rose-600 dark:text-rose-455 mb-4 shrink-0">
+                <AlertTriangle className="h-6 w-6" />
+              </div>
+              <h3 className="text-base font-extrabold text-zinc-900 dark:text-white mb-2">Delete Milestone Stage?</h3>
+              <p className="text-xs text-zinc-550 dark:text-zinc-400 mb-6 leading-normal">
+                Are you sure you want to delete stage <strong className="text-zinc-800 dark:text-zinc-100 font-bold">"{stageToDelete.stageName}"</strong>? This will permanently erase this stage milestone and all associated reflection logs.
+              </p>
+
+              <div className="flex gap-2.5 pt-2 justify-end">
+                <button
+                  onClick={() => setStageToDelete(null)}
+                  className="flex-1 rounded-xl border border-zinc-200 bg-white py-2.5 text-xs font-bold text-zinc-700 transition hover:bg-zinc-50 dark:border-zinc-800 dark:bg-zinc-950 dark:text-zinc-300 dark:hover:bg-zinc-900 cursor-pointer"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={handleConfirmDeleteStage}
+                  disabled={isDeletingStage}
+                  className="flex-1 rounded-xl bg-rose-600 py-2.5 text-xs font-bold text-white shadow-sm transition hover:bg-rose-500 disabled:opacity-60 disabled:cursor-not-allowed cursor-pointer flex items-center justify-center min-h-[36px]"
+                >
+                  {isDeletingStage ? <LogoTransition width={28} height={18} loop={true} /> : "Delete"}
+                </button>
+              </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
     </div>
   );
 }

@@ -34,6 +34,7 @@ export const globalErrorHandler: ErrorRequestHandler = (err, _req, res, _next) =
 
     // Handle Mongoose CastError (invalid ObjectId)
     if (safeErr.name === "CastError") {
+        console.error("[DEBUG] Mongoose CastError details:", err);
         statusCode = 400;
         message = "Invalid ID format";
     }

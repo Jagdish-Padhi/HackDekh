@@ -157,7 +157,8 @@ export async function updateStage(
 
     await stage.save();
 
-    await autoUpdateTeamHackathonStatus(String(stage.teamHackathon));
+    const thId = stage.teamHackathon?._id ? String(stage.teamHackathon._id) : String(stage.teamHackathon);
+    await autoUpdateTeamHackathonStatus(thId);
 
     return stage;
 }
@@ -167,9 +168,9 @@ export async function deleteStage(stageId: string, userId: Types.ObjectId) {
     const { stage } = await getTeamMembersForStage(stageId, userId);
     if (!stage) return null;
 
-    const thId = String(stage.teamHackathon);
+    const thId = stage.teamHackathon?._id ? String(stage.teamHackathon._id) : String(stage.teamHackathon);
 
-    await TeamHackathon.findByIdAndUpdate(stage.teamHackathon, {
+    await TeamHackathon.findByIdAndUpdate(thId, {
         $pull: { stages: stage._id },
     });
 
