@@ -514,6 +514,32 @@ export default function DashboardPage() {
   const dashboardActions = useMemo(() => {
     return (
       <div className="flex items-center gap-4">
+        {/* Tracker Sub-filters (Only shown when Tracker workspace is active) */}
+        {activeTab === "tracker" && (
+          <div className="flex gap-0.5 bg-zinc-100 dark:bg-zinc-800/60 p-0.5 rounded-xl border border-zinc-200/60 dark:border-zinc-700/60 shrink-0">
+            {[
+              { id: "tracking", label: "Tracking" },
+              { id: "registered", label: "Registered" },
+              { id: "finished", label: "Finished" }
+            ].map((tag) => (
+              <button
+                key={tag.id}
+                onClick={() => {
+                  setTrackerSubFilter(tag.id as any);
+                  setSelectedParticipationId("");
+                }}
+                className={`rounded-lg px-3 py-1 text-xs font-bold transition-all cursor-pointer ${
+                  trackerSubFilter === tag.id
+                    ? "bg-white dark:bg-zinc-700 text-blue-600 dark:text-blue-400 shadow-xs"
+                    : "text-zinc-500 hover:text-zinc-800 dark:text-zinc-400 dark:hover:text-zinc-200"
+                }`}
+              >
+                {tag.label}
+              </button>
+            ))}
+          </div>
+        )}
+
         {/* Navigation Tabs */}
         <div className="flex gap-0.5 bg-zinc-100 dark:bg-zinc-800/60 p-0.5 rounded-xl border border-zinc-200/60 dark:border-zinc-700/60 shrink-0">
           {[
@@ -548,7 +574,7 @@ export default function DashboardPage() {
         </Link>
       </div>
     );
-  }, [activeTab]);
+  }, [activeTab, trackerSubFilter]);
 
   useEffect(() => {
     setPageActions(dashboardActions);
@@ -894,31 +920,7 @@ export default function DashboardPage() {
           {/* TAB: HACKATHON TRACKER */}
           {activeTab === "tracker" && (
             <div className="space-y-6">
-              {/* Top Panel sub-filters */}
-              <div className="flex flex-wrap items-center justify-between gap-4 pb-3.5 border-b border-zinc-150 dark:border-zinc-800">
-                <div className="flex gap-0.5 bg-zinc-100 dark:bg-zinc-900/60 p-0.5 rounded-lg border border-zinc-200/60 dark:border-zinc-800 shrink-0">
-                  {[
-                    { id: "tracking", label: "Tracking" },
-                    { id: "registered", label: "Registered" },
-                    { id: "finished", label: "Finished" }
-                  ].map((tag) => (
-                    <button
-                      key={tag.id}
-                      onClick={() => {
-                        setTrackerSubFilter(tag.id as any);
-                        setSelectedParticipationId("");
-                      }}
-                      className={`rounded-md px-4 py-2 text-xs font-bold transition-all cursor-pointer ${
-                        trackerSubFilter === tag.id
-                          ? "bg-white dark:bg-zinc-700 text-blue-600 dark:text-blue-400 shadow-xs"
-                          : "text-zinc-500 hover:text-zinc-850 dark:text-zinc-400 dark:hover:text-zinc-200"
-                      }`}
-                    >
-                      {tag.label}
-                    </button>
-                  ))}
-                </div>
-              </div>
+
 
               {/* TRACKING SUB-TAB (Grid format) */}
               {trackerSubFilter === "tracking" && (() => {
