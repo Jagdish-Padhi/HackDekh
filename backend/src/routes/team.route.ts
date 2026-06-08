@@ -23,6 +23,7 @@ import {
     updateStage,
     deleteStage,
     addReflection,
+    removeReflection,
 } from "../controllers/stage.controller.ts";
 import { verifyJWT } from "../middlewares/auth.middleware.ts";
 
@@ -57,6 +58,8 @@ router.route("/:id/hackathons/:thId/stages").post(addStage);
 router.route("/:id/hackathons/:thId/stages/:stageId").put(updateStage).delete(deleteStage);
 
 // Reflections
-router.route("/:id/hackathons/:thId/stages/:stageId/reflections").post(addReflection);
+router.route("/:id/hackathons/:thId/stages/:stageId/reflections")
+    .post(addReflection)
+    .delete(removeReflection);
 
 export default router;

@@ -288,3 +288,27 @@ export async function stageExists(thId: string, name: string, excludeStageId?: s
         return canonical === targetCanonical;
     });
 }
+
+// ─── Remove Reflection ────────────────────────────────────────────────────────
+export async function removeReflection(
+    stageId: string,
+    userId: Types.ObjectId
+) {
+    const { stage } = await getTeamMembersForStage(stageId, userId);
+    if (!stage) return null;
+
+    (stage as any).reflections = stage.reflections.filter(
+        (r: any) => String(r.user) !== String(userId)
+    );
+
+    // Put user back into pendingReflectionFor if not present
+    if (!(stage.pendingReflectionFor || []).some((uid: any) => String(uid) === String(userId))) {
+        (stage.pendingReflectionFor as any).push(userId);
+    }
+
+    await stage.save();
+
+    return Stage.findById(stageId)
+        .populate('reflections.user', 'username fullName')
+        .populate('pendingReflectionFor', 'username fullName');
+}

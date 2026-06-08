@@ -19,7 +19,8 @@ import {
   Trophy,
   Bookmark,
   LayoutDashboard,
-  MessageSquare
+  MessageSquare,
+  RotateCcw
 } from "lucide-react";
 import axiosInstance from "../utils/axiosInstance";
 import { useAuth, useCache, useToast } from "../context";
@@ -408,6 +409,48 @@ export default function DashboardPage() {
     }
   };
 
+  const handleResetStageInputs = async (participationId: string, stageId: string) => {
+    const participation = participations.find((item) => item._id === participationId);
+    const stage = participation?.stages.find((candidate) => candidate._id === stageId);
+    if (!participation || !stage) return;
+
+    try {
+      // 1. Delete reflection if it exists for the current user
+      const hasOwnReflection = stage.reflections.some(
+        (r) => (typeof r.user === "string" ? r.user : r.user?._id) === user?._id
+      );
+
+      let updatedStage = stage;
+      if (hasOwnReflection) {
+        updatedStage = await teamApi.deleteReflection(participation.teamInfo._id, participationId, stageId);
+      }
+
+      // 2. Reset stage result back to "pending" if it was "rejected"
+      const wasRejected = stage.result === "rejected";
+      if (wasRejected) {
+        const resStage = await teamApi.updateStage(participation.teamInfo._id, participationId, stageId, { result: "pending" });
+        updatedStage = { ...updatedStage, ...resStage };
+
+        // Restore participation status to "active" if it was eliminated
+        if (participation.status === "eliminated") {
+          await handleUpdateParticipationStatus(participationId, "active");
+        }
+      }
+
+      // 3. Update local state
+      patchParticipation(participationId, (current) => ({
+        ...current,
+        status: wasRejected && current.status === "eliminated" ? "active" : current.status,
+        stages: current.stages.map((candidate) => (candidate._id === stageId ? { ...candidate, ...updatedStage } : candidate)),
+      }));
+
+      showToast("Milestone inputs reset successfully", "success");
+    } catch (error: any) {
+      console.error("Failed to reset stage inputs", error);
+      showToast(error.response?.data?.message || "Failed to reset stage inputs", "error");
+    }
+  };
+
   const handleDeleteStage = (participationId: string, stageId: string, stageName: string) => {
     setStageToDelete({ participationId, stageId, stageName });
   };
@@ -501,7 +544,6 @@ export default function DashboardPage() {
       }));
       setReflectionDraft("");
       setActiveReflectionStageId("");
-      loadDashboardData(); // Refresh reflection lists
     } catch (error) {
       console.error("Failed to add reflection", error);
     }
@@ -522,7 +564,6 @@ export default function DashboardPage() {
       }));
       setReflectionModalDraft("");
       setReflectionModalStage(null);
-      loadDashboardData(); // Refresh reflection lists
       showToast("Reflection logged successfully", "success");
     } catch (error: any) {
       console.error("Failed to add reflection", error);
@@ -1296,6 +1337,15 @@ export default function DashboardPage() {
                                           </div>
 
                                           <div className="flex items-center gap-1 shrink-0">
+                                            {/* Reset Stage Inputs */}
+                                            <button
+                                              onClick={() => handleResetStageInputs(activePart._id, stage._id)}
+                                              className="rounded-lg p-1.5 text-zinc-450 hover:bg-zinc-250 hover:text-zinc-805 transition cursor-pointer"
+                                              title="Reset own reflection & result status"
+                                            >
+                                              <RotateCcw className="h-4 w-4" />
+                                            </button>
+
                                             {/* Log Reflection chat icon */}
                                             <button
                                               onClick={() => {

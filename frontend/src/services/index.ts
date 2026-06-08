@@ -103,6 +103,17 @@ export const teamApi = {
     return unwrap(response);
   },
 
+  deleteReflection: async (
+    teamId: string,
+    thId: string,
+    stageId: string
+  ): Promise<Stage> => {
+    const response = await axiosInstance.delete<ApiResponse<Stage>>(
+      `/teams/${teamId}/hackathons/${thId}/stages/${stageId}/reflections`
+    );
+    return unwrap(response);
+  },
+
   // Invitation link methods
   generateInvitationLink: async (teamId: string, email: string): Promise<GeneratedInvitationLink> => {
     const response = await axiosInstance.post<ApiResponse<GeneratedInvitationLink>>(

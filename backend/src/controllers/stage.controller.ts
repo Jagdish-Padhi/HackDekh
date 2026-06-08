@@ -101,3 +101,14 @@ export const addReflection = asyncHandler(async (req: AuthRequest, res: Response
 
     return res.status(201).json(new ApiResponse(201, stage, 'Reflection saved successfully'));
 });
+
+// DELETE /teams/:id/hackathons/:thId/stages/:stageId/reflections
+export const removeReflection = asyncHandler(async (req: AuthRequest, res: Response) => {
+    const stage = await stageService.removeReflection(String(req.params.stageId), req.user._id);
+
+    if (!stage) {
+        throw new ApiError(404, 'Stage not found or you are not a member');
+    }
+
+    return res.status(200).json(new ApiResponse(200, stage, 'Reflection deleted successfully'));
+});
