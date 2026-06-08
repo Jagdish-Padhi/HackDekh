@@ -19,6 +19,7 @@ import {
 } from "lucide-react";
 import axiosInstance from "../utils/axiosInstance";
 import LoadingProgress from "../components/LoadingProgress";
+import AppDropdown from "../components/AppDropdown";
 import { useAuth } from "../context/AuthContext";
 import { teamApi } from "../services";
 import type { HackathonLite, Team, TeamHackathon } from "../types";
@@ -677,21 +678,16 @@ export default function HackathonDetailsPage() {
                 <div className="space-y-4">
                   <div className="space-y-2">
                     <label className="text-xs font-bold uppercase tracking-wider text-zinc-500 dark:text-zinc-400">Select team</label>
-                    <select
+                    <AppDropdown
                       value={selectedTeamId}
-                      onChange={(event) => setSelectedTeamId(event.target.value)}
-                      className="select-field"
-                    >
-                      <option value="" disabled className="bg-white text-zinc-800 dark:bg-zinc-905 dark:text-zinc-200">
-                        Choose a team
-                      </option>
-                      {userTeams.map((team) => (
-                        <option key={team._id} value={team._id} className="bg-white text-zinc-800 dark:bg-zinc-905 dark:text-zinc-200">
-                          {team.name}
-                        </option>
-                      ))}
-                      <option value="create-new" className="bg-white text-zinc-800 dark:bg-zinc-905 dark:text-zinc-200">Create new team</option>
-                    </select>
+                      onChange={setSelectedTeamId}
+                      options={[
+                        ...userTeams.map(t => ({ label: t.name, value: t._id })),
+                        { label: "Create new team", value: "create-new" }
+                      ]}
+                      placeholder="Choose a team…"
+                      fullWidth
+                    />
                   </div>
 
                   {(selectedTeamId === "create-new" || userTeams.length === 0) && (

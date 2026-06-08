@@ -27,8 +27,30 @@ import { useAuth, useCache, useToast } from "../context";
 import { usePageChrome } from "../context/pageChrome";
 import { teamApi } from "../services";
 import LogoTransition from "../components/LogoAnimation";
+import AppDropdown from "../components/AppDropdown";
 import type { GeneratedInvitationLink, Team, TeamHackathon, Stage } from "../types";
 import { motion, AnimatePresence } from "framer-motion";
+
+// ─── Filter option definitions ────────────────────────────────────────────────
+const TEAM_PLATFORM_OPTIONS = [
+  { label: 'All Platforms', value: '' },
+  { label: 'Devpost', value: 'devpost' },
+  { label: 'Devfolio', value: 'devfolio' },
+  { label: 'Unstop', value: 'unstop' },
+  { label: 'MLH', value: 'mlh' },
+]
+
+const TEAM_STATUS_OPTIONS = [
+  { label: 'All Teams', value: '' },
+  { label: 'Active Competing', value: 'active' },
+  { label: 'Winner Teams', value: 'winners' },
+]
+
+const TEAM_SORT_OPTIONS = [
+  { label: 'Default Order', value: '' },
+  { label: 'Highest Win Rate', value: 'winrate' },
+  { label: 'Most Participations', value: 'participations' },
+]
 
 const teamTabs = ["Hackathons", "Members", "Stages", "Settings"] as const;
 
@@ -622,38 +644,28 @@ export default function TeamsPage() {
         </div>
 
         {/* Platform Filter */}
-        <select
+        <AppDropdown
           value={platformFilter}
-          onChange={e => setPlatformFilter(e.target.value)}
-          className="select-field"
-        >
-          <option value="" className="bg-white text-zinc-800 dark:bg-zinc-900 dark:text-zinc-200">All Platforms</option>
-          <option value="devpost" className="bg-white text-zinc-800 dark:bg-zinc-900 dark:text-zinc-200">Devpost</option>
-          <option value="devfolio" className="bg-white text-zinc-800 dark:bg-zinc-900 dark:text-zinc-200">Devfolio</option>
-          <option value="unstop" className="bg-white text-zinc-800 dark:bg-zinc-900 dark:text-zinc-200">Unstop</option>
-        </select>
+          onChange={setPlatformFilter}
+          options={TEAM_PLATFORM_OPTIONS}
+          placeholder="All Platforms"
+        />
 
         {/* Track Status Filter */}
-        <select
+        <AppDropdown
           value={statusFilter}
-          onChange={e => setStatusFilter(e.target.value)}
-          className="select-field"
-        >
-          <option value="" className="bg-white text-zinc-800 dark:bg-zinc-900 dark:text-zinc-200">All Teams</option>
-          <option value="active" className="bg-white text-zinc-800 dark:bg-zinc-900 dark:text-zinc-200">Active Competing</option>
-          <option value="winners" className="bg-white text-zinc-800 dark:bg-zinc-900 dark:text-zinc-200">Winner Teams</option>
-        </select>
+          onChange={setStatusFilter}
+          options={TEAM_STATUS_OPTIONS}
+          placeholder="All Teams"
+        />
 
         {/* Sort Filter */}
-        <select
+        <AppDropdown
           value={sortBy}
-          onChange={e => setSortBy(e.target.value as any)}
-          className="select-field"
-        >
-          <option value="" className="bg-white text-zinc-800 dark:bg-zinc-900 dark:text-zinc-200">Default Order</option>
-          <option value="winrate" className="bg-white text-zinc-800 dark:bg-zinc-900 dark:text-zinc-200">Highest Win Rate</option>
-          <option value="participations" className="bg-white text-zinc-800 dark:bg-zinc-900 dark:text-zinc-200">Most Participations</option>
-        </select>
+          onChange={v => setSortBy(v as any)}
+          options={TEAM_SORT_OPTIONS}
+          placeholder="Default Order"
+        />
 
         {/* Join Team Button */}
         <button
@@ -1116,38 +1128,31 @@ export default function TeamsPage() {
 
           <div className="relative z-50 isolate overflow-visible rounded-3xl border border-zinc-200/90 bg-white/90 p-4 shadow-sm backdrop-blur-md dark:border-zinc-800 dark:bg-zinc-900/78 dark:shadow-md flex flex-wrap gap-2.5">
             {/* Platform Filter */}
-            <select
+            <AppDropdown
               value={platformFilter}
-              onChange={e => setPlatformFilter(e.target.value)}
-              className="select-field flex-1 min-w-[120px]"
-            >
-              <option value="" className="bg-white text-zinc-855 dark:bg-zinc-900 dark:text-zinc-200">All Platforms</option>
-              <option value="devpost" className="bg-white text-zinc-855 dark:bg-zinc-900 dark:text-zinc-200">Devpost</option>
-              <option value="devfolio" className="bg-white text-zinc-855 dark:bg-zinc-900 dark:text-zinc-200">Devfolio</option>
-              <option value="unstop" className="bg-white text-zinc-855 dark:bg-zinc-900 dark:text-zinc-200">Unstop</option>
-            </select>
+              onChange={setPlatformFilter}
+              options={TEAM_PLATFORM_OPTIONS}
+              placeholder="All Platforms"
+              className="flex-1 min-w-[120px]"
+            />
 
             {/* Status Filter */}
-            <select
+            <AppDropdown
               value={statusFilter}
-              onChange={e => setStatusFilter(e.target.value)}
-              className="select-field flex-1 min-w-[120px]"
-            >
-              <option value="" className="bg-white text-zinc-855 dark:bg-zinc-900 dark:text-zinc-200">All Teams</option>
-              <option value="active" className="bg-white text-zinc-855 dark:bg-zinc-900 dark:text-zinc-200">Active Competing</option>
-              <option value="winners" className="bg-white text-zinc-855 dark:bg-zinc-900 dark:text-zinc-200">Winner Teams</option>
-            </select>
+              onChange={setStatusFilter}
+              options={TEAM_STATUS_OPTIONS}
+              placeholder="All Teams"
+              className="flex-1 min-w-[120px]"
+            />
 
             {/* Sort Filter */}
-            <select
+            <AppDropdown
               value={sortBy}
-              onChange={e => setSortBy(e.target.value as any)}
-              className="select-field flex-1 min-w-[120px]"
-            >
-              <option value="" className="bg-white text-zinc-855 dark:bg-zinc-900 dark:text-zinc-200">Default Order</option>
-              <option value="winrate" className="bg-white text-zinc-855 dark:bg-zinc-900 dark:text-zinc-200">Highest Win Rate</option>
-              <option value="participations" className="bg-white text-zinc-855 dark:bg-zinc-900 dark:text-zinc-200">Most Participations</option>
-            </select>
+              onChange={v => setSortBy(v as any)}
+              options={TEAM_SORT_OPTIONS}
+              placeholder="Default Order"
+              className="flex-1 min-w-[120px]"
+            />
           </div>
 
           <div className="flex gap-2 w-full">
@@ -1924,17 +1929,16 @@ export default function TeamsPage() {
                         {/* Dropdown to pick which participation to edit */}
                         <div className="flex items-center justify-between gap-4 pb-3.5 border-b border-zinc-150 dark:border-zinc-800">
                           <span className="text-xs font-bold uppercase tracking-wider text-zinc-450 dark:text-zinc-500">Select hackathon:</span>
-                          <select
+                          <AppDropdown
                             value={selectedParticipationId}
-                            onChange={(event) => setSelectedParticipationId(event.target.value)}
-                            className="select-field"
-                          >
-                            {teamParticipations.map((participation) => (
-                              <option key={participation._id} value={participation._id} className="bg-white text-zinc-800 dark:bg-zinc-900 dark:text-zinc-200">
-                                {participation.hackathon.title}
-                              </option>
-                            ))}
-                          </select>
+                            onChange={setSelectedParticipationId}
+                            options={teamParticipations.map(p => ({
+                              label: p.hackathon.title,
+                              value: p._id,
+                            }))}
+                            placeholder="Choose hackathon…"
+                            fullWidth={false}
+                          />
                         </div>
 
                         {/* Stages list editor */}

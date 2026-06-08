@@ -7,6 +7,7 @@ import axiosInstance from '../utils/axiosInstance'
 import SearchBar from './SearchBar'
 import FilterPanel from './FilterPanel'
 import LoadingProgress from './LoadingProgress'
+import AppDropdown from './AppDropdown'
 import { usePageChrome } from '../context/pageChrome'
 import { useAuth, useCache, useToast } from '../context'
 import { teamApi } from '../services'
@@ -588,15 +589,13 @@ const HackathonList = () => {
                                 <div className="mt-4 space-y-4">
                                     <div>
                                         <label className="text-[10px] font-bold text-zinc-450 dark:text-zinc-500 uppercase tracking-widest block mb-1">Select Team</label>
-                                        <select
+                                        <AppDropdown
                                             value={selectedTeamIdToTrack}
-                                            onChange={(e) => setSelectedTeamIdToTrack(e.target.value)}
-                                            className="select-field"
-                                        >
-                                            {teams.map(t => (
-                                                <option key={t._id} value={t._id} className="bg-white text-zinc-800 dark:bg-zinc-900 dark:text-zinc-200">{t.name}</option>
-                                            ))}
-                                        </select>
+                                            onChange={setSelectedTeamIdToTrack}
+                                            options={teams.map(t => ({ label: t.name, value: t._id }))}
+                                            placeholder="Choose a team…"
+                                            fullWidth
+                                        />
                                     </div>
 
                                     <div className="flex gap-2.5 pt-2">
