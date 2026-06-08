@@ -1,14 +1,70 @@
-
 @import "tailwindcss";
 
 @custom-variant dark (&:where(.dark, .dark *));
 
+@theme {
+  --color-zinc-55: var(--zinc-55);
+  --color-zinc-150: var(--zinc-150);
+  --color-zinc-250: var(--zinc-250);
+  --color-zinc-350: var(--zinc-350);
+  --color-zinc-450: var(--zinc-450);
+  --color-zinc-550: var(--zinc-550);
+  --color-zinc-650: var(--zinc-650);
+  --color-zinc-750: var(--zinc-750);
+  --color-zinc-805: var(--zinc-805);
+  --color-zinc-850: var(--zinc-850);
+  
+  --color-rose-450: var(--rose-450);
+  --color-rose-505: var(--rose-505);
+  
+  --color-amber-250: var(--amber-250);
+  --color-amber-705: var(--amber-705);
+  
+  --color-blue-650: var(--blue-650);
+}
+
 :root {
 	color-scheme: light;
+	--zinc-55: #f9f9fb;
+	--zinc-150: #ececef;
+	--zinc-250: #dbdbe0;
+	--zinc-350: #c4c4cc;
+	--zinc-450: #92929e;
+	--zinc-550: #646473;
+	--zinc-650: #4c4c59;
+	--zinc-750: #33333f;
+	--zinc-805: #1b1b24;
+	--zinc-850: #121218;
+	
+	--rose-450: #f43f5e;
+	--rose-505: #e11d48;
+	
+	--amber-250: #fef08a;
+	--amber-705: #d97706;
+	
+	--blue-650: #2563eb;
 }
 
 html.dark {
 	color-scheme: dark;
+	--zinc-55: #09090b;
+	--zinc-150: #18181b;
+	--zinc-250: #27272a;
+	--zinc-350: #3f3f46;
+	--zinc-450: #71717a;
+	--zinc-550: #a1a1aa;
+	--zinc-650: #d4d4d8;
+	--zinc-750: #e4e4e7;
+	--zinc-805: #f4f4f5;
+	--zinc-850: #2a2a35; /* Premium elevated border color */
+	
+	--rose-450: #fda4af;
+	--rose-505: #f43f5e;
+	
+	--amber-250: #fde047;
+	--amber-705: #f59e0b;
+	
+	--blue-650: #60a5fa;
 }
 
 html,
@@ -85,11 +141,11 @@ textarea {
 }
 
 html.dark ::-webkit-scrollbar-thumb {
-	background: rgba(63, 63, 70, 0.55);
+	background: rgba(255, 255, 255, 0.08);
 }
 
 html.dark ::-webkit-scrollbar-thumb:hover {
-	background: rgba(82, 82, 91, 0.8);
+	background: rgba(255, 255, 255, 0.16);
 }
 
 .app-background-light {
