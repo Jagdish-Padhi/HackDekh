@@ -543,6 +543,26 @@ const githubAuth = asyncHandler(async (req: any, res: any) => {
     );
 });
 
+const searchUsers = asyncHandler(async (req: any, res: any) => {
+  const query = String(req.query.query || '').trim();
+  if (!query) {
+    return res.status(200).json(new ApiResponse(200, [], "Empty query"));
+  }
+
+  const users = await User.find({
+    _id: { $ne: req.user._id },
+    $or: [
+      { username: { $regex: query, $options: "i" } },
+      { fullName: { $regex: query, $options: "i" } },
+      { email: { $regex: query, $options: "i" } }
+    ]
+  })
+    .select("username fullName email")
+    .limit(10);
+
+  return res.status(200).json(new ApiResponse(200, users, "Users fetched successfully!"));
+});
+
 export {
   registerUser,
   loginUser,
@@ -559,4 +579,5 @@ export {
   getUserApplications,
   getPendingReflections,
   githubAuth,
+  searchUsers,
 };

@@ -11,6 +11,11 @@ import {
     getInvitationPreview,
     getTeamInvitations,
     deleteTeam,
+    regenerateTeamCode,
+    joinTeamByCode,
+    inviteUserByUsernameOrId,
+    getUserInvitations,
+    respondToInvitation,
 } from "../controllers/team.controller.ts";
 import {
     linkTeamToHackathon,
@@ -36,11 +41,20 @@ router.route("/invitations/preview").get(getInvitationPreview);
 // ─── Protected ───────────────────────────────────────────────────────────────
 router.use(verifyJWT);
 
+// Team Join By Code & Fetch Invites
+router.route("/join").post(joinTeamByCode);
+router.route("/user/invitations").get(getUserInvitations);
+router.route("/user/invitations/:invitationId/respond").post(respondToInvitation);
+
 // Team CRUD
 router.route("/").post(createTeam).get(getUserTeams);
 router.route("/:id").get(getTeamById).put(updateTeam).delete(deleteTeam);
 
-// Invitations
+// Join Code Regeneration & Direct User Invites
+router.route("/:id/regenerate-code").post(regenerateTeamCode);
+router.route("/:id/invitations/user").post(inviteUserByUsernameOrId);
+
+// Invitations (Legacy Email Link)
 router.route("/:id/invites").get(getTeamInvitations);
 router.route("/:id/generate-invite-link").post(generateInvitationLink);
 

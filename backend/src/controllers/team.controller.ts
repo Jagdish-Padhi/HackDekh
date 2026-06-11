@@ -220,3 +220,88 @@ export const deleteTeam = asyncHandler(async (
     return res.status(200).json(new ApiResponse(200, deletedTeam, 'Team deleted successfully'));
 });
 
+interface RegenerateCodeParams {
+    id: string;
+}
+
+interface InviteUserBody {
+    userIdOrUsername: string;
+}
+
+interface RespondInvitationParams {
+    invitationId: string;
+}
+
+interface RespondInvitationBody {
+    action: 'accept' | 'decline';
+}
+
+export const regenerateTeamCode = asyncHandler(async (req: any, res: Response) => {
+    const updatedTeam = await teamService.regenerateTeamCode(req.params.id, req.user._id);
+    if (!updatedTeam) {
+        return res.status(404).json(new ApiResponse(404, null, 'Team not found or unauthorized'));
+    }
+    return res.status(200).json(new ApiResponse(200, updatedTeam, 'Team join code regenerated successfully'));
+});
+
+export const joinTeamByCode = asyncHandler(async (req: any, res: Response) => {
+    const { code } = req.body;
+    if (!code || typeof code !== 'string' || !code.trim()) {
+        return res.status(400).json(new ApiResponse(400, null, 'Valid join code is required'));
+    }
+
+    try {
+        const team = await teamService.joinTeamByCode(req.user._id, code.trim());
+        return res.status(200).json(new ApiResponse(200, team, 'Successfully joined team'));
+    } catch (error: any) {
+        return res.status(400).json(new ApiResponse(400, null, error.message || 'Failed to join team'));
+    }
+});
+
+export const inviteUserByUsernameOrId = asyncHandler(async (
+    req: any,
+    res: Response
+) => {
+    const { userIdOrUsername } = req.body;
+    if (!userIdOrUsername || typeof userIdOrUsername !== 'string' || !userIdOrUsername.trim()) {
+        return res.status(400).json(new ApiResponse(400, null, 'User ID or Username is required'));
+    }
+
+    try {
+        const invitation = await teamService.inviteUserByUsernameOrId(
+            req.params.id,
+            req.user._id,
+            userIdOrUsername.trim()
+        );
+        return res.status(201).json(new ApiResponse(201, invitation, 'Direct invitation sent successfully'));
+    } catch (error: any) {
+        return res.status(400).json(new ApiResponse(400, null, error.message || 'Failed to send invitation'));
+    }
+});
+
+export const getUserInvitations = asyncHandler(async (req: any, res: Response) => {
+    const invitations = await teamService.getUserInvitations(req.user._id);
+    return res.status(200).json(new ApiResponse(200, invitations, 'User invitations fetched successfully'));
+});
+
+export const respondToInvitation = asyncHandler(async (
+    req: any,
+    res: Response
+) => {
+    const { action } = req.body;
+    if (!action || !['accept', 'decline'].includes(action)) {
+        return res.status(400).json(new ApiResponse(400, null, 'Valid action (accept or decline) is required'));
+    }
+
+    try {
+        const result = await teamService.respondToInvitation(
+            req.params.invitationId,
+            req.user._id,
+            action
+        );
+        return res.status(200).json(new ApiResponse(200, result, `Invitation ${action}ed successfully`));
+    } catch (error: any) {
+        return res.status(400).json(new ApiResponse(400, null, error.message || 'Failed to respond to invitation'));
+    }
+});
+

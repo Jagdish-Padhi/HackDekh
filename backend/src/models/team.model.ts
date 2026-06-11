@@ -16,7 +16,11 @@ const teamSchema = new mongoose.Schema({
         ref: 'User',
         required: true,
     },
-
+    code: {
+        type: String,
+        unique: true,
+        sparse: true,
+    },
 }, { timestamps: true });
 
 export default mongoose.model('Team', teamSchema);

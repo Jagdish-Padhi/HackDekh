@@ -15,6 +15,7 @@ import {
 	getUserApplications,
 	getPendingReflections,
 	githubAuth,
+	searchUsers,
 } from "../controllers/user.controller.ts";
 import { verifyJWT } from "../middlewares/auth.middleware.ts";
 
@@ -26,6 +27,7 @@ router.post("/auth/github", githubAuth);
 router.post("/logout", verifyJWT, logoutUser);
 router.post("/refresh", refreshAccessToken);
 router.get("/me", verifyJWT, getCurrentUser);
+router.get("/search", verifyJWT, searchUsers);
 router.post("/change-password", verifyJWT, changeCurrentPassword);
 router.put("/update", verifyJWT, updateAccountDetails);
 
