@@ -435,7 +435,7 @@ const HackathonList = () => {
 
             <div className="relative space-y-4">
                 {isStillLoading && (
-                    <div className="absolute inset-0 z-20 flex justify-center items-start pt-20 sm:items-center sm:pt-0 bg-zinc-950/5 dark:bg-black/10 backdrop-blur-[2.5px] p-4 rounded-3xl">
+                    <div className="absolute inset-0 z-20 flex justify-center items-center bg-zinc-950/5 dark:bg-black/10 backdrop-blur-[2.5px] p-4 rounded-3xl">
                         <div className="w-full max-w-sm shrink-0">
                             <LoadingProgress progress={progressDisplay} label={loadingLabel} />
                         </div>
