@@ -67,6 +67,10 @@ html.dark {
 	--blue-650: #60a5fa;
 }
 
+html {
+	overscroll-behavior: none;
+}
+
 html,
 body,
 #root {
@@ -84,6 +88,7 @@ body,
 }
 
 body {
+	overscroll-behavior: none;
 	margin: 0;
 	font-family: "Inter", "Segoe UI", sans-serif;
 	text-rendering: optimizeLegibility;
