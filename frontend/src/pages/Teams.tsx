@@ -1657,7 +1657,7 @@ export default function TeamsPage() {
                                         hoverStatusText = 'disqualified';
                                       } else if (isFailedStage) {
                                         // Active failed stage
-                                        ringClass = 'border-rose-500/50 bg-rose-50 dark:border-rose-500/40 dark:bg-rose-955 shadow-[0_0_12px_rgba(239,68,68,0.15)] text-rose-600 dark:text-rose-400';
+                                        ringClass = 'border-rose-500/50 bg-rose-50 dark:border-rose-500/40 dark:bg-rose-950 shadow-[0_0_12px_rgba(239,68,68,0.15)] text-rose-600 dark:text-rose-400';
                                       } else if (stage.result === 'qualified') {
                                         // Active success stage
                                         ringClass = 'border-emerald-500/50 bg-emerald-50 dark:border-emerald-500/40 dark:bg-emerald-950 shadow-[0_0_12px_rgba(16,185,129,0.15)] text-emerald-600 dark:text-emerald-400';
@@ -2125,7 +2125,7 @@ export default function TeamsPage() {
 
                                   {/* Direct Invite Autocomplete Results */}
                                   {directInviteResults.length > 0 && (
-                                    <div className="absolute left-0 right-0 mt-2 z-50 rounded-xl border border-zinc-200 bg-white p-1.5 shadow-xl dark:border-zinc-800 dark:bg-zinc-955 max-h-52 overflow-y-auto space-y-0.5">
+                                    <div className="absolute left-0 right-0 mt-2 z-50 rounded-xl border border-zinc-200 bg-white p-1.5 shadow-xl dark:border-zinc-800 dark:bg-zinc-950 max-h-52 overflow-y-auto space-y-0.5">
                                       {directInviteResults.map(user => (
                                         <div
                                           key={user._id}
@@ -2158,7 +2158,7 @@ export default function TeamsPage() {
                                   )}
                                 </div>
                               ) : (
-                                <div className="rounded-xl bg-zinc-50 dark:bg-zinc-955 p-3 border border-zinc-150 dark:border-zinc-900 text-center">
+                                <div className="rounded-xl bg-zinc-50 dark:bg-zinc-950 p-3 border border-zinc-150 dark:border-zinc-900 text-center">
                                   <p className="text-[10px] text-zinc-455 dark:text-zinc-500 leading-normal">
                                     Only the owner ({selectedTeam.owner.fullName || selectedTeam.owner.username}) can search and invite other users.
                                   </p>
@@ -2181,7 +2181,7 @@ export default function TeamsPage() {
                               </div>
 
                               <div className="flex items-center gap-2">
-                                <div className="bg-zinc-50 dark:bg-zinc-955 border border-zinc-200 dark:border-zinc-850 rounded-xl px-4 py-2.5 font-mono text-sm tracking-widest font-black text-zinc-800 dark:text-zinc-100 flex-1 text-center shadow-xs">
+                                <div className="bg-zinc-50 dark:bg-zinc-950 border border-zinc-200 dark:border-zinc-850 rounded-xl px-4 py-2.5 font-mono text-sm tracking-widest font-black text-zinc-800 dark:text-zinc-100 flex-1 text-center shadow-xs">
                                   {selectedTeam.code || "------"}
                                 </div>
                                 
@@ -2292,7 +2292,7 @@ export default function TeamsPage() {
                                   )}
                                 </div>
                               ) : (
-                                <div className="rounded-xl bg-zinc-50 dark:bg-zinc-955 p-3 border border-zinc-150 dark:border-zinc-900 text-center">
+                                <div className="rounded-xl bg-zinc-50 dark:bg-zinc-950 p-3 border border-zinc-150 dark:border-zinc-900 text-center">
                                   <p className="text-[10px] text-zinc-455 dark:text-zinc-500 leading-normal">
                                     Only the owner ({selectedTeam.owner.fullName || selectedTeam.owner.username}) can generate external email invite links.
                                   </p>

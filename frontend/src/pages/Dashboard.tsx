@@ -1010,7 +1010,7 @@ export default function DashboardPage() {
                         {pendingReflections.map((stage) => {
                           const isReflecting = activeReflectionStageId === stage._id;
                           return (
-                            <div key={stage._id} className="p-3 bg-white dark:bg-zinc-955 rounded-2xl border border-amber-500/20">
+                            <div key={stage._id} className="p-3 bg-white dark:bg-zinc-150 rounded-2xl border border-amber-500/20">
                               <Link 
                                 to={
                                   stage.teamHackathon && typeof stage.teamHackathon === "object" && stage.teamHackathon.team
@@ -1356,7 +1356,7 @@ export default function DashboardPage() {
                                   <button
                                     disabled={isTerminated}
                                     onClick={() => setShowAddStageModal(true)}
-                                    className="inline-flex items-center gap-1.5 rounded-xl bg-blue-650 hover:bg-blue-500 text-white px-3 py-1.5 text-xs font-bold shadow-sm transition cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+                                    className="inline-flex items-center gap-1.5 rounded-xl bg-blue-600 hover:bg-blue-500 text-white px-3 py-1.5 text-xs font-bold shadow-sm transition cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
                                     title="Add New Milestone Stage"
                                   >
                                     <Plus className="h-4 w-4" /> Add Stage
@@ -1941,7 +1941,7 @@ export default function DashboardPage() {
                     await handleAddStage();
                     setShowAddStageModal(false);
                   }}
-                  className="inline-flex items-center gap-1.5 rounded-xl bg-blue-650 hover:bg-blue-500 text-white px-4 py-2.5 text-xs font-bold transition shadow-xs disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
+                  className="inline-flex items-center gap-1.5 rounded-xl bg-blue-600 hover:bg-blue-500 text-white px-4 py-2.5 text-xs font-bold transition shadow-xs disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
                 >
                   {isAddingStage ? <LogoTransition width={28} height={18} loop={true} /> : "Create Stage"}
                 </button>
@@ -2003,7 +2003,7 @@ export default function DashboardPage() {
                 <button
                   disabled={!reflectionModalDraft.trim()}
                   onClick={handleSaveReflectionModal}
-                  className="inline-flex items-center gap-1.5 rounded-xl bg-blue-650 hover:bg-blue-500 text-white px-4 py-2.5 text-xs font-bold transition shadow-xs disabled:opacity-50 cursor-pointer"
+                  className="inline-flex items-center gap-1.5 rounded-xl bg-blue-600 hover:bg-blue-500 text-white px-4 py-2.5 text-xs font-bold transition shadow-xs disabled:opacity-50 cursor-pointer"
                 >
                   <Save className="h-4 w-4" /> Save Note
                 </button>

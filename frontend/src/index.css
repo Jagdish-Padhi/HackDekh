@@ -434,6 +434,16 @@ html.dark .btn:focus-visible {
 	box-shadow: 0 4px 10px 0 rgba(37, 99, 235, 0.22);
 }
 
+html.dark .btn-primary {
+	background-color: #2563eb;
+	color: #ffffff;
+}
+
+html.dark .btn-primary:hover:not(:disabled) {
+	background-color: #3b82f6;
+	box-shadow: 0 4px 10px 0 rgba(37, 99, 235, 0.3);
+}
+
 /* Secondary — ghost with border */
 .btn-secondary {
 	background-color: #ffffff;
