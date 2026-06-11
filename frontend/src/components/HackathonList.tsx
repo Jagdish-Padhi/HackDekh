@@ -74,9 +74,19 @@ const HackathonList = () => {
         toggleSidebarRef.current = toggleSidebar
     }, [toggleSidebar])
 
+    const hasCollapsedSidebarRef = useRef(false)
+
+    // Reset when loading starts
+    useEffect(() => {
+        if (isStillLoading) {
+            hasCollapsedSidebarRef.current = false
+        }
+    }, [isStillLoading])
+
     // Collapse sidebar to give full width to hackathons grid after loading finishes
     useEffect(() => {
-        if (!isStillLoading) {
+        if (!isStillLoading && !hasCollapsedSidebarRef.current) {
+            hasCollapsedSidebarRef.current = true
             if (sidebarExpanded) {
                 setSidebarWasExpanded(true)
                 closeSidebar()

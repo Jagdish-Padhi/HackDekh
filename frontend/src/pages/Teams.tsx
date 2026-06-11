@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState, useRef } from "react";
 import React from "react";
 import { Link, useSearchParams } from "react-router-dom";
 import {
@@ -176,6 +176,17 @@ export default function TeamsPage() {
   const { showToast } = useToast();
   const { setPageActions, closeSidebar, sidebarExpanded, toggleSidebar } = usePageChrome();
   const [sidebarWasExpanded, setSidebarWasExpanded] = useState(false);
+  const sidebarWasExpandedRef = useRef(false);
+  const toggleSidebarRef = useRef(toggleSidebar);
+  const hasCollapsedSidebarRef = useRef(false);
+
+  useEffect(() => {
+    sidebarWasExpandedRef.current = sidebarWasExpanded;
+  }, [sidebarWasExpanded]);
+
+  useEffect(() => {
+    toggleSidebarRef.current = toggleSidebar;
+  }, [toggleSidebar]);
   const [searchParams] = useSearchParams();
 
   const { teamsData, setTeamsData } = useCache();
@@ -414,9 +425,17 @@ export default function TeamsPage() {
     }
   }, [selectedTeamId]);
 
+  // Reset when loading starts or team selection changes
+  useEffect(() => {
+    if (!selectedTeamId || loading || loadingTeamData) {
+      hasCollapsedSidebarRef.current = false;
+    }
+  }, [selectedTeamId, loading, loadingTeamData]);
+
   // Collapse sidebar to give full width to workspace after loading animation disappears
   useEffect(() => {
-    if (selectedTeamId && !loading && !loadingTeamData) {
+    if (selectedTeamId && !loading && !loadingTeamData && !hasCollapsedSidebarRef.current) {
+      hasCollapsedSidebarRef.current = true;
       if (sidebarExpanded) {
         setSidebarWasExpanded(true);
         closeSidebar();
@@ -427,11 +446,11 @@ export default function TeamsPage() {
   // Restore sidebar on unmount if it was expanded before this page collapsed it
   useEffect(() => {
     return () => {
-      if (sidebarWasExpanded) {
-        toggleSidebar();
+      if (sidebarWasExpandedRef.current) {
+        toggleSidebarRef.current();
       }
     };
-  }, [sidebarWasExpanded, toggleSidebar]);
+  }, []);
 
   useEffect(() => {
     const participationIdParam = searchParams.get("participationId");
