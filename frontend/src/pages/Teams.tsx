@@ -403,11 +403,6 @@ export default function TeamsPage() {
       setInviteLink(null);
       setWorkspaceMessage(null);
       setWorkspaceError(null);
-      // Collapse sidebar to give full width to workspace
-      if (sidebarExpanded) {
-        setSidebarWasExpanded(true);
-        closeSidebar();
-      }
     } else {
       setTeamParticipations([]);
       setSelectedParticipationId("");
@@ -418,6 +413,16 @@ export default function TeamsPage() {
       }
     }
   }, [selectedTeamId]);
+
+  // Collapse sidebar to give full width to workspace after loading animation disappears
+  useEffect(() => {
+    if (selectedTeamId && !loading && !loadingTeamData) {
+      if (sidebarExpanded) {
+        setSidebarWasExpanded(true);
+        closeSidebar();
+      }
+    }
+  }, [selectedTeamId, loading, loadingTeamData, sidebarExpanded, closeSidebar]);
 
   useEffect(() => {
     const participationIdParam = searchParams.get("participationId");
