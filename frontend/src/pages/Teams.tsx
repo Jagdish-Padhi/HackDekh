@@ -424,6 +424,15 @@ export default function TeamsPage() {
     }
   }, [selectedTeamId, loading, loadingTeamData, sidebarExpanded, closeSidebar]);
 
+  // Restore sidebar on unmount if it was expanded before this page collapsed it
+  useEffect(() => {
+    return () => {
+      if (sidebarWasExpanded) {
+        toggleSidebar();
+      }
+    };
+  }, [sidebarWasExpanded, toggleSidebar]);
+
   useEffect(() => {
     const participationIdParam = searchParams.get("participationId");
     if (participationIdParam && teamParticipations.some(p => p._id === participationIdParam)) {

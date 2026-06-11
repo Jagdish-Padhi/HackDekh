@@ -41,6 +41,7 @@ const HackathonList = () => {
     const [isRefreshing, setIsRefreshing] = useState(false)
     const [refreshNonce, setRefreshNonce] = useState(0)
     const [hasLoadedFromServer, setHasLoadedFromServer] = useState(!!cachedHackathons)
+    const isStillLoading = loading || !hasLoadedFromServer
     const [progressTarget, setProgressTarget] = useState(cachedHackathons ? 100 : 0)
     const [progressDisplay, setProgressDisplay] = useState(cachedHackathons ? 100 : 0)
     const [showResults, setShowResults] = useState(!!cachedHackathons)
@@ -60,7 +61,27 @@ const HackathonList = () => {
         return window.matchMedia(DESKTOP_MEDIA_QUERY).matches
     })
     const deferredSearch = useDeferredValue(search)
-    const { setPageActions } = usePageChrome()
+    const { sidebarExpanded, closeSidebar, toggleSidebar, setPageActions } = usePageChrome()
+    const [sidebarWasExpanded, setSidebarWasExpanded] = useState(false)
+
+    // Collapse sidebar to give full width to hackathons grid after loading finishes
+    useEffect(() => {
+        if (!isStillLoading) {
+            if (sidebarExpanded) {
+                setSidebarWasExpanded(true)
+                closeSidebar()
+            }
+        }
+    }, [isStillLoading, sidebarExpanded, closeSidebar])
+
+    // Restore sidebar on unmount if it was expanded before this page collapsed it
+    useEffect(() => {
+        return () => {
+            if (sidebarWasExpanded) {
+                toggleSidebar()
+            }
+        }
+    }, [sidebarWasExpanded, toggleSidebar])
 
     const [showFunnelModal, setShowFunnelModal] = useState(false)
     const [trackedHackathons, setTrackedHackathons] = useState<Record<string, {
@@ -321,7 +342,7 @@ const HackathonList = () => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [refreshNonce, deferredSearch, platform, mode, locationFilter, sortBy, showExpired, setCachedHackathons])
 
-    const isStillLoading = loading || !hasLoadedFromServer
+    // isStillLoading is declared at top
 
     const handleRefresh = useCallback(() => {
         if (isStillLoading) {
