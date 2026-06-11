@@ -28,7 +28,7 @@ import { usePageChrome } from "../context/pageChrome";
 import { teamApi } from "../services";
 import LogoTransition from "../components/LogoAnimation";
 import AppDropdown from "../components/AppDropdown";
-import type { GeneratedInvitationLink, Team, TeamHackathon, Stage } from "../types";
+import type { GeneratedInvitationLink, Team, TeamHackathon, Stage, TeamInvitation } from "../types";
 import { motion, AnimatePresence } from "framer-motion";
 
 // ─── Filter option definitions ────────────────────────────────────────────────
@@ -245,6 +245,21 @@ export default function TeamsPage() {
     stageName: string;
   } | null>(null);
   const [isDeletingStage, setIsDeletingStage] = useState(false);
+
+  // Settings sub-navigation
+  const [settingsSection, setSettingsSection] = useState<'general' | 'members' | 'invitations' | 'danger'>('general');
+
+  // Remove member modal
+  const [removeMemberModal, setRemoveMemberModal] = useState<{ id: string; name: string } | null>(null);
+  const [removeMemberLoading, setRemoveMemberLoading] = useState(false);
+
+  // Invitations panel
+  const [teamInvitations, setTeamInvitations] = useState<TeamInvitation[]>([]);
+  const [invitationsLoading, setInvitationsLoading] = useState(false);
+
+  // Leave team modal
+  const [showLeaveModal, setShowLeaveModal] = useState(false);
+  const [leaveTeamLoading, setLeaveTeamLoading] = useState(false);
 
   const selectedTeam = useMemo(() => teams.find((team) => team._id === selectedTeamId) || null, [teams, selectedTeamId]);
   const selectedParticipation = useMemo(
@@ -703,16 +718,14 @@ export default function TeamsPage() {
     event.preventDefault();
     if (!selectedTeam || !renameTeamName.trim()) return;
     setSavingTeam(true);
-    setWorkspaceMessage(null);
-    setWorkspaceError(null);
     try {
       const updated = await teamApi.updateTeam(selectedTeam._id, { name: renameTeamName.trim() });
       setTeams((current) => current.map((team) => (team._id === updated._id ? updated : team)));
       setRenameTeamName("");
-      setWorkspaceMessage("Team renamed successfully.");
+      showToast("Team renamed successfully.", "success");
     } catch (error: any) {
       console.error("Failed to rename team", error);
-      setWorkspaceError(error.response?.data?.message || "Failed to rename team.");
+      showToast(error.response?.data?.message || "Failed to rename team.", "error");
     } finally {
       setSavingTeam(false);
     }
@@ -812,21 +825,65 @@ export default function TeamsPage() {
       return;
     }
     setSavingTeam(true);
-    setWorkspaceMessage(null);
-    setWorkspaceError(null);
     try {
       await teamApi.deleteTeam(selectedTeam._id);
-      setWorkspaceMessage(`Team "${selectedTeam.name}" has been permanently deleted.`);
+      showToast(`Team "${selectedTeam.name}" has been permanently deleted.`, "success");
       setShowDeleteConfirmModal(false);
       setDeleteConfirmInput("");
       setSelectedTeamId("");
       await loadTeams();
     } catch (error: any) {
       console.error("Failed to delete team", error);
-      setWorkspaceError(error.response?.data?.message || "Failed to delete team.");
       showToast(error.response?.data?.message || "Failed to delete team.", "error");
     } finally {
       setSavingTeam(false);
+    }
+  };
+
+  // Remove a member from the team
+  const handleRemoveMember = async () => {
+    if (!selectedTeam || !removeMemberModal) return;
+    setRemoveMemberLoading(true);
+    try {
+      const updated = await teamApi.removeMember(selectedTeam._id, removeMemberModal.id);
+      setTeams((current) => current.map((t) => t._id === updated._id ? updated : t));
+      showToast(`${removeMemberModal.name} has been removed from the team.`, "success");
+      setRemoveMemberModal(null);
+    } catch (err: any) {
+      showToast(err.response?.data?.message || "Failed to remove member.", "error");
+    } finally {
+      setRemoveMemberLoading(false);
+    }
+  };
+
+  // Load pending team invitations
+  const loadTeamInvitations = async () => {
+    if (!selectedTeam) return;
+    setInvitationsLoading(true);
+    try {
+      const invites = await teamApi.getTeamInvitations(selectedTeam._id);
+      setTeamInvitations(invites);
+    } catch {
+      // silently fail
+    } finally {
+      setInvitationsLoading(false);
+    }
+  };
+
+  // Leave team (current user removes themselves)
+  const handleLeaveTeam = async () => {
+    if (!selectedTeam || !user) return;
+    setLeaveTeamLoading(true);
+    try {
+      await teamApi.removeMember(selectedTeam._id, user._id);
+      showToast(`You've left "${selectedTeam.name}".`, "success");
+      setShowLeaveModal(false);
+      setSelectedTeamId("");
+      await loadTeams();
+    } catch (err: any) {
+      showToast(err.response?.data?.message || "Failed to leave team.", "error");
+    } finally {
+      setLeaveTeamLoading(false);
     }
   };
 
@@ -2093,86 +2150,421 @@ export default function TeamsPage() {
                 </div>
               )}
 
-              {/* 4. SETTINGS TAB: rename & delete settings */}
-              {activeTab === "Settings" && (
-                <div className="grid gap-6 md:grid-cols-3">
-                  <div className="rounded-xl border border-zinc-200 bg-white p-5 dark:border-zinc-800/60 dark:bg-zinc-900/60 shadow-xs flex flex-col justify-between">
-                    <div>
-                      <div className="flex items-center gap-3">
-                        <Settings className="h-5 w-5 text-blue-600 dark:text-blue-400" />
-                        <div>
-                          <h3 className="text-xs font-bold uppercase tracking-wider text-zinc-800 dark:text-zinc-200">Rename Team</h3>
-                          <p className="mt-0.5 text-[11px] text-zinc-500 dark:text-zinc-400">Change the visible workspace name.</p>
-                        </div>
-                      </div>
-                      <form onSubmit={handleRenameTeam} className="mt-4 space-y-3">
-                        <input
-                          value={renameTeamName}
-                          onChange={(event) => setRenameTeamName(event.target.value)}
-                          placeholder={selectedTeam.name}
-                          className="w-full rounded-xl border border-zinc-200 bg-white px-3.5 py-2 text-sm text-zinc-800 outline-none transition focus:border-blue-400 dark:border-zinc-800 dark:bg-zinc-950 dark:text-zinc-200"
-                        />
-                        <button
-                          type="submit"
-                          disabled={savingTeam || !renameTeamName.trim()}
-                          className="inline-flex items-center gap-2 rounded-lg bg-blue-600 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-blue-500 disabled:cursor-not-allowed disabled:opacity-60 cursor-pointer"
-                        >
-                          {savingTeam ? <LogoTransition width={28} height={18} loop={true} /> : <Save className="h-4 w-4" />}
-                          Save
-                        </button>
-                      </form>
-                    </div>
-                  </div>
 
-                  <div className="rounded-xl border border-zinc-200 bg-white p-5 dark:border-zinc-800/60 dark:bg-zinc-900/60 shadow-xs flex flex-col justify-between">
-                    <div>
-                      <div className="flex items-center gap-3">
-                        <Info className="h-5 w-5 text-zinc-500 dark:text-zinc-400" />
-                        <div>
-                          <h3 className="text-xs font-bold uppercase tracking-wider text-zinc-800 dark:text-zinc-200">Tracking Dashboard</h3>
-                          <p className="mt-0.5 text-[11px] text-zinc-500 dark:text-zinc-400">Quickly toggle stage reflection boards, bookmarks, and participant metrics.</p>
-                        </div>
-                      </div>
-                    </div>
-                    <div className="mt-4">
-                      <Link
-                        to="/dashboard?tab=tracker"
-                        className="inline-flex items-center gap-2 rounded-lg bg-blue-600 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-blue-500"
-                      >
-                        Open Tracker Dashboard
-                        <ArrowRight className="h-4 w-4" />
-                      </Link>
-                    </div>
-                  </div>
+              {/* 4. SETTINGS TAB: GitHub-style settings with sub-navigation */}
+              {activeTab === "Settings" && (() => {
+                const isOwner = selectedTeam.owner._id === user?._id;
 
-                  <div className="rounded-xl border border-rose-200 bg-rose-50/10 p-5 dark:border-rose-900/50 dark:bg-rose-950/10 shadow-xs flex flex-col justify-between">
-                    <div>
-                      <div className="flex items-center gap-3">
-                        <AlertTriangle className="h-5 w-5 text-rose-600 dark:text-rose-450" />
-                        <div>
-                          <h3 className="text-xs font-bold uppercase tracking-wider text-rose-800 dark:text-rose-350">Danger Zone</h3>
-                          <p className="mt-0.5 text-[11px] text-rose-600/80 dark:text-rose-400/85">Permanently delete this team workspace and all associated logs.</p>
-                        </div>
+                const settingsNavItems = [
+                  { id: 'general' as const, label: 'General' },
+                  { id: 'members' as const, label: 'Members' },
+                  { id: 'invitations' as const, label: 'Invitations' },
+                  { id: 'danger' as const, label: 'Danger Zone', danger: true },
+                ];
+
+                const settingsInputCls = "w-full rounded-xl border border-zinc-200 bg-zinc-50/50 px-3.5 py-2.5 text-sm text-zinc-800 outline-none transition focus:border-blue-400 focus:bg-white dark:border-zinc-800 dark:bg-zinc-900 dark:text-zinc-200 dark:focus:bg-zinc-950";
+
+                return (
+                  <div>
+                    {/* Page heading */}
+                    <div className="mb-7 pb-5 border-b border-zinc-200 dark:border-zinc-800">
+                      <h2 className="text-lg font-extrabold text-zinc-900 dark:text-zinc-50 tracking-tight">Team Settings</h2>
+                      <p className="mt-0.5 text-sm text-zinc-500 dark:text-zinc-400">
+                        Manage workspace configuration, members, and invitations for <strong className="text-zinc-700 dark:text-zinc-300">{selectedTeam.name}</strong>.
+                      </p>
+                    </div>
+
+                    <div className="flex gap-10 md:gap-14">
+                      {/* Left sub-nav */}
+                      <nav className="hidden md:flex flex-col gap-0.5 w-36 shrink-0">
+                        {settingsNavItems.map(item => {
+                          const isActive = settingsSection === item.id;
+                          return (
+                            <button
+                              key={item.id}
+                              onClick={() => {
+                                setSettingsSection(item.id);
+                                if (item.id === 'invitations') loadTeamInvitations();
+                              }}
+                              className={`relative flex items-center gap-2 w-full rounded-lg px-3 py-2 text-sm font-medium text-left transition-colors ${
+                                isActive
+                                  ? item.danger
+                                    ? "bg-rose-50 text-rose-600 dark:bg-rose-950/30 dark:text-rose-400"
+                                    : "bg-zinc-100 text-zinc-900 dark:bg-zinc-800 dark:text-zinc-100"
+                                  : item.danger
+                                  ? "text-rose-500 hover:bg-rose-50/60 dark:text-rose-400 dark:hover:bg-rose-950/20"
+                                  : "text-zinc-500 hover:bg-zinc-100 hover:text-zinc-800 dark:text-zinc-400 dark:hover:bg-zinc-800/60 dark:hover:text-zinc-200"
+                              }`}
+                            >
+                              {isActive && (
+                                <span className={`absolute left-0 top-1/2 -translate-y-1/2 h-4 w-0.5 rounded-full ${item.danger ? "bg-rose-500" : "bg-blue-600 dark:bg-blue-400"}`} />
+                              )}
+                              {item.label}
+                            </button>
+                          );
+                        })}
+                      </nav>
+
+                      {/* Mobile tabs */}
+                      <div className="flex md:hidden gap-1 mb-5 flex-wrap w-full">
+                        {settingsNavItems.map(item => {
+                          const isActive = settingsSection === item.id;
+                          return (
+                            <button
+                              key={item.id}
+                              onClick={() => { setSettingsSection(item.id); if (item.id === 'invitations') loadTeamInvitations(); }}
+                              className={`rounded-xl px-3 py-1.5 text-xs font-semibold transition ${isActive ? item.danger ? "bg-rose-600 text-white" : "bg-blue-600 text-white" : "bg-zinc-100 text-zinc-600 dark:bg-zinc-800 dark:text-zinc-300"}`}
+                            >
+                              {item.label}
+                            </button>
+                          );
+                        })}
+                      </div>
+
+                      {/* Right content */}
+                      <div className="flex-1 min-w-0">
+
+                        {/* GENERAL */}
+                        {settingsSection === 'general' && (
+                          <div>
+                            <h3 className="text-sm font-bold text-zinc-900 dark:text-zinc-100 mb-1">General</h3>
+                            <p className="text-xs text-zinc-500 dark:text-zinc-400 mb-5">Basic workspace configuration.</p>
+
+                            <form onSubmit={handleRenameTeam} className="space-y-5">
+                              {/* Team name */}
+                              <div className="flex flex-col sm:flex-row sm:items-start gap-3 sm:gap-6 pb-5 border-b border-zinc-100 dark:border-zinc-800">
+                                <div className="sm:w-40 shrink-0">
+                                  <label className="text-sm font-semibold text-zinc-700 dark:text-zinc-300 block">Team Name</label>
+                                  <p className="text-xs text-zinc-400 dark:text-zinc-500 mt-0.5">Visible to all members.</p>
+                                </div>
+                                <div className="flex-1 space-y-2">
+                                  <input
+                                    value={renameTeamName}
+                                    onChange={e => setRenameTeamName(e.target.value)}
+                                    placeholder={selectedTeam.name}
+                                    className={settingsInputCls}
+                                    disabled={!isOwner}
+                                  />
+                                  {!isOwner && <p className="text-xs text-zinc-400 dark:text-zinc-500">Only the team owner can rename the workspace.</p>}
+                                </div>
+                              </div>
+
+                              {/* Metadata */}
+                              <div className="flex flex-col sm:flex-row sm:items-start gap-3 sm:gap-6 pb-5 border-b border-zinc-100 dark:border-zinc-800">
+                                <div className="sm:w-40 shrink-0">
+                                  <p className="text-sm font-semibold text-zinc-700 dark:text-zinc-300">Workspace Info</p>
+                                  <p className="text-xs text-zinc-400 dark:text-zinc-500 mt-0.5">Read-only metadata.</p>
+                                </div>
+                                <div className="flex-1 space-y-2 text-xs">
+                                  <div className="flex items-center gap-2 text-zinc-600 dark:text-zinc-400">
+                                    <span className="font-semibold text-zinc-500 dark:text-zinc-500 w-16">Owner</span>
+                                    <span className="font-medium text-zinc-800 dark:text-zinc-200">{selectedTeam.owner.fullName || selectedTeam.owner.username}</span>
+                                    {isOwner && <span className="rounded-full bg-blue-500/10 border border-blue-500/25 px-2 py-0.5 text-[10px] font-bold text-blue-600 dark:text-blue-400">You</span>}
+                                  </div>
+                                  <div className="flex items-center gap-2 text-zinc-600 dark:text-zinc-400">
+                                    <span className="font-semibold text-zinc-500 dark:text-zinc-500 w-16">Members</span>
+                                    <span className="font-medium text-zinc-800 dark:text-zinc-200">{selectedTeam.members.length + 1} people</span>
+                                  </div>
+                                  <div className="flex items-center gap-2 text-zinc-600 dark:text-zinc-400">
+                                    <span className="font-semibold text-zinc-500 dark:text-zinc-500 w-16">Created</span>
+                                    <span className="font-medium text-zinc-800 dark:text-zinc-200">{formatDate(selectedTeam.createdAt)}</span>
+                                  </div>
+                                  <div className="flex items-center gap-2 text-zinc-600 dark:text-zinc-400">
+                                    <span className="font-semibold text-zinc-500 dark:text-zinc-500 w-16">Your role</span>
+                                    <span className={`font-bold ${isOwner ? "text-blue-600 dark:text-blue-400" : "text-zinc-700 dark:text-zinc-300"}`}>
+                                      {isOwner ? "Owner" : "Member"}
+                                    </span>
+                                  </div>
+                                </div>
+                              </div>
+
+                              {isOwner && (
+                                <div className="flex justify-end pt-1">
+                                  <button type="submit" disabled={savingTeam || !renameTeamName.trim()} className="btn btn-primary">
+                                    {savingTeam ? <LogoTransition width={28} height={18} loop={true} /> : null}
+                                    Save changes
+                                  </button>
+                                </div>
+                              )}
+                            </form>
+                          </div>
+                        )}
+
+                        {/* MEMBERS */}
+                        {settingsSection === 'members' && (
+                          <div>
+                            <h3 className="text-sm font-bold text-zinc-900 dark:text-zinc-100 mb-1">Members</h3>
+                            <p className="text-xs text-zinc-500 dark:text-zinc-400 mb-5">
+                              {isOwner ? "Manage who has access to this workspace." : "People who are part of this workspace."}
+                            </p>
+
+                            {/* Owner row */}
+                            <div className="space-y-1">
+                              {[selectedTeam.owner, ...selectedTeam.members].map((member, idx) => {
+                                const isOwnerRow = idx === 0;
+                                const isCurrentUser = member._id === user?._id;
+                                const canRemove = isOwner && !isOwnerRow && !isCurrentUser;
+
+                                return (
+                                  <div
+                                    key={member._id}
+                                    className="flex items-center justify-between gap-3 py-3 border-b border-zinc-100 dark:border-zinc-800 last:border-0"
+                                  >
+                                    <div className="flex items-center gap-3 min-w-0">
+                                      {/* Avatar */}
+                                      <div className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-xs font-bold text-white bg-gradient-to-br ${getGradientClass(member.fullName || member.username || member._id)}`}>
+                                        {(member.fullName || member.username || "?").slice(0, 2).toUpperCase()}
+                                      </div>
+                                      <div className="min-w-0">
+                                        <p className="text-sm font-semibold text-zinc-800 dark:text-zinc-200 truncate">
+                                          {member.fullName || member.username}
+                                          {isCurrentUser && <span className="ml-1.5 text-[10px] font-bold text-zinc-400">(you)</span>}
+                                        </p>
+                                        {member.username && (
+                                          <p className="text-xs text-zinc-400 dark:text-zinc-500 truncate">@{member.username}</p>
+                                        )}
+                                      </div>
+                                    </div>
+                                    <div className="flex items-center gap-2 shrink-0">
+                                      {isOwnerRow ? (
+                                        <span className="rounded-full border border-blue-500/25 bg-blue-500/10 px-2.5 py-0.5 text-[10px] font-bold text-blue-600 dark:text-blue-400">Owner</span>
+                                      ) : (
+                                        <span className="rounded-full border border-zinc-200 bg-zinc-100 px-2.5 py-0.5 text-[10px] font-semibold text-zinc-500 dark:border-zinc-800 dark:bg-zinc-800/60 dark:text-zinc-400">Member</span>
+                                      )}
+                                      {canRemove && (
+                                        <button
+                                          onClick={() => setRemoveMemberModal({ id: member._id, name: member.fullName || member.username || member._id })}
+                                          className="btn btn-ghost btn-sm text-rose-500 hover:bg-rose-50 hover:text-rose-600 dark:hover:bg-rose-950/30 h-7 px-2 rounded-lg"
+                                        >
+                                          Remove
+                                        </button>
+                                      )}
+                                    </div>
+                                  </div>
+                                );
+                              })}
+                            </div>
+
+                            {!isOwner && (
+                              <p className="mt-4 text-xs text-zinc-400 dark:text-zinc-500 bg-zinc-50 dark:bg-zinc-900/40 rounded-xl px-4 py-3 border border-zinc-100 dark:border-zinc-800">
+                                Only the team owner can remove members. Contact <strong className="text-zinc-600 dark:text-zinc-400">{selectedTeam.owner.fullName || selectedTeam.owner.username}</strong> to make changes.
+                              </p>
+                            )}
+                          </div>
+                        )}
+
+                        {/* INVITATIONS */}
+                        {settingsSection === 'invitations' && (
+                          <div>
+                            <h3 className="text-sm font-bold text-zinc-900 dark:text-zinc-100 mb-1">Invitations</h3>
+                            <p className="text-xs text-zinc-500 dark:text-zinc-400 mb-5">
+                              {isOwner ? "Generate invite links and view pending invitations." : "View pending invitations for this team."}
+                            </p>
+
+                            {/* Generate invite (owner only) */}
+                            {isOwner && (
+                              <div className="pb-6 mb-6 border-b border-zinc-100 dark:border-zinc-800">
+                                <p className="text-xs font-bold uppercase tracking-wider text-zinc-500 dark:text-zinc-400 mb-3">Generate Invite Link</p>
+                                <div className="flex gap-2">
+                                  <input
+                                    type="email"
+                                    value={inviteEmail}
+                                    onChange={e => setInviteEmail(e.target.value)}
+                                    placeholder="teammate@example.com"
+                                    className={`${settingsInputCls} flex-1`}
+                                    onKeyDown={e => e.key === 'Enter' && handleInvite()}
+                                  />
+                                  <button
+                                    onClick={handleInvite}
+                                    disabled={savingTeam || !inviteEmail.trim()}
+                                    className="btn btn-primary shrink-0"
+                                  >
+                                    {savingTeam ? <LogoTransition width={28} height={18} loop={true} /> : null}
+                                    Send invite
+                                  </button>
+                                </div>
+
+                                {/* Generated link */}
+                                {inviteLink && (
+                                  <div className="mt-3 rounded-xl border border-emerald-200 bg-emerald-50/50 dark:border-emerald-900/40 dark:bg-emerald-950/10 p-3 flex items-center gap-3">
+                                    <div className="flex-1 min-w-0">
+                                      <p className="text-[10px] font-bold uppercase tracking-wider text-emerald-600 dark:text-emerald-400 mb-0.5">Invite link generated</p>
+                                      <p className="text-xs text-zinc-600 dark:text-zinc-400 font-mono truncate">{inviteLink.invitationLink}</p>
+                                      <p className="text-[10px] text-zinc-400 dark:text-zinc-500 mt-0.5">
+                                        For: {inviteLink.invitedEmail} · Expires: {formatDate(inviteLink.expiresAt)}
+                                      </p>
+                                    </div>
+                                    <button onClick={handleCopyInvite} className="btn btn-secondary btn-sm shrink-0">
+                                      <Copy className="h-3.5 w-3.5" /> Copy
+                                    </button>
+                                  </div>
+                                )}
+                              </div>
+                            )}
+
+                            {/* Invitations list */}
+                            <div>
+                              <div className="flex items-center justify-between mb-3">
+                                <p className="text-xs font-bold uppercase tracking-wider text-zinc-500 dark:text-zinc-400">Pending Invitations</p>
+                                <button onClick={loadTeamInvitations} disabled={invitationsLoading} className="btn btn-ghost btn-sm text-xs h-7 px-2 rounded-lg">
+                                  {invitationsLoading ? <LogoTransition width={20} height={14} loop={true} /> : "Refresh"}
+                                </button>
+                              </div>
+
+                              {invitationsLoading ? (
+                                <div className="flex items-center justify-center py-8">
+                                  <LogoTransition width={36} height={24} loop={true} />
+                                </div>
+                              ) : teamInvitations.length === 0 ? (
+                                <div className="rounded-xl border border-dashed border-zinc-200 dark:border-zinc-800 py-8 text-center">
+                                  <p className="text-sm text-zinc-400 dark:text-zinc-500">No invitations yet.</p>
+                                  <p className="text-xs text-zinc-400 dark:text-zinc-600 mt-1">Generate a link above to invite teammates.</p>
+                                </div>
+                              ) : (
+                                <div className="space-y-2">
+                                  {teamInvitations.map(invite => (
+                                    <div key={invite._id} className="flex items-center justify-between gap-3 py-2.5 px-3 rounded-xl border border-zinc-100 dark:border-zinc-800 bg-white dark:bg-zinc-900/40">
+                                      <div className="min-w-0">
+                                        <p className="text-sm font-medium text-zinc-800 dark:text-zinc-200 truncate">{invite.invitedEmail}</p>
+                                        <p className="text-xs text-zinc-400 dark:text-zinc-500">
+                                          Expires {formatDate(invite.expiresAt)}
+                                        </p>
+                                      </div>
+                                      <span className={`shrink-0 rounded-full px-2.5 py-0.5 text-[10px] font-bold border ${
+                                        invite.status === 'accepted'
+                                          ? "border-emerald-500/25 bg-emerald-500/10 text-emerald-600 dark:text-emerald-400"
+                                          : invite.status === 'expired'
+                                          ? "border-zinc-200 bg-zinc-100 text-zinc-500 dark:border-zinc-800 dark:bg-zinc-800 dark:text-zinc-400"
+                                          : invite.status === 'declined'
+                                          ? "border-rose-500/25 bg-rose-500/10 text-rose-600 dark:text-rose-400"
+                                          : "border-amber-500/25 bg-amber-500/10 text-amber-600 dark:text-amber-400"
+                                      }`}>
+                                        {invite.status.charAt(0).toUpperCase() + invite.status.slice(1)}
+                                      </span>
+                                    </div>
+                                  ))}
+                                </div>
+                              )}
+                            </div>
+                          </div>
+                        )}
+
+                        {/* DANGER ZONE */}
+                        {settingsSection === 'danger' && (
+                          <div>
+                            <h3 className="text-sm font-bold text-zinc-900 dark:text-zinc-100 mb-1">Danger Zone</h3>
+                            <p className="text-xs text-zinc-500 dark:text-zinc-400 mb-5">
+                              Irreversible and destructive workspace actions.
+                            </p>
+
+                            <div className="rounded-xl border border-rose-200 dark:border-rose-900/50 divide-y divide-rose-200/60 dark:divide-rose-900/40">
+                              {/* Delete team (owner) */}
+                              {isOwner && (
+                                <div className="flex items-center justify-between gap-4 px-5 py-4">
+                                  <div>
+                                    <p className="text-sm font-semibold text-zinc-800 dark:text-zinc-200">Delete this team</p>
+                                    <p className="text-xs text-zinc-500 dark:text-zinc-400 mt-0.5 max-w-xs">
+                                      Permanently deletes the workspace, all hackathon tracking data, stage logs, and reflections. Cannot be undone.
+                                    </p>
+                                  </div>
+                                  <button
+                                    onClick={() => { setDeleteConfirmInput(""); setShowDeleteConfirmModal(true); }}
+                                    className="btn btn-danger shrink-0"
+                                  >
+                                    <Trash2 className="h-4 w-4" />
+                                    Delete team
+                                  </button>
+                                </div>
+                              )}
+
+                              {/* Leave team (member) */}
+                              {!isOwner && (
+                                <div className="flex items-center justify-between gap-4 px-5 py-4">
+                                  <div>
+                                    <p className="text-sm font-semibold text-zinc-800 dark:text-zinc-200">Leave this team</p>
+                                    <p className="text-xs text-zinc-500 dark:text-zinc-400 mt-0.5 max-w-xs">
+                                      You will lose access to this workspace, its hackathon history, and all stage data. You can be re-invited later.
+                                    </p>
+                                  </div>
+                                  <button
+                                    onClick={() => setShowLeaveModal(true)}
+                                    className="btn shrink-0 border border-rose-200 bg-white text-rose-600 hover:bg-rose-600 hover:text-white hover:border-rose-600 dark:bg-transparent dark:border-rose-800 dark:text-rose-400 dark:hover:bg-rose-600 dark:hover:text-white"
+                                  >
+                                    Leave team
+                                  </button>
+                                </div>
+                              )}
+                            </div>
+                          </div>
+                        )}
+
                       </div>
                     </div>
-                    <div className="mt-4">
-                      <button
-                        onClick={() => {
-                          setDeleteConfirmInput("");
-                          setShowDeleteConfirmModal(true);
-                        }}
-                        className="inline-flex items-center gap-2 rounded-xl bg-rose-600 hover:bg-rose-500 text-white px-4 py-2.5 text-sm font-semibold transition cursor-pointer"
-                      >
-                        Delete Team
-                      </button>
-                    </div>
                   </div>
-                </div>
-              )}
+                );
+              })()}
             </div>
           )}
         </div>
       )}
+
+      {/* ── REMOVE MEMBER CONFIRMATION MODAL ── */}
+      <AnimatePresence>
+        {removeMemberModal && (
+          <div className="fixed inset-0 z-[100] flex items-center justify-center bg-zinc-950/65 backdrop-blur-sm p-4">
+            <motion.div
+              initial={{ scale: 0.95, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0.95, opacity: 0 }}
+              className="w-full max-w-sm rounded-2xl border border-zinc-200 bg-white dark:border-zinc-800 dark:bg-zinc-950 p-6 shadow-2xl text-center"
+            >
+              <div className="mx-auto h-12 w-12 rounded-full bg-rose-500/10 flex items-center justify-center text-rose-600 mb-4">
+                <AlertTriangle className="h-6 w-6" />
+              </div>
+              <h3 className="text-base font-extrabold text-zinc-900 dark:text-zinc-100 mb-2">Remove member?</h3>
+              <p className="text-xs text-zinc-500 dark:text-zinc-400 mb-6 leading-normal">
+                <strong className="text-zinc-800 dark:text-zinc-200">{removeMemberModal.name}</strong> will lose access to this team workspace and all its data.
+              </p>
+              <div className="flex gap-2.5">
+                <button onClick={() => setRemoveMemberModal(null)} className="btn btn-secondary flex-1">Cancel</button>
+                <button onClick={handleRemoveMember} disabled={removeMemberLoading} className="btn btn-danger flex-1">
+                  {removeMemberLoading ? <LogoTransition width={28} height={18} loop={true} /> : "Remove"}
+                </button>
+              </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
+
+      {/* ── LEAVE TEAM CONFIRMATION MODAL ── */}
+      <AnimatePresence>
+        {showLeaveModal && selectedTeam && (
+          <div className="fixed inset-0 z-[100] flex items-center justify-center bg-zinc-950/65 backdrop-blur-sm p-4">
+            <motion.div
+              initial={{ scale: 0.95, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0.95, opacity: 0 }}
+              className="w-full max-w-sm rounded-2xl border border-zinc-200 bg-white dark:border-zinc-800 dark:bg-zinc-950 p-6 shadow-2xl text-center"
+            >
+              <div className="mx-auto h-12 w-12 rounded-full bg-amber-500/10 flex items-center justify-center text-amber-600 mb-4">
+                <AlertTriangle className="h-6 w-6" />
+              </div>
+              <h3 className="text-base font-extrabold text-zinc-900 dark:text-zinc-100 mb-2">Leave "{selectedTeam.name}"?</h3>
+              <p className="text-xs text-zinc-500 dark:text-zinc-400 mb-6 leading-normal">
+                You will lose access to this team's workspace, hackathon tracking history, and stage logs. You can only re-join if the owner sends a new invitation.
+              </p>
+              <div className="flex gap-2.5">
+                <button onClick={() => setShowLeaveModal(false)} className="btn btn-secondary flex-1">Cancel</button>
+                <button onClick={handleLeaveTeam} disabled={leaveTeamLoading} className="btn btn-danger flex-1">
+                  {leaveTeamLoading ? <LogoTransition width={28} height={18} loop={true} /> : "Leave team"}
+                </button>
+              </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
+
+
 
       {/* ───────────────────────────────────────────────────────────────────────────── */}
       {/* CREATE TEAM MODAL */}
