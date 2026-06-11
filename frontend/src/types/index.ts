@@ -55,15 +55,17 @@ export interface Team {
 	name: string;
 	owner: UserLite;
 	members: UserLite[];
+	code?: string;
 	createdAt: string;
 	updatedAt: string;
 }
 
 export interface TeamInvitation {
   _id: string;
-  team: string;
+  team: string | any;
   invitedBy: UserLite;
-  invitedEmail: string;
+  invitedEmail?: string;
+  invitedUser?: UserLite;
   token: string;
   status: 'pending' | 'accepted' | 'declined' | 'expired';
   expiresAt: string;

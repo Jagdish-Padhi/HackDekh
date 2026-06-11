@@ -229,6 +229,13 @@ export default function TeamsPage() {
   const [memberGithubEmail, setMemberGithubEmail] = useState("");
   const [memberGithubLink, setMemberGithubLink] = useState<GeneratedInvitationLink | null>(null);
 
+  // Direct In-App Invite Form States
+  const [directInviteSearchText, setDirectInviteSearchText] = useState("");
+  const [directInviteLoading, setDirectInviteLoading] = useState(false);
+  const [directInviteResults, setDirectInviteResults] = useState<UserLite[]>([]);
+  const [directInviteSelectedUser, setDirectInviteSelectedUser] = useState<UserLite | null>(null);
+  const [regeneratingCode, setRegeneratingCode] = useState(false);
+
   // Deletion verification states
   const [showDeleteConfirmModal, setShowDeleteConfirmModal] = useState(false);
   const [deleteConfirmInput, setDeleteConfirmInput] = useState("");
@@ -528,7 +535,59 @@ export default function TeamsPage() {
     }
   };
 
-  // Join Team via Token / URL
+  const handleRegenerateCode = async () => {
+    if (!selectedTeam) return;
+    setRegeneratingCode(true);
+    try {
+      const updated = await teamApi.regenerateTeamCode(selectedTeam._id);
+      setSelectedTeam(updated);
+      showToast("Join code regenerated successfully!", "success");
+      setTeams(teams.map(t => t._id === updated._id ? updated : t));
+    } catch (err: any) {
+      console.error(err);
+      showToast(err.response?.data?.message || "Failed to regenerate join code.", "error");
+    } finally {
+      setRegeneratingCode(false);
+    }
+  };
+
+  const handleDirectInviteSearch = async (query: string) => {
+    setDirectInviteSearchText(query);
+    if (!query.trim()) {
+      setDirectInviteResults([]);
+      return;
+    }
+    setDirectInviteLoading(true);
+    try {
+      const results = await userApi.searchUsers(query.trim());
+      const memberIds = selectedTeam ? selectedTeam.members.map(m => m._id) : [];
+      if (selectedTeam) memberIds.push(selectedTeam.owner._id);
+      const filtered = results.filter(u => !memberIds.includes(u._id));
+      setDirectInviteResults(filtered);
+    } catch (err) {
+      console.error("Failed to search users", err);
+    } finally {
+      setDirectInviteLoading(false);
+    }
+  };
+
+  const handleSendDirectInvite = async (targetUserId: string) => {
+    if (!selectedTeam) return;
+    setSavingTeam(true);
+    try {
+      await teamApi.inviteUserDirect(selectedTeam._id, targetUserId);
+      showToast("In-app invitation sent successfully!", "success");
+      setDirectInviteSearchText("");
+      setDirectInviteResults([]);
+    } catch (err: any) {
+      console.error(err);
+      showToast(err.response?.data?.message || "Failed to send invitation.", "error");
+    } finally {
+      setSavingTeam(false);
+    }
+  };
+
+  // Join Team via Token / URL / Join Code
   const handleJoinTeam = async () => {
     let inputToken = joinTokenInput.trim();
     if (!inputToken) return;
@@ -546,19 +605,22 @@ export default function TeamsPage() {
     }
 
     try {
-      const joinedTeam = await teamApi.acceptInvitationLink(inputToken);
+      let joinedTeam;
+      if (inputToken.length === 6 && /^[a-zA-Z0-9]+$/.test(inputToken)) {
+        joinedTeam = await teamApi.joinTeamByCode(inputToken.toUpperCase());
+      } else {
+        joinedTeam = await teamApi.acceptInvitationLink(inputToken);
+      }
       setWorkspaceMessage(`Successfully joined team: "${joinedTeam.name}"!`);
       
-      // Reload teams
       await loadTeams();
       setSelectedTeamId(joinedTeam._id);
       
-      // Reset modal state
       setJoinTokenInput("");
       setShowJoinModal(false);
     } catch (err: any) {
       console.error(err);
-      setJoinError(err.response?.data?.message || "Failed to join team. Make sure the token is valid.");
+      setJoinError(err.response?.data?.message || "Failed to join team. Make sure the token or code is valid.");
     } finally {
       setSavingTeam(false);
     }
@@ -2249,6 +2311,47 @@ export default function TeamsPage() {
                                 </div>
                               </div>
 
+                              {/* Join Code */}
+                              <div className="flex flex-col sm:flex-row sm:items-start gap-3 sm:gap-6 pb-5 border-b border-zinc-100 dark:border-zinc-800">
+                                <div className="sm:w-40 shrink-0">
+                                  <label className="text-sm font-semibold text-zinc-700 dark:text-zinc-300 block">Join Code</label>
+                                  <p className="text-xs text-zinc-400 dark:text-zinc-500 mt-0.5">Quick team joining code.</p>
+                                </div>
+                                <div className="flex-1 space-y-3">
+                                  <div className="flex items-center gap-3">
+                                    <div className="bg-zinc-100 dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-xl px-4 py-2 font-mono text-sm tracking-wider font-extrabold text-zinc-855 dark:text-zinc-100">
+                                      {selectedTeam.code || "------"}
+                                    </div>
+                                    <button
+                                      type="button"
+                                      onClick={async () => {
+                                        if (selectedTeam.code) {
+                                          await navigator.clipboard.writeText(selectedTeam.code);
+                                          showToast("Join code copied!", "success");
+                                        }
+                                      }}
+                                      disabled={!selectedTeam.code}
+                                      className="btn btn-secondary py-2 px-3 text-xs w-auto h-auto min-w-[70px]"
+                                    >
+                                      Copy
+                                    </button>
+                                    {isOwner && (
+                                      <button
+                                        type="button"
+                                        onClick={handleRegenerateCode}
+                                        disabled={regeneratingCode}
+                                        className="btn btn-ghost py-2 px-3 text-xs text-blue-600 dark:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-950/20 w-auto h-auto"
+                                      >
+                                        {regeneratingCode ? "Regenerating..." : "Regenerate"}
+                                      </button>
+                                    )}
+                                  </div>
+                                  <p className="text-[11px] text-zinc-450 dark:text-zinc-550 leading-normal">
+                                    Teammates can enter this 6-character code on their dashboard / join screen to immediately join this team.
+                                  </p>
+                                </div>
+                              </div>
+
                               {/* Metadata */}
                               <div className="flex flex-col sm:flex-row sm:items-start gap-3 sm:gap-6 pb-5 border-b border-zinc-100 dark:border-zinc-800">
                                 <div className="sm:w-40 shrink-0">
@@ -2361,46 +2464,105 @@ export default function TeamsPage() {
                               {isOwner ? "Generate invite links and view pending invitations." : "View pending invitations for this team."}
                             </p>
 
-                            {/* Generate invite (owner only) */}
-                            {isOwner && (
-                              <div className="pb-6 mb-6 border-b border-zinc-100 dark:border-zinc-800">
-                                <p className="text-xs font-bold uppercase tracking-wider text-zinc-500 dark:text-zinc-400 mb-3">Generate Invite Link</p>
-                                <div className="flex gap-2">
-                                  <input
-                                    type="email"
-                                    value={inviteEmail}
-                                    onChange={e => setInviteEmail(e.target.value)}
-                                    placeholder="teammate@example.com"
-                                    className={`${settingsInputCls} flex-1`}
-                                    onKeyDown={e => e.key === 'Enter' && handleInvite()}
-                                  />
-                                  <button
-                                    onClick={handleInvite}
-                                    disabled={savingTeam || !inviteEmail.trim()}
-                                    className="btn btn-primary shrink-0"
-                                  >
-                                    {savingTeam ? <LogoTransition width={28} height={18} loop={true} /> : null}
-                                    Send invite
-                                  </button>
-                                </div>
+                             {/* In-App Direct Invite (owner only) */}
+                             {isOwner && (
+                               <div className="pb-6 mb-6 border-b border-zinc-100 dark:border-zinc-800 space-y-4">
+                                 <div>
+                                   <p className="text-xs font-bold uppercase tracking-wider text-zinc-500 dark:text-zinc-400 mb-1">Direct Team Invite</p>
+                                   <p className="text-[11px] text-zinc-400 dark:text-zinc-500">Search and invite active HackDekh developers directly.</p>
+                                 </div>
+                                 <div className="relative">
+                                   <div className="flex gap-2">
+                                     <input
+                                       type="text"
+                                       value={directInviteSearchText}
+                                       onChange={e => handleDirectInviteSearch(e.target.value)}
+                                       placeholder="Search by username or email..."
+                                       className={`${settingsInputCls} flex-1`}
+                                     />
+                                     {directInviteLoading && (
+                                       <div className="absolute right-3 top-1/2 -translate-y-1/2">
+                                         <LogoTransition width={24} height={16} loop={true} />
+                                       </div>
+                                     )}
+                                   </div>
 
-                                {/* Generated link */}
-                                {inviteLink && (
-                                  <div className="mt-3 rounded-xl border border-emerald-200 bg-emerald-50/50 dark:border-emerald-900/40 dark:bg-emerald-950/10 p-3 flex items-center gap-3">
-                                    <div className="flex-1 min-w-0">
-                                      <p className="text-[10px] font-bold uppercase tracking-wider text-emerald-600 dark:text-emerald-400 mb-0.5">Invite link generated</p>
-                                      <p className="text-xs text-zinc-600 dark:text-zinc-400 font-mono truncate">{inviteLink.invitationLink}</p>
-                                      <p className="text-[10px] text-zinc-400 dark:text-zinc-500 mt-0.5">
-                                        For: {inviteLink.invitedEmail} · Expires: {formatDate(inviteLink.expiresAt)}
-                                      </p>
-                                    </div>
-                                    <button onClick={handleCopyInvite} className="btn btn-secondary btn-sm shrink-0">
-                                      <Copy className="h-3.5 w-3.5" /> Copy
-                                    </button>
-                                  </div>
-                                )}
-                              </div>
-                            )}
+                                   {/* Direct Invite Autocomplete Results */}
+                                   {directInviteResults.length > 0 && (
+                                     <div className="absolute left-0 right-0 mt-2 z-50 rounded-xl border border-zinc-200 bg-white p-2 shadow-xl dark:border-zinc-800 dark:bg-zinc-950 max-h-52 overflow-y-auto space-y-1">
+                                       {directInviteResults.map(user => (
+                                         <div
+                                           key={user._id}
+                                           className="flex items-center justify-between p-2 hover:bg-zinc-50 dark:hover:bg-zinc-900/60 rounded-lg transition"
+                                         >
+                                           <div className="min-w-0">
+                                             <p className="text-xs font-bold text-zinc-900 dark:text-zinc-100 truncate">
+                                               {user.fullName || user.username}
+                                             </p>
+                                             <p className="text-[10px] text-zinc-500 dark:text-zinc-400 truncate">
+                                               @{user.username} · {user.email}
+                                             </p>
+                                           </div>
+                                           <button
+                                             type="button"
+                                             onClick={() => handleSendDirectInvite(user._id)}
+                                             disabled={savingTeam}
+                                             className="px-2.5 py-1 bg-blue-600 hover:bg-blue-500 text-white rounded-lg text-[10px] font-bold transition cursor-pointer"
+                                           >
+                                             Invite
+                                           </button>
+                                         </div>
+                                       ))}
+                                     </div>
+                                   )}
+
+                                   {directInviteSearchText.trim() && !directInviteLoading && directInviteResults.length === 0 && (
+                                     <p className="text-[11px] text-rose-500 font-medium mt-1">No users found matching query.</p>
+                                   )}
+                                 </div>
+                               </div>
+                             )}
+
+                             {/* Generate legacy invite link (owner only) */}
+                             {isOwner && (
+                               <div className="pb-6 mb-6 border-b border-zinc-100 dark:border-zinc-800">
+                                 <p className="text-xs font-bold uppercase tracking-wider text-zinc-500 dark:text-zinc-400 mb-1">Generate Invite Link</p>
+                                 <p className="text-[11px] text-zinc-400 dark:text-zinc-500 mb-3">Or create a shareable invitation link for email delivery.</p>
+                                 <div className="flex gap-2">
+                                   <input
+                                     type="email"
+                                     value={inviteEmail}
+                                     onChange={e => setInviteEmail(e.target.value)}
+                                     placeholder="teammate@example.com"
+                                     className={`${settingsInputCls} flex-1`}
+                                     onKeyDown={e => e.key === 'Enter' && handleInvite()}
+                                   />
+                                   <button
+                                     onClick={handleInvite}
+                                     disabled={savingTeam || !inviteEmail.trim()}
+                                     className="btn btn-primary shrink-0"
+                                   >
+                                     {savingTeam ? <LogoTransition width={28} height={18} loop={true} /> : null}
+                                     Send invite
+                                   </button>
+                                 </div>
+
+                                 {inviteLink && (
+                                   <div className="mt-3 rounded-xl border border-emerald-200 bg-emerald-50/50 dark:border-emerald-900/40 dark:bg-emerald-950/10 p-3 flex items-center gap-3">
+                                     <div className="flex-1 min-w-0">
+                                       <p className="text-[10px] font-bold uppercase tracking-wider text-emerald-600 dark:text-emerald-400 mb-0.5">Invite link generated</p>
+                                       <p className="text-xs text-zinc-600 dark:text-zinc-400 font-mono truncate">{inviteLink.invitationLink}</p>
+                                       <p className="text-[10px] text-zinc-400 dark:text-zinc-500 mt-0.5">
+                                         For: {inviteLink.invitedEmail} · Expires: {formatDate(inviteLink.expiresAt)}
+                                       </p>
+                                     </div>
+                                     <button onClick={handleCopyInvite} className="btn btn-secondary btn-sm shrink-0">
+                                       <Copy className="h-3.5 w-3.5" /> Copy
+                                     </button>
+                                   </div>
+                                 )}
+                               </div>
+                             )}
 
                             {/* Invitations list */}
                             <div>
@@ -2724,16 +2886,16 @@ export default function TeamsPage() {
 
               <h3 className="text-lg font-black text-zinc-900 dark:text-white leading-none mb-3">Join Team</h3>
               <p className="text-xs text-zinc-500 dark:text-zinc-400 mb-4 leading-normal">
-                Paste the invitation link or token code you received from the team leader.
+                Enter the 6-character Join Code (e.g. 9D3F8A) or paste the invitation link you received.
               </p>
 
               <div className="space-y-4">
                 <div className="space-y-1.5">
-                  <label className="text-xs font-bold uppercase tracking-wider text-zinc-500 dark:text-zinc-400">Invite Code / Link</label>
+                  <label className="text-xs font-bold uppercase tracking-wider text-zinc-500 dark:text-zinc-400">Join Code / Link</label>
                   <input
                     value={joinTokenInput}
                     onChange={(event) => setJoinTokenInput(event.target.value)}
-                    placeholder="e.g. accept-invitation?token=..."
+                    placeholder="e.g. 9D3F8A or accept-invitation?token=..."
                     className="w-full rounded-lg border border-zinc-200 bg-zinc-50/50 px-3.5 py-2.5 text-sm text-zinc-800 outline-none transition focus:border-blue-400 dark:border-zinc-800 dark:bg-zinc-950 dark:text-zinc-200"
                   />
                 </div>

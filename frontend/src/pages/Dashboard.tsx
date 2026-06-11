@@ -27,7 +27,7 @@ import { useAuth, useCache, useToast } from "../context";
 import { usePageChrome } from "../context/pageChrome";
 import HackathonCard from "../components/HackathonCard";
 import { teamApi, userApi } from "../services";
-import type { HackathonLite, Stage, Team, TeamHackathon } from "../types";
+import type { HackathonLite, Stage, Team, TeamHackathon, TeamInvitation } from "../types";
 import LogoTransition from "../components/LogoAnimation";
 
 type SavedHackathon = HackathonLite;
@@ -149,6 +149,8 @@ export default function DashboardPage() {
   const [savedHackathons, setSavedHackathons] = useState<SavedHackathon[]>(dashboardData?.savedHackathons || []);
   const [participations, setParticipations] = useState<Participation[]>(dashboardData?.participations || []);
   const [pendingReflections, setPendingReflections] = useState<Stage[]>(dashboardData?.pendingReflections || []);
+  const [incomingInvites, setIncomingInvites] = useState<TeamInvitation[]>([]);
+  const [invitesLoading, setInvitesLoading] = useState(false);
   const [loadingData, setLoadingData] = useState(!dashboardData);
   const [trackerSubFilter, setTrackerSubFilter] = useState<"tracking" | "registered" | "finished">( "tracking");
   const [overviewFilter, setOverviewFilter] = useState<"all" | "won" | "finalist" | "eliminated">("all");
@@ -230,19 +232,47 @@ export default function DashboardPage() {
     }
   }, [setDashboardData]);
 
+  const loadIncomingInvites = useCallback(async () => {
+    setInvitesLoading(true);
+    try {
+      const data = await teamApi.getUserInvitations();
+      setIncomingInvites(data);
+    } catch (err) {
+      console.error("Failed to load incoming invitations:", err);
+    } finally {
+      setInvitesLoading(false);
+    }
+  }, []);
+
+  const handleRespondInvite = async (invitationId: string, action: 'accept' | 'decline') => {
+    try {
+      await teamApi.respondToInvitation(invitationId, action);
+      showToast(`Invitation ${action}ed successfully!`, "success");
+      await loadIncomingInvites();
+      await loadDashboardData(true);
+    } catch (err: any) {
+      console.error(err);
+      showToast(err.response?.data?.message || `Failed to ${action} invitation.`, "error");
+    }
+  };
+
   useEffect(() => {
     const isInitialMount = isInitialMountRef.current;
     isInitialMountRef.current = false;
 
     loadDashboardData(isInitialMount && !!dashboardData);
+    loadIncomingInvites();
 
-    const onFocus = () => loadDashboardData(true);
+    const onFocus = () => {
+      loadDashboardData(true);
+      loadIncomingInvites();
+    };
     window.addEventListener("focus", onFocus);
 
     return () => {
       window.removeEventListener("focus", onFocus);
     };
-  }, [loadDashboardData]);
+  }, [loadDashboardData, loadIncomingInvites]);
 
   useEffect(() => {
     if (participations.length > 0) {
@@ -914,6 +944,56 @@ export default function DashboardPage() {
 
                 {/* Reflections Column */}
                 <div className="space-y-6">
+                  {/* Incoming Team Invitations */}
+                  {incomingInvites.length > 0 && (
+                    <div className="rounded-3xl border border-blue-500/20 bg-blue-500/5 p-6 dark:bg-blue-500/10 space-y-4">
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-2">
+                          <Users className="h-5 w-5 text-blue-600 dark:text-blue-400" />
+                          <h3 className="text-sm font-extrabold text-zinc-900 dark:text-zinc-100 uppercase tracking-wider">Team Invitations</h3>
+                        </div>
+                        <span className="rounded-full bg-blue-500/15 px-2 py-0.5 text-[10px] font-bold text-blue-600 dark:text-blue-400">
+                          {incomingInvites.length} new
+                        </span>
+                      </div>
+
+                      <div className="space-y-3">
+                        {incomingInvites.map((invite) => (
+                          <div
+                            key={invite._id}
+                            className="bg-white dark:bg-zinc-900/60 rounded-2xl border border-zinc-200 dark:border-zinc-850 p-4 shadow-sm space-y-3"
+                          >
+                            <div className="min-w-0">
+                              <p className="text-xs text-zinc-550 dark:text-zinc-400 leading-normal">
+                                Invited to join <strong className="text-zinc-850 dark:text-zinc-250 font-extrabold">{invite.team?.name}</strong>
+                              </p>
+                              <p className="text-[10px] text-zinc-450 dark:text-zinc-500 mt-0.5">
+                                By {invite.invitedBy?.fullName || invite.invitedBy?.username} (@{invite.invitedBy?.username})
+                              </p>
+                            </div>
+
+                            <div className="flex gap-2">
+                              <button
+                                type="button"
+                                onClick={() => handleRespondInvite(invite._id, 'accept')}
+                                className="flex-1 inline-flex items-center justify-center gap-1.5 rounded-xl bg-blue-600 text-white px-3 py-1.5 text-xs font-bold transition hover:bg-blue-500 cursor-pointer animate-pulse-subtle"
+                              >
+                                Accept
+                              </button>
+                              <button
+                                type="button"
+                                onClick={() => handleRespondInvite(invite._id, 'decline')}
+                                className="flex-1 inline-flex items-center justify-center gap-1.5 rounded-xl border border-zinc-200 bg-white text-zinc-650 dark:border-zinc-800 dark:bg-zinc-950 dark:text-zinc-450 px-3 py-1.5 text-xs font-bold transition hover:bg-zinc-50 dark:hover:bg-zinc-900 cursor-pointer"
+                              >
+                                Decline
+                              </button>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
                   {/* Reflection Warnings Panel */}
                   <div id="pending-reflections-panel" className="rounded-3xl border border-amber-500/20 bg-amber-500/5 p-6 dark:bg-amber-500/10">
                     <div className="flex items-center gap-2 mb-3">

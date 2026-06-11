@@ -6,6 +6,7 @@ import type {
   InvitationPreview,
   TeamHackathon,
   Stage,
+  UserLite,
 } from '../types';
 
 interface ApiResponse<T> {
@@ -160,11 +161,47 @@ export const teamApi = {
     const response = await axiosInstance.delete<ApiResponse<Team>>(`/teams/${teamId}`);
     return unwrap(response);
   },
+
+  joinTeamByCode: async (code: string): Promise<Team> => {
+    const response = await axiosInstance.post<ApiResponse<Team>>('/teams/join', { code });
+    return unwrap(response);
+  },
+
+  regenerateTeamCode: async (teamId: string): Promise<Team> => {
+    const response = await axiosInstance.post<ApiResponse<Team>>(`/teams/${teamId}/regenerate-code`);
+    return unwrap(response);
+  },
+
+  inviteUserDirect: async (teamId: string, userIdOrUsername: string): Promise<TeamInvitation> => {
+    const response = await axiosInstance.post<ApiResponse<TeamInvitation>>(`/teams/${teamId}/invitations/user`, {
+      userIdOrUsername,
+    });
+    return unwrap(response);
+  },
+
+  getUserInvitations: async (): Promise<TeamInvitation[]> => {
+    const response = await axiosInstance.get<ApiResponse<TeamInvitation[]>>('/teams/user/invitations');
+    return unwrap(response);
+  },
+
+  respondToInvitation: async (invitationId: string, action: 'accept' | 'decline'): Promise<any> => {
+    const response = await axiosInstance.post<ApiResponse<any>>(`/teams/user/invitations/${invitationId}/respond`, {
+      action,
+    });
+    return unwrap(response);
+  },
 };
 
 export const userApi = {
   getPendingReflections: async (): Promise<Stage[]> => {
     const response = await axiosInstance.get<ApiResponse<Stage[]>>('/users/pending-reflections');
+    return unwrap(response);
+  },
+
+  searchUsers: async (query: string): Promise<UserLite[]> => {
+    const response = await axiosInstance.get<ApiResponse<UserLite[]>>('/users/search', {
+      params: { query },
+    });
     return unwrap(response);
   },
 };
