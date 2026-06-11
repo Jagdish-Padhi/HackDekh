@@ -184,7 +184,7 @@ const Shell = ({ children }: MainLayoutProps) => {
                 <button
                     type="button"
                     onClick={handleBackToTop}
-                    className={`fixed bottom-5 right-4 z-50 inline-flex h-12 w-12 items-center justify-center rounded-full border border-blue-500/30 bg-blue-600 text-white shadow-lg shadow-blue-600/20 transition-all duration-200 hover:-translate-y-0.5 hover:bg-blue-500 hover:shadow-xl dark:border-blue-400/30 dark:bg-blue-500 dark:shadow-blue-500/20 dark:hover:bg-blue-400 lg:hidden ${showBackToTop ? 'translate-y-0 opacity-100' : 'pointer-events-none translate-y-2 opacity-0'}`}
+                    className={`fixed bottom-5 right-4 z-50 inline-flex h-12 w-12 items-center justify-center rounded-full border border-blue-500/30 bg-blue-600 text-white shadow-lg shadow-blue-600/20 transition-all duration-200 hover:-translate-y-0.5 hover:bg-blue-500 hover:shadow-xl dark:border-blue-400/30 dark:bg-blue-500 dark:shadow-blue-500/20 dark:hover:bg-blue-400 ${showBackToTop ? 'translate-y-0 opacity-100' : 'pointer-events-none translate-y-2 opacity-0'}`}
                     aria-label="Back to top"
                     title="Back to top"
                 >
@@ -208,7 +208,7 @@ const Shell = ({ children }: MainLayoutProps) => {
             <button
                 type="button"
                 onClick={handleBackToTop}
-                className={`fixed bottom-5 right-4 z-50 inline-flex h-12 w-12 items-center justify-center rounded-full border border-blue-500/30 bg-blue-600 text-white shadow-lg shadow-blue-600/20 transition-all duration-200 hover:-translate-y-0.5 hover:bg-blue-500 hover:shadow-xl dark:border-blue-400/30 dark:bg-blue-500 dark:shadow-blue-500/20 dark:hover:bg-blue-400 lg:hidden ${showBackToTop ? 'translate-y-0 opacity-100' : 'pointer-events-none translate-y-2 opacity-0'}`}
+                className={`fixed bottom-5 right-4 z-50 inline-flex h-12 w-12 items-center justify-center rounded-full border border-blue-500/30 bg-blue-600 text-white shadow-lg shadow-blue-600/20 transition-all duration-200 hover:-translate-y-0.5 hover:bg-blue-500 hover:shadow-xl dark:border-blue-400/30 dark:bg-blue-500 dark:shadow-blue-500/20 dark:hover:bg-blue-400 ${showBackToTop ? 'translate-y-0 opacity-100' : 'pointer-events-none translate-y-2 opacity-0'}`}
                 aria-label="Back to top"
                 title="Back to top"
             >
