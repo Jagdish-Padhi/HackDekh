@@ -150,7 +150,6 @@ export default function DashboardPage() {
   const [participations, setParticipations] = useState<Participation[]>(dashboardData?.participations || []);
   const [pendingReflections, setPendingReflections] = useState<Stage[]>(dashboardData?.pendingReflections || []);
   const [incomingInvites, setIncomingInvites] = useState<TeamInvitation[]>([]);
-  const [invitesLoading, setInvitesLoading] = useState(false);
   const [loadingData, setLoadingData] = useState(!dashboardData);
   const [trackerSubFilter, setTrackerSubFilter] = useState<"tracking" | "registered" | "finished">( "tracking");
   const [overviewFilter, setOverviewFilter] = useState<"all" | "won" | "finalist" | "eliminated">("all");
@@ -233,14 +232,11 @@ export default function DashboardPage() {
   }, [setDashboardData]);
 
   const loadIncomingInvites = useCallback(async () => {
-    setInvitesLoading(true);
     try {
       const data = await teamApi.getUserInvitations();
       setIncomingInvites(data);
     } catch (err) {
       console.error("Failed to load incoming invitations:", err);
-    } finally {
-      setInvitesLoading(false);
     }
   }, []);
 
@@ -998,23 +994,23 @@ export default function DashboardPage() {
                   <div id="pending-reflections-panel" className="rounded-3xl border border-amber-500/20 bg-amber-500/5 p-6 dark:bg-amber-500/10">
                     <div className="flex items-center gap-2 mb-3">
                       <AlertTriangle className="h-5 w-5 text-amber-600 dark:text-amber-400" />
-                      <h3 className="text-sm font-extrabold text-zinc-900 dark:text-zinc-100 uppercase tracking-wider">Pending Reflections</h3>
+                      <h3 className="text-sm font-extrabold text-zinc-900 dark:text-zinc-100 uppercase tracking-wider">Milestone Review Notes</h3>
                     </div>
 
                     {pendingReflections.length === 0 ? (
                       <p className="text-xs text-zinc-600 dark:text-zinc-400 leading-normal">
-                        Excellent work! You have no pending timeline reflection entries.
+                        Excellent! You have written progress notes for all milestones.
                       </p>
                     ) : (
                       <div className="space-y-4">
                         <p className="text-xs text-zinc-600 dark:text-zinc-400 leading-normal">
-                          Submit notes or feedback regarding your performance in completed phases to close them out.
+                          Log your lessons, challenges, and progress notes for completed milestones to keep your workspace updated.
                         </p>
                         
                         {pendingReflections.map((stage) => {
                           const isReflecting = activeReflectionStageId === stage._id;
                           return (
-                            <div key={stage._id} className="p-3 bg-white dark:bg-zinc-950 rounded-2xl border border-amber-500/20">
+                            <div key={stage._id} className="p-3 bg-white dark:bg-zinc-955 rounded-2xl border border-amber-500/20">
                               <Link 
                                 to={
                                   stage.teamHackathon && typeof stage.teamHackathon === "object" && stage.teamHackathon.team
@@ -1036,14 +1032,14 @@ export default function DashboardPage() {
                                   }}
                                   className="mt-2.5 text-[10px] font-bold text-blue-600 dark:text-blue-400 hover:underline inline-flex items-center gap-0.5"
                                 >
-                                  Submit Reflection <ChevronRight className="h-3 w-3" />
+                                  Write Notes <ChevronRight className="h-3 w-3" />
                                 </button>
                               ) : (
                                 <div className="mt-2 space-y-2">
                                   <textarea
                                     value={reflectionDraft}
                                     onChange={(e) => setReflectionDraft(e.target.value)}
-                                    placeholder="Write notes on lessons, problems faced, or team status..."
+                                    placeholder="What went well? What obstacles did you encounter? What is the team status?"
                                     className="w-full min-h-[60px] p-2 text-[11px] rounded-lg border border-zinc-200 dark:border-zinc-800 bg-zinc-50 dark:bg-zinc-900 text-zinc-800 dark:text-zinc-200 outline-none"
                                   />
                                   <div className="flex justify-end gap-1.5">

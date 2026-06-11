@@ -7,9 +7,6 @@ import {
   Copy,
   ExternalLink,
   Plus,
-  Save,
-  Settings,
-  Shield,
   Trash2,
   Users,
   CalendarRange,
@@ -21,14 +18,20 @@ import {
   X,
   Github,
   Star,
-  AlertTriangle
+  AlertTriangle,
+  RotateCcw,
+  Check,
+  Mail,
+  UserPlus,
+  Key,
+  Sparkles
 } from "lucide-react";
 import { useAuth, useCache, useToast } from "../context";
 import { usePageChrome } from "../context/pageChrome";
-import { teamApi } from "../services";
+import { teamApi, userApi } from "../services";
 import LogoTransition from "../components/LogoAnimation";
 import AppDropdown from "../components/AppDropdown";
-import type { GeneratedInvitationLink, Team, TeamHackathon, Stage, TeamInvitation } from "../types";
+import type { GeneratedInvitationLink, Team, TeamHackathon, Stage, TeamInvitation, UserLite } from "../types";
 import { motion, AnimatePresence } from "framer-motion";
 
 // ─── Filter option definitions ────────────────────────────────────────────────
@@ -221,20 +224,16 @@ export default function TeamsPage() {
   const [stageSaving, setStageSaving] = useState<Record<string, "saved" | "saving" | "error">>({});
   const [stripSort, setStripSort] = useState<'most_qualified' | 'latest' | 'oldest'>('latest');
 
-  // Members Tab GitHub invite form states
-  const [memberGithubText, setMemberGithubText] = useState("");
-  const [memberGithubLoading, setMemberGithubLoading] = useState(false);
-  const [memberGithubError, setMemberGithubError] = useState("");
-  const [memberGithubUser, setMemberGithubUser] = useState<any | null>(null);
-  const [memberGithubEmail, setMemberGithubEmail] = useState("");
-  const [memberGithubLink, setMemberGithubLink] = useState<GeneratedInvitationLink | null>(null);
-
   // Direct In-App Invite Form States
   const [directInviteSearchText, setDirectInviteSearchText] = useState("");
   const [directInviteLoading, setDirectInviteLoading] = useState(false);
   const [directInviteResults, setDirectInviteResults] = useState<UserLite[]>([]);
-  const [directInviteSelectedUser, setDirectInviteSelectedUser] = useState<UserLite | null>(null);
   const [regeneratingCode, setRegeneratingCode] = useState(false);
+  
+  // UI states for Members Tab
+  const [rosterSearchQuery, setRosterSearchQuery] = useState("");
+  const [inviteTab, setInviteTab] = useState<'direct' | 'code' | 'email'>('direct');
+  const [copiedCode, setCopiedCode] = useState(false);
 
   // Deletion verification states
   const [showDeleteConfirmModal, setShowDeleteConfirmModal] = useState(false);
@@ -355,13 +354,10 @@ export default function TeamsPage() {
         setTeamParticipations(mapped);
         
         // Update local map as well
-        setAllParticipations(prev => {
-          const next = { ...prev, [teamId]: participations };
-          setTeamsData({
-            teams,
-            allParticipations: next,
-          });
-          return next;
+        setAllParticipations(prev => ({ ...prev, [teamId]: participations }));
+        setTeamsData({
+          teams,
+          allParticipations: { ...allParticipations, [teamId]: participations },
         });
       } else {
         setTeamParticipations([]);
@@ -449,6 +445,12 @@ export default function TeamsPage() {
       return () => clearTimeout(timer);
     }
   }, [activeTab, selectedParticipationId, searchParams]);
+
+  useEffect(() => {
+    if (selectedTeamId && activeTab === "Members") {
+      loadTeamInvitations();
+    }
+  }, [selectedTeamId, activeTab]);
 
   // GitHub User Lookup
   const handleGithubSearch = async () => {
@@ -540,7 +542,6 @@ export default function TeamsPage() {
     setRegeneratingCode(true);
     try {
       const updated = await teamApi.regenerateTeamCode(selectedTeam._id);
-      setSelectedTeam(updated);
       showToast("Join code regenerated successfully!", "success");
       setTeams(teams.map(t => t._id === updated._id ? updated : t));
     } catch (err: any) {
@@ -815,67 +816,6 @@ export default function TeamsPage() {
   const handleCopyInvite = async () => {
     if (!inviteLink?.invitationLink) return;
     await navigator.clipboard.writeText(inviteLink.invitationLink);
-    setWorkspaceMessage("Invitation link copied to clipboard.");
-  };
-
-  // GitHub User Lookup for Members tab
-  const handleMemberGithubSearch = async () => {
-    const query = memberGithubText.trim();
-    if (!query) return;
-    setMemberGithubLoading(true);
-    setMemberGithubError("");
-    setMemberGithubUser(null);
-    try {
-      const res = await fetch(`https://api.github.com/users/${query}`);
-      if (res.ok) {
-        const data = await res.json();
-        setMemberGithubUser(data);
-      } else {
-        setMemberGithubUser({
-          login: query,
-          name: query.replace(/-/g, " "),
-          avatar_url: `https://api.dicebear.com/7.x/identicon/svg?seed=${query}`,
-          bio: "GitHub Developer",
-          public_repos: 5,
-        });
-      }
-    } catch {
-      setMemberGithubUser({
-        login: query,
-        name: query.replace(/-/g, " "),
-        avatar_url: `https://api.dicebear.com/7.x/identicon/svg?seed=${query}`,
-        bio: "Mock developer profile",
-        public_repos: 3,
-      });
-    } finally {
-      setMemberGithubLoading(false);
-    }
-  };
-
-  const handleMemberGithubInvite = async () => {
-    if (!selectedTeam || !memberGithubEmail.trim() || !memberGithubUser) return;
-    setSavingTeam(true);
-    setWorkspaceMessage(null);
-    setWorkspaceError(null);
-    try {
-      const link = await teamApi.generateInvitationLink(selectedTeam._id, memberGithubEmail.trim());
-      setMemberGithubLink(link);
-      // Reset search inputs
-      setMemberGithubText("");
-      setMemberGithubUser(null);
-      setMemberGithubEmail("");
-      setWorkspaceMessage(`Invitation link generated successfully for @${memberGithubUser.login}.`);
-    } catch (error: any) {
-      console.error("Failed to generate invite link", error);
-      setWorkspaceError(error.response?.data?.message || "Failed to generate invitation link.");
-    } finally {
-      setSavingTeam(false);
-    }
-  };
-
-  const handleCopyMemberInvite = async () => {
-    if (!memberGithubLink?.invitationLink) return;
-    await navigator.clipboard.writeText(memberGithubLink.invitationLink);
     setWorkspaceMessage("Invitation link copied to clipboard.");
   };
 
@@ -1884,150 +1824,490 @@ export default function TeamsPage() {
                 </div>
               )}
 
-              {/* 2. MEMBERS TAB: Teammate Listing & Generating Invitations */}
-              {activeTab === "Members" && (
-                <div className="grid gap-6 lg:grid-cols-[1fr_320px] items-start">
-                  {/* Left: roster list */}
-                  <div className="space-y-4">
-                    <div className="flex items-center justify-between border-b border-zinc-150 dark:border-zinc-800 pb-2.5">
-                      <h3 className="text-xs font-bold uppercase tracking-wider text-zinc-400 dark:text-zinc-500">Roster</h3>
-                      <span className="text-xs font-bold text-zinc-600 dark:text-zinc-400">{selectedTeam.members.length} members</span>
-                    </div>
-                    <div className="grid gap-3 sm:grid-cols-2">
-                      {selectedTeam.members.map((member) => (
-                        <div key={member._id} className="rounded-xl border border-zinc-200 bg-white p-3.5 dark:border-zinc-800 dark:bg-zinc-900/60 flex items-center gap-3 shadow-xs hover:border-zinc-300 dark:hover:border-zinc-700 hover:shadow-sm transition-all duration-205">
-                          <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-blue-600/10 text-xs font-bold text-blue-700 dark:text-blue-400 uppercase">
-                            {(member.fullName || member.username || "U").slice(0, 2)}
-                          </div>
-                          <div className="min-w-0 flex-1">
-                            <p className="text-xs font-bold text-zinc-900 dark:text-white truncate">{member.fullName || member.username}</p>
-                            <p className="text-[10px] text-zinc-400 dark:text-zinc-500 truncate mt-0.5">{member.email}</p>
-                          </div>
+              {/* 2. MEMBERS TAB: Teammate Listing & Smart Access Control */}
+              {activeTab === "Members" && (() => {
+                const isOwner = selectedTeam.owner._id === user?._id;
+                const roster = [selectedTeam.owner, ...selectedTeam.members];
+                
+                // Filter roster by search query
+                const filteredRoster = roster.filter(member => {
+                  const name = (member.fullName || "").toLowerCase();
+                  const username = (member.username || "").toLowerCase();
+                  const email = (member.email || "").toLowerCase();
+                  const query = rosterSearchQuery.toLowerCase().trim();
+                  return name.includes(query) || username.includes(query) || email.includes(query);
+                });
+
+                return (
+                  <div className="space-y-8 animate-fade-in">
+                    {/* Welcome / Header Section */}
+                    <div className="bg-gradient-to-r from-blue-600/10 via-indigo-600/5 to-transparent border border-blue-500/15 dark:border-blue-500/10 rounded-2xl p-6 flex flex-col md:flex-row md:items-center justify-between gap-6">
+                      <div className="space-y-1">
+                        <div className="flex items-center gap-2">
+                          <span className="p-1.5 rounded-lg bg-blue-600/10 text-blue-600 dark:text-blue-400">
+                            <Users className="h-5 w-5" />
+                          </span>
+                          <h3 className="text-base font-extrabold text-zinc-900 dark:text-zinc-50 tracking-tight">Team Workspace</h3>
                         </div>
-                      ))}
-                    </div>
-                  </div>
-
-                  {/* Right: generate invite modules */}
-                  <div className="space-y-6">
-                    {/* Panel 1: Direct Email Invite */}
-                    <div className="space-y-4 rounded-xl border border-zinc-200 bg-white p-5 dark:border-zinc-800/60 dark:bg-zinc-900/60 shadow-xs">
-                      <div>
-                        <h3 className="text-xs font-bold uppercase tracking-wider text-zinc-700 dark:text-zinc-300">Invite teammate</h3>
-                        <p className="mt-1 text-[11px] text-zinc-500 dark:text-zinc-400">Generate an email-specific invitation token link.</p>
+                        <p className="text-xs text-zinc-500 dark:text-zinc-400 max-w-2xl leading-relaxed">
+                          Manage your team members, invite new teammates, and check hackathon registrations. Sharing this workspace syncs your stages and progress notes automatically.
+                        </p>
                       </div>
-                      <input
-                        value={inviteEmail}
-                        onChange={(event) => setInviteEmail(event.target.value)}
-                        type="email"
-                        placeholder="partner@example.com"
-                        className="w-full rounded-xl border border-zinc-200 bg-white px-3.5 py-2 text-sm text-zinc-800 outline-none transition focus:border-blue-400 dark:border-zinc-800 dark:bg-zinc-950 dark:text-zinc-200"
-                      />
-                      <button
-                        onClick={handleInvite}
-                        disabled={savingTeam || !inviteEmail.trim()}
-                        className="inline-flex w-full items-center justify-center gap-2 rounded-lg bg-blue-600 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-blue-500 disabled:cursor-not-allowed disabled:opacity-60 cursor-pointer"
-                      >
-                        {savingTeam ? <LogoTransition width={28} height={18} loop={true} /> : <Shield className="h-4 w-4" />}
-                        Generate Link
-                      </button>
-
-                      {inviteLink && (
-                        <div className="space-y-2.5 rounded-xl border border-zinc-200 bg-white p-3.5 dark:border-zinc-800 dark:bg-zinc-950/60 mt-2 shadow-xs">
-                          <p className="text-[10px] font-bold uppercase tracking-wider text-zinc-400 dark:text-zinc-500">Token Link</p>
-                          <p className="break-all text-[11px] text-zinc-600 dark:text-zinc-400 leading-normal">{inviteLink.invitationLink}</p>
-                          <div className="flex gap-2">
-                            <button
-                              onClick={handleCopyInvite}
-                              className="inline-flex items-center gap-1.5 rounded-lg border border-zinc-200 bg-white px-2.5 py-1.5 text-[11px] font-bold text-zinc-600 transition hover:bg-zinc-50 dark:border-zinc-800 dark:bg-zinc-950 dark:text-zinc-300 dark:hover:bg-zinc-900 cursor-pointer"
-                            >
-                              <Copy className="h-3.5 w-3.5" />
-                              Copy Link
-                            </button>
-                          </div>
+                      
+                      <div className="flex gap-3.5 shrink-0">
+                        <div className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-xl px-4 py-2.5 text-center min-w-[90px] shadow-sm">
+                          <p className="text-[10px] font-bold text-zinc-400 dark:text-zinc-500 uppercase tracking-wider">Team Size</p>
+                          <p className="text-lg font-black text-zinc-850 dark:text-zinc-100 mt-0.5">{roster.length}</p>
                         </div>
-                      )}
+                        <div className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-xl px-4 py-2.5 text-center min-w-[90px] shadow-sm">
+                          <p className="text-[10px] font-bold text-zinc-400 dark:text-zinc-500 uppercase tracking-wider">Pending</p>
+                          <p className="text-lg font-black text-zinc-850 dark:text-zinc-100 mt-0.5">
+                            {teamInvitations.filter(i => i.status === 'pending').length}
+                          </p>
+                        </div>
+                      </div>
                     </div>
 
-                    {/* Panel 2: GitHub Search Invite */}
-                    <div className="space-y-4 rounded-xl border border-zinc-200 bg-white p-5 dark:border-zinc-800/60 dark:bg-zinc-900/60 shadow-xs">
-                      <div>
-                        <h3 className="text-xs font-bold uppercase tracking-wider text-zinc-700 dark:text-zinc-300 flex items-center gap-1.5">
-                          <Github className="h-4 w-4 text-zinc-800 dark:text-white" />
-                          Invite via GitHub
-                        </h3>
-                        <p className="mt-1 text-[11px] text-zinc-500 dark:text-zinc-400">Search developer profiles on GitHub and invite them.</p>
-                      </div>
-
-                      <div className="flex gap-2">
-                        <input
-                          value={memberGithubText}
-                          onChange={(e) => setMemberGithubText(e.target.value)}
-                          placeholder="e.g. octocat"
-                          onKeyDown={(e) => {
-                            if (e.key === "Enter") handleMemberGithubSearch();
-                          }}
-                          className="flex-1 rounded-xl border border-zinc-200 bg-white px-3 py-1.5 text-xs text-zinc-800 outline-none transition focus:border-blue-400 dark:border-zinc-800 dark:bg-zinc-950 dark:text-zinc-200"
-                        />
-                        <button
-                          onClick={handleMemberGithubSearch}
-                          disabled={memberGithubLoading || !memberGithubText.trim()}
-                          className="inline-flex items-center justify-center rounded-xl bg-zinc-900 text-white dark:bg-zinc-800 px-3 text-[11px] font-semibold hover:bg-zinc-800 transition cursor-pointer disabled:opacity-50"
-                        >
-                          {memberGithubLoading ? <LogoTransition width={24} height={16} loop={true} /> : "Search"}
-                        </button>
-                      </div>
-
-                      {memberGithubError && <p className="text-xs text-rose-500 font-bold">{memberGithubError}</p>}
-
-                      {memberGithubUser && (
-                        <div className="space-y-3 p-3 bg-zinc-50 dark:bg-zinc-950 rounded-xl border border-zinc-100 dark:border-zinc-800 shadow-xs">
-                          <div className="flex items-center gap-2">
-                            <img src={memberGithubUser.avatar_url} className="h-8 w-8 rounded-lg" alt="avatar" />
-                            <div className="min-w-0 flex-1">
-                              <p className="text-xs font-bold text-zinc-900 dark:text-zinc-100 truncate">{memberGithubUser.name || memberGithubUser.login}</p>
-                              <p className="text-[9px] text-zinc-500 dark:text-zinc-400 truncate">@{memberGithubUser.login}</p>
+                    {/* Main Layout Grid */}
+                    <div className="grid gap-8 lg:grid-cols-[1fr_360px] items-start">
+                      
+                      {/* LEFT COLUMN: Roster Listing & Pending Invites */}
+                      <div className="space-y-8 min-w-0">
+                        
+                        {/* Active Roster Box */}
+                        <div className="bg-white dark:bg-zinc-900/40 border border-zinc-200 dark:border-zinc-800 rounded-2xl p-5 shadow-xs space-y-5">
+                          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-zinc-100 dark:border-zinc-800">
+                            <div>
+                              <h4 className="text-sm font-extrabold text-zinc-900 dark:text-zinc-100">Team Members</h4>
+                              <p className="text-xs text-zinc-400 dark:text-zinc-550 mt-0.5">People collaborating in this team.</p>
+                            </div>
+                            
+                            {/* Roster Search Bar */}
+                            <div className="relative max-w-xs w-full sm:w-60">
+                              <span className="absolute left-3 top-1/2 -translate-y-1/2 text-zinc-400">
+                                <Search className="h-3.5 w-3.5" />
+                              </span>
+                              <input
+                                type="text"
+                                value={rosterSearchQuery}
+                                onChange={(e) => setRosterSearchQuery(e.target.value)}
+                                placeholder="Filter by name or email..."
+                                className="w-full pl-9 pr-4 py-1.5 rounded-xl border border-zinc-200 bg-zinc-50/50 text-xs text-zinc-800 outline-none transition focus:border-blue-400 focus:bg-white dark:border-zinc-800 dark:bg-zinc-950 dark:text-zinc-200 dark:focus:bg-zinc-950"
+                              />
+                              {rosterSearchQuery && (
+                                <button
+                                  onClick={() => setRosterSearchQuery("")}
+                                  className="absolute right-3 top-1/2 -translate-y-1/2 text-zinc-400 hover:text-zinc-650"
+                                >
+                                  <X className="h-3 w-3" />
+                                </button>
+                              )}
                             </div>
                           </div>
 
-                          <div className="space-y-1.5 pt-1.5 border-t border-zinc-200/50 dark:border-zinc-800/50">
-                            <label className="text-[10px] font-bold uppercase tracking-wider text-zinc-400 dark:text-zinc-500">Invite Email Address</label>
-                            <input
-                              type="email"
-                              required
-                              placeholder="teammate@example.com"
-                              value={memberGithubEmail}
-                              onChange={(e) => setMemberGithubEmail(e.target.value)}
-                              className="w-full rounded-lg border border-zinc-200 bg-white px-2.5 py-1.5 text-xs text-zinc-800 outline-none transition focus:border-blue-400 dark:border-zinc-800 dark:bg-zinc-900 dark:text-zinc-200"
-                            />
-                            <button
-                              onClick={handleMemberGithubInvite}
-                              disabled={savingTeam || !memberGithubEmail.trim()}
-                              className="w-full inline-flex items-center justify-center gap-1.5 rounded-lg bg-blue-600 px-3 py-1.5 text-[11px] font-bold text-white transition hover:bg-blue-500 disabled:opacity-60 cursor-pointer"
+                          {/* Member List Grid */}
+                          {filteredRoster.length === 0 ? (
+                            <div className="text-center py-10 rounded-xl border border-dashed border-zinc-200 dark:border-zinc-800/80">
+                              <Users className="mx-auto h-8 w-8 text-zinc-300 dark:text-zinc-700" />
+                              <p className="mt-2 text-xs font-semibold text-zinc-500 dark:text-zinc-450">No team members found</p>
+                              <p className="text-[10px] text-zinc-400 dark:text-zinc-555 mt-0.5">Try filtering with a different name or email address.</p>
+                            </div>
+                          ) : (
+                            <div className="grid gap-3 sm:grid-cols-2">
+                              {filteredRoster.map((member) => {
+                                const isMemberOwner = member._id === selectedTeam.owner._id;
+                                const isCurrentUser = member._id === user?._id;
+                                
+                                return (
+                                  <div 
+                                    key={member._id} 
+                                    className="group relative rounded-xl border border-zinc-200 bg-white p-3.5 dark:border-zinc-800 dark:bg-zinc-900/60 flex items-center justify-between gap-3 shadow-xs hover:border-zinc-300 dark:hover:border-zinc-750 hover:shadow-xs transition-all duration-200"
+                                  >
+                                    <div className="flex items-center gap-3 min-w-0">
+                                      {/* Avatar */}
+                                      <div className={`flex h-9.5 w-9.5 shrink-0 items-center justify-center rounded-xl font-bold uppercase text-xs text-white bg-gradient-to-br ${getGradientClass(member.fullName || member.username || member._id)}`}>
+                                        {(member.fullName || member.username || "?").slice(0, 2)}
+                                      </div>
+                                      <div className="min-w-0">
+                                        <p className="text-xs font-bold text-zinc-900 dark:text-white truncate flex items-center gap-1.5">
+                                          {member.fullName || member.username}
+                                          {isCurrentUser && (
+                                            <span className="text-[8.5px] font-bold text-blue-600 dark:text-blue-400 bg-blue-500/10 dark:bg-blue-400/10 px-1.5 py-0.5 rounded-md">You</span>
+                                          )}
+                                        </p>
+                                        <p className="text-[10px] text-zinc-450 dark:text-zinc-500 truncate mt-0.5">{member.email || "No email linked"}</p>
+                                      </div>
+                                    </div>
+
+                                    {/* Role & Actions */}
+                                    <div className="flex items-center gap-2 shrink-0">
+                                      <span className={`rounded-full px-2 py-0.5 text-[8.5px] font-bold uppercase tracking-wider ${
+                                        isMemberOwner
+                                          ? "bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/20"
+                                          : "bg-zinc-100 text-zinc-500 border border-zinc-200 dark:bg-zinc-800/80 dark:text-zinc-400 dark:border-zinc-700"
+                                      }`}>
+                                        {isMemberOwner ? "Owner" : "Member"}
+                                      </span>
+
+                                      {/* Remove Member button for Owner */}
+                                      {isOwner && !isMemberOwner && (
+                                        <button
+                                          type="button"
+                                          onClick={() => {
+                                            setRemoveMemberModal({ id: member._id, name: member.fullName || member.username || "Teammate" });
+                                          }}
+                                          className="p-1 rounded-lg text-zinc-400 hover:text-rose-500 hover:bg-rose-500/5 transition opacity-0 group-hover:opacity-100 duration-150 focus:opacity-100"
+                                          title="Remove Teammate"
+                                        >
+                                          <Trash2 className="h-4 w-4" />
+                                        </button>
+                                      )}
+                                    </div>
+                                  </div>
+                                );
+                              })}
+                            </div>
+                          )}
+                        </div>
+
+                        {/* Pending Invites Box */}
+                        <div className="bg-white dark:bg-zinc-900/40 border border-zinc-200 dark:border-zinc-800 rounded-2xl p-5 shadow-xs space-y-4">
+                          <div className="flex items-center justify-between pb-3 border-b border-zinc-100 dark:border-zinc-800">
+                            <div>
+                              <h4 className="text-sm font-extrabold text-zinc-900 dark:text-zinc-100">Sent Invitations</h4>
+                              <p className="text-xs text-zinc-400 dark:text-zinc-550 mt-0.5">Track invitations sent to other team members.</p>
+                            </div>
+                            <button 
+                              onClick={loadTeamInvitations} 
+                              disabled={invitationsLoading}
+                              className="inline-flex items-center gap-1 px-2.5 py-1 text-[10px] font-bold text-blue-600 dark:text-blue-400 hover:bg-blue-500/5 rounded-lg border border-transparent hover:border-blue-500/10 transition disabled:opacity-50"
                             >
-                              Generate Invite Link
+                              Refresh
                             </button>
                           </div>
-                        </div>
-                      )}
 
-                      {memberGithubLink && (
-                        <div className="space-y-2 rounded-xl border border-zinc-200 bg-zinc-50 p-3 dark:border-zinc-800 dark:bg-zinc-950/60 mt-2 shadow-xs">
-                          <p className="text-[10px] font-bold uppercase tracking-wider text-zinc-450 dark:text-zinc-500">GitHub Member Link</p>
-                          <p className="break-all text-[11px] text-zinc-650 dark:text-zinc-400 leading-normal">{memberGithubLink.invitationLink}</p>
+                          {invitationsLoading ? (
+                            <div className="flex justify-center py-6">
+                              <LogoTransition width={24} height={16} loop={true} />
+                            </div>
+                          ) : teamInvitations.length === 0 ? (
+                            <div className="text-center py-8 rounded-xl border border-dashed border-zinc-200 dark:border-zinc-800/80">
+                              <Mail className="mx-auto h-8 w-8 text-zinc-300 dark:text-zinc-700" />
+                              <p className="mt-2 text-xs font-semibold text-zinc-500 dark:text-zinc-450">No outgoing invites yet</p>
+                              <p className="text-[10px] text-zinc-400 dark:text-zinc-555 mt-0.5">Use the Invite Hub on the right to send invitations.</p>
+                            </div>
+                          ) : (
+                            <div className="space-y-2.5 max-h-72 overflow-y-auto pr-1">
+                              {teamInvitations.map(invite => {
+                                const isExpired = invite.status === 'expired';
+                                const isDeclined = invite.status === 'declined';
+                                const isAccepted = invite.status === 'accepted';
+                                
+                                return (
+                                  <div key={invite._id} className="flex items-center justify-between gap-3 p-3 bg-zinc-50 dark:bg-zinc-950 border border-zinc-150 dark:border-zinc-850 rounded-xl">
+                                    <div className="min-w-0">
+                                      <p className="text-xs font-bold text-zinc-800 dark:text-zinc-200 truncate">
+                                        {invite.invitedUser
+                                          ? `@${invite.invitedUser.username}`
+                                          : invite.invitedEmail}
+                                      </p>
+                                      <p className="text-[9.5px] text-zinc-450 dark:text-zinc-500 mt-0.5 leading-relaxed">
+                                        Sent by @{invite.invitedBy.username} · Expires {formatDate(invite.expiresAt)}
+                                      </p>
+                                    </div>
+                                    
+                                    <span className={`shrink-0 rounded-full px-2 py-0.5 text-[8.5px] font-extrabold uppercase border ${
+                                      isAccepted
+                                        ? "border-emerald-500/25 bg-emerald-500/10 text-emerald-600 dark:text-emerald-400"
+                                        : isExpired
+                                        ? "border-zinc-200 bg-zinc-100 text-zinc-500 dark:border-zinc-800 dark:bg-zinc-800 dark:text-zinc-400"
+                                        : isDeclined
+                                        ? "border-rose-500/25 bg-rose-500/10 text-rose-600 dark:text-rose-455"
+                                        : "border-amber-500/25 bg-amber-500/10 text-amber-600 dark:text-amber-400"
+                                    }`}>
+                                      {invite.status}
+                                    </span>
+                                  </div>
+                                );
+                              })}
+                            </div>
+                          )}
+                        </div>
+                      </div>
+
+                      {/* RIGHT COLUMN: Invite Hub Card */}
+                      <div className="bg-white dark:bg-zinc-900/40 border border-zinc-200 dark:border-zinc-800 rounded-2xl p-5 shadow-xs space-y-5">
+                        <div className="space-y-1">
+                          <h4 className="text-xs font-extrabold text-zinc-550 dark:text-zinc-400 uppercase tracking-wider flex items-center gap-1.5">
+                            <span className="h-2 w-2 rounded-full bg-blue-500 animate-pulse" />
+                            Invite & Join Hub
+                          </h4>
+                          <p className="text-[11px] text-zinc-450 dark:text-zinc-500 leading-relaxed">
+                            Add teammates directly or share access details. Only the team owner can invite new members or generate join codes/links.
+                          </p>
+                        </div>
+
+                        {/* Interactive Invite Tabs */}
+                        <div className="flex rounded-xl bg-zinc-100 dark:bg-zinc-950 p-1">
                           <button
-                            onClick={handleCopyMemberInvite}
-                            className="w-full inline-flex items-center justify-center gap-1 rounded-lg border border-zinc-200 bg-white px-2 py-1.5 text-[11px] font-bold text-zinc-650 transition hover:bg-zinc-50 dark:border-zinc-800 dark:bg-zinc-950 dark:text-zinc-300 dark:hover:bg-zinc-900 cursor-pointer"
+                            type="button"
+                            onClick={() => setInviteTab('direct')}
+                            className={`flex-1 flex items-center justify-center gap-1.5 py-2 text-[10px] font-bold rounded-lg transition-all ${
+                              inviteTab === 'direct'
+                                ? "bg-white text-blue-600 shadow-xs dark:bg-zinc-900 dark:text-blue-400"
+                                : "text-zinc-500 hover:text-zinc-850 dark:text-zinc-400 dark:hover:text-zinc-200"
+                            }`}
                           >
-                            <Copy className="h-3 w-3" />
-                            Copy GitHub Invite
+                            <UserPlus className="h-3.5 w-3.5" />
+                            Search
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => setInviteTab('code')}
+                            className={`flex-1 flex items-center justify-center gap-1.5 py-2 text-[10px] font-bold rounded-lg transition-all ${
+                              inviteTab === 'code'
+                                ? "bg-white text-blue-600 shadow-xs dark:bg-zinc-900 dark:text-blue-400"
+                                : "text-zinc-500 hover:text-zinc-850 dark:text-zinc-400 dark:hover:text-zinc-200"
+                            }`}
+                          >
+                            <Key className="h-3.5 w-3.5" />
+                            Join Code
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => setInviteTab('email')}
+                            className={`flex-1 flex items-center justify-center gap-1.5 py-2 text-[10px] font-bold rounded-lg transition-all ${
+                              inviteTab === 'email'
+                                ? "bg-white text-blue-600 shadow-xs dark:bg-zinc-900 dark:text-blue-400"
+                                : "text-zinc-500 hover:text-zinc-850 dark:text-zinc-400 dark:hover:text-zinc-200"
+                            }`}
+                          >
+                            <Mail className="h-3.5 w-3.5" />
+                            Email Link
                           </button>
                         </div>
-                      )}
+
+                        {/* Tab Content Display */}
+                        <div className="pt-2 min-h-[170px] flex flex-col justify-between">
+                          
+                          {/* TAB 1: DIRECT USER SEARCH INVITE */}
+                          {inviteTab === 'direct' && (
+                            <div className="space-y-4">
+                              <div className="space-y-1">
+                                <span className="inline-flex items-center gap-1 text-[10px] font-bold text-zinc-450 dark:text-zinc-400 uppercase tracking-wide">
+                                  <Sparkles className="h-3 w-3 text-blue-500" />
+                                  1. Search Registered Users
+                                </span>
+                                <p className="text-[10.5px] text-zinc-400 dark:text-zinc-550 leading-relaxed">
+                                  Lookup HackDekh users by username/email and invite them straight to their dashboard.
+                                </p>
+                              </div>
+
+                              {isOwner ? (
+                                <div className="relative">
+                                  <div className="relative">
+                                    <span className="absolute left-3 top-1/2 -translate-y-1/2 text-zinc-400">
+                                      <Search className="h-3.5 w-3.5" />
+                                    </span>
+                                    <input
+                                      type="text"
+                                      value={directInviteSearchText}
+                                      onChange={e => handleDirectInviteSearch(e.target.value)}
+                                      placeholder="Type username or email address..."
+                                      className="w-full pl-9 pr-4 py-2.5 text-xs rounded-xl border border-zinc-200 bg-zinc-50/50 text-zinc-850 outline-none transition focus:border-blue-400 focus:bg-white dark:border-zinc-800 dark:bg-zinc-950 dark:text-zinc-200 dark:focus:bg-zinc-950"
+                                    />
+                                    {directInviteLoading && (
+                                      <div className="absolute right-3 top-1/2 -translate-y-1/2">
+                                        <LogoTransition width={20} height={14} loop={true} />
+                                      </div>
+                                    )}
+                                  </div>
+
+                                  {/* Direct Invite Autocomplete Results */}
+                                  {directInviteResults.length > 0 && (
+                                    <div className="absolute left-0 right-0 mt-2 z-50 rounded-xl border border-zinc-200 bg-white p-1.5 shadow-xl dark:border-zinc-800 dark:bg-zinc-955 max-h-52 overflow-y-auto space-y-0.5">
+                                      {directInviteResults.map(user => (
+                                        <div
+                                          key={user._id}
+                                          className="flex items-center justify-between p-2 hover:bg-zinc-50 dark:hover:bg-zinc-900/60 rounded-lg transition"
+                                        >
+                                          <div className="min-w-0">
+                                            <p className="text-xs font-bold text-zinc-900 dark:text-zinc-100 truncate">
+                                              {user.fullName || user.username}
+                                            </p>
+                                            <p className="text-[10px] text-zinc-450 dark:text-zinc-500 truncate">
+                                              @{user.username}
+                                            </p>
+                                          </div>
+                                          <button
+                                            type="button"
+                                            onClick={() => handleSendDirectInvite(user._id)}
+                                            disabled={savingTeam}
+                                            className="px-2.5 py-1 bg-blue-600 hover:bg-blue-500 text-white rounded-lg text-[10px] font-bold transition flex items-center gap-1 cursor-pointer"
+                                          >
+                                            <Plus className="h-3 w-3" />
+                                            Invite
+                                          </button>
+                                        </div>
+                                      ))}
+                                    </div>
+                                  )}
+
+                                  {directInviteSearchText.trim() && !directInviteLoading && directInviteResults.length === 0 && (
+                                    <p className="text-[10px] text-rose-500 font-bold mt-2">No active users found matching query.</p>
+                                  )}
+                                </div>
+                              ) : (
+                                <div className="rounded-xl bg-zinc-50 dark:bg-zinc-955 p-3 border border-zinc-150 dark:border-zinc-900 text-center">
+                                  <p className="text-[10px] text-zinc-455 dark:text-zinc-500 leading-normal">
+                                    Only the owner ({selectedTeam.owner.fullName || selectedTeam.owner.username}) can search and invite other users.
+                                  </p>
+                                </div>
+                              )}
+                            </div>
+                          )}
+
+                          {/* TAB 2: JOIN CODE */}
+                          {inviteTab === 'code' && (
+                            <div className="space-y-4">
+                              <div className="space-y-1">
+                                <span className="inline-flex items-center gap-1 text-[10px] font-bold text-zinc-455 dark:text-zinc-400 uppercase tracking-wide">
+                                  <Sparkles className="h-3 w-3 text-blue-500" />
+                                  2. Copy Secret Join Code
+                                </span>
+                                <p className="text-[10.5px] text-zinc-400 dark:text-zinc-550 leading-relaxed">
+                                  Give this code to a teammate. They can click "Join Team" on their dashboard and enter it to join instantly.
+                                </p>
+                              </div>
+
+                              <div className="flex items-center gap-2">
+                                <div className="bg-zinc-50 dark:bg-zinc-955 border border-zinc-200 dark:border-zinc-850 rounded-xl px-4 py-2.5 font-mono text-sm tracking-widest font-black text-zinc-800 dark:text-zinc-100 flex-1 text-center shadow-xs">
+                                  {selectedTeam.code || "------"}
+                                </div>
+                                
+                                <button
+                                  type="button"
+                                  onClick={async () => {
+                                    if (selectedTeam.code) {
+                                      await navigator.clipboard.writeText(selectedTeam.code);
+                                      setCopiedCode(true);
+                                      setTimeout(() => setCopiedCode(false), 2000);
+                                      showToast("Join code copied!", "success");
+                                    }
+                                  }}
+                                  disabled={!selectedTeam.code}
+                                  className={`btn py-2 px-3 text-xs w-auto h-auto min-h-[38px] shrink-0 shadow-xs inline-flex items-center gap-1 ${
+                                    copiedCode 
+                                      ? "bg-emerald-600 hover:bg-emerald-500 text-white border-transparent" 
+                                      : "btn-secondary"
+                                  }`}
+                                >
+                                  {copiedCode ? (
+                                    <>
+                                      <Check className="h-3.5 w-3.5" />
+                                      Copied
+                                    </>
+                                  ) : (
+                                    <>
+                                      <Copy className="h-3.5 w-3.5" />
+                                      Copy
+                                    </>
+                                  )}
+                                </button>
+                                
+                                {isOwner && (
+                                  <button
+                                    type="button"
+                                    onClick={handleRegenerateCode}
+                                    disabled={regeneratingCode}
+                                    className="btn btn-ghost border border-zinc-205 dark:border-zinc-800 p-2 text-zinc-500 dark:text-zinc-400 hover:bg-zinc-100 dark:hover:bg-zinc-800 shrink-0 w-9.5 h-9.5 flex items-center justify-center rounded-xl animate-fade-in"
+                                    title="Regenerate Join Code"
+                                  >
+                                    {regeneratingCode ? (
+                                      <LogoTransition width={20} height={14} loop={true} />
+                                    ) : (
+                                      <RotateCcw className="h-4 w-4 text-blue-600 dark:text-blue-400" />
+                                    )}
+                                  </button>
+                                )}
+                              </div>
+                            </div>
+                          )}
+
+                          {/* TAB 3: GENERATE LEGACY EMAIL LINK */}
+                          {inviteTab === 'email' && (
+                            <div className="space-y-4">
+                              <div className="space-y-1">
+                                <span className="inline-flex items-center gap-1 text-[10px] font-bold text-zinc-455 dark:text-zinc-400 uppercase tracking-wide">
+                                  <Sparkles className="h-3 w-3 text-blue-500" />
+                                  3. Create Invitation Link
+                                </span>
+                                <p className="text-[10.5px] text-zinc-400 dark:text-zinc-550 leading-relaxed">
+                                  Generate a shareable signup link configured specifically for a teammate's email address.
+                                </p>
+                              </div>
+
+                              {isOwner ? (
+                                <div className="space-y-3">
+                                  <div className="flex gap-2">
+                                    <input
+                                      type="email"
+                                      value={inviteEmail}
+                                      onChange={e => setInviteEmail(e.target.value)}
+                                      placeholder="teammate@example.com"
+                                      className="flex-1 px-3 py-2 text-xs rounded-xl border border-zinc-200 bg-zinc-50/50 text-zinc-800 outline-none transition focus:border-blue-400 focus:bg-white dark:border-zinc-800 dark:bg-zinc-950 dark:text-zinc-200"
+                                      onKeyDown={e => e.key === 'Enter' && handleInvite()}
+                                    />
+                                    <button
+                                      onClick={handleInvite}
+                                      disabled={savingTeam || !inviteEmail.trim()}
+                                      className="btn btn-primary px-3 py-2 text-xs h-auto w-auto min-h-[36px] font-bold shadow-xs shrink-0 flex items-center gap-1"
+                                    >
+                                      {savingTeam ? <LogoTransition width={20} height={14} loop={true} /> : <Plus className="h-3.5 w-3.5" />}
+                                      Create
+                                    </button>
+                                  </div>
+
+                                  {inviteLink && (
+                                    <div className="rounded-xl border border-emerald-200 bg-emerald-50/50 dark:border-emerald-900/40 dark:bg-emerald-950/10 p-2.5 space-y-1.5 shadow-xs animate-scale-in">
+                                      <div className="flex items-center justify-between">
+                                        <span className="text-[8.5px] font-extrabold uppercase tracking-wider text-emerald-600 dark:text-emerald-400">
+                                          Link Ready
+                                        </span>
+                                        <button 
+                                          onClick={handleCopyInvite} 
+                                          className="text-[9.5px] font-bold text-emerald-600 dark:text-emerald-400 hover:underline flex items-center gap-0.5"
+                                        >
+                                          <Copy className="h-3 w-3" />
+                                          Copy Link
+                                        </button>
+                                      </div>
+                                      <p className="text-[10px] text-zinc-650 dark:text-zinc-350 font-mono truncate bg-white/60 dark:bg-zinc-950/40 rounded p-1 border border-zinc-150 dark:border-zinc-900">
+                                        {inviteLink.invitationLink}
+                                      </p>
+                                      <p className="text-[8.5px] text-zinc-450 dark:text-zinc-500">
+                                        For: {inviteLink.invitedEmail} · Expiry: {formatDate(inviteLink.expiresAt)}
+                                      </p>
+                                    </div>
+                                  )}
+                                </div>
+                              ) : (
+                                <div className="rounded-xl bg-zinc-50 dark:bg-zinc-955 p-3 border border-zinc-150 dark:border-zinc-900 text-center">
+                                  <p className="text-[10px] text-zinc-455 dark:text-zinc-500 leading-normal">
+                                    Only the owner ({selectedTeam.owner.fullName || selectedTeam.owner.username}) can generate external email invite links.
+                                  </p>
+                                </div>
+                              )}
+                            </div>
+                          )}
+
+                        </div>
+                      </div>
+
                     </div>
                   </div>
-                </div>
-              )}
+                );
+              })()}
 
               {/* 3. STAGES TAB: Stages Editor */}
               {activeTab === "Stages" && (
