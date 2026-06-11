@@ -63,6 +63,16 @@ const HackathonList = () => {
     const deferredSearch = useDeferredValue(search)
     const { sidebarExpanded, closeSidebar, toggleSidebar, setPageActions } = usePageChrome()
     const [sidebarWasExpanded, setSidebarWasExpanded] = useState(false)
+    const sidebarWasExpandedRef = useRef(false)
+    const toggleSidebarRef = useRef(toggleSidebar)
+
+    useEffect(() => {
+        sidebarWasExpandedRef.current = sidebarWasExpanded
+    }, [sidebarWasExpanded])
+
+    useEffect(() => {
+        toggleSidebarRef.current = toggleSidebar
+    }, [toggleSidebar])
 
     // Collapse sidebar to give full width to hackathons grid after loading finishes
     useEffect(() => {
@@ -77,11 +87,11 @@ const HackathonList = () => {
     // Restore sidebar on unmount if it was expanded before this page collapsed it
     useEffect(() => {
         return () => {
-            if (sidebarWasExpanded) {
-                toggleSidebar()
+            if (sidebarWasExpandedRef.current) {
+                toggleSidebarRef.current()
             }
         }
-    }, [sidebarWasExpanded, toggleSidebar])
+    }, [])
 
     const [showFunnelModal, setShowFunnelModal] = useState(false)
     const [trackedHackathons, setTrackedHackathons] = useState<Record<string, {
