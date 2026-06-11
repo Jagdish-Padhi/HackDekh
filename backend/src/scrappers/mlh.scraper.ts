@@ -1,24 +1,13 @@
 import axios from "axios";
+import * as cheerio from "cheerio";
 import hackathon from "../models/hackathon.model.ts";
 import { universalFormatter } from "../formatters/universalFormatter.ts";
 import { asyncHandler } from "../utils/asyncHandler.ts";
 import { ApiResponse } from "../utils/apiResponse.ts";
 import { ApiError } from "../utils/apiError.ts";
+import { axiosGetWithRetry } from "../utils/scraperUtils.ts";
 
 const MLH_EVENTS_URL = "https://mlh.io/seasons/2026/events";
-
-function decodeEntities(str: string): string {
-  return str
-    .replace(/&quot;/g, '"')
-    .replace(/&amp;/g, "&")
-    .replace(/&lt;/g, "<")
-    .replace(/&gt;/g, ">")
-    .replace(/&#039;/g, "'")
-    .replace(/&#x27;/g, "'")
-    .replace(/&#x2F;/g, "/")
-    .replace(/&rsquo;/g, "'")
-    .replace(/&nbsp;/g, " ");
-}
 
 export const scrapeMLH = asyncHandler(async (req: any, res: any) => {
   try {
@@ -32,36 +21,19 @@ export const scrapeMLH = asyncHandler(async (req: any, res: any) => {
 export async function scrapeMLHData() {
   try {
     console.log("[MLH Scraper] Fetching HTML...");
-    const response = await axios.get(MLH_EVENTS_URL, {
-      headers: {
-        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
-      },
-      timeout: 15000
+    const response = await axiosGetWithRetry(MLH_EVENTS_URL, {
+      timeout: 20000
     });
 
     const html = response.data;
-    const appIndex = html.indexOf('id="app"');
-    if (appIndex === -1) {
-      throw new Error("Could not find element with id='app' on MLH page.");
+    const $ = cheerio.load(html);
+    const scriptEl = $("script[data-page]");
+    if (!scriptEl.length) {
+      throw new Error("Could not find script element with data-page attribute on MLH page.");
     }
 
-    const dataPageStart = html.indexOf('data-page="', appIndex);
-    if (dataPageStart === -1) {
-      throw new Error("Could not find 'data-page' attribute on MLH page.");
-    }
-
-    const startOfJson = dataPageStart + 'data-page="'.length;
-    let endOfJson = startOfJson;
-    while (endOfJson < html.length) {
-      if (html[endOfJson] === '"' && html.slice(endOfJson - 6, endOfJson) !== "&quot;") {
-        break;
-      }
-      endOfJson++;
-    }
-
-    const rawJson = html.slice(startOfJson, endOfJson);
-    const decodedJson = decodeEntities(rawJson);
-    const parsedData = JSON.parse(decodedJson);
+    const rawJson = scriptEl.text();
+    const parsedData = JSON.parse(rawJson);
 
     const upcomingEvents = parsedData?.props?.upcomingEvents || [];
     const allEvents = upcomingEvents;

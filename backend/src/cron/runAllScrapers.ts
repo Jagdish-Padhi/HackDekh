@@ -6,15 +6,23 @@ import { scrapeMLHData } from "../scrappers/mlh.scraper.ts";
 import { scrapeHack2SkillData } from "../scrappers/hack2skill.scraper.ts";
 
 export async function runAllScrapers() {
-    try {
-        console.log('[CRON] Starting all scrapers...');
-        await scrapeDevfolioData();
-        await scrapeUnstopData();
-        await scrapeDevpostData();
-        await scrapeMLHData();
-        await scrapeHack2SkillData();
-        console.log('[CRON] All scrapers completed successfully.');
-    } catch (err) {
-        console.error('[CRON] Error running scrapers: ', err);
+    console.log('[CRON] Starting all scrapers...');
+    const scrapers = [
+        { name: 'Devfolio', run: scrapeDevfolioData },
+        { name: 'Unstop', run: scrapeUnstopData },
+        { name: 'Devpost', run: scrapeDevpostData },
+        { name: 'MLH', run: scrapeMLHData },
+        { name: 'Hack2Skill', run: scrapeHack2SkillData }
+    ];
+
+    for (const scraper of scrapers) {
+        try {
+            console.log(`[CRON] Starting ${scraper.name} scraper...`);
+            await scraper.run();
+            console.log(`[CRON] ${scraper.name} scraper completed successfully.`);
+        } catch (err: any) {
+            console.error(`[CRON] ${scraper.name} scraper failed:`, err?.message || err);
+        }
     }
+    console.log('[CRON] All scrapers processed.');
 }
