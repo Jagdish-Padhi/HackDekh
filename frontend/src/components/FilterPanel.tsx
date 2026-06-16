@@ -1,5 +1,6 @@
 import { ArrowDown, ArrowUp } from 'lucide-react'
 import { useEffect, useRef, useState } from 'react'
+import Switch from './Switch'
 
 type Option = {
     label: string
@@ -125,6 +126,8 @@ type FilterPanelProps = {
     setSortBy: (value: string) => void
     locationFilter: string
     setLocationFilter: (value: string) => void
+    showExpired: boolean
+    setShowExpired: (value: boolean) => void
 }
 
 const platformOptions: Option[] = [
@@ -173,6 +176,8 @@ const FilterPanel = ({
     setSortBy,
     locationFilter,
     setLocationFilter,
+    showExpired,
+    setShowExpired,
 }: FilterPanelProps) => (
     <div className="flex w-full flex-col gap-2 overflow-visible sm:flex-row sm:flex-wrap sm:items-center lg:w-auto lg:flex-nowrap">
         <Dropdown
@@ -199,6 +204,15 @@ const FilterPanel = ({
             options={locationOptions}
             placeholder="City"
         />
+        <div className="flex h-10 items-center justify-between gap-3 rounded-xl border border-zinc-200 bg-white px-3.5 shadow-sm dark:border-zinc-800 dark:bg-zinc-900 w-full sm:w-auto shrink-0 select-none">
+            <span className="text-[0.82rem] font-bold text-zinc-650 dark:text-zinc-400">Show Expired</span>
+            <Switch
+                id="show-expired-switch"
+                checked={showExpired}
+                onChange={() => setShowExpired(!showExpired)}
+                activeBg="linear-gradient(to bottom, #ef4444, #b91c1c)"
+            />
+        </div>
     </div>
 )
 

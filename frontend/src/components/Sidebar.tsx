@@ -1,15 +1,14 @@
 import { useEffect, useState } from 'react'
 import { NavLink, useLocation, useNavigate } from 'react-router-dom'
-import { BarChart3, Home, LogOut, Menu, Moon, PanelLeftClose, PanelLeftOpen, Sun, Trophy, Users, X } from 'lucide-react'
-import axiosInstance from '../utils/axiosInstance'
+import { BarChart3, LogOut, Menu, Moon, PanelLeftClose, PanelLeftOpen, Sun, Trophy, Users, X, Settings } from 'lucide-react'
 import { usePageChrome } from '../context/pageChrome'
+import { useAuth, useCache } from '../context'
 
 const navItems = [
-    { name: 'Home', path: '/', icon: Home },
     { name: 'Hackathons', path: '/hackathons', icon: Trophy },
     { name: 'Teams', path: '/teams', icon: Users },
     { name: 'Dashboard', path: '/dashboard', icon: BarChart3 },
-    // { name: 'Settings', path: '/settings', icon: Settings },
+    { name: 'Settings', path: '/settings', icon: Settings },
 ]
 
 const Sidebar = () => {
@@ -23,7 +22,8 @@ const Sidebar = () => {
 
         return window.innerWidth < 1024
     })
-    const isLoggedIn = Boolean(localStorage.getItem('accessToken'))
+    const { user, isAuthenticated, logout } = useAuth()
+    const { clearCache } = useCache()
     const [isDark, setIsDark] = useState(false)
 
     useEffect(() => {
@@ -67,14 +67,12 @@ const Sidebar = () => {
 
     const handleLogout = async () => {
         try {
-            if (isLoggedIn) {
-                await axiosInstance.post('/users/logout')
-            }
+            await logout()
         } catch {
-            // Clear local auth even if server logout fails.
+            // fallback
         } finally {
-            localStorage.removeItem('accessToken')
-            localStorage.removeItem('refreshToken')
+            clearCache()
+            sessionStorage.removeItem("dismissedSignupFunnel")
             navigate('/login')
             closeSidebar()
         }
@@ -88,8 +86,8 @@ const Sidebar = () => {
             {/* Mobile logo header - fixed at top, visible on mobile */}
             <div className="fixed inset-x-0 top-0 z-90 flex items-center justify-between border-b border-zinc-200 bg-white/95 px-4 py-4 backdrop-blur-xl dark:border-zinc-800 dark:bg-zinc-950/95 lg:hidden">
                 <div className="flex items-center gap-3">
-                    <img src="/BrandImages/HackDekh.png" alt="HackDekh Logo" className="h-10 w-10 rounded-2xl object-contain" />
-                    <span className="text-lg font-semibold tracking-tight text-zinc-900 dark:text-zinc-100">HackDekh</span>
+                    <img src="/BrandImages/HackDekh.png" alt="HackDekh Logo" className="h-10 w-10 rounded-lg object-contain" />
+                    <span className="text-lg font-semibold tracking-tight text-zinc-900 dark:text-zinc-100 font-logo">HackDekh</span>
                 </div>
                 <div className="flex items-center gap-2">
                     <button
@@ -112,11 +110,11 @@ const Sidebar = () => {
             </div>
 
             {/* Desktop logo header - fixed at top, always visible */}
-            <div className="hidden fixed inset-x-0 top-0 z-30 items-center gap-4 border-b border-zinc-200 bg-white/95 px-4 py-4 backdrop-blur-xl dark:border-zinc-800 dark:bg-zinc-950/95 lg:flex lg:h-16">
+            <div className="hidden fixed inset-x-0 top-0 z-40 items-center gap-4 border-b border-zinc-200 bg-white/95 px-4 py-4 backdrop-blur-xl dark:border-zinc-800 dark:bg-zinc-950/95 lg:flex lg:h-16">
                 <div className="flex shrink-0 items-center gap-3">
-                    <img src="/BrandImages/HackDekh.png" alt="HackDekh Logo" className="h-10 w-10 rounded-2xl object-contain" />
+                    <img src="/BrandImages/HackDekh.png" alt="HackDekh Logo" className="h-10 w-10 rounded-lg object-contain" />
                     <div>
-                        <p className="text-base font-semibold text-zinc-900 dark:text-zinc-100">HackDekh</p>
+                        <p className="text-base font-semibold text-zinc-900 dark:text-zinc-100 font-logo">HackDekh</p>
                         <p className="text-xs text-zinc-500 dark:text-zinc-400">Hackathon OS</p>
                     </div>
                 </div>
@@ -158,7 +156,7 @@ const Sidebar = () => {
                                 key={item.name}
                                 to={item.path}
                                 className={({ isActive }) =>
-                                    `flex items-center gap-3 rounded-2xl px-3 py-2.5 text-sm font-medium transition-all duration-200 ${
+                                    `flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-all duration-200 ${
                                         isActive || active
                                             ? 'bg-blue-600 text-white shadow-sm dark:bg-blue-500'
                                             : 'text-zinc-600 hover:bg-zinc-100 hover:text-zinc-900 dark:text-zinc-300 dark:hover:bg-zinc-900 dark:hover:text-white'
@@ -170,19 +168,40 @@ const Sidebar = () => {
                                     }
                                 }}
                             >
-                                <Icon className="h-4 w-4 shrink-0" />
-                                {sidebarExpanded && <span>{item.name}</span>}
+                                {({ isActive }) => (
+                                    <>
+                                        <Icon className={`h-4 w-4 shrink-0 ${isActive || active ? 'text-white stroke-white fill-none' : ''}`} />
+                                        {sidebarExpanded && (
+                                            <span className={isActive || active ? 'text-white' : ''}>
+                                                {item.name}
+                                            </span>
+                                        )}
+                                    </>
+                                )}
                             </NavLink>
                         )
                     })}
                 </nav>
 
                 <div className="space-y-2 border-t border-zinc-200 p-3 sm:p-2.5 dark:border-zinc-800">
-                    {isLoggedIn ? (
+                    {isAuthenticated && user && (
+                        <div className="flex items-center gap-3 px-3 py-2 mb-2 rounded-lg bg-zinc-50 dark:bg-zinc-900/50">
+                            <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-blue-600 font-bold text-white text-xs dark:bg-blue-500 uppercase font-logo">
+                                {user.fullName.slice(0, 2)}
+                            </div>
+                            {sidebarExpanded && (
+                                <div className="min-w-0 flex-1">
+                                    <p className="text-xs font-bold text-zinc-900 dark:text-zinc-100 truncate">{user.fullName}</p>
+                                    <p className="text-[0.65rem] text-zinc-500 dark:text-zinc-400 truncate">@{user.username}</p>
+                                </div>
+                            )}
+                        </div>
+                    )}
+                    {isAuthenticated ? (
                         <button
                             type="button"
                             onClick={handleLogout}
-                            className="flex w-full items-center gap-3 rounded-2xl px-3 py-2.5 text-sm font-medium text-red-600 transition hover:bg-red-50 dark:text-red-300 dark:hover:bg-red-500/10"
+                            className="flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium text-red-600 transition hover:bg-red-50 dark:text-red-300 dark:hover:bg-red-500/10"
                         >
                             <LogOut className="h-4 w-4 shrink-0" />
                             {sidebarExpanded && <span>Logout</span>}
@@ -191,13 +210,13 @@ const Sidebar = () => {
                         <div className="space-y-2">
                             <NavLink
                                 to="/login"
-                                className="block rounded-2xl border border-zinc-200 px-3 py-3 text-center text-sm font-semibold text-zinc-700 transition hover:bg-zinc-100 dark:border-zinc-700 dark:text-zinc-200 dark:hover:bg-zinc-900"
+                                className="block rounded-lg border border-zinc-200 px-3 py-3 text-center text-sm font-semibold text-zinc-700 transition hover:bg-zinc-100 dark:border-zinc-700 dark:text-zinc-200 dark:hover:bg-zinc-900"
                             >
                                 {sidebarExpanded ? 'Login' : 'In'}
                             </NavLink>
                             <NavLink
                                 to="/signup"
-                                className="block rounded-2xl border border-blue-500/35 bg-blue-600 px-3 py-3 text-center text-sm font-semibold text-white transition hover:bg-blue-500 dark:bg-blue-500 dark:hover:bg-blue-400"
+                                className="block rounded-lg border border-blue-500/35 bg-blue-600 px-3 py-3 text-center text-sm font-semibold text-white transition hover:bg-blue-500 dark:bg-blue-500 dark:hover:bg-blue-400"
                             >
                                 {sidebarExpanded ? 'Sign Up' : 'Up'}
                             </NavLink>

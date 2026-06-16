@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from "react";
+import { ExternalLink } from "lucide-react";
 
 type Hackathon = {
     _id: string
@@ -13,6 +14,22 @@ type Hackathon = {
     applyLink?: string
 
 }
+
+type CardAction = {
+    label: string
+    onClick: () => void
+    destructive?: boolean
+};
+
+type HackathonCardProps = {
+    hackathon: Hackathon;
+    displayIndex: number;
+    isBookmarked?: boolean;
+    onToggleBookmark?: () => void;
+    extraActions?: CardAction[];
+    trackingStatus?: 'tracking' | 'active' | 'eliminated' | 'finalist' | 'won';
+    onUntrack?: () => void;
+};
 
 const defaultImages = [
     "/images/hackathons/hackathon-default-1.svg",
@@ -36,12 +53,12 @@ const getStableDefaultImage = (seed: string) => {
     return defaultImages[hash % defaultImages.length];
 };
 
-const SAFE_DEADLINE_BUFFER_DAYS = 3;
 const SAFE_DEADLINE_MIN_WINDOW_DAYS = 5;
 
 type DeadlineDisplay = {
     label: string;
     isUrgent: boolean;
+    isExpired?: boolean;
 };
 
 const isUnavailablePrize = (value: string) =>
@@ -82,6 +99,14 @@ const getDeadlineDisplay = (deadline?: string): DeadlineDisplay => {
     const msPerDay = 1000 * 60 * 60 * 24;
     const daysUntilActualDeadline = Math.ceil((parsed.getTime() - Date.now()) / msPerDay);
 
+    if (daysUntilActualDeadline < 0) {
+        return {
+            label: "Expired",
+            isUrgent: false,
+            isExpired: true,
+        };
+    }
+
     if (daysUntilActualDeadline >= 0 && daysUntilActualDeadline <= SAFE_DEADLINE_MIN_WINDOW_DAYS) {
         const daysLeft = Math.max(daysUntilActualDeadline, 1);
         const dayLabel = daysLeft === 1 ? "day" : "days";
@@ -92,36 +117,44 @@ const getDeadlineDisplay = (deadline?: string): DeadlineDisplay => {
         };
     }
 
-    if (daysUntilActualDeadline > SAFE_DEADLINE_MIN_WINDOW_DAYS) {
-        parsed.setDate(parsed.getDate() - SAFE_DEADLINE_BUFFER_DAYS);
-    }
-
     if (Number.isNaN(parsed.getTime())) {
         return { label: "TBD", isUrgent: false };
     }
 
+    const dd = String(parsed.getDate()).padStart(2, "0");
+    const mm = String(parsed.getMonth() + 1).padStart(2, "0");
+    const yyyy = parsed.getFullYear();
+
     return {
-        label: parsed.toISOString().slice(0, 10),
+        label: `${dd}-${mm}-${yyyy}`,
         isUrgent: false,
     };
 };
 
-const HackathonCard = ({ hackathon, displayIndex }: { hackathon: Hackathon; displayIndex: number }) => {
+const HackathonCard = ({ hackathon, displayIndex, extraActions = [], trackingStatus, onUntrack }: HackathonCardProps) => {
     const cardRef = useRef<HTMLDivElement | null>(null);
     const hasBeenRevealed = revealedCardCache.has(hackathon._id);
     const fallbackImageRef = useRef<string>(getStableDefaultImage(`${hackathon._id}:${hackathon.title}`));
     const fallbackImage = fallbackImageRef.current;
     const primaryImage = hackathon.coverImage?.trim() || "";
-    const initialImageSource = primaryImage || fallbackImage;
+    
+    // Industry technique: Use a free global Image CDN to proxy external images.
+    // This resizes huge raw images, converts them to WebP, and completely bypasses 
+    // hotlinking/CORS 403 blocks from platforms like Devpost/Unstop/MLH.
+    const optimizedPrimaryImage = primaryImage && !primaryImage.startsWith("/") 
+        ? `https://wsrv.nl/?url=${encodeURIComponent(primaryImage)}&w=500&h=250&fit=cover&output=webp&we`
+        : primaryImage;
+
+    const initialImageSource = optimizedPrimaryImage || fallbackImage;
     const [imageSource, setImageSource] = useState(initialImageSource);
     const [imageLoaded, setImageLoaded] = useState(() => loadedImageSourceCache.has(initialImageSource));
     const [isVisible, setIsVisible] = useState(hasBeenRevealed);
 
     useEffect(() => {
-        const nextSource = primaryImage || fallbackImage;
+        const nextSource = optimizedPrimaryImage || fallbackImage;
         setImageSource(nextSource);
         setImageLoaded(loadedImageSourceCache.has(nextSource));
-    }, [primaryImage, fallbackImage]);
+    }, [optimizedPrimaryImage, fallbackImage]);
 
     useEffect(() => {
         if (isVisible || !cardRef.current) {
@@ -169,7 +202,7 @@ const HackathonCard = ({ hackathon, displayIndex }: { hackathon: Hackathon; disp
         return () => window.clearTimeout(timeoutId);
     }, [imageLoaded, fallbackImage, imageSource]);
 
-    const deadlineDisplay = getDeadlineDisplay(hackathon.deadline);
+        const deadlineDisplay = getDeadlineDisplay(hackathon.deadline);
     const locationLabel = hackathon.location?.trim() || "TBD";
     const prizeDisplay = getPrizeDisplay(hackathon.prize);
     const prizeChipClass = prizeDisplay.isTbd
@@ -177,23 +210,42 @@ const HackathonCard = ({ hackathon, displayIndex }: { hackathon: Hackathon; disp
         : "inline-flex items-center gap-1.5 rounded-lg border border-emerald-200/80 bg-emerald-50/60 px-2 py-0.5 text-[0.72rem] font-bold text-emerald-700 dark:border-emerald-500/20 dark:bg-emerald-500/10 dark:text-emerald-400";
     const revealDelay = (displayIndex % 4) * 65;
 
+    // Read tracked state
+    const trackHandler = extraActions.find(action => action.label === "TRACK_HANDLER")?.onClick;
+    const isRegistered = trackingStatus && trackingStatus !== 'tracking';
+
+    const isExpired = !!deadlineDisplay.isExpired;
+
     return (
         <div
             ref={cardRef}
-            className={`group premium-border-card relative flex h-full flex-col overflow-hidden rounded-[1.75rem] border border-zinc-200/80 bg-white p-4 shadow-sm transition-all duration-500 ease-out hover:-translate-y-1 hover:border-zinc-300 hover:shadow-lg dark:border-zinc-800 dark:bg-zinc-900 dark:shadow-md dark:hover:border-zinc-700 dark:hover:shadow-lg ${isVisible ? "translate-x-0 translate-y-0 opacity-100" : "-translate-x-3 translate-y-2 opacity-0"}`}
+            className={`group premium-border-card relative flex h-full flex-col overflow-hidden rounded-[1.75rem] border border-zinc-200/80 bg-white p-4 shadow-sm transition-all duration-500 ease-out hover:-translate-y-1 hover:border-zinc-300 hover:shadow-lg dark:border-zinc-800 dark:bg-zinc-900 dark:shadow-md dark:hover:border-zinc-700 dark:hover:shadow-lg ${isExpired ? "expired opacity-80" : ""} ${isVisible ? "translate-x-0 translate-y-0 opacity-100" : "-translate-x-3 translate-y-2 opacity-0"}`}
             style={{ transitionDelay: isVisible ? `${revealDelay}ms` : "0ms" }}
         >
-            <div className="relative mb-3.5 h-28 w-full overflow-hidden rounded-xl border border-zinc-200 bg-zinc-100 dark:border-zinc-800 dark:bg-zinc-900/60">
+            {isExpired && (
+                <div className="absolute inset-0 pointer-events-none z-30 flex items-center justify-center overflow-hidden">
+                    <div className="border-[4px] border-double border-rose-500/40 dark:border-rose-450 rounded-2xl px-5 py-2 rotate-[-12deg] bg-white/95 dark:bg-zinc-950/95 shadow-[0_8px_30px_rgba(239,68,68,0.15)] select-none">
+                        <span className="block text-[8px] font-black uppercase tracking-[0.2em] text-rose-500/85 dark:text-rose-400/85 text-center leading-none">REGISTRATION</span>
+                        <span className="block text-2xl font-black tracking-[0.15em] text-rose-600 dark:text-rose-500 text-center leading-none mt-1">EXPIRED</span>
+                    </div>
+                </div>
+            )}
+            <div className="relative mb-3.5 block h-28 w-full overflow-hidden rounded-xl border border-zinc-200 bg-zinc-100 dark:border-zinc-800 dark:bg-zinc-900/60">
                 {/* Floating Tags Overlay */}
-                <div className="absolute left-2 top-2 z-10 flex flex-wrap gap-1">
-                    <span className="inline-flex items-center rounded-md bg-zinc-900/80 backdrop-blur-md px-2 py-0.5 text-[0.62rem] font-bold uppercase tracking-wider text-white border border-white/10">
+                <div className="absolute left-2.5 top-2.5 z-10 flex flex-wrap gap-1.5">
+                    {isRegistered && (
+                        <span className="inline-flex items-center rounded bg-orange-600 px-2 py-0.5 text-[0.62rem] font-extrabold uppercase tracking-wider text-white border border-orange-500 shadow-[0_2px_6px_rgba(0,0,0,0.3)]">
+                            Registered
+                        </span>
+                    )}
+                    <span className="inline-flex items-center rounded bg-zinc-950 px-2 py-0.5 text-[0.62rem] font-extrabold uppercase tracking-wider text-white border border-zinc-800 shadow-[0_2px_6px_rgba(0,0,0,0.3)]">
                         {hackathon.platform}
                     </span>
                     {hackathon.mode && (
-                        <span className={`inline-flex items-center rounded-md backdrop-blur-md px-2 py-0.5 text-[0.62rem] font-bold uppercase tracking-wider text-white border ${
+                        <span className={`inline-flex items-center rounded px-2 py-0.5 text-[0.62rem] font-extrabold uppercase tracking-wider text-white border shadow-[0_2px_6px_rgba(0,0,0,0.3)] ${
                             /^online$/i.test(hackathon.mode)
-                                ? "bg-emerald-600/85 border-emerald-500/20"
-                                : "bg-indigo-600/85 border-indigo-500/20"
+                                ? "bg-emerald-600 border-emerald-500"
+                                : "bg-indigo-600 border-indigo-500"
                         }`}>
                             {hackathon.mode}
                         </span>
@@ -211,6 +263,7 @@ const HackathonCard = ({ hackathon, displayIndex }: { hackathon: Hackathon; disp
                     alt={hackathon.title}
                     loading="lazy"
                     decoding="async"
+                    referrerPolicy="no-referrer"
                     onLoad={() => {
                         loadedImageSourceCache.add(imageSource);
                         setImageLoaded(true);
@@ -225,13 +278,34 @@ const HackathonCard = ({ hackathon, displayIndex }: { hackathon: Hackathon; disp
                         imageElement.onerror = null;
                         setImageSource(fallbackImage);
                     }}
-                    className={`h-full w-full object-cover transition-transform duration-500 ease-out group-hover:scale-105 ${imageLoaded ? "opacity-100" : "opacity-0"}`}
+                    className="h-full w-full object-cover transition-transform duration-500 ease-out group-hover:scale-105"
                 />
             </div>
 
-            <h2 className="line-clamp-2 h-11 text-[0.92rem] font-bold leading-5 text-zinc-900 dark:text-zinc-100 group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors duration-200">
-                {hackathon.title}
-            </h2>
+            {/* Status and Untrack option below cover image */}
+            {trackingStatus && (
+                <div className="flex justify-between items-center mb-2 px-1 text-[10px] font-bold tracking-wide uppercase">
+                    <span className={trackingStatus === 'tracking' ? "text-amber-600 dark:text-amber-500" : "text-orange-500 dark:text-orange-400"}>
+                        {trackingStatus === 'tracking' ? 'Tracking' : 'Registered'}
+                    </span>
+                    <button
+                        onClick={(e) => {
+                            e.preventDefault();
+                            e.stopPropagation();
+                            onUntrack?.();
+                        }}
+                        className="text-rose-500 hover:text-rose-600 hover:underline transition-colors font-black cursor-pointer bg-transparent border-none p-0"
+                    >
+                        Untrack
+                    </button>
+                </div>
+            )}
+
+            <div className="block">
+                <h2 className="line-clamp-2 h-11 text-[0.92rem] font-bold leading-5 text-zinc-900 dark:text-zinc-100 transition-colors duration-200">
+                    {hackathon.title}
+                </h2>
+            </div>
 
             {/* Vertical structured metadata list */}
             <div className="mt-3.5 space-y-2 border-t border-zinc-100 pt-3 dark:border-zinc-800/80">
@@ -246,49 +320,85 @@ const HackathonCard = ({ hackathon, displayIndex }: { hackathon: Hackathon; disp
                         </span>
                     </span>
                 </div>
-                <div className="flex items-center gap-2 text-[0.72rem] text-zinc-500 dark:text-zinc-400">
-                    <svg className="h-3.5 w-3.5 shrink-0 text-zinc-400 dark:text-zinc-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
+                <div className="flex items-start gap-2 text-[0.72rem] text-zinc-500 min-h-[32px] dark:text-zinc-400">
+                    <svg className="mt-[2px] h-3.5 w-3.5 shrink-0 text-zinc-400 dark:text-zinc-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
                         <path strokeLinecap="round" strokeLinejoin="round" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
                         <path strokeLinecap="round" strokeLinejoin="round" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
                     </svg>
-                    <span className="font-medium truncate" title={locationLabel}>
-                        Location: <span className="text-zinc-700 dark:text-zinc-300 font-semibold">{locationLabel}</span>
+                    <span className="font-medium line-clamp-2" title={locationLabel}>
+                        Location: <span className="text-zinc-700 dark:text-zinc-300 font-semibold">{
+                            (() => {
+                                const parts = locationLabel.split(',').map(p => p.trim()).filter(Boolean);
+                                const nonIndiaParts = parts.filter(p => p.toLowerCase() !== 'india');
+                                
+                                if (nonIndiaParts.length <= 3) return nonIndiaParts.join(', ');
+                                
+                                // Take Venue (first) + City & State (last two)
+                                return `${nonIndiaParts[0]}, ${nonIndiaParts.slice(-2).join(', ')}`;
+                            })()
+                        }</span>
                     </span>
                 </div>
             </div>
 
             {/* Footer with Prize & Button */}
-            <div className="mt-auto pt-4 flex items-center justify-between gap-3">
-                <div className="flex items-center">
-                    <span className={prizeChipClass}>
-                        <img
-                            src="/prizeSvg.svg"
-                            alt=""
-                            aria-hidden="true"
-                            className={`h-3.5 w-3.5 shrink-0 ${prizeDisplay.isTbd ? "opacity-80" : ""}`}
-                        />
-                        <span className="truncate max-w-[170px]" title={prizeDisplay.label}>
-                            {prizeDisplay.label}
+            <div className="mt-auto pt-4 flex flex-col gap-3">
+                <div className="flex items-center justify-between">
+                    <div className="flex items-center">
+                        <span className={prizeChipClass}>
+                            <img
+                                src="/prizeSvg.svg"
+                                alt=""
+                                aria-hidden="true"
+                                className={`h-3.5 w-3.5 shrink-0 ${prizeDisplay.isTbd ? "opacity-80" : ""}`}
+                            />
+                            <span className="truncate max-w-[140px]" title={prizeDisplay.label}>
+                                {prizeDisplay.label}
+                            </span>
                         </span>
-                    </span>
+                    </div>
                 </div>
-                {hackathon.applyLink && (
-                    <a
-                        href={hackathon.applyLink}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="inline-flex items-center justify-center rounded-xl bg-blue-600 px-3.5 py-1.5 text-xs font-semibold text-white shadow-sm transition-all duration-200 hover:-translate-y-0.5 hover:bg-blue-500 hover:shadow-md dark:bg-blue-500 dark:hover:bg-blue-400"
-                    >
-                        View Details
-                        <svg className="ml-1 h-3 w-3 transition-transform duration-200 group-hover:translate-x-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2.5">
-                            <path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" />
-                        </svg>
-                    </a>
-                )}
+
+                <div className="flex gap-2 w-full mt-1">
+                    {hackathon.applyLink && (
+                        <a
+                            href={hackathon.applyLink}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="flex-1 inline-flex items-center justify-center rounded-lg border border-zinc-200 bg-white px-2.5 py-1.5 text-[11px] font-bold text-zinc-700 shadow-sm transition hover:bg-zinc-50 hover:border-zinc-300 dark:border-zinc-850 dark:bg-zinc-950 dark:text-zinc-300 dark:hover:bg-zinc-900"
+                        >
+                            Official Site
+                            <ExternalLink className="ml-1 h-3 w-3" />
+                        </a>
+                    )}
+                    {trackingStatus ? (
+                        trackingStatus === 'tracking' ? (
+                            <button
+                                disabled
+                                className="flex-1 inline-flex items-center justify-center rounded-lg bg-zinc-100 border border-zinc-200 dark:bg-zinc-800/40 dark:border-zinc-700/50 px-2.5 py-1.5 text-[11px] font-bold text-zinc-500 dark:text-zinc-400"
+                            >
+                                Tracked
+                            </button>
+                        ) : (
+                            <a
+                                href="/dashboard?tab=tracker"
+                                className="flex-1 inline-flex items-center justify-center rounded-lg border border-orange-200 bg-orange-50/20 px-2.5 py-1.5 text-[11px] font-bold text-orange-600 shadow-sm transition hover:bg-orange-100/30 dark:border-orange-500/20 dark:bg-orange-950/20 dark:text-orange-400"
+                            >
+                                Workspace
+                            </a>
+                        )
+                    ) : (
+                        <button
+                            onClick={trackHandler}
+                            className="flex-1 inline-flex items-center justify-center rounded-lg bg-blue-600 px-2.5 py-1.5 text-[11px] font-bold text-white shadow-sm transition hover:bg-blue-500 cursor-pointer"
+                        >
+                            Track
+                        </button>
+                    )}
+                </div>
             </div>
         </div>
     );
 };
-
 
 export default HackathonCard;

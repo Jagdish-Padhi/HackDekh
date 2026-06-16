@@ -1,3 +1,9 @@
+const normalizeString = (value: unknown): string | null => {
+  if (typeof value !== "string") return null;
+  const trimmed = value.trim();
+  return trimmed.length ? trimmed : null;
+};
+
 export default function formatHack2Skill(rawData: any[]) {
   return rawData.map((h: any) => {
     const slug = h.eventUrl || h._id;
@@ -13,21 +19,64 @@ export default function formatHack2Skill(rawData: any[]) {
       if (!isNaN(parsedEnd.getTime())) deadline = parsedEnd;
     }
 
+    // --- Mode: check tags.mode.value ---
     const modeTag = h.tags?.mode?.value || "";
-    const mode = modeTag === "VIRTUAL" ? "Online" : "Offline";
+    const mode = modeTag === "VIRTUAL" ? "Online" : (modeTag === "HYBRID" ? "Hybrid" : "Offline");
 
-    // Build location
-    let locationStr = mode === "Online" ? "Online" : "In Person";
-    if (h.tags?.finale?.value) {
-      locationStr = h.tags.finale.value === "IN_PERSON" ? "In Person" : "Online";
+    // --- Location: based on mode and finale ---
+    let locationStr: string | null = null;
+    if (mode === "Online") {
+      locationStr = "Online";
+    } else if (mode === "Hybrid") {
+      // Hybrid events - indicate both online and in-person
+      const finaleValue = h.tags?.finale?.value;
+      if (finaleValue === "VIRTUAL") {
+        locationStr = "Hybrid (Finale: Virtual)";
+      } else if (finaleValue === "IN_PERSON") {
+        locationStr = "Hybrid (Finale: In-Person)";
+      } else {
+        locationStr = "Hybrid";
+      }
+    } else {
+      // Offline / In-person events
+      const finaleValue = h.tags?.finale?.value;
+      if (finaleValue === "VIRTUAL") {
+        locationStr = "Online";
+      } else {
+        locationStr = null; // Will show as null, frontend can handle
+      }
     }
 
-    const tags = [h.flag || "COMMUNITY"];
+    // --- Team Size: extract from tags.teamSize.min/max ---
+    let teamSize: string | null = null;
+    const minTeam = h.tags?.teamSize?.min;
+    const maxTeam = h.tags?.teamSize?.max;
+    if (typeof minTeam === "number" && typeof maxTeam === "number" && minTeam > 0 && maxTeam > 0) {
+      teamSize = minTeam === maxTeam ? `${minTeam}` : `${minTeam}-${maxTeam}`;
+    } else if (typeof maxTeam === "number" && maxTeam > 0) {
+      teamSize = `1-${maxTeam}`;
+    } else if (typeof minTeam === "number" && minTeam > 0) {
+      teamSize = `${minTeam}+`;
+    }
+
+    // --- Tags ---
+    const tags: string[] = [h.flag || "COMMUNITY"];
     if (h.tags?.technology?.value && Array.isArray(h.tags.technology.value)) {
-      tags.push(...h.tags.technology.value);
+      tags.push(...h.tags.technology.value.filter((t: any) => typeof t === "string" && t.trim().length > 0));
+    }
+    // Add ticket type as tag
+    if (h.tags?.ticket?.value) {
+      tags.push(h.tags.ticket.value);
     }
 
-    const applyLink = h.customEventUrl || `https://vision.hack2skill.com/event/${slug}`;
+    // --- Prize: Hack2Skill list API doesn't include prize data ---
+    // Return null and let frontend handle gracefully
+    const prize: string | null = null;
+
+    // --- Organization ---
+    const organization = "Hack2Skill";
+
+    const applyLink = h.customEventUrl || `https://hack2skill.com/event/${slug}`;
 
     return {
       title: h.title,
@@ -37,11 +86,28 @@ export default function formatHack2Skill(rawData: any[]) {
       mode,
       platform: "Hack2Skill",
       applyLink,
-      organization: "Hack2Skill",
+      organization,
       tags,
-      prize: "Prizes (See Platform)",
+      prize,
       location: locationStr,
+      teamSize,
       coverImage: h.thumbnail || null,
+      stages: (() => {
+        const parsedStages: any[] = [];
+        if (h.registrationStart) {
+          parsedStages.push({ name: "Registration Starts", deadline: new Date(h.registrationStart) });
+        }
+        if (h.registrationEnd) {
+          parsedStages.push({ name: "Registration Ends (Deadline)", deadline: new Date(h.registrationEnd) });
+        }
+        if (h.eventStart || h.startDate) {
+          parsedStages.push({ name: "Hackathon Starts", deadline: new Date(h.eventStart || h.startDate) });
+        }
+        if (h.eventEnd || h.endDate) {
+          parsedStages.push({ name: "Hackathon Ends (Finale)", deadline: new Date(h.eventEnd || h.endDate) });
+        }
+        return parsedStages;
+      })(),
       scrapedFromURL: "https://hack2skill.com/hackathons",
     };
   });

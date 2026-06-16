@@ -1,0 +1,529 @@
+import {
+  useEffect,
+  useRef,
+  useCallback,
+  forwardRef,
+  useImperativeHandle,
+} from "react";
+
+// ─── easing library ──────────────────────────────────────────
+const clamp = (v: number, a: number, b: number) => Math.max(a, Math.min(b, v));
+const lerp  = (a: number, b: number, t: number) => a + (b - a) * t;
+
+const ease = {
+  outBack:    (t: number, s: number = 2.2) => 1 + (s + 1) * Math.pow(t - 1, 3) + s * Math.pow(t - 1, 2),
+  outExpo:    (t: number)          => t === 1 ? 1 : 1 - Math.pow(2, -10 * t),
+  outElastic: (t: number) => {
+    const c = (2 * Math.PI) / 3.6;
+    return t === 0 ? 0 : t === 1 ? 1 : Math.pow(2, -10 * t) * Math.sin((t * 10 - 0.8) * c) + 1;
+  },
+  inExpo:  (t: number) => t === 0 ? 0 : Math.pow(2, 10 * t - 10),
+  inBack:  (t: number, s: number = 2.0) => (s + 1) * t * t * t - s * t * t,
+};
+
+// ─── timeline constants (ms) ──────────────────────────────────
+const TL = {
+  bktDur:  720,   // brackets fly in duration
+  bltDelay:200,   // bolt starts this many ms after brackets
+  bltDur:  660,   // bolt zoom-in duration
+  impactAt:900,   // when impact fires
+  holdDur: 980,   // hold duration after shake settles
+  outroDur:680,   // outro duration
+  shakeDur:500,   // shake duration
+  outroAt: 900 + 50 + 980,   // ~1930
+  doneAt:  900 + 50 + 980 + 680 + 220, // ~2830
+};
+
+export interface LogoTransitionRef {
+  play: () => void;
+}
+
+export interface LogoTransitionProps {
+  autoPlay?: boolean;
+  onComplete?: () => void;
+  width?: number;
+  height?: number;
+  loop?: boolean;
+}
+
+const LogoTransition = forwardRef<LogoTransitionRef, LogoTransitionProps>(
+  function LogoTransition(
+    { autoPlay = true, onComplete, width = 400, height = 240, loop = false },
+    ref
+  ) {
+    const arenaRef  = useRef<HTMLDivElement>(null);
+    const glRef     = useRef<HTMLDivElement>(null);
+    const grRef     = useRef<HTMLDivElement>(null);
+    const gsRef     = useRef<HTMLDivElement>(null);
+    const gcRef     = useRef<HTMLDivElement>(null);
+    const rafRef    = useRef<number | null>(null);
+    const running   = useRef<boolean>(false);
+
+    const reset = useCallback(() => {
+      if (rafRef.current !== null) {
+        cancelAnimationFrame(rafRef.current);
+      }
+      const gl = glRef.current;
+      const gr = grRef.current;
+      const gs = gsRef.current;
+      const gc = gcRef.current;
+      const ar = arenaRef.current;
+      if (!gl || !gr || !gs || !ar || !gc) return;
+
+      gl.style.cssText = "position:absolute;left:34px;top:50%;transform:translateY(-50%) translateX(-440px);opacity:0;will-change:transform,opacity;";
+      gr.style.cssText = "position:absolute;right:34px;top:50%;transform:translateY(-50%) translateX(440px);opacity:0;will-change:transform,opacity;";
+      gs.style.cssText = "position:absolute;left:50%;top:50%;transform:translate(-50%,-50%) scale(0) rotate(-14deg);opacity:0;filter:none;will-change:transform,opacity,filter;";
+      gc.style.cssText = "position:absolute;left:50%;top:50%;transform:translate(-50%,-50%) scale(0);opacity:0;will-change:transform,opacity;";
+      ar.style.transform = "";
+    }, []);
+
+    const play = useCallback(() => {
+      if (loop) return; // Looping mode uses pure CSS animations
+      if (running.current) return;
+      running.current = true;
+      reset();
+
+      const gl = glRef.current;
+      const gr = grRef.current;
+      const gs = gsRef.current;
+      const gc = gcRef.current;
+      const ar = arenaRef.current;
+      if (!gl || !gr || !gs || !ar || !gc) return;
+
+      const T0 = performance.now();
+
+      const frame = (now: number) => {
+        const el = now - T0;
+
+        // brackets in
+        {
+          const t  = clamp(el / TL.bktDur, 0, 1);
+          const ox = lerp(440, 0, ease.outBack(t));
+          const oa = clamp(t * 4, 0, 1);
+          gl.style.transform = `translateY(-50%) translateX(${-ox}px)`;
+          gl.style.opacity   = String(oa);
+          gr.style.transform = `translateY(-50%) translateX(${ox}px)`;
+          gr.style.opacity   = String(oa);
+        }
+
+        // bolt in
+        if (el >= TL.bltDelay) {
+          const t  = clamp((el - TL.bltDelay) / TL.bltDur, 0, 1);
+          const sc = ease.outElastic(t);
+          const ro = lerp(-14, 0, ease.outExpo(t));
+          gs.style.transform = `translate(-50%,-50%) scale(${sc.toFixed(4)}) rotate(${ro.toFixed(2)}deg)`;
+          gs.style.opacity   = String(clamp(t * 5, 0, 1));
+        }
+
+        // shake (much simplified & lightweight, using scale & filter)
+        if (el >= TL.impactAt && el < TL.outroAt) {
+          const st = clamp((el - TL.impactAt) / TL.shakeDur, 0, 1);
+          if (st < 1) {
+            const decay = 1 - ease.outExpo(st);
+            const mag   = 4 * decay;
+            ar.style.transform = `translate(${(Math.sin(now * 0.088) * mag).toFixed(2)}px,${(Math.cos(now * 0.065) * mag * 0.5).toFixed(2)}px)`;
+          } else {
+            ar.style.transform = "";
+          }
+        }
+
+        // bolt impact glow & shockwave circle
+        if (el >= TL.impactAt) {
+          const st = clamp((el - TL.impactAt) / TL.shakeDur, 0, 1);
+          if (st < 1) {
+            const decay = 1 - ease.outExpo(st);
+            // bolt glow
+            const shadowRadius = (18 * decay).toFixed(1);
+            const brightnessVal = (1.0 + 0.8 * decay).toFixed(2);
+            gs.style.filter = `drop-shadow(0 0 ${shadowRadius}px rgba(99,102,241,0.95)) brightness(${brightnessVal})`;
+
+            // shockwave circle
+            const sc = lerp(0.05, 1.35, ease.outExpo(st));
+            const op = clamp(0.95 - st, 0, 1);
+            gc.style.transform = `translate(-50%,-50%) scale(${sc.toFixed(4)})`;
+            gc.style.opacity   = String(op);
+          } else {
+            gs.style.filter = "none";
+            gc.style.transform = "translate(-50%,-50%) scale(0)";
+            gc.style.opacity   = "0";
+          }
+        } else {
+          // pre-impact bolt glow (subtle)
+          if (el >= TL.bltDelay) {
+            const t  = clamp((el - TL.bltDelay) / TL.bltDur, 0, 1);
+            const shadowRadius = (2 * t).toFixed(1);
+            gs.style.filter = `drop-shadow(0 0 ${shadowRadius}px rgba(61,80,232,0.2))`;
+          } else {
+            gs.style.filter = "none";
+          }
+          gc.style.transform = "translate(-50%,-50%) scale(0)";
+          gc.style.opacity   = "0";
+        }
+
+        // outro
+        if (el >= TL.outroAt) {
+          const ot = clamp((el - TL.outroAt) / TL.outroDur, 0, 1);
+          gs.style.transform = `translate(-50%,-50%) scale(${lerp(1, 0, ease.inExpo(ot)).toFixed(4)}) rotate(${lerp(0, 18, ease.inBack(ot)).toFixed(2)}deg)`;
+          gs.style.opacity   = String(clamp(1 - ot * 2, 0, 1));
+
+          const bt = clamp((el - TL.outroAt - 100) / TL.outroDur, 0, 1);
+          const bx = lerp(0, 440, ease.inExpo(bt));
+          gl.style.transform = `translateY(-50%) translateX(${-bx}px)`;
+          gl.style.opacity   = String(clamp(1 - bt * 1.8, 0, 1));
+          gr.style.transform = `translateY(-50%) translateX(${bx}px)`;
+          gr.style.opacity   = String(clamp(1 - bt * 1.8, 0, 1));
+        }
+
+        if (el >= TL.doneAt) {
+          reset();
+          running.current = false;
+          onComplete?.();
+          return;
+        }
+
+        rafRef.current = requestAnimationFrame(frame);
+      };
+
+      rafRef.current = requestAnimationFrame(frame);
+    }, [reset, onComplete, loop]);
+
+    useImperativeHandle(ref, () => ({ play }), [play]);
+
+    useEffect(() => {
+      if (autoPlay && !loop) play();
+      return () => {
+        if (rafRef.current !== null) {
+          cancelAnimationFrame(rafRef.current);
+        }
+        running.current = false;
+      };
+    }, [autoPlay, play, loop]);
+
+    if (loop) {
+      // Return highly lightweight, responsive CSS keyframe animated SVG loader
+      return (
+        <svg
+          viewBox="0 0 320 220"
+          width={width}
+          height={height}
+          xmlns="http://www.w3.org/2000/svg"
+          style={{
+            overflow: "visible",
+            background: "transparent",
+            display: "block",
+            maxWidth: "100%",
+          }}
+        >
+          <defs>
+            <linearGradient id="bktL" x1="0%" y1="0%" x2="100%" y2="100%">
+              <stop offset="0%" stopColor="#4b5b7e" />
+              <stop offset="50%" stopColor="#1c253d" />
+              <stop offset="100%" stopColor="#0a0f1d" />
+            </linearGradient>
+            <linearGradient id="bktR" x1="100%" y1="0%" x2="0%" y2="100%">
+              <stop offset="0%" stopColor="#4b5b7e" />
+              <stop offset="50%" stopColor="#1c253d" />
+              <stop offset="100%" stopColor="#0a0f1d" />
+            </linearGradient>
+            <linearGradient id="bktStroke" x1="0%" y1="0%" x2="100%" y2="100%">
+              <stop offset="0%" stopColor="#4f8ff7" />
+              <stop offset="50%" stopColor="#3b82f6" />
+              <stop offset="100%" stopColor="#6366f1" />
+            </linearGradient>
+            <linearGradient id="bltFill" x1="20%" y1="0%" x2="80%" y2="100%">
+              <stop offset="0%" stopColor="#4f46e5" />
+              <stop offset="50%" stopColor="#3b82f6" />
+              <stop offset="100%" stopColor="#1d4ed8" />
+            </linearGradient>
+            <linearGradient id="bltStroke" x1="0%" y1="0%" x2="100%" y2="100%">
+              <stop offset="0%" stopColor="#c084fc" />
+              <stop offset="50%" stopColor="#60a5fa" />
+              <stop offset="100%" stopColor="#22d3ee" />
+            </linearGradient>
+            <linearGradient id="bltSpec" x1="0%" y1="0%" x2="100%" y2="60%">
+              <stop offset="0%" stopColor="#ffffff" stopOpacity="0.95" />
+              <stop offset="35%" stopColor="#a5b4fc" stopOpacity="0.6" />
+              <stop offset="100%" stopColor="#4f46e5" stopOpacity="0" />
+            </linearGradient>
+          </defs>
+          <style>{`
+            @keyframes bktLeftCollision {
+              0% { transform: translateX(0px) scale(1); opacity: 0.85; }
+              20% { transform: translateX(0px) scale(1); opacity: 0.85; }
+              30% { transform: translateX(23px) scale(0.95); opacity: 1; }
+              32% { transform: translateX(23px) scale(0.95); opacity: 1; }
+              45% { transform: translateX(-15px) scale(1.05); opacity: 0.9; }
+              60% { transform: translateX(4px) scale(0.98); opacity: 0.95; }
+              75% { transform: translateX(-2px) scale(1.01); opacity: 1; }
+              90% { transform: translateX(0px) scale(1); opacity: 1; }
+              100% { transform: translateX(0px) scale(1); opacity: 0.85; }
+            }
+            @keyframes bktRightCollision {
+              0% { transform: translateX(0px) scale(1); opacity: 0.85; }
+              20% { transform: translateX(0px) scale(1); opacity: 0.85; }
+              30% { transform: translateX(-23px) scale(0.95); opacity: 1; }
+              32% { transform: translateX(-23px) scale(0.95); opacity: 1; }
+              45% { transform: translateX(15px) scale(1.05); opacity: 0.9; }
+              60% { transform: translateX(-4px) scale(0.98); opacity: 0.95; }
+              75% { transform: translateX(2px) scale(1.01); opacity: 1; }
+              90% { transform: translateX(0px) scale(1); opacity: 1; }
+              100% { transform: translateX(0px) scale(1); opacity: 0.85; }
+            }
+            @keyframes boltImpact {
+              0% { transform: scale(0.9) rotate(-1deg); opacity: 0.75; filter: drop-shadow(0 0 2px rgba(61,80,232,0.2)); }
+              28% { transform: scale(0.9) rotate(-1deg); opacity: 0.75; }
+              30% { transform: scale(1.2) rotate(4deg); opacity: 1; filter: drop-shadow(0 0 18px rgba(99,102,241,0.95)) brightness(1.8); }
+              32% { transform: scale(1.2) rotate(4deg); opacity: 1; filter: drop-shadow(0 0 18px rgba(99,102,241,0.95)) brightness(1.8); }
+              45% { transform: scale(0.95) rotate(-2deg); opacity: 0.85; filter: drop-shadow(0 0 6px rgba(61,80,232,0.4)) brightness(1.2); }
+              60% { transform: scale(1.02) rotate(1deg); opacity: 0.9; filter: drop-shadow(0 0 8px rgba(61,80,232,0.5)) brightness(1.1); }
+              75% { transform: scale(0.98) rotate(-0.5deg); opacity: 0.85; }
+              90% { transform: scale(1) rotate(0deg); opacity: 0.85; }
+              100% { transform: scale(0.9) rotate(-1deg); opacity: 0.75; }
+            }
+            @keyframes shockwavePulse {
+              0% { transform: scale(0); opacity: 0; }
+              29% { transform: scale(0); opacity: 0; }
+              30% { transform: scale(0.05); opacity: 0.95; }
+              55% { transform: scale(1.35); opacity: 0; }
+              100% { transform: scale(1.35); opacity: 0; }
+            }
+            .bkt-left-anim {
+              transform-origin: 87px 110px;
+              animation: bktLeftCollision 2.0s cubic-bezier(0.25, 1, 0.5, 1) infinite;
+            }
+            .bkt-right-anim {
+              transform-origin: 233px 110px;
+              animation: bktRightCollision 2.0s cubic-bezier(0.25, 1, 0.5, 1) infinite;
+            }
+            .bolt-anim {
+              transform-origin: 160px 110px;
+              animation: boltImpact 2.0s cubic-bezier(0.25, 1, 0.5, 1) infinite;
+            }
+            .shockwave-anim {
+              transform-origin: 160px 110px;
+              animation: shockwavePulse 2.0s cubic-bezier(0.1, 0.8, 0.3, 1) infinite;
+            }
+          `}</style>
+          
+          {/* Shockwave circle ring */}
+          <circle
+            cx="160"
+            cy="110"
+            r="80"
+            fill="none"
+            stroke="url(#bltStroke)"
+            strokeWidth="3.5"
+            className="shockwave-anim"
+          />
+
+          {/* Left bracket */}
+          <polygon
+            points="102,40 128,40 124,48 64,106 64,114 124,172 128,180 102,180 42,116 42,104"
+            fill="url(#bktL)"
+            stroke="url(#bktStroke)"
+            strokeWidth="1.6"
+            strokeLinejoin="round"
+            className="bkt-left-anim"
+          />
+
+          {/* Right bracket */}
+          <polygon
+            points="218,40 192,40 196,48 256,106 256,114 196,172 192,180 218,180 278,116 278,104"
+            fill="url(#bktR)"
+            stroke="url(#bktStroke)"
+            strokeWidth="1.6"
+            strokeLinejoin="round"
+            className="bkt-right-anim"
+          />
+
+          {/* Energy Bolt */}
+          <g className="bolt-anim">
+            <polygon
+              points="171,6 131,119 160,119 143,194 189,81 160,81"
+              fill="url(#bltFill)"
+              stroke="url(#bltStroke)"
+              strokeWidth="2.2"
+              strokeLinejoin="round"
+            />
+            <polygon
+              points="171,6 155,56 165,56"
+              fill="url(#bltSpec)"
+            />
+          </g>
+        </svg>
+      );
+    }
+
+    const scaleFactor = width / 400;
+
+    return (
+      <div
+        style={{
+          width,
+          height,
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+          overflow: "visible",
+          background: "transparent",
+        }}
+      >
+        <div
+          style={{
+            width: 400,
+            height: 240,
+            transform: `scale(${scaleFactor})`,
+            transformOrigin: "center center",
+            flexShrink: 0,
+            position: "relative",
+            overflow: "visible",
+          }}
+        >
+          <div
+            ref={arenaRef}
+            style={{
+              position: "absolute",
+              inset: 0,
+              overflow: "visible",
+            }}
+          >
+            <div
+              ref={glRef}
+              style={{
+                position: "absolute",
+                left: 34,
+                top: "50%",
+                transform: "translateY(-50%) translateX(-440px)",
+                opacity: 0,
+                willChange: "transform,opacity",
+              }}
+            >
+              <svg width="108" height="148" viewBox="0 0 108 152" overflow="visible" xmlns="http://www.w3.org/2000/svg">
+                <defs>
+                  <linearGradient id="bktL-t" x1="0%" y1="0%" x2="100%" y2="100%">
+                    <stop offset="0%" stopColor="#4b5b7e" />
+                    <stop offset="50%" stopColor="#1c253d" />
+                    <stop offset="100%" stopColor="#0a0f1d" />
+                  </linearGradient>
+                  <linearGradient id="bktStroke-t" x1="0%" y1="0%" x2="100%" y2="100%">
+                    <stop offset="0%" stopColor="#4f8ff7" />
+                    <stop offset="50%" stopColor="#3b82f6" />
+                    <stop offset="100%" stopColor="#6366f1" />
+                  </linearGradient>
+                </defs>
+                <polygon
+                  points="68,8 94,8 90,16 30,74 30,82 90,140 94,148 68,148 8,84 8,72"
+                  fill="url(#bktL-t)"
+                  stroke="url(#bktStroke-t)"
+                  strokeWidth="1.6"
+                  strokeLinejoin="round"
+                />
+              </svg>
+            </div>
+
+            <div
+              ref={grRef}
+              style={{
+                position: "absolute",
+                right: 34,
+                top: "50%",
+                transform: "translateY(-50%) translateX(440px)",
+                opacity: 0,
+                willChange: "transform,opacity",
+              }}
+            >
+              <svg width="108" height="148" viewBox="0 0 108 152" overflow="visible" xmlns="http://www.w3.org/2000/svg">
+                <defs>
+                  <linearGradient id="bktR-t" x1="100%" y1="0%" x2="0%" y2="100%">
+                    <stop offset="0%" stopColor="#4b5b7e" />
+                    <stop offset="50%" stopColor="#1c253d" />
+                    <stop offset="100%" stopColor="#0a0f1d" />
+                  </linearGradient>
+                  <linearGradient id="bktStroke-t" x1="0%" y1="0%" x2="100%" y2="100%">
+                    <stop offset="0%" stopColor="#4f8ff7" />
+                    <stop offset="50%" stopColor="#3b82f6" />
+                    <stop offset="100%" stopColor="#6366f1" />
+                  </linearGradient>
+                </defs>
+                <polygon
+                  points="40,8 14,8 18,16 78,74 78,82 18,140 14,148 40,148 100,84 100,72"
+                  fill="url(#bktR-t)"
+                  stroke="url(#bktStroke-t)"
+                  strokeWidth="1.6"
+                  strokeLinejoin="round"
+                />
+              </svg>
+            </div>
+
+            {/* Shockwave circle ring */}
+            <div
+              ref={gcRef}
+              style={{
+                position: "absolute",
+                left: "50%",
+                top: "50%",
+                transform: "translate(-50%,-50%) scale(0)",
+                opacity: 0,
+                willChange: "transform,opacity",
+              }}
+            >
+              <svg width="220" height="220" viewBox="0 0 220 220" overflow="visible" xmlns="http://www.w3.org/2000/svg">
+                <defs>
+                  <linearGradient id="bltStroke-t2" x1="0%" y1="0%" x2="100%" y2="100%">
+                    <stop offset="0%" stopColor="#c084fc" />
+                    <stop offset="50%" stopColor="#60a5fa" />
+                    <stop offset="100%" stopColor="#22d3ee" />
+                  </linearGradient>
+                </defs>
+                <circle
+                  cx="110"
+                  cy="110"
+                  r="80"
+                  fill="none"
+                  stroke="url(#bltStroke-t2)"
+                  strokeWidth="3.5"
+                />
+              </svg>
+            </div>
+
+            <div
+              ref={gsRef}
+              style={{
+                position: "absolute",
+                left: "50%",
+                top: "50%",
+                transform: "translate(-50%,-50%) scale(0) rotate(-14deg)",
+                opacity: 0,
+                willChange: "transform,opacity,filter",
+              }}
+            >
+              <svg width="88" height="214" viewBox="0 0 80 200" overflow="visible" xmlns="http://www.w3.org/2000/svg">
+                <defs>
+                  <linearGradient id="bltFill-t" x1="20%" y1="0%" x2="80%" y2="100%">
+                    <stop offset="0%" stopColor="#4f46e5" />
+                    <stop offset="50%" stopColor="#3b82f6" />
+                    <stop offset="100%" stopColor="#1d4ed8" />
+                  </linearGradient>
+                  <linearGradient id="bltStroke-t" x1="0%" y1="0%" x2="100%" y2="100%">
+                    <stop offset="0%" stopColor="#c084fc" />
+                    <stop offset="50%" stopColor="#60a5fa" />
+                    <stop offset="100%" stopColor="#22d3ee" />
+                  </linearGradient>
+                  <linearGradient id="bltSpec-t" x1="0%" y1="0%" x2="100%" y2="60%">
+                    <stop offset="0%" stopColor="#ffffff" stopOpacity="0.95" />
+                    <stop offset="35%" stopColor="#a5b4fc" stopOpacity="0.6" />
+                    <stop offset="100%" stopColor="#4f46e5" stopOpacity="0" />
+                  </linearGradient>
+                </defs>
+                <polygon points="52,6 12,119 40,119 24,194 70,81 40,81" fill="url(#bltFill-t)" stroke="url(#bltStroke-t)" strokeWidth="2.2" strokeLinejoin="round"/>
+                <polygon points="52,6 36,56 46,56" fill="url(#bltSpec-t)"/>
+              </svg>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
+);
+
+export default LogoTransition;

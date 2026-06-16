@@ -1,3 +1,4 @@
+import { Link } from 'react-router-dom';
 import { Github, Linkedin, Mail } from 'lucide-react';
 
 const Footer = () => (
@@ -53,10 +54,10 @@ const Footer = () => (
                 <div className="space-y-4">
                     <h3 className="text-lg font-semibold text-zinc-900 dark:text-zinc-100">Quick Links</h3>
                     <div className="space-y-2 text-sm">
-                        <a href="/" className="block text-zinc-600 transition hover:text-blue-700 dark:text-zinc-300 dark:hover:text-blue-300">Home</a>
-                        <a href="/hackathons" className="block text-zinc-600 transition hover:text-blue-700 dark:text-zinc-300 dark:hover:text-blue-300">Hackathons</a>
-                        <a href="/teams" className="block text-zinc-600 transition hover:text-blue-700 dark:text-zinc-300 dark:hover:text-blue-300">Teams</a>
-                        <a href="/login" className="block text-zinc-600 transition hover:text-blue-700 dark:text-zinc-300 dark:hover:text-blue-300">Login</a>
+                        <Link to="/" className="block text-zinc-600 transition hover:text-blue-700 dark:text-zinc-300 dark:hover:text-blue-300">Home</Link>
+                        <Link to="/hackathons" className="block text-zinc-600 transition hover:text-blue-700 dark:text-zinc-300 dark:hover:text-blue-300">Hackathons</Link>
+                        <Link to="/teams" className="block text-zinc-600 transition hover:text-blue-700 dark:text-zinc-300 dark:hover:text-blue-300">Teams</Link>
+                        <Link to="/login" className="block text-zinc-600 transition hover:text-blue-700 dark:text-zinc-300 dark:hover:text-blue-300">Login</Link>
                     </div>
                 </div>
 

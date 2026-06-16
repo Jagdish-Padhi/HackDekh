@@ -37,6 +37,32 @@ const userSchema = new mongoose.Schema({
         type: String,
     },
 
+    savedHackathons: [{
+        type: mongoose.Schema.Types.ObjectId,
+        ref: 'Hackathon',
+    }],
+
+    applications: [{
+        hackathon: {
+            type: mongoose.Schema.Types.ObjectId,
+            ref: 'Hackathon',
+            required: true,
+        },
+        status: {
+            type: String,
+            enum: ['Applied', 'Accepted', 'Rejected', 'Under Review', 'Completed'],
+            default: 'Applied',
+        },
+        notes: {
+            type: String,
+            default: '',
+        },
+        appliedAt: {
+            type: Date,
+            default: Date.now,
+        }
+    }]
+
 }, { timestamps: true });
 
 

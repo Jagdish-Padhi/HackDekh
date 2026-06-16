@@ -4,9 +4,6 @@ import { ApiResponse } from "../utils/apiResponse.ts";
 import { ApiError } from "../utils/apiError.ts";
 import axios from "axios";
 
-const SAFE_DEADLINE_BUFFER_DAYS = 3;
-const SAFE_DEADLINE_MIN_WINDOW_DAYS = 5;
-
 const isUnavailablePrize = (value: string) =>
   /^(?:tbd|na|n\/a|none|null|undefined|not\s*(?:announced|disclosed)|to\s*be\s*announced|--?)$/i.test(value.trim());
 
@@ -24,13 +21,6 @@ const getComparableDeadlineDate = (deadline?: Date | string | null) => {
 
   if (typeof deadline === "string" && /^\d{4}-\d{2}-\d{2}$/.test(rawDeadline)) {
     parsed.setHours(23, 59, 59, 999);
-  }
-
-  const msPerDay = 1000 * 60 * 60 * 24;
-  const daysUntilActualDeadline = Math.ceil((parsed.getTime() - Date.now()) / msPerDay);
-
-  if (daysUntilActualDeadline > SAFE_DEADLINE_MIN_WINDOW_DAYS) {
-    parsed.setDate(parsed.getDate() - SAFE_DEADLINE_BUFFER_DAYS);
   }
 
   return Number.isNaN(parsed.getTime()) ? null : parsed;
@@ -249,32 +239,75 @@ export const getHackathons = asyncHandler(async (req: any, res: any) => {
     list = list.filter((h) => !hasDeadlinePassed(h.deadline));
   }
 
-  // Sort
-  if (sortBy) {
-    list.sort((a: any, b: any) => {
-      if (sortBy === "deadline-asc") {
-        const da = getComparableDeadlineDate(a.deadline)?.getTime() ?? null;
-        const db = getComparableDeadlineDate(b.deadline)?.getTime() ?? null;
-        return compareNullableNumbers(da, db, "asc");
-      }
+  // Partition active vs expired list
+  const activeList = list.filter((h) => !hasDeadlinePassed(h.deadline));
+  const expiredList = list.filter((h) => hasDeadlinePassed(h.deadline));
 
-      if (sortBy === "deadline-desc") {
-        const da = getComparableDeadlineDate(a.deadline)?.getTime() ?? null;
-        const db = getComparableDeadlineDate(b.deadline)?.getTime() ?? null;
-        return compareNullableNumbers(da, db, "desc");
-      }
+  const sortOption = sortBy || "deadline-asc";
 
-      if (sortBy === "prize-asc") {
-        return compareNullableNumbers(getPrizeAmountInINR(a.prize, a.platform, usdToInrRate), getPrizeAmountInINR(b.prize, b.platform, usdToInrRate), "asc");
-      }
+  // Sort active hackathons
+  activeList.sort((a: any, b: any) => {
+    if (sortOption === "deadline-asc") {
+      const da = getComparableDeadlineDate(a.deadline)?.getTime() ?? null;
+      const db = getComparableDeadlineDate(b.deadline)?.getTime() ?? null;
+      return compareNullableNumbers(da, db, "asc");
+    }
 
-      if (sortBy === "prize-desc") {
-        return compareNullableNumbers(getPrizeAmountInINR(a.prize, a.platform, usdToInrRate), getPrizeAmountInINR(b.prize, b.platform, usdToInrRate), "desc");
-      }
+    if (sortOption === "deadline-desc") {
+      const da = getComparableDeadlineDate(a.deadline)?.getTime() ?? null;
+      const db = getComparableDeadlineDate(b.deadline)?.getTime() ?? null;
+      return compareNullableNumbers(da, db, "desc");
+    }
 
-      return 0;
-    });
-  }
+    if (sortOption === "prize-asc") {
+      return compareNullableNumbers(
+        getPrizeAmountInINR(a.prize, a.platform, usdToInrRate),
+        getPrizeAmountInINR(b.prize, b.platform, usdToInrRate),
+        "asc"
+      );
+    }
+
+    if (sortOption === "prize-desc") {
+      return compareNullableNumbers(
+        getPrizeAmountInINR(a.prize, a.platform, usdToInrRate),
+        getPrizeAmountInINR(b.prize, b.platform, usdToInrRate),
+        "desc"
+      );
+    }
+
+    return 0;
+  });
+
+  // Sort expired hackathons
+  expiredList.sort((a: any, b: any) => {
+    // For expired events, deadline-asc or no-sort defaults to showing most recently expired first
+    if (!sortBy || sortOption === "deadline-asc" || sortOption === "deadline-desc") {
+      const da = getComparableDeadlineDate(a.deadline)?.getTime() ?? null;
+      const db = getComparableDeadlineDate(b.deadline)?.getTime() ?? null;
+      return compareNullableNumbers(da, db, "desc");
+    }
+
+    if (sortOption === "prize-asc") {
+      return compareNullableNumbers(
+        getPrizeAmountInINR(a.prize, a.platform, usdToInrRate),
+        getPrizeAmountInINR(b.prize, b.platform, usdToInrRate),
+        "asc"
+      );
+    }
+
+    if (sortOption === "prize-desc") {
+      return compareNullableNumbers(
+        getPrizeAmountInINR(a.prize, a.platform, usdToInrRate),
+        getPrizeAmountInINR(b.prize, b.platform, usdToInrRate),
+        "desc"
+      );
+    }
+
+    return 0;
+  });
+
+  // Combine lists: active first, followed by expired
+  list = [...activeList, ...expiredList];
 
   // Format prize strings in returned list to attractive INR-only format
   const plainList = list.map((h: any) => {

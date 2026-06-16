@@ -17,9 +17,14 @@ const teamInvitationSchema = new mongoose.Schema({
 
     invitedEmail: {
         type: String,
-        required: true,
         lowercase: true,
         trim: true,
+    },
+
+    invitedUser: {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: 'User',
+        index: true,
     },
 
     token: {

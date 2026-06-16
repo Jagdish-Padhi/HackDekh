@@ -266,20 +266,101 @@ export default function formatUnstop(rawData: any) {
     } else if (h.slug) {
       applyLink = `https://unstop.com/${h.slug.replace(/^\//, '')}`;
     }
+
+    // --- Team Size (directly from search API regnRequirements) ---
+    let teamSize: string | null = null;
+    const minTeam = h?.regnRequirements?.min_team_size ?? null;
+    const maxTeam = h?.regnRequirements?.max_team_size ?? null;
+    if (typeof minTeam === "number" && typeof maxTeam === "number" && minTeam > 0 && maxTeam > 0) {
+      teamSize = minTeam === maxTeam ? `${minTeam}` : `${minTeam}-${maxTeam}`;
+    } else if (typeof maxTeam === "number" && maxTeam > 0) {
+      teamSize = `1-${maxTeam}`;
+    } else if (typeof minTeam === "number" && minTeam > 0) {
+      teamSize = `${minTeam}+`;
+    }
+
+    // --- Description (from 'details' HTML field in search API, strip HTML tags) ---
+    let description: string | null = null;
+    if (h?.details && typeof h.details === "string" && h.details.trim().length > 0) {
+      // Strip HTML tags and take first 500 chars for a summary
+      const stripped = h.details.replace(/<[^>]*>/g, " ").replace(/\s+/g, " ").trim();
+      if (stripped.length > 0) {
+        description = stripped.length > 500 ? stripped.substring(0, 500) + "..." : stripped;
+      }
+    }
+    if (!description) {
+      const seoDesc = h?.seo_details?.[0]?.description;
+      if (seoDesc && typeof seoDesc === "string") {
+        description = seoDesc.trim();
+      }
+    }
+
     return {
       title: h.title,
       startDate: h.start_date,
       slug: publicUrl,
       deadline: h.regnRequirements?.end_regn_dt || h.end_date || null,
-      mode: h.is_online ? "Online" : "Offline",
+      mode: h.is_online ? "Online" : (h.region?.toLowerCase() === "online" ? "Online" : "Offline"),
       platform: "Unstop",
       applyLink,
       organization: h.organization?.name || h.organisation?.name || "Unknown",
       tags: h.filters ? h.filters.map((f: any) => f.name) : [],
       prize: extractUnstopPrize(h),
       location: extractUnstopLocation(h),
+      teamSize,
+      description,
       // Try thumb, logoUrl2, logoUrl as possible cover images
-      coverImage: h.thumb || h.logoUrl2 || h.logoUrl || h.organisation?.logoUrl2 || h.organisation?.logoUrl || null,
+      coverImage: h.cover_image || h.thumb || h.logoUrl2 || h.logoUrl || h.organisation?.logoUrl2 || h.organisation?.logoUrl || null,
+      stages: (() => {
+        const parsedStages: any[] = [];
+        const rounds = h.opportunity_rounds || h.rounds || h.stages || [];
+        if (Array.isArray(rounds)) {
+          for (let i = 0; i < rounds.length; i++) {
+            const r = rounds[i];
+            const rd = Array.isArray(r.details) && r.details.length > 0 ? r.details[0] : {};
+            
+            const name =
+              rd.title ||
+              rd.name ||
+              r.name ||
+              r.title ||
+              rd.round_name ||
+              r.round_name ||
+              `Round ${r.round_order || r.id || i + 1}`;
+
+            const deadlineRaw =
+              rd.end_date ||
+              rd.end_time ||
+              r.end_date ||
+              r.end_time ||
+              rd.submission_deadline ||
+              rd.deadline ||
+              rd.start_date ||
+              r.start_date ||
+              null;
+
+            if (name) {
+              parsedStages.push({
+                name: String(name).trim(),
+                deadline: deadlineRaw && !isNaN(Date.parse(deadlineRaw)) ? new Date(deadlineRaw) : undefined,
+              });
+            }
+          }
+        }
+        if (parsedStages.length === 0) {
+          const regDeadline = h.regnRequirements?.end_regn_dt || h.end_date;
+          if (regDeadline) {
+            parsedStages.push({ name: "Registration Deadline", deadline: new Date(regDeadline) });
+          }
+          if (h.start_date) {
+            parsedStages.push({ name: "Hackathon Start", deadline: new Date(h.start_date) });
+          }
+          if (h.end_date) {
+            parsedStages.push({ name: "Hackathon End", deadline: new Date(h.end_date) });
+          }
+        }
+        return parsedStages;
+      })(),
       scrapedFromURL: "https://unstop.com/hackathons",
     };
   });

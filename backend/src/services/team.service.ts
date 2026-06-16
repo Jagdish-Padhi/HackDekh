@@ -2,6 +2,8 @@ import { Types } from 'mongoose';
 import Team from '../models/team.model.ts';
 import User from '../models/user.model.ts';
 import TeamInvitation from '../models/teamInvitation.model.ts';
+import TeamHackathon from '../models/teamHackathon.model.ts';
+import Stage from '../models/stage.model.ts';
 import crypto from 'crypto';
 
 interface CreateTeamInput {
@@ -48,11 +50,26 @@ function includesUserId(list: unknown[], userId: Types.ObjectId): boolean {
     return list.some((item) => toIdString(item) === target);
 }
 
+async function generateUniqueTeamCode(): Promise<string> {
+    let code = '';
+    let exists = true;
+    while (exists) {
+        code = crypto.randomBytes(3).toString('hex').toUpperCase();
+        const team = await Team.findOne({ code });
+        if (!team) {
+            exists = false;
+        }
+    }
+    return code;
+}
+
 export async function createTeam(teamData: CreateTeamInput, ownerId: Types.ObjectId) {
+    const code = await generateUniqueTeamCode();
     const team = new Team({
         name: teamData.name.trim(),
         owner: ownerId,
         members: [ownerId],
+        code,
     });
 
     await team.save();
@@ -62,10 +79,19 @@ export async function createTeam(teamData: CreateTeamInput, ownerId: Types.Objec
 }
 
 export async function getUserTeams(userId: Types.ObjectId) {
-    return Team.find({ members: userId })
+    const teams = await Team.find({ members: userId })
         .populate('owner', 'username fullName email')
-    .populate('members', 'username fullName email')
+        .populate('members', 'username fullName email')
         .sort({ createdAt: -1 });
+
+    for (const team of teams) {
+        if (!team.code) {
+            team.code = await generateUniqueTeamCode();
+            await team.save();
+        }
+    }
+
+    return teams;
 }
 
 export async function getTeamById(teamId: string, userId: Types.ObjectId) {
@@ -86,6 +112,11 @@ export async function getTeamById(teamId: string, userId: Types.ObjectId) {
 
     if (!isMember && !isOwner) {
         return null;
+    }
+
+    if (!team.code) {
+        team.code = await generateUniqueTeamCode();
+        await team.save();
     }
 
     return team;
@@ -326,4 +357,180 @@ export async function getTeamInvitations(teamId: string, ownerId: Types.ObjectId
         .populate('invitedBy', 'username fullName email')
         .populate('acceptedBy', 'username fullName email')
         .sort({ createdAt: -1 });
+}
+
+export async function deleteTeam(teamId: string, ownerId: Types.ObjectId) {
+    if (!Types.ObjectId.isValid(teamId)) {
+        return null;
+    }
+
+    const team = await Team.findOne({ _id: teamId, owner: ownerId });
+    if (!team) {
+        return null;
+    }
+
+    // 1. Find all team hackathon participations
+    const participations = await TeamHackathon.find({ team: teamId });
+    const participationIds = participations.map(p => p._id);
+
+    // 2. Delete all stages associated with these participations
+    if (participationIds.length > 0) {
+        await Stage.deleteMany({ teamHackathon: { $in: participationIds } });
+    }
+
+    // 3. Delete team hackathon relations
+    await TeamHackathon.deleteMany({ team: teamId });
+
+    // 4. Delete invites
+    await TeamInvitation.deleteMany({ team: teamId });
+
+    // 5. Delete the team itself
+    await Team.deleteOne({ _id: teamId });
+
+    return team;
+}
+
+export async function regenerateTeamCode(teamId: string, ownerId: Types.ObjectId) {
+    if (!Types.ObjectId.isValid(teamId)) {
+        return null;
+    }
+    const newCode = await generateUniqueTeamCode();
+    const updatedTeam = await Team.findOneAndUpdate(
+        { _id: teamId, owner: ownerId },
+        { $set: { code: newCode } },
+        { returnDocument: 'after' }
+    )
+        .populate('owner', 'username fullName email')
+        .populate('members', 'username fullName email');
+    return updatedTeam;
+}
+
+export async function joinTeamByCode(userId: Types.ObjectId, code: string) {
+    if (!code || typeof code !== 'string') {
+        return null;
+    }
+    const normalizedCode = code.trim().toUpperCase();
+    const team = await Team.findOne({ code: normalizedCode });
+    if (!team) {
+        throw new Error('Invalid code. Team not found.');
+    }
+
+    const isMember = includesUserId(team.members as unknown[], userId);
+    if (isMember) {
+        throw new Error('You are already a member of this team.');
+    }
+
+    await Team.updateOne(
+        { _id: team._id },
+        { $addToSet: { members: userId } }
+    );
+
+    return Team.findById(team._id)
+        .populate('owner', 'username fullName email')
+        .populate('members', 'username fullName email');
+}
+
+export async function inviteUserByUsernameOrId(teamId: string, ownerId: Types.ObjectId, targetUserIdOrUsername: string) {
+    if (!Types.ObjectId.isValid(teamId)) {
+        return null;
+    }
+    const team = await Team.findOne({ _id: teamId, owner: ownerId });
+    if (!team) {
+        throw new Error('Team not found or you are not authorized.');
+    }
+
+    let targetUser = null;
+    if (Types.ObjectId.isValid(targetUserIdOrUsername)) {
+        targetUser = await User.findById(targetUserIdOrUsername);
+    } else {
+        targetUser = await User.findOne({ username: targetUserIdOrUsername.toLowerCase() });
+    }
+
+    if (!targetUser) {
+        throw new Error('User not found.');
+    }
+
+    const isMember = includesUserId(team.members as unknown[], targetUser._id);
+    if (isMember) {
+        throw new Error('User is already a member of this team.');
+    }
+
+    const existingInvite = await TeamInvitation.findOne({
+        team: teamId,
+        invitedUser: targetUser._id,
+        status: 'pending'
+    });
+
+    if (existingInvite) {
+        throw new Error('An invitation is already pending for this user.');
+    }
+
+    const token = crypto.randomBytes(32).toString('hex');
+    const expiresAt = getExpirationDate(7);
+
+    const invitation = new TeamInvitation({
+        team: teamId,
+        invitedBy: ownerId,
+        invitedUser: targetUser._id,
+        invitedEmail: targetUser.email,
+        token,
+        status: 'pending',
+        expiresAt
+    });
+
+    await invitation.save();
+    return invitation;
+}
+
+export async function getUserInvitations(userId: Types.ObjectId) {
+    return TeamInvitation.find({ invitedUser: userId, status: 'pending' })
+        .populate({
+            path: 'team',
+            populate: {
+                path: 'owner',
+                select: 'username fullName email'
+            }
+        })
+        .populate('invitedBy', 'username fullName email')
+        .sort({ createdAt: -1 });
+}
+
+export async function respondToInvitation(invitationId: string, userId: Types.ObjectId, action: 'accept' | 'decline') {
+    if (!Types.ObjectId.isValid(invitationId)) {
+        return null;
+    }
+
+    const invitation = await TeamInvitation.findOne({ _id: invitationId, invitedUser: userId, status: 'pending' });
+    if (!invitation) {
+        throw new Error('Invitation not found or not pending.');
+    }
+
+    if (new Date() > invitation.expiresAt) {
+        invitation.status = 'expired';
+        await invitation.save();
+        throw new Error('Invitation has expired.');
+    }
+
+    if (action === 'accept') {
+        const team = await Team.findById(invitation.team);
+        if (!team) {
+            throw new Error('Team not found.');
+        }
+
+        await Team.updateOne(
+            { _id: team._id },
+            { $addToSet: { members: userId } }
+        );
+
+        invitation.status = 'accepted';
+        invitation.acceptedBy = userId;
+        invitation.acceptedAt = new Date();
+        await invitation.save();
+
+        return { status: 'accepted', teamId: team._id };
+    } else {
+        invitation.status = 'declined';
+        await invitation.save();
+        return { status: 'declined' };
+    }
 }
