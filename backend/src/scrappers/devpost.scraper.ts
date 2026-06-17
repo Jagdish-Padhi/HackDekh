@@ -5,9 +5,10 @@ import { universalFormatter } from "../formatters/universalFormatter.ts";
 import { asyncHandler } from "../utils/asyncHandler.ts";
 import { ApiResponse } from "../utils/apiResponse.ts";
 import { ApiError } from "../utils/apiError.ts";
+import { axiosGetWithRetry } from "../utils/scraperUtils.ts";
 
 const DEVPOST_API_URL = "https://devpost.com/api/hackathons";
-const DEVPOST_DETAIL_CONCURRENCY = 10;
+const DEVPOST_DETAIL_CONCURRENCY = 5;
 
 const HEADERS = {
   "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
@@ -45,8 +46,7 @@ const enrichSingleDevpostHackathon = async (hack: any): Promise<any> => {
   if (!url) return hack;
 
   try {
-    const { data: html } = await axios.get(url, {
-      headers: HEADERS,
+    const { data: html } = await axiosGetWithRetry(url, {
       timeout: 15000,
     });
 
@@ -113,8 +113,7 @@ const enrichSingleDevpostHackathon = async (hack: any): Promise<any> => {
     // 1. Try to fetch details/dates subpage
     try {
       const datesUrl = url.endsWith('/') ? `${url}details/dates` : `${url}/details/dates`;
-      const { data: datesHtml } = await axios.get(datesUrl, {
-        headers: HEADERS,
+      const { data: datesHtml } = await axiosGetWithRetry(datesUrl, {
         timeout: 10000,
       });
       const $dates = cheerio.load(datesHtml);
@@ -270,15 +269,14 @@ export async function scrapeDevpostData() {
     let allHackathons: any[] = [];
     
     for (let page = 1; page <= 2; page++) {
-      const response = await axios.get(DEVPOST_API_URL, {
+      const response = await axiosGetWithRetry(DEVPOST_API_URL, {
         params: {
           "challenge_type[]": "online",
           "status[]": "open",
           page: page,
           per_page: 20
         },
-        headers: HEADERS,
-        timeout: 15000
+        timeout: 20000
       });
       
       const batch = response.data?.hackathons || [];

@@ -41,8 +41,17 @@ async function autoUpdateTeamHackathonStatus(thId: string) {
         return;
     }
 
-    const hasRejected = competitiveStages.some(s => s.result === 'rejected');
-    if (hasRejected) {
+    const failedStageIdx = competitiveStages.findIndex(s => s.result === 'rejected');
+    if (failedStageIdx !== -1) {
+        // Reset all subsequent stages to 'pending'
+        for (let j = failedStageIdx + 1; j < competitiveStages.length; j++) {
+            const subStage = competitiveStages[j];
+            if (subStage.result !== 'pending') {
+                subStage.result = 'pending';
+                subStage.pendingReflectionFor = [];
+                await subStage.save();
+            }
+        }
         th.status = 'eliminated';
         await th.save();
         return;

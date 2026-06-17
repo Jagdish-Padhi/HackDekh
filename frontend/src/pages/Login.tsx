@@ -110,17 +110,15 @@ const LoginPage = () => {
   const handleGithubLogin = () => {
     setError('');
     setSuccessMessage('');
-    const clientId = import.meta.env.VITE_GITHUB_CLIENT_ID || 'mock_client_id';
-    const redirectUri = encodeURIComponent(window.location.origin + '/auth/github/callback');
+    const clientId = import.meta.env.VITE_GITHUB_CLIENT_ID;
     
-    if (clientId === 'mock_client_id') {
-      setSuccessMessage('Mock GitHub login initialized. Redirecting...');
-      setTimeout(() => {
-        navigate(`/auth/github/callback?code=mock_code_dev_${Math.floor(Math.random() * 1000)}`);
-      }, 800);
-    } else {
-      window.location.href = `https://github.com/login/oauth/authorize?client_id=${clientId}&redirect_uri=${redirectUri}&scope=user:email`;
+    if (!clientId) {
+      setError('GitHub OAuth is not configured. Set VITE_GITHUB_CLIENT_ID in your .env.local file.');
+      return;
     }
+
+    const redirectUri = encodeURIComponent(window.location.origin + '/auth/github/callback');
+    window.location.href = `https://github.com/login/oauth/authorize?client_id=${clientId}&redirect_uri=${redirectUri}&scope=user:email`;
   };
 
   if (isLoading) {

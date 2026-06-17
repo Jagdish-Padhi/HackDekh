@@ -4,12 +4,9 @@ import { universalFormatter } from "../formatters/universalFormatter.ts";
 import { asyncHandler } from "../utils/asyncHandler.ts";
 import { ApiResponse } from "../utils/apiResponse.ts";
 import { ApiError } from "../utils/apiError.ts";
+import { axiosGetWithRetry } from "../utils/scraperUtils.ts";
 
 const HACK2SKILL_EVENTS_API = "https://hack2skill.com/api/v1/innovator/public/event/list";
-
-const HEADERS = {
-  "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
-};
 
 export const scrapeHack2Skill = asyncHandler(async (req: any, res: any) => {
   try {
@@ -23,9 +20,8 @@ export const scrapeHack2Skill = asyncHandler(async (req: any, res: any) => {
 export async function scrapeHack2SkillData() {
   try {
     console.log("[Hack2Skill Scraper] Fetching public event list API...");
-    const response = await axios.get(HACK2SKILL_EVENTS_API, {
-      headers: HEADERS,
-      timeout: 15000
+    const response = await axiosGetWithRetry(HACK2SKILL_EVENTS_API, {
+      timeout: 20000
     });
 
     const data = response.data;
