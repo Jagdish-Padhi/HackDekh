@@ -146,12 +146,6 @@ const formatDateTag = (value?: string | null) => {
   return `${dd}/${mm}/${yyyy}`;
 };
 
-const stageResultClass = (result: Stage["result"]) => {
-  if (/qualified/i.test(result)) return "border-emerald-500/25 bg-emerald-500/10 text-emerald-700 dark:text-emerald-400";
-  if (/rejected/i.test(result)) return "border-rose-500/25 bg-rose-500/10 text-rose-700 dark:text-rose-400";
-  return "border-zinc-200 bg-zinc-100 text-zinc-700 dark:border-zinc-800 dark:bg-zinc-900 dark:text-zinc-300";
-};
-
 // Gradient seed colors for team avatars
 const AVATAR_GRADIENTS = [
   "from-blue-500 to-indigo-600",
