@@ -426,6 +426,9 @@ export default function DashboardPage() {
         stages: current.stages.map((candidate) => (candidate._id === stageId ? { ...candidate, ...updatedStage } : candidate)),
       }));
       showToast(`Stage result updated to ${result}`, "success");
+
+      // Silently re-fetch to sync backend-driven resets (subsequent stages reset to pending)
+      await loadDashboardData(true);
     } catch (error: any) {
       console.error("Failed to update stage result", error);
       showToast(error.response?.data?.message || "Failed to update stage result", "error");
@@ -1389,6 +1392,7 @@ export default function DashboardPage() {
                                   const isFocused = focusedStageId === stage._id;
                                   const failedStageIdx = competitiveStages.findIndex(s => s.result === 'rejected');
                                   const isDisqualified = failedStageIdx !== -1 && index > failedStageIdx;
+                                  const isStageEditable = !isDisqualified && activePart.status !== 'won';
                                   const reflectionsCount = stage.reflections?.length || 0;
                                   const isReflectionsExpanded = !!showReflectionsMap[stage._id];
 
@@ -1435,7 +1439,7 @@ export default function DashboardPage() {
                                                   </span>
                                                 )}
                                                 <input
-                                                  disabled={isDisqualified || isTerminated}
+                                                  disabled={!isStageEditable}
                                                   defaultValue={stage.name}
                                                   onFocus={() => setFocusedStageId(stage._id)}
                                                   onBlur={(event) => {
@@ -1489,7 +1493,7 @@ export default function DashboardPage() {
                                             
                                             {/* Delete Stage */}
                                             <button
-                                              disabled={isTerminated}
+                                              disabled={!isStageEditable}
                                               onClick={() => handleDeleteStage(activePart._id, stage._id, stage.name)}
                                               className="rounded-lg p-1.5 text-zinc-450 hover:bg-rose-500/10 hover:text-rose-500 transition cursor-pointer disabled:opacity-30 disabled:cursor-not-allowed"
                                               title="Delete stage"
@@ -1502,7 +1506,7 @@ export default function DashboardPage() {
                                         {/* Actions Row */}
                                         <div className="mt-4 pt-3.5 border-t border-zinc-250 grid grid-cols-1 sm:grid-cols-2 gap-3">
                                           <input
-                                            disabled={isDisqualified || isTerminated}
+                                            disabled={!isStageEditable}
                                             type="date"
                                             onFocus={() => setFocusedStageId(stage._id)}
                                             defaultValue={stage.deadline ? new Date(stage.deadline).toISOString().slice(0, 10) : ""}
@@ -1517,9 +1521,9 @@ export default function DashboardPage() {
                                           />
                                           {/* Custom Stage Result Dropdown */}
                                           {(() => {
-                                            const resultValue = isDisqualified ? "rejected" : stage.result;
+                                            const resultValue = isDisqualified ? "pending" : stage.result;
                                             const isOpen = openResultDropdownId === stage._id;
-                                            const isLocked = isDisqualified || isTerminated;
+                                            const isLocked = !isStageEditable;
 
                                             const resultOptions = [
                                               { value: "pending", label: "Pending", colorClass: "text-zinc-600 dark:text-zinc-300", dotClass: "bg-zinc-400" },
@@ -1599,7 +1603,7 @@ export default function DashboardPage() {
 
                                         {/* Notes Textarea */}
                                         <textarea
-                                          disabled={isDisqualified || isTerminated}
+                                          disabled={!isStageEditable}
                                           onFocus={() => setFocusedStageId(stage._id)}
                                           defaultValue={stage.notes || ""}
                                           onBlur={(event) => {

@@ -1061,6 +1061,11 @@ export default function TeamsPage() {
       }));
 
       setStageSaving((current) => ({ ...current, [stageId]: "saved" }));
+
+      // If a result was changed, silently re-fetch to sync backend-driven resets
+      if (payload.result !== undefined) {
+        await loadTeamWorkspace(participation.teamInfo._id, true);
+      }
     } catch (error: any) {
       console.error("Failed to update stage", error);
       showToast(error.response?.data?.message || "Failed to update stage", "error");
@@ -2387,6 +2392,7 @@ export default function TeamsPage() {
                             }
                             return competitiveStages.map((stage, sIdx) => {
                               const isDisqualified = failedStageIdx !== -1 && sIdx > failedStageIdx;
+                              const isStageEditable = !isDisqualified && selectedParticipation.status !== 'won';
 
                               return (
                                 <div id={`stage-${stage._id}`} key={stage._id} className={`rounded-xl border p-4 transition-all duration-200 ${isDisqualified ? "border-dashed border-zinc-250 bg-zinc-50/50 dark:border-zinc-800/40 dark:bg-zinc-950/20 opacity-50" : "border-zinc-200 bg-white dark:border-zinc-800/60 dark:bg-zinc-900/60 shadow-xs hover:border-zinc-300 dark:hover:border-zinc-700"}`}>
@@ -2398,7 +2404,7 @@ export default function TeamsPage() {
                                         </span>
                                       )}
                                       <input
-                                        disabled={isDisqualified || isTerminated}
+                                        disabled={!isStageEditable}
                                         defaultValue={stage.name}
                                         onBlur={(event) => {
                                           if (event.target.value !== stage.name) {
@@ -2410,7 +2416,7 @@ export default function TeamsPage() {
                                     </div>
                                     <button
                                       onClick={() => handleDeleteStage(selectedParticipation._id, stage._id, stage.name)}
-                                      disabled={isTerminated}
+                                      disabled={!isStageEditable}
                                       className="rounded-lg p-1.5 text-zinc-400 hover:bg-rose-500/10 hover:text-rose-500 transition cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed"
                                       title="Delete stage"
                                     >
@@ -2423,7 +2429,7 @@ export default function TeamsPage() {
                                       <label className="text-[9px] font-bold text-zinc-400 uppercase tracking-wider block mb-0.5">Deadline</label>
                                       <input
                                         type="date"
-                                        disabled={isDisqualified || isTerminated}
+                                        disabled={!isStageEditable}
                                         defaultValue={stage.deadline ? new Date(stage.deadline).toISOString().slice(0, 10) : ""}
                                         onBlur={(event) => {
                                           const nextDeadline = event.target.value || null;
@@ -2438,18 +2444,22 @@ export default function TeamsPage() {
 
                                     <div>
                                       <label className="text-[9px] font-bold text-zinc-400 uppercase tracking-wider block mb-0.5">Result</label>
-                                      <button
-                                        disabled={isDisqualified || isTerminated}
-                                        onClick={() => {
-                                          const resultOrder: Stage["result"][] = ["pending", "qualified", "rejected"];
-                                          const currentIndex = resultOrder.indexOf(stage.result as Stage["result"]);
-                                          const nextResult = resultOrder[(currentIndex + 1) % resultOrder.length];
-                                          handleUpdateStage(selectedParticipation._id, stage._id, { result: nextResult });
+                                      <AppDropdown
+                                        value={isDisqualified ? "pending" : stage.result}
+                                        disabled={!isStageEditable}
+                                        onChange={(val) => {
+                                          if (val !== stage.result) {
+                                            handleUpdateStage(selectedParticipation._id, stage._id, { result: val as Stage["result"] });
+                                          }
                                         }}
-                                        className={`rounded-lg border px-2.5 py-1 text-xs font-semibold uppercase tracking-wider transition disabled:cursor-not-allowed ${isDisqualified ? "border-zinc-200 bg-zinc-100 text-zinc-400 dark:border-zinc-800 dark:bg-zinc-900/50" : stageResultClass(stage.result)}`}
-                                      >
-                                        {isDisqualified ? "disqualified" : stage.result}
-                                      </button>
+                                        options={[
+                                          { label: "Pending", value: "pending", dotClass: "bg-amber-500" },
+                                          { label: "Qualified", value: "qualified", dotClass: "bg-emerald-500" },
+                                          { label: "Rejected", value: "rejected", dotClass: "bg-rose-500" },
+                                        ]}
+                                        placeholder="Result"
+                                        className="!w-36"
+                                      />
                                     </div>
 
                                     {stageSaving[stage._id] && (
