@@ -434,72 +434,59 @@ const githubAuth = asyncHandler(async (req: any, res: any) => {
   const clientId = process.env.GITHUB_CLIENT_ID;
   const clientSecret = process.env.GITHUB_CLIENT_SECRET;
 
+  if (!clientId || !clientSecret) {
+    throw new ApiError(500, "GitHub OAuth is not configured. Set GITHUB_CLIENT_ID and GITHUB_CLIENT_SECRET in your .env file.");
+  }
+
   let githubUser: any;
   let email: string;
 
-  // Sandbox / Mock mode if credentials are not configured or if code is mock
-  if (!clientId || !clientSecret || code.startsWith("mock_code_dev_")) {
-    console.log("Using Mock GitHub Authentication Flow (Sandbox/Dev mode)");
-    
-    // Simulate a GitHub profile
-    const mockUsername = code.startsWith("mock_code_dev_") 
-      ? `github_dev_${code.split("_").pop()}`
-      : "github_octocat";
-
-    githubUser = {
-      login: mockUsername,
-      name: "Octocat Developer",
-      email: `${mockUsername}@example.com`,
-      avatar_url: `https://api.dicebear.com/7.x/identicon/svg?seed=${mockUsername}`,
-    };
-    email = githubUser.email;
-  } else {
-    // Real GitHub OAuth flow
-    try {
-      // 1. Exchange code for access token
-      const tokenResponse = await axios.post(
-        "https://github.com/login/oauth/access_token",
-        {
-          client_id: clientId,
-          client_secret: clientSecret,
-          code,
+  try {
+    // 1. Exchange code for access token
+    const tokenResponse = await axios.post(
+      "https://github.com/login/oauth/access_token",
+      {
+        client_id: clientId,
+        client_secret: clientSecret,
+        code,
+      },
+      {
+        headers: {
+          Accept: "application/json",
         },
-        {
-          headers: {
-            Accept: "application/json",
-          },
-        }
-      );
-
-      const { access_token: githubToken, error: tokenError, error_description } = tokenResponse.data;
-      if (tokenError || !githubToken) {
-        throw new ApiError(400, error_description || "Failed to retrieve GitHub access token");
       }
+    );
 
-      // 2. Fetch user profile
-      const userResponse = await axios.get("https://api.github.com/user", {
-        headers: {
-          Authorization: `token ${githubToken}`,
-        },
-      });
-      githubUser = userResponse.data;
-
-      // 3. Fetch user emails to get verified primary email
-      const emailsResponse = await axios.get("https://api.github.com/user/emails", {
-        headers: {
-          Authorization: `token ${githubToken}`,
-        },
-      });
-      
-      const primaryEmailObj = emailsResponse.data.find(
-        (e: any) => e.primary && e.verified
-      ) || emailsResponse.data[0];
-      
-      email = primaryEmailObj ? primaryEmailObj.email : `${githubUser.login}@github.com`;
-    } catch (err: any) {
-      console.error("GitHub Auth Error:", err.response?.data || err.message);
-      throw new ApiError(500, `GitHub authentication failed: ${err.message}`);
+    const { access_token: githubToken, error: tokenError, error_description } = tokenResponse.data;
+    console.log("[GitHub OAuth] Token exchange response:", JSON.stringify(tokenResponse.data));
+    if (tokenError || !githubToken) {
+      throw new ApiError(400, error_description || "Failed to retrieve GitHub access token");
     }
+
+    // 2. Fetch user profile
+    const userResponse = await axios.get("https://api.github.com/user", {
+      headers: {
+        Authorization: `token ${githubToken}`,
+      },
+    });
+    githubUser = userResponse.data;
+
+    // 3. Fetch user emails to get verified primary email
+    const emailsResponse = await axios.get("https://api.github.com/user/emails", {
+      headers: {
+        Authorization: `token ${githubToken}`,
+      },
+    });
+    
+    const primaryEmailObj = emailsResponse.data.find(
+      (e: any) => e.primary && e.verified
+    ) || emailsResponse.data[0];
+    
+    email = primaryEmailObj ? primaryEmailObj.email : `${githubUser.login}@github.com`;
+  } catch (err: any) {
+    if (err instanceof ApiError) throw err;
+    console.error("GitHub Auth Error:", err.response?.data || err.message);
+    throw new ApiError(500, `GitHub authentication failed: ${err.message}`);
   }
 
   // Find or create user

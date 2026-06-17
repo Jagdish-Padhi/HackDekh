@@ -1,13 +1,12 @@
 import { useEffect, useState } from "react";
-import { useNavigate, useSearchParams } from "react-router-dom";
+import { useNavigate } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
 import LogoTransition from "../components/LogoAnimation";
 import axiosInstance from "../utils/axiosInstance";
 
 export default function GithubCallbackPage() {
-  const [searchParams] = useSearchParams();
   const navigate = useNavigate();
-  const { checkAuth } = useAuth();
+  const { user, checkAuth } = useAuth();
 
   const [error, setError] = useState("");
   const [apiCompleted, setApiCompleted] = useState(false);
@@ -15,11 +14,31 @@ export default function GithubCallbackPage() {
   const [loadingText, setLoadingText] = useState("Verifying GitHub credentials...");
 
   useEffect(() => {
-    const code = searchParams.get("code");
+    // Read code directly from the URL and strip it immediately
+    const url = new URL(window.location.href);
+    const code = url.searchParams.get("code");
+
     if (!code) {
-      setError("No authorization code provided from GitHub.");
-      return;
+      // No code — either already consumed by a prior mount, or never provided.
+      // If user is already authenticated (prior mount succeeded), just redirect.
+      // Otherwise wait a moment for the auth context to settle before showing error.
+      const timer = setTimeout(() => {
+        // Re-check: auth context may have updated by now
+        if (!apiCompleted) {
+          checkAuth().then(() => {
+            // checkAuth refreshes the user in context — 
+            // the redirect effect below will handle navigation
+          }).catch(() => {
+            setError("No authorization code provided from GitHub.");
+          });
+        }
+      }, 1500);
+      return () => clearTimeout(timer);
     }
+
+    // Strip the code from the URL immediately so remounts can't reuse it
+    url.searchParams.delete("code");
+    window.history.replaceState({}, "", url.pathname);
 
     const authenticate = async () => {
       try {
@@ -44,9 +63,17 @@ export default function GithubCallbackPage() {
     };
 
     authenticate();
-  }, [searchParams, checkAuth]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
-  // Navigate only when both API call and animation transition have completed
+  // If user becomes authenticated (from prior mount or checkAuth), redirect immediately
+  useEffect(() => {
+    if (user) {
+      navigate("/", { replace: true });
+    }
+  }, [user, navigate]);
+
+  // Navigate when both API call and animation transition have completed
   useEffect(() => {
     if (apiCompleted && animationCompleted) {
       navigate("/", { replace: true });
