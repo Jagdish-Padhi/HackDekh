@@ -118,9 +118,24 @@ export const generateInvitationLink = asyncHandler(async (
         throw new ApiError(400, 'Valid email is required');
     }
 
-    const frontendBaseUrl = process.env.FRONTEND_URL || 'http://localhost:5173';
-    console.log('[DEBUG] FRONTEND_URL env var:', process.env.FRONTEND_URL);
-    console.log('[DEBUG] Using frontendBaseUrl:', frontendBaseUrl);
+    // Derive frontend base URL from the request's Origin header (most reliable),
+    // then Referer, then FRONTEND_URL env var, then localhost fallback.
+    // This ensures the link in the email always points to wherever the user is browsing.
+    const frontendBaseUrl = (() => {
+        const origin = req.headers.origin;
+        if (origin && !origin.startsWith('null')) return origin.replace(/\/$/, '');
+
+        const referer = req.headers.referer;
+        if (referer) {
+            try {
+                const { origin: refOrigin } = new URL(referer);
+                if (refOrigin && refOrigin !== 'null') return refOrigin.replace(/\/$/, '');
+            } catch { /* ignore malformed referer */ }
+        }
+
+        return (process.env.FRONTEND_URL || 'http://localhost:5173').replace(/\/$/, '');
+    })();
+
     const result = await teamService.generateInvitationLink(
         req.params.id,
         req.user._id,
