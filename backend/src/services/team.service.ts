@@ -5,6 +5,7 @@ import TeamInvitation from '../models/teamInvitation.model.ts';
 import TeamHackathon from '../models/teamHackathon.model.ts';
 import Stage from '../models/stage.model.ts';
 import crypto from 'crypto';
+import { ApiError } from '../utils/apiError.ts';
 
 interface CreateTeamInput {
     name: string;
@@ -64,9 +65,24 @@ async function generateUniqueTeamCode(): Promise<string> {
 }
 
 export async function createTeam(teamData: CreateTeamInput, ownerId: Types.ObjectId) {
+    const trimmedName = teamData.name.trim();
+    
+    // Case-insensitive check for duplicate team name owned by the same user
+    const escapedName = trimmedName.replace(/[-\/\\^$*+?.()|[\]{}]/g, '\\$&');
+    const existingTeam = await Team.findOne({
+        owner: ownerId,
+        name: { $regex: new RegExp('^' + escapedName + '$', 'i') }
+    });
+
+    if (existingTeam) {
+        const error = new ApiError(409, `You already own a team named "${trimmedName}".`);
+        (error as any).existingTeamId = String(existingTeam._id);
+        throw error;
+    }
+
     const code = await generateUniqueTeamCode();
     const team = new Team({
-        name: teamData.name.trim(),
+        name: trimmedName,
         owner: ownerId,
         members: [ownerId],
         code,

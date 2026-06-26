@@ -44,9 +44,20 @@ export const createTeam = asyncHandler(async (req: AuthRequest, res: Response) =
     if (!name || typeof name !== 'string' || name.trim() === '') {
         return res.status(400).json(new ApiResponse(400, null, 'Team name is required'));
     }
-    // Optionally: check for duplicate team name for this user here
-    const team = await teamService.createTeam({ name }, req.user._id);
-    return res.status(201).json(new ApiResponse(201, team, "Team Created Successfully"));
+    
+    try {
+        const team = await teamService.createTeam({ name }, req.user._id);
+        return res.status(201).json(new ApiResponse(201, team, "Team Created Successfully"));
+    } catch (error: any) {
+        if (error.statusCode === 409 && error.existingTeamId) {
+            return res.status(409).json({
+                success: false,
+                message: error.message,
+                existingTeamId: error.existingTeamId
+            });
+        }
+        throw error;
+    }
 });
 
 export const getUserTeams = asyncHandler(async (req: AuthRequest, res: Response) => {

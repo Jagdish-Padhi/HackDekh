@@ -204,6 +204,9 @@ export default function TeamsPage() {
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [showJoinModal, setShowJoinModal] = useState(false);
 
+  // Duplicate team warning state
+  const [duplicateWarning, setDuplicateWarning] = useState<{ name: string; existingTeamId: string } | null>(null);
+
   // Create Team Modal Form State
   const [createTeamName, setCreateTeamName] = useState("");
   const [githubSearchText, setGithubSearchText] = useState("");
@@ -558,7 +561,15 @@ export default function TeamsPage() {
       setShowCreateModal(false);
     } catch (error: any) {
       console.error("Failed to create team", error);
-      showToast(error.response?.data?.message || "Failed to create team.", "error");
+      if (error.response?.status === 409) {
+        const existingTeamId = error.response?.data?.existingTeamId;
+        setDuplicateWarning({
+          name: createTeamName.trim(),
+          existingTeamId: existingTeamId || ""
+        });
+      } else {
+        showToast(error.response?.data?.message || "Failed to create team.", "error");
+      }
     } finally {
       setSavingTeam(false);
     }
@@ -3151,6 +3162,54 @@ export default function TeamsPage() {
                   className="btn btn-primary"
                 >
                   {savingTeam ? <LogoTransition width={28} height={18} loop={true} /> : "Create Team"}
+                </button>
+              </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
+
+      {/* DUPLICATE TEAM WARNING MODAL */}
+      <AnimatePresence>
+        {duplicateWarning && (
+          <div className="fixed inset-0 z-[110] flex items-center justify-center bg-zinc-950/65 backdrop-blur-sm p-4 overflow-y-auto">
+            <motion.div
+              initial={{ scale: 0.95, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0.95, opacity: 0 }}
+              className="relative w-full max-w-md rounded-2xl border border-zinc-200 bg-white p-6 shadow-2xl dark:border-zinc-800 dark:bg-zinc-950 flex flex-col items-center text-center"
+            >
+              <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-amber-100 dark:bg-amber-900/30 text-amber-600 dark:text-amber-400 mb-4">
+                <AlertTriangle className="h-6 w-6" />
+              </div>
+              
+              <h3 className="text-base font-extrabold text-zinc-900 dark:text-zinc-100 mb-2">
+                A team with this name already exists
+              </h3>
+              
+              <p className="text-xs text-zinc-500 dark:text-zinc-400 mb-6 leading-normal">
+                You already own a team called <span className="font-bold text-zinc-800 dark:text-zinc-200">"{duplicateWarning.name}"</span>. Each team name must be unique to avoid confusion.
+              </p>
+              
+              <div className="flex flex-col sm:flex-row gap-2.5 w-full">
+                <button
+                  onClick={() => setDuplicateWarning(null)}
+                  className="btn btn-secondary flex-1 cursor-pointer"
+                >
+                  Choose a different name
+                </button>
+                <button
+                  onClick={() => {
+                    const id = duplicateWarning.existingTeamId;
+                    setDuplicateWarning(null);
+                    setShowCreateModal(false);
+                    if (id) {
+                      setSelectedTeamId(id);
+                    }
+                  }}
+                  className="btn btn-primary flex-1 cursor-pointer"
+                >
+                  Go to existing team
                 </button>
               </div>
             </motion.div>
