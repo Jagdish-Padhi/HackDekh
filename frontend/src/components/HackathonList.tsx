@@ -128,16 +128,25 @@ const HackathonList = () => {
                 participationId: string;
                 status: 'tracking' | 'active' | 'eliminated' | 'finalist' | 'won';
             }> = {};
-            for (const t of userTeams) {
-                const ths = await teamApi.getTeamHackathons(t._id);
-                ths.forEach(th => {
-                    mapping[th.hackathon._id] = {
-                        teamId: t._id,
-                        participationId: th._id,
-                        status: th.status as any,
-                    };
-                });
-            }
+            
+            // Fetch all team hackathons in parallel
+            await Promise.all(
+                userTeams.map(async (t) => {
+                    try {
+                        const ths = await teamApi.getTeamHackathons(t._id);
+                        ths.forEach(th => {
+                            mapping[th.hackathon._id] = {
+                                teamId: t._id,
+                                participationId: th._id,
+                                status: th.status as any,
+                            };
+                        });
+                    } catch (err) {
+                        console.error(`Failed to load hackathons for team ${t._id}`, err);
+                    }
+                })
+            );
+            
             setTrackedHackathons(mapping);
         } catch (error) {
             console.error('Failed to load tracking data', error);
@@ -162,16 +171,58 @@ const HackathonList = () => {
 
     const handleConfirmTrack = async () => {
         if (!selectedHackathonToTrack || !selectedTeamIdToTrack) return;
-        setIsTrackingSubmitting(true);
+        
+        const hackathonId = selectedHackathonToTrack;
+        const teamId = selectedTeamIdToTrack;
+        
+        // 1. Optimistic Update: Add tracking status instantly to the UI
+        const tempId = `optimistic_${Date.now()}`;
+        setTrackedHackathons(prev => ({
+            ...prev,
+            [hackathonId]: {
+                teamId,
+                participationId: tempId,
+                status: 'tracking'
+            }
+        }));
+        
+        // 2. Close modal instantly for seamless UX
+        setShowTrackModal(false);
+        setSelectedHackathonToTrack(null);
+        setIsTrackingSubmitting(false);
+        
         try {
-            await teamApi.linkHackathon(selectedTeamIdToTrack, selectedHackathonToTrack);
-            await loadTrackedHackathons();
-            setShowTrackModal(false);
-            setSelectedHackathonToTrack(null);
+            // 3. Fire API in background
+            const response = await teamApi.linkHackathon(teamId, hackathonId);
+            
+            // 4. Update with actual participation ID from server
+            setTrackedHackathons(prev => {
+                if (prev[hackathonId]?.participationId === tempId) {
+                    return {
+                        ...prev,
+                        [hackathonId]: {
+                            teamId,
+                            participationId: response._id,
+                            status: response.status as any
+                        }
+                    };
+                }
+                return prev;
+            });
+            showToast("Hackathon tracked successfully", "success");
         } catch (error: any) {
+            console.error("Failed to track hackathon in background", error);
+            
+            // 5. Revert optimistic update on failure
+            setTrackedHackathons(prev => {
+                if (prev[hackathonId]?.participationId === tempId) {
+                    const next = { ...prev };
+                    delete next[hackathonId];
+                    return next;
+                }
+                return prev;
+            });
             showToast(error.response?.data?.message || error.message || "Failed to start tracking", "error");
-        } finally {
-            setIsTrackingSubmitting(false);
         }
     };
 
@@ -182,19 +233,38 @@ const HackathonList = () => {
 
     const handleConfirmUntrack = async () => {
         if (!hackathonIdToUntrack) return;
-        const trackingInfo = trackedHackathons[hackathonIdToUntrack];
+        const hackathonId = hackathonIdToUntrack;
+        const trackingInfo = trackedHackathons[hackathonId];
         if (!trackingInfo) return;
-        setIsUntrackingSubmitting(true);
+
+        // 1. Save original info in case of rollback
+        const originalInfo = { ...trackingInfo };
+
+        // 2. Optimistically remove from tracking mapping
+        setTrackedHackathons(prev => {
+            const next = { ...prev };
+            delete next[hackathonId];
+            return next;
+        });
+
+        // 3. Close modal instantly
+        setShowUntrackConfirmModal(false);
+        setHackathonIdToUntrack(null);
+        setIsUntrackingSubmitting(false);
+
         try {
-            await teamApi.unlinkHackathon(trackingInfo.teamId, hackathonIdToUntrack);
+            // 4. Fire API in background
+            await teamApi.unlinkHackathon(trackingInfo.teamId, hackathonId);
             showToast("Hackathon untracked successfully", "success");
-            await loadTrackedHackathons();
-            setShowUntrackConfirmModal(false);
-            setHackathonIdToUntrack(null);
         } catch (error: any) {
+            console.error("Failed to untrack in background", error);
+            
+            // 5. Revert optimistic removal on failure
+            setTrackedHackathons(prev => ({
+                ...prev,
+                [hackathonId]: originalInfo
+            }));
             showToast(error.response?.data?.message || error.message || "Failed to untrack hackathon", "error");
-        } finally {
-            setIsUntrackingSubmitting(false);
         }
     };
 
@@ -659,50 +729,59 @@ const HackathonList = () => {
                         </motion.div>
                     </motion.div>
                 )}
-                {showUntrackConfirmModal && (
-                    <motion.div
-                        initial={{ opacity: 0 }}
-                        animate={{ opacity: 1 }}
-                        exit={{ opacity: 0 }}
-                        className="fixed inset-0 z-[100] flex items-center justify-center bg-zinc-950/70 backdrop-blur-[4px] px-4 py-8"
-                    >
+                {showUntrackConfirmModal && (() => {
+                    const hackToUntrack = hackathons.find(h => h._id === hackathonIdToUntrack);
+                    const trackingInfo = hackathonIdToUntrack ? trackedHackathons[hackathonIdToUntrack] : null;
+                    const teamToUntrack = trackingInfo ? teams.find(t => t._id === trackingInfo.teamId) : null;
+                    
+                    return (
                         <motion.div
-                            initial={{ y: 24, scale: 0.96, opacity: 0 }}
-                            animate={{ y: 0, scale: 1, opacity: 1 }}
-                            exit={{ y: 20, scale: 0.96, opacity: 0 }}
-                            transition={{ duration: 0.2, ease: "easeOut" }}
-                            onClick={(e) => e.stopPropagation()}
-                            className="w-full max-w-sm rounded-[2.25rem] border border-zinc-200 bg-white p-6 shadow-2xl dark:border-zinc-800 dark:bg-zinc-950 text-center"
+                            initial={{ opacity: 0 }}
+                            animate={{ opacity: 1 }}
+                            exit={{ opacity: 0 }}
+                            className="fixed inset-0 z-[100] flex items-center justify-center bg-zinc-950/70 backdrop-blur-[4px] px-4 py-8"
                         >
-                            <div className="mx-auto h-12 w-12 rounded-full bg-rose-500/10 flex items-center justify-center text-rose-600 dark:text-rose-455 mb-4 shrink-0">
-                                <AlertTriangle className="h-6 w-6" />
-                            </div>
-                            <h3 className="text-base font-extrabold text-zinc-900 dark:text-white">Untrack Hackathon?</h3>
-                            <p className="mt-2 text-xs text-zinc-550 dark:text-zinc-400 leading-normal">
-                                Are you sure you want to stop tracking this hackathon? This will permanently delete your timeline stages and reflections for this team's participation.
-                            </p>
+                            <motion.div
+                                initial={{ y: 24, scale: 0.96, opacity: 0 }}
+                                animate={{ y: 0, scale: 1, opacity: 1 }}
+                                exit={{ y: 20, scale: 0.96, opacity: 0 }}
+                                transition={{ duration: 0.2, ease: "easeOut" }}
+                                onClick={(e) => e.stopPropagation()}
+                                className="w-full max-w-sm rounded-[2.25rem] border border-zinc-200 bg-white p-6 shadow-2xl dark:border-zinc-800 dark:bg-zinc-950 text-center"
+                            >
+                                <div className="mx-auto h-12 w-12 rounded-full bg-rose-500/10 flex items-center justify-center text-rose-600 dark:text-rose-455 mb-4 shrink-0">
+                                    <AlertTriangle className="h-6 w-6" />
+                                </div>
+                                <h3 className="text-base font-extrabold text-zinc-900 dark:text-white">Untrack Hackathon?</h3>
+                                <p className="mt-2 text-xs text-zinc-550 dark:text-zinc-400 leading-normal">
+                                    Are you sure you want to remove <span className="font-bold text-zinc-800 dark:text-zinc-200">"{hackToUntrack?.title || 'this hackathon'}"</span> from team <span className="font-bold text-zinc-800 dark:text-zinc-200">"{teamToUntrack?.name || 'your team'}"</span>?
+                                </p>
+                                <p className="mt-2 text-[11px] text-zinc-400 dark:text-zinc-500 leading-normal">
+                                    This will permanently delete all timeline stages, logs, and reflections associated with this participation.
+                                </p>
 
-                            <div className="flex gap-2.5 pt-4">
-                                <button
-                                    onClick={() => {
-                                        setShowUntrackConfirmModal(false);
-                                        setHackathonIdToUntrack(null);
-                                    }}
-                                    className="btn btn-secondary flex-1"
-                                >
-                                    Cancel
-                                </button>
-                                <button
-                                    onClick={handleConfirmUntrack}
-                                    disabled={isUntrackingSubmitting}
-                                    className="btn btn-danger flex-1"
-                                >
-                                    {isUntrackingSubmitting ? "Untracking..." : "Untrack"}
-                                </button>
-                            </div>
+                                <div className="flex gap-2.5 pt-4">
+                                    <button
+                                        onClick={() => {
+                                            setShowUntrackConfirmModal(false);
+                                            setHackathonIdToUntrack(null);
+                                        }}
+                                        className="btn btn-secondary flex-1"
+                                    >
+                                        Cancel
+                                    </button>
+                                    <button
+                                        onClick={handleConfirmUntrack}
+                                        disabled={isUntrackingSubmitting}
+                                        className="btn btn-danger flex-1"
+                                    >
+                                        {isUntrackingSubmitting ? "Untracking..." : "Untrack"}
+                                    </button>
+                                </div>
+                            </motion.div>
                         </motion.div>
-                    </motion.div>
-                )}
+                    );
+                })()}
             </AnimatePresence>
 
         </div>
