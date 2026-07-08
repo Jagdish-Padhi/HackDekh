@@ -103,14 +103,12 @@ Session handling built for a multi-device, team-based product.
 **Hackathon Listing**
 ![Hackathon Listing](docs/screenshots/hackathon-listing.png)
 
-**Hackathon Details**
-![Hackathon Details](docs/screenshots/hackathon-details.png)
 
 **Team Workspace**
-![Team Workspace](docs/screenshots/team-workspace.png)
+![Team Workspace](docs/screenshots/teams.png)
 
 **Stage & Reflection Tracking**
-![Stage Tracking](docs/screenshots/stage-tracking.png)
+![Stage Tracking](docs/screenshots/track.png)
 
 </div>
 
