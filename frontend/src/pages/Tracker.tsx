@@ -8,17 +8,14 @@ import {
   Trash2,
   ExternalLink,
   Info,
-  Clock3,
-  Users,
   Check,
   Flag,
-  ArrowRight
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
-import { useAuth, useToast, useCache } from "../context";
+import { useAuth, useToast } from "../context";
 import { usePageChrome } from "../context/pageChrome";
 import { teamApi } from "../services";
-import type { Team, TeamHackathon, Stage } from "../types";
+import type { Team, TeamHackathon } from "../types";
 import LogoTransition from "../components/LogoAnimation";
 
 export const isRegistrationStage = (name: string): boolean => {
@@ -41,7 +38,6 @@ export default function TrackerPage() {
   const navigate = useNavigate();
   const { setPageActions } = usePageChrome();
 
-  const [teams, setTeams] = useState<Team[]>([]);
   const [participations, setParticipations] = useState<(TeamHackathon & { teamInfo: Team })[]>([]);
   const [loading, setLoading] = useState(true);
   const [activeSubTab, setActiveSubTab] = useState<"tracking" | "active" | "finished">("tracking");
@@ -59,7 +55,6 @@ export default function TrackerPage() {
     if (!isSilent) setLoading(true);
     try {
       const userTeams = await teamApi.getUserTeams();
-      setTeams(userTeams);
 
       const allParts: (TeamHackathon & { teamInfo: Team })[] = [];
       await Promise.all(
