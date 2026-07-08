@@ -2,9 +2,7 @@
 
 ![HackDekh](frontend/public/BrandImages/HackDekhBanner.png)
 
-# HackDekh
-
-**The operating system for hackathon teams.**
+## **The operating system for Hackathon lovers is [live now](https://hackdekh.jdecodes.tech/).**
 
 Discover hackathons across every major platform, organize your team, track your progress stage by stage, and turn every event into a lesson for the next one.
 
