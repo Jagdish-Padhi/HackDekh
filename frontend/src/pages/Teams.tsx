@@ -31,7 +31,7 @@ import { usePageChrome } from "../context/pageChrome";
 import { teamApi, userApi } from "../services";
 import LogoTransition from "../components/LogoAnimation";
 import AppDropdown from "../components/AppDropdown";
-import type { GeneratedInvitationLink, Team, TeamHackathon, Stage, TeamInvitation, UserLite } from "../types";
+import type { Team, TeamHackathon, Stage, TeamInvitation, UserLite } from "../types";
 import { motion, AnimatePresence } from "framer-motion";
 
 // ─── Filter option definitions ────────────────────────────────────────────────
@@ -204,6 +204,9 @@ export default function TeamsPage() {
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [showJoinModal, setShowJoinModal] = useState(false);
 
+  // Duplicate team warning state
+  const [duplicateWarning, setDuplicateWarning] = useState<{ name: string; existingTeamId: string } | null>(null);
+
   // Create Team Modal Form State
   const [createTeamName, setCreateTeamName] = useState("");
   const [githubSearchText, setGithubSearchText] = useState("");
@@ -219,7 +222,7 @@ export default function TeamsPage() {
   // Detailed view states
   const [renameTeamName, setRenameTeamName] = useState("");
   const [inviteEmail, setInviteEmail] = useState("");
-  const [inviteLink, setInviteLink] = useState<GeneratedInvitationLink | null>(null);
+  const [inviteEmailSent, setInviteEmailSent] = useState<string | null>(null); // email address last successfully invited
   const [savingTeam, setSavingTeam] = useState(false);
   const [workspaceMessage, setWorkspaceMessage] = useState<string | null>(null);
   const [workspaceError, setWorkspaceError] = useState<string | null>(null);
@@ -405,7 +408,7 @@ export default function TeamsPage() {
         setSelectedParticipationId("");
       }
 
-      setInviteLink(null);
+      setInviteEmailSent(null);
       setWorkspaceMessage(null);
       setWorkspaceError(null);
     } else {
@@ -558,7 +561,15 @@ export default function TeamsPage() {
       setShowCreateModal(false);
     } catch (error: any) {
       console.error("Failed to create team", error);
-      showToast(error.response?.data?.message || "Failed to create team.", "error");
+      if (error.response?.status === 409) {
+        const existingTeamId = error.response?.data?.existingTeamId;
+        setDuplicateWarning({
+          name: createTeamName.trim(),
+          existingTeamId: existingTeamId || ""
+        });
+      } else {
+        showToast(error.response?.data?.message || "Failed to create team.", "error");
+      }
     } finally {
       setSavingTeam(false);
     }
@@ -827,24 +838,22 @@ export default function TeamsPage() {
     setSavingTeam(true);
     setWorkspaceMessage(null);
     setWorkspaceError(null);
+    const emailTarget = inviteEmail.trim();
     try {
-      const link = await teamApi.generateInvitationLink(selectedTeam._id, inviteEmail.trim());
-      setInviteLink(link);
+      await teamApi.generateInvitationLink(selectedTeam._id, emailTarget);
+      setInviteEmailSent(emailTarget);
       setInviteEmail("");
-      setWorkspaceMessage("Invitation link generated successfully.");
+      showToast(`Invitation email sent to ${emailTarget}!`, "success");
+      loadTeamInvitations();
     } catch (error: any) {
-      console.error("Failed to generate invite link", error);
-      setWorkspaceError(error.response?.data?.message || "Failed to generate invitation link.");
+      console.error("Failed to send invite email", error);
+      showToast(error.response?.data?.message || "Failed to send invitation email.", "error");
     } finally {
       setSavingTeam(false);
     }
   };
 
-  const handleCopyInvite = async () => {
-    if (!inviteLink?.invitationLink) return;
-    await navigator.clipboard.writeText(inviteLink.invitationLink);
-    setWorkspaceMessage("Invitation link copied to clipboard.");
-  };
+
 
   // Delete Team
   const handleDeleteTeam = async () => {
@@ -2266,16 +2275,16 @@ export default function TeamsPage() {
                             </div>
                           )}
 
-                          {/* TAB 3: GENERATE LEGACY EMAIL LINK */}
+                          {/* TAB 3: SEND INVITATION EMAIL */}
                           {inviteTab === 'email' && (
                             <div className="space-y-4">
                               <div className="space-y-1">
                                 <span className="inline-flex items-center gap-1 text-[10px] font-bold text-zinc-455 dark:text-zinc-400 uppercase tracking-wide">
                                   <Sparkles className="h-3 w-3 text-blue-500" />
-                                  3. Create Invitation Link
+                                  3. Send Invitation by Email
                                 </span>
                                 <p className="text-[10.5px] text-zinc-400 dark:text-zinc-550 leading-relaxed">
-                                  Generate a shareable signup link configured specifically for a teammate's email address.
+                                  Enter a teammate's email address and we'll send them an invitation link directly.
                                 </p>
                               </div>
 
@@ -2285,7 +2294,7 @@ export default function TeamsPage() {
                                     <input
                                       type="email"
                                       value={inviteEmail}
-                                      onChange={e => setInviteEmail(e.target.value)}
+                                      onChange={e => { setInviteEmail(e.target.value); setInviteEmailSent(null); }}
                                       placeholder="teammate@example.com"
                                       className="flex-1 px-3 py-2 text-xs rounded-xl border border-zinc-200 bg-zinc-50/50 text-zinc-800 outline-none transition focus:border-blue-400 focus:bg-white dark:border-zinc-800 dark:bg-zinc-950 dark:text-zinc-200"
                                       onKeyDown={e => e.key === 'Enter' && handleInvite()}
@@ -2295,38 +2304,25 @@ export default function TeamsPage() {
                                       disabled={savingTeam || !inviteEmail.trim()}
                                       className="btn btn-primary px-3 py-2 text-xs h-auto w-auto min-h-[36px] font-bold shadow-xs shrink-0 flex items-center gap-1"
                                     >
-                                      {savingTeam ? <LogoTransition width={20} height={14} loop={true} /> : <Plus className="h-3.5 w-3.5" />}
-                                      Create
+                                      {savingTeam ? <LogoTransition width={20} height={14} loop={true} /> : <Mail className="h-3.5 w-3.5" />}
+                                      Send
                                     </button>
                                   </div>
 
-                                  {inviteLink && (
-                                    <div className="rounded-xl border border-emerald-200 bg-emerald-50/50 dark:border-emerald-900/40 dark:bg-emerald-950/10 p-2.5 space-y-1.5 shadow-xs animate-scale-in">
-                                      <div className="flex items-center justify-between">
-                                        <span className="text-[8.5px] font-extrabold uppercase tracking-wider text-emerald-600 dark:text-emerald-400">
-                                          Link Ready
-                                        </span>
-                                        <button 
-                                          onClick={handleCopyInvite} 
-                                          className="text-[9.5px] font-bold text-emerald-600 dark:text-emerald-400 hover:underline flex items-center gap-0.5"
-                                        >
-                                          <Copy className="h-3 w-3" />
-                                          Copy Link
-                                        </button>
+                                  {inviteEmailSent && (
+                                    <div className="rounded-xl border border-emerald-200 bg-emerald-50/50 dark:border-emerald-900/40 dark:bg-emerald-950/10 p-2.5 flex items-center gap-2.5 shadow-xs animate-scale-in">
+                                      <CheckCircle2 className="h-4 w-4 text-emerald-500 shrink-0" />
+                                      <div>
+                                        <p className="text-[10px] font-bold text-emerald-700 dark:text-emerald-400">Invitation sent!</p>
+                                        <p className="text-[9.5px] text-zinc-500 dark:text-zinc-400 mt-0.5">An invitation email was delivered to <span className="font-semibold text-zinc-700 dark:text-zinc-300">{inviteEmailSent}</span>.</p>
                                       </div>
-                                      <p className="text-[10px] text-zinc-650 dark:text-zinc-350 font-mono truncate bg-white/60 dark:bg-zinc-950/40 rounded p-1 border border-zinc-150 dark:border-zinc-900">
-                                        {inviteLink.invitationLink}
-                                      </p>
-                                      <p className="text-[8.5px] text-zinc-450 dark:text-zinc-500">
-                                        For: {inviteLink.invitedEmail} · Expiry: {formatDate(inviteLink.expiresAt)}
-                                      </p>
                                     </div>
                                   )}
                                 </div>
                               ) : (
                                 <div className="rounded-xl bg-zinc-50 dark:bg-zinc-950 p-3 border border-zinc-150 dark:border-zinc-900 text-center">
                                   <p className="text-[10px] text-zinc-455 dark:text-zinc-500 leading-normal">
-                                    Only the owner ({selectedTeam.owner.fullName || selectedTeam.owner.username}) can generate external email invite links.
+                                    Only the owner ({selectedTeam.owner.fullName || selectedTeam.owner.username}) can send email invitations.
                                   </p>
                                 </div>
                               )}
@@ -2840,46 +2836,41 @@ export default function TeamsPage() {
                                </div>
                              )}
 
-                             {/* Generate legacy invite link (owner only) */}
-                             {isOwner && (
-                               <div className="pb-6 mb-6 border-b border-zinc-100 dark:border-zinc-800">
-                                 <p className="text-xs font-bold uppercase tracking-wider text-zinc-500 dark:text-zinc-400 mb-1">Generate Invite Link</p>
-                                 <p className="text-[11px] text-zinc-400 dark:text-zinc-500 mb-3">Or create a shareable invitation link for email delivery.</p>
-                                 <div className="flex gap-2">
-                                   <input
-                                     type="email"
-                                     value={inviteEmail}
-                                     onChange={e => setInviteEmail(e.target.value)}
-                                     placeholder="teammate@example.com"
-                                     className={`${settingsInputCls} flex-1`}
-                                     onKeyDown={e => e.key === 'Enter' && handleInvite()}
-                                   />
-                                   <button
-                                     onClick={handleInvite}
-                                     disabled={savingTeam || !inviteEmail.trim()}
-                                     className="btn btn-primary shrink-0"
-                                   >
-                                     {savingTeam ? <LogoTransition width={28} height={18} loop={true} /> : null}
-                                     Send invite
-                                   </button>
-                                 </div>
+                              {/* Send invitation email (owner only) */}
+                              {isOwner && (
+                                <div className="pb-6 mb-6 border-b border-zinc-100 dark:border-zinc-800">
+                                  <p className="text-xs font-bold uppercase tracking-wider text-zinc-500 dark:text-zinc-400 mb-1">Send Email Invitation</p>
+                                  <p className="text-[11px] text-zinc-400 dark:text-zinc-500 mb-3">Enter a teammate's email and we'll send them an invitation directly.</p>
+                                  <div className="flex gap-2">
+                                    <input
+                                      type="email"
+                                      value={inviteEmail}
+                                      onChange={e => { setInviteEmail(e.target.value); setInviteEmailSent(null); }}
+                                      placeholder="teammate@example.com"
+                                      className={`${settingsInputCls} flex-1`}
+                                      onKeyDown={e => e.key === 'Enter' && handleInvite()}
+                                    />
+                                    <button
+                                      onClick={handleInvite}
+                                      disabled={savingTeam || !inviteEmail.trim()}
+                                      className="btn btn-primary shrink-0"
+                                    >
+                                      {savingTeam ? <LogoTransition width={28} height={18} loop={true} /> : null}
+                                      Send Invite
+                                    </button>
+                                  </div>
 
-                                 {inviteLink && (
-                                   <div className="mt-3 rounded-xl border border-emerald-200 bg-emerald-50/50 dark:border-emerald-900/40 dark:bg-emerald-950/10 p-3 flex items-center gap-3">
-                                     <div className="flex-1 min-w-0">
-                                       <p className="text-[10px] font-bold uppercase tracking-wider text-emerald-600 dark:text-emerald-400 mb-0.5">Invite link generated</p>
-                                       <p className="text-xs text-zinc-600 dark:text-zinc-400 font-mono truncate">{inviteLink.invitationLink}</p>
-                                       <p className="text-[10px] text-zinc-400 dark:text-zinc-500 mt-0.5">
-                                         For: {inviteLink.invitedEmail} · Expires: {formatDate(inviteLink.expiresAt)}
-                                       </p>
-                                     </div>
-                                     <button onClick={handleCopyInvite} className="btn btn-secondary btn-sm shrink-0">
-                                       <Copy className="h-3.5 w-3.5" /> Copy
-                                     </button>
-                                   </div>
-                                 )}
-                               </div>
-                             )}
+                                  {inviteEmailSent && (
+                                    <div className="mt-3 rounded-xl border border-emerald-200 bg-emerald-50/50 dark:border-emerald-900/40 dark:bg-emerald-950/10 p-3 flex items-center gap-2.5">
+                                      <CheckCircle2 className="h-4 w-4 text-emerald-500 shrink-0" />
+                                      <div>
+                                        <p className="text-[10px] font-bold uppercase tracking-wider text-emerald-600 dark:text-emerald-400">Invitation sent!</p>
+                                        <p className="text-xs text-zinc-500 dark:text-zinc-400 mt-0.5">Email delivered to <span className="font-semibold">{inviteEmailSent}</span>.</p>
+                                      </div>
+                                    </div>
+                                  )}
+                                </div>
+                              )}
 
                             {/* Invitations list */}
                             <div>
@@ -2897,7 +2888,7 @@ export default function TeamsPage() {
                               ) : teamInvitations.length === 0 ? (
                                 <div className="rounded-xl border border-dashed border-zinc-200 dark:border-zinc-800 py-8 text-center">
                                   <p className="text-sm text-zinc-400 dark:text-zinc-500">No invitations yet.</p>
-                                  <p className="text-xs text-zinc-400 dark:text-zinc-600 mt-1">Generate a link above to invite teammates.</p>
+                                  <p className="text-xs text-zinc-400 dark:text-zinc-600 mt-1">Send an email invite above to get started.</p>
                                 </div>
                               ) : (
                                 <div className="space-y-2">
@@ -3171,6 +3162,54 @@ export default function TeamsPage() {
                   className="btn btn-primary"
                 >
                   {savingTeam ? <LogoTransition width={28} height={18} loop={true} /> : "Create Team"}
+                </button>
+              </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
+
+      {/* DUPLICATE TEAM WARNING MODAL */}
+      <AnimatePresence>
+        {duplicateWarning && (
+          <div className="fixed inset-0 z-[110] flex items-center justify-center bg-zinc-950/65 backdrop-blur-sm p-4 overflow-y-auto">
+            <motion.div
+              initial={{ scale: 0.95, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0.95, opacity: 0 }}
+              className="relative w-full max-w-md rounded-2xl border border-zinc-200 bg-white p-6 shadow-2xl dark:border-zinc-800 dark:bg-zinc-950 flex flex-col items-center text-center"
+            >
+              <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-amber-100 dark:bg-amber-900/30 text-amber-600 dark:text-amber-400 mb-4">
+                <AlertTriangle className="h-6 w-6" />
+              </div>
+              
+              <h3 className="text-base font-extrabold text-zinc-900 dark:text-zinc-100 mb-2">
+                A team with this name already exists
+              </h3>
+              
+              <p className="text-xs text-zinc-500 dark:text-zinc-400 mb-6 leading-normal">
+                You already own a team called <span className="font-bold text-zinc-800 dark:text-zinc-200">"{duplicateWarning.name}"</span>. Each team name must be unique to avoid confusion.
+              </p>
+              
+              <div className="flex flex-col sm:flex-row gap-2.5 w-full">
+                <button
+                  onClick={() => setDuplicateWarning(null)}
+                  className="btn btn-secondary flex-1 cursor-pointer"
+                >
+                  Choose a different name
+                </button>
+                <button
+                  onClick={() => {
+                    const id = duplicateWarning.existingTeamId;
+                    setDuplicateWarning(null);
+                    setShowCreateModal(false);
+                    if (id) {
+                      setSelectedTeamId(id);
+                    }
+                  }}
+                  className="btn btn-primary flex-1 cursor-pointer"
+                >
+                  Go to existing team
                 </button>
               </div>
             </motion.div>

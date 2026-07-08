@@ -9,6 +9,7 @@ import LoginPage from './pages/Login';
 import TeamsPage from './pages/Teams';
 import AcceptInvitationPage from './pages/AcceptInvitation';
 import DashboardPage from './pages/Dashboard';
+import TrackerPage from './pages/Tracker';
 import SettingsPage from './pages/Settings';
 import GithubCallbackPage from './pages/GithubCallback';
 import ProtectedRoute from './components/ProtectedRoute';
@@ -67,6 +68,14 @@ function AppContent() {
               element={
                 <ProtectedRoute>
                   <DashboardPage />
+                </ProtectedRoute>
+              } 
+            />
+            <Route 
+              path="/tracker" 
+              element={
+                <ProtectedRoute>
+                  <TrackerPage />
                 </ProtectedRoute>
               } 
             />

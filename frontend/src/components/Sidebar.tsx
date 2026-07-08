@@ -1,12 +1,13 @@
 import { useEffect, useState } from 'react'
 import { NavLink, useLocation, useNavigate } from 'react-router-dom'
-import { BarChart3, LogOut, Menu, Moon, PanelLeftClose, PanelLeftOpen, Sun, Trophy, Users, X, Settings } from 'lucide-react'
+import { BarChart3, LogOut, Menu, Moon, PanelLeftClose, PanelLeftOpen, Sun, Trophy, Users, X, Settings, Crosshair } from 'lucide-react'
 import { usePageChrome } from '../context/pageChrome'
 import { useAuth, useCache } from '../context'
 
 const navItems = [
     { name: 'Hackathons', path: '/hackathons', icon: Trophy },
     { name: 'Teams', path: '/teams', icon: Users },
+    { name: 'Tracker', path: '/tracker', icon: Crosshair },
     { name: 'Dashboard', path: '/dashboard', icon: BarChart3 },
     { name: 'Settings', path: '/settings', icon: Settings },
 ]
@@ -155,9 +156,9 @@ const Sidebar = () => {
                             <NavLink
                                 key={item.name}
                                 to={item.path}
-                                className={({ isActive }) =>
+                                className={() =>
                                     `flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-all duration-200 ${
-                                        isActive || active
+                                        active
                                             ? 'bg-blue-600 text-white shadow-sm dark:bg-blue-500'
                                             : 'text-zinc-600 hover:bg-zinc-100 hover:text-zinc-900 dark:text-zinc-300 dark:hover:bg-zinc-900 dark:hover:text-white'
                                     }`
@@ -168,11 +169,11 @@ const Sidebar = () => {
                                     }
                                 }}
                             >
-                                {({ isActive }) => (
+                                {() => (
                                     <>
-                                        <Icon className={`h-4 w-4 shrink-0 ${isActive || active ? 'text-white stroke-white fill-none' : ''}`} />
+                                        <Icon className={`h-4 w-4 shrink-0 ${active ? 'text-white stroke-white fill-none' : ''}`} />
                                         {sidebarExpanded && (
-                                            <span className={isActive || active ? 'text-white' : ''}>
+                                            <span className={active ? 'text-white' : ''}>
                                                 {item.name}
                                             </span>
                                         )}

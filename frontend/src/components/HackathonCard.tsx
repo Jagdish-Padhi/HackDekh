@@ -148,6 +148,7 @@ const HackathonCard = ({ hackathon, displayIndex, extraActions = [], trackingSta
     const initialImageSource = optimizedPrimaryImage || fallbackImage;
     const [imageSource, setImageSource] = useState(initialImageSource);
     const [imageLoaded, setImageLoaded] = useState(() => loadedImageSourceCache.has(initialImageSource));
+    const [isHovered, setIsHovered] = useState(false);
     const [isVisible, setIsVisible] = useState(hasBeenRevealed);
 
     useEffect(() => {
@@ -282,24 +283,6 @@ const HackathonCard = ({ hackathon, displayIndex, extraActions = [], trackingSta
                 />
             </div>
 
-            {/* Status and Untrack option below cover image */}
-            {trackingStatus && (
-                <div className="flex justify-between items-center mb-2 px-1 text-[10px] font-bold tracking-wide uppercase">
-                    <span className={trackingStatus === 'tracking' ? "text-amber-600 dark:text-amber-500" : "text-orange-500 dark:text-orange-400"}>
-                        {trackingStatus === 'tracking' ? 'Tracking' : 'Registered'}
-                    </span>
-                    <button
-                        onClick={(e) => {
-                            e.preventDefault();
-                            e.stopPropagation();
-                            onUntrack?.();
-                        }}
-                        className="text-rose-500 hover:text-rose-600 hover:underline transition-colors font-black cursor-pointer bg-transparent border-none p-0"
-                    >
-                        Untrack
-                    </button>
-                </div>
-            )}
 
             <div className="block">
                 <h2 className="line-clamp-2 h-11 text-[0.92rem] font-bold leading-5 text-zinc-900 dark:text-zinc-100 transition-colors duration-200">
@@ -372,21 +355,22 @@ const HackathonCard = ({ hackathon, displayIndex, extraActions = [], trackingSta
                         </a>
                     )}
                     {trackingStatus ? (
-                        trackingStatus === 'tracking' ? (
-                            <button
-                                disabled
-                                className="flex-1 inline-flex items-center justify-center rounded-lg bg-zinc-100 border border-zinc-200 dark:bg-zinc-800/40 dark:border-zinc-700/50 px-2.5 py-1.5 text-[11px] font-bold text-zinc-500 dark:text-zinc-400"
-                            >
-                                Tracked
-                            </button>
-                        ) : (
-                            <a
-                                href="/dashboard?tab=tracker"
-                                className="flex-1 inline-flex items-center justify-center rounded-lg border border-orange-200 bg-orange-50/20 px-2.5 py-1.5 text-[11px] font-bold text-orange-600 shadow-sm transition hover:bg-orange-100/30 dark:border-orange-500/20 dark:bg-orange-950/20 dark:text-orange-400"
-                            >
-                                Workspace
-                            </a>
-                        )
+                        <button
+                            onMouseEnter={() => setIsHovered(true)}
+                            onMouseLeave={() => setIsHovered(false)}
+                            onClick={(e) => {
+                                e.preventDefault();
+                                e.stopPropagation();
+                                onUntrack?.();
+                            }}
+                            className={`flex-1 inline-flex items-center justify-center rounded-lg px-2.5 py-1.5 text-[11px] font-bold transition-all duration-200 cursor-pointer border ${
+                                isHovered
+                                    ? "bg-rose-500 border-rose-500 text-white shadow-md shadow-rose-500/20"
+                                    : "bg-zinc-100 border-zinc-200 text-zinc-505 dark:bg-zinc-800/40 dark:border-zinc-700/50 dark:text-zinc-400"
+                            }`}
+                        >
+                            {isHovered ? "Untrack" : "Tracked ✓"}
+                        </button>
                     ) : (
                         <button
                             onClick={trackHandler}

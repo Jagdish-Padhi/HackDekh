@@ -44,9 +44,20 @@ export const createTeam = asyncHandler(async (req: AuthRequest, res: Response) =
     if (!name || typeof name !== 'string' || name.trim() === '') {
         return res.status(400).json(new ApiResponse(400, null, 'Team name is required'));
     }
-    // Optionally: check for duplicate team name for this user here
-    const team = await teamService.createTeam({ name }, req.user._id);
-    return res.status(201).json(new ApiResponse(201, team, "Team Created Successfully"));
+    
+    try {
+        const team = await teamService.createTeam({ name }, req.user._id);
+        return res.status(201).json(new ApiResponse(201, team, "Team Created Successfully"));
+    } catch (error: any) {
+        if (error.statusCode === 409 && error.existingTeamId) {
+            return res.status(409).json({
+                success: false,
+                message: error.message,
+                existingTeamId: error.existingTeamId
+            });
+        }
+        throw error;
+    }
 });
 
 export const getUserTeams = asyncHandler(async (req: AuthRequest, res: Response) => {
@@ -118,9 +129,24 @@ export const generateInvitationLink = asyncHandler(async (
         throw new ApiError(400, 'Valid email is required');
     }
 
-    const frontendBaseUrl = process.env.FRONTEND_URL || 'http://localhost:5173';
-    console.log('[DEBUG] FRONTEND_URL env var:', process.env.FRONTEND_URL);
-    console.log('[DEBUG] Using frontendBaseUrl:', frontendBaseUrl);
+    // Derive frontend base URL from the request's Origin header (most reliable),
+    // then Referer, then FRONTEND_URL env var, then localhost fallback.
+    // This ensures the link in the email always points to wherever the user is browsing.
+    const frontendBaseUrl = (() => {
+        const origin = req.headers.origin;
+        if (origin && !origin.startsWith('null')) return origin.replace(/\/$/, '');
+
+        const referer = req.headers.referer;
+        if (referer) {
+            try {
+                const { origin: refOrigin } = new URL(referer);
+                if (refOrigin && refOrigin !== 'null') return refOrigin.replace(/\/$/, '');
+            } catch { /* ignore malformed referer */ }
+        }
+
+        return (process.env.FRONTEND_URL || 'http://localhost:5173').replace(/\/$/, '');
+    })();
+
     const result = await teamService.generateInvitationLink(
         req.params.id,
         req.user._id,
