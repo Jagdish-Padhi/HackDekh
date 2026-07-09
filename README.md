@@ -2,7 +2,7 @@
 
 ![HackDekh](frontend/public/BrandImages/HackDekhBanner.png)
 
-## **The operating system for Hackathon lovers is [live now](https://hackdekh.jdecodes.tech/).**
+## **The operating system for Hackathon lovers is [live now](https://hack-dekh.vercel.app/).**
 
 Discover hackathons across every major platform, organize your team, track your progress stage by stage, and turn every event into a lesson for the next one.
 
