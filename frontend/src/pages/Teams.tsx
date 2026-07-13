@@ -1868,7 +1868,7 @@ export default function TeamsPage() {
               {/* 2. MEMBERS TAB: Teammate Listing & Smart Access Control */}
               {activeTab === "Members" && (() => {
                 const isOwner = selectedTeam.owner._id === user?._id;
-                const roster = [selectedTeam.owner, ...selectedTeam.members];
+                const roster = [selectedTeam.owner, ...selectedTeam.members.filter((m: any) => m._id !== selectedTeam.owner._id)];
                 
                 // Filter roster by search query
                 const filteredRoster = roster.filter(member => {

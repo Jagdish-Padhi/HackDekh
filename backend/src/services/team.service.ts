@@ -220,6 +220,18 @@ export async function generateInvitationLink(
 
     const normalizedEmail = invitedEmail.trim().toLowerCase();
 
+    // Prevent self-invite
+    const ownerEmail = (team.owner as any).email?.toLowerCase();
+    if (ownerEmail && normalizedEmail === ownerEmail) {
+        throw new ApiError(400, 'You cannot invite yourself.');
+    }
+
+    // Prevent inviting existing members
+    const targetUser = await User.findOne({ email: normalizedEmail });
+    if (targetUser && includesUserId(team.members as unknown[], targetUser._id)) {
+        throw new ApiError(400, 'User is already a member of this team.');
+    }
+
     // Revoke any pending invitations for this email
     await TeamInvitation.deleteMany({
         team: teamId,
@@ -464,6 +476,10 @@ export async function inviteUserByUsernameOrId(teamId: string, ownerId: Types.Ob
 
     if (!targetUser) {
         throw new Error('User not found.');
+    }
+
+    if (String(targetUser._id) === String(ownerId)) {
+        throw new Error('You cannot invite yourself.');
     }
 
     const isMember = includesUserId(team.members as unknown[], targetUser._id);
