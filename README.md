@@ -2,9 +2,11 @@
 
 ![HackDekh](frontend/public/BrandImages/HackDekhBanner.png)
 
-## **The operating system for Hackathon lovers is [live now](https://hack-dekh.vercel.app/).**
+## **The Core operating system for Hackathon lovers is [live now](https://hack-dekh.vercel.app/)!**
 
 Discover hackathons across every major platform, organize your team, track your progress stage by stage, and turn every event into a lesson for the next one.
+
+Many MORE things to come...Stay tuned!
 
 <p>
   <img src="https://img.shields.io/badge/License-MIT-black?style=flat-square" alt="License" />
@@ -12,7 +14,6 @@ Discover hackathons across every major platform, organize your team, track your 
   <img src="https://img.shields.io/badge/React-19-61DAFB?style=flat-square&logo=react&logoColor=white" alt="React" />
   <img src="https://img.shields.io/badge/Node.js-Express-339933?style=flat-square&logo=node.js&logoColor=white" alt="Node.js" />
   <img src="https://img.shields.io/badge/MongoDB-Mongoose-47A248?style=flat-square&logo=mongodb&logoColor=white" alt="MongoDB" />
-  <img src="https://img.shields.io/github/stars/your-org/HackDekh?style=flat-square&label=Stars" alt="GitHub stars" />
 </p>
 
 [Features](#-features) • [Screenshots](#️-product-preview) • [Quick Start](#-quick-start) • [Contributing](#-contributing) • [License](#-license)
