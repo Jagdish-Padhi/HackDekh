@@ -17,5 +17,9 @@ app.use("/api/v1/hackathons", hackathonRoutes);
 app.use("/api/v1/users", userRoutes);
 app.use("/api/v1/teams", teamRoutes);
 
+app.get("/api/v1/ping", (req, res) => {
+  res.status(200).json({ success: true, message: "pong" });
+});
+
 app.use(globalErrorHandler);
 export { app };

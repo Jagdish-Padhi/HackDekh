@@ -12,7 +12,7 @@ const LoginPage = () => {
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
   const location = useLocation();
-  const { login, isAuthenticated, isLoading } = useAuth();
+  const { login, isAuthenticated, isLoading, isBackendWarming } = useAuth();
 
   // Mode state: login or signup, synced with location path
   const [isLogin, setIsLogin] = useState(location.pathname !== '/signup');
@@ -305,6 +305,18 @@ const LoginPage = () => {
                   </div>
                 )}
 
+                {isBackendWarming && (
+                  <div className="mt-3 rounded-xl border border-amber-500/25 bg-amber-500/8 px-3.5 py-2.5 text-xs text-amber-600 dark:text-amber-400 flex items-center gap-2.5 shadow-sm">
+                    <span className="relative flex h-2 w-2 shrink-0">
+                      <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-amber-400 opacity-75"></span>
+                      <span className="relative inline-flex rounded-full h-2 w-2 bg-amber-500"></span>
+                    </span>
+                    <span className="font-semibold tracking-tight">
+                      Waking up production server... please hang tight!
+                    </span>
+                  </div>
+                )}
+
                 {/* Form elements */}
                 <form onSubmit={handleSubmit} className={`mt-4 ${isLogin ? 'space-y-3.5' : 'space-y-2'}`}>
                   {!isLogin && (
@@ -393,12 +405,12 @@ const LoginPage = () => {
                   <button
                     type="submit"
                     className="inline-flex w-full items-center justify-center gap-2 rounded-lg bg-blue-600 hover:bg-blue-500 dark:bg-blue-500 dark:hover:bg-blue-400 text-sm font-bold text-white py-2.5 shadow-md hover:-translate-y-0.5 transition-all duration-200 disabled:cursor-not-allowed disabled:opacity-70 mt-1.5 cursor-pointer"
-                    disabled={loading || transitioning}
+                    disabled={loading || transitioning || isBackendWarming}
                   >
-                    {loading || transitioning ? (
+                    {loading || transitioning || isBackendWarming ? (
                       <>
                         <LogoTransition width={28} height={18} loop={true} />
-                        Please wait...
+                        {isBackendWarming ? 'Waking up server...' : 'Please wait...'}
                       </>
                     ) : (
                       <>
@@ -421,7 +433,8 @@ const LoginPage = () => {
                   <button
                     type="button"
                     onClick={handleGoogleLogin}
-                    className="inline-flex items-center justify-center gap-2 rounded-lg border border-zinc-200 dark:border-zinc-800 hover:bg-zinc-50 dark:hover:bg-zinc-800/50 py-2 text-xs font-semibold text-zinc-700 dark:text-zinc-300 transition duration-200 cursor-pointer"
+                    disabled={loading || transitioning || isBackendWarming}
+                    className="inline-flex items-center justify-center gap-2 rounded-lg border border-zinc-200 dark:border-zinc-800 hover:bg-zinc-50 dark:hover:bg-zinc-800/50 py-2 text-xs font-semibold text-zinc-700 dark:text-zinc-300 transition duration-200 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
                   >
                     <svg className="h-4 w-4 shrink-0" viewBox="0 0 24 24">
                       <path
@@ -446,7 +459,8 @@ const LoginPage = () => {
                   <button
                     type="button"
                     onClick={handleGithubLogin}
-                    className="inline-flex items-center justify-center gap-2 rounded-lg border border-zinc-200 dark:border-zinc-800 hover:bg-zinc-50 dark:hover:bg-zinc-800/50 py-2 text-xs font-semibold text-zinc-700 dark:text-zinc-300 transition duration-200 cursor-pointer"
+                    disabled={loading || transitioning || isBackendWarming}
+                    className="inline-flex items-center justify-center gap-2 rounded-lg border border-zinc-200 dark:border-zinc-800 hover:bg-zinc-50 dark:hover:bg-zinc-800/50 py-2 text-xs font-semibold text-zinc-700 dark:text-zinc-300 transition duration-200 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
                   >
                     <Github className="h-4 w-4 shrink-0 text-zinc-900 dark:text-white" />
                     GitHub

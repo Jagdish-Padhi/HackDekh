@@ -20,6 +20,7 @@ type AuthContextType = {
   user: User | null;
   isAuthenticated: boolean;
   isLoading: boolean;
+  isBackendWarming: boolean;
   login: (email: string, password: string) => Promise<User>;
   logout: () => Promise<void>;
   updateUser: (updatedUser: User) => void;
@@ -31,6 +32,38 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [user, setUser] = useState<User | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [isBackendWarming, setIsBackendWarming] = useState(false);
+
+  useEffect(() => {
+    let isMounted = true;
+    
+    const warmBackend = async () => {
+      // Start a 600ms timer to check if backend is warm.
+      // If the ping takes longer than 600ms, set isBackendWarming to true.
+      const timer = setTimeout(() => {
+        if (isMounted) {
+          setIsBackendWarming(true);
+        }
+      }, 600);
+
+      try {
+        await axiosInstance.get("/ping", { timeout: 30000 });
+      } catch (err) {
+        console.error("Backend warm-up ping failed:", err);
+      } finally {
+        clearTimeout(timer);
+        if (isMounted) {
+          setIsBackendWarming(false);
+        }
+      }
+    };
+
+    warmBackend();
+
+    return () => {
+      isMounted = false;
+    };
+  }, []);
 
   const checkAuth = async () => {
     const token = localStorage.getItem("accessToken");
@@ -94,6 +127,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         user,
         isAuthenticated: !!user,
         isLoading,
+        isBackendWarming,
         login,
         logout,
         updateUser,
