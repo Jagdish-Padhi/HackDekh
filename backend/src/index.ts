@@ -14,9 +14,17 @@ const logEmailDeliveryStatus = () => {
   }
 };
 
-connectDB().then(() => {
-  logEmailDeliveryStatus();
-  app.listen(process.env.PORT || 8000, () => {
-    console.log(`Server is running at PORT: ${process.env.PORT}`);
-  });
+// Start the Express server listening immediately to avoid cold start port binding timeout issues
+const serverPort = process.env.PORT || 8000;
+app.listen(serverPort, () => {
+  console.log(`Server is running at PORT: ${serverPort}`);
 });
+
+// Initialize database connection asynchronously in the background
+connectDB()
+  .then(() => {
+    logEmailDeliveryStatus();
+  })
+  .catch((err) => {
+    console.error("[Startup] Background DB connection failed:", err.message);
+  });
