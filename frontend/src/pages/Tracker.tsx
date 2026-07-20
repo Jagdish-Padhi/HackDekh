@@ -16,7 +16,6 @@ import { useAuth, useToast } from "../context";
 import { usePageChrome } from "../context/pageChrome";
 import { teamApi } from "../services";
 import type { Team, TeamHackathon } from "../types";
-import LogoTransition from "../components/LogoAnimation";
 import LoadingProgress from "../components/LoadingProgress";
 
 export const isRegistrationStage = (name: string): boolean => {
@@ -211,7 +210,7 @@ export default function TrackerPage() {
           </div>
         </div>
       ) : (
-        <div className="w-full max-w-7xl mx-auto space-y-6 px-4 py-6 md:px-6">
+        <>
       {/* Header Info */}
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 border-b border-zinc-150 dark:border-zinc-800 pb-5">
         <div>
@@ -534,6 +533,7 @@ export default function TrackerPage() {
           </div>
         )}
       </AnimatePresence>
+        </>
       )}
     </div>
   );

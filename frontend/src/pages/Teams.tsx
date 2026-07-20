@@ -1214,6 +1214,7 @@ export default function TeamsPage() {
           </div>
         </div>
       ) : (
+        <>
 
       {/* Mobile Filter / Action Panel (Consistent layout with Hackathons page, only when not viewing team workspace) */}
       {!selectedTeamId && (
@@ -3440,6 +3441,7 @@ export default function TeamsPage() {
           </div>
         )}
       </AnimatePresence>
+        </>
       )}
     </div>
   );
