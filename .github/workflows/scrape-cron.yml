@@ -1,0 +1,39 @@
+name: Trigger Scrape Cron
+
+on:
+  schedule:
+    # Runs at 3:00 AM UTC daily
+    - cron: '0 3 * * *'
+  workflow_dispatch: # Allows manual triggering from the GitHub UI for testing
+
+jobs:
+  trigger-cron:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Wake up Render instance (Cold Start)
+        run: |
+          echo "Sending ping to wake up Render instance..."
+          curl -s -o /dev/null -w "%{http_code}" https://hackdekh.onrender.com/api/v1/ping || true
+
+      - name: Wait for server to spin up
+        run: |
+          echo "Waiting 45 seconds for server to spin up..."
+          sleep 45
+
+      - name: Trigger Scrapers
+        run: |
+          echo "Triggering scrapers..."
+          response=$(curl -s -w "\nHTTP_STATUS:%{http_code}" -X POST \
+            -H "x-cron-secret: ${{ secrets.CRON_SECRET }}" \
+            https://hackdekh.onrender.com/api/v1/scrape/cron/trigger)
+          
+          echo "Response:"
+          echo "$response"
+          
+          # Extract HTTP status code
+          status=$(echo "$response" | grep "HTTP_STATUS" | cut -d':' -f2)
+          if [ "$status" -ne 200 ]; then
+            echo "Error: Failed to trigger cron job. HTTP Status: $status"
+            exit 1
+          fi
+          echo "Cron job triggered successfully!"
