@@ -1,8 +1,11 @@
+import { useState, useEffect } from "react";
 import LogoTransition from "./LogoAnimation";
 
 type LoadingProgressProps = {
-    progress: number
+    progress?: number
     label?: string
+    simulate?: boolean
+    description?: string
 }
 
 const clampProgress = (value: number) => Math.max(0, Math.min(100, value))
@@ -10,8 +13,26 @@ const clampProgress = (value: number) => Math.max(0, Math.min(100, value))
 const LoadingProgress = ({
     progress,
     label = 'Loading hackathons',
+    simulate = false,
+    description = 'Syncing latest listings and metadata.',
 }: LoadingProgressProps) => {
-    const safeProgress = clampProgress(progress)
+    const [simulatedProgress, setSimulatedProgress] = useState(12)
+
+    useEffect(() => {
+        if (progress !== undefined || !simulate) return
+
+        const interval = setInterval(() => {
+            setSimulatedProgress(prev => {
+                const step = Math.random() * 8 + 2
+                return Math.min(prev + step, 96)
+            })
+        }, 300)
+
+        return () => clearInterval(interval)
+    }, [progress, simulate])
+
+    const activeProgress = progress !== undefined ? progress : simulatedProgress
+    const safeProgress = clampProgress(activeProgress)
     const progressText = `${Math.round(safeProgress)}%`
 
     return (
@@ -43,7 +64,7 @@ const LoadingProgress = ({
                 </div>
 
                 <p className="mt-2.5 text-[10px] font-semibold text-zinc-450 dark:text-zinc-500 leading-normal">
-                    Syncing latest hackathon listings and metadata.
+                    {description}
                 </p>
             </div>
         </div>

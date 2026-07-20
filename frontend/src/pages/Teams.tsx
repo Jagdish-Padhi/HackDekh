@@ -30,6 +30,7 @@ import { useAuth, useCache, useToast } from "../context";
 import { usePageChrome } from "../context/pageChrome";
 import { teamApi, userApi } from "../services";
 import LogoTransition from "../components/LogoAnimation";
+import LoadingProgress from "../components/LoadingProgress";
 import AppDropdown from "../components/AppDropdown";
 import type { Team, TeamHackathon, Stage, TeamInvitation, UserLite } from "../types";
 import { motion, AnimatePresence } from "framer-motion";
@@ -1180,26 +1181,39 @@ export default function TeamsPage() {
 
 
 
-  if (loading) {
-    return (
-      <div className="mx-auto flex min-h-[60vh] max-w-7xl flex-col items-center justify-center px-4 py-10">
-        <div className="flex flex-col items-center max-w-sm text-center">
-          <div className="flex items-center justify-center overflow-visible py-2">
-            <LogoTransition width={320} height={220} loop={true} />
-          </div>
-          <h3 className="text-sm font-extrabold text-zinc-800 dark:text-zinc-200 mt-2 tracking-tight">
-            Assembling Workspace
-          </h3>
-          <p className="text-[11px] text-zinc-500 dark:text-zinc-400 mt-1 leading-normal">
-            Synchronizing teams, roster data, and stage history...
-          </p>
-        </div>
-      </div>
-    );
-  }
-
   return (
-    <div className={`mx-auto w-full px-4 py-6 md:px-6 space-y-6 ${selectedTeamId ? '' : 'max-w-7xl'}`}>
+    <div className={`mx-auto w-full px-4 py-6 md:px-6 space-y-6 ${selectedTeamId ? '' : 'max-w-7xl'} relative`}>
+      {loading && (
+        <div className="absolute inset-0 z-20 flex justify-center items-center bg-zinc-950/5 dark:bg-black/10 backdrop-blur-[2.5px] p-4 rounded-3xl min-h-[500px]">
+          <div className="w-full max-w-sm shrink-0">
+            <LoadingProgress simulate={true} label="Assembling Workspace" description="Synchronizing teams, roster data, and stage history..." />
+          </div>
+        </div>
+      )}
+
+      {loading ? (
+        <div className="space-y-6 opacity-40 select-none pointer-events-none">
+          {/* Mock filters and buttons */}
+          <div className="flex flex-col lg:flex-row gap-4 items-center justify-between">
+            <div className="h-10 w-full lg:w-96 rounded-xl bg-zinc-200 dark:bg-zinc-800 animate-pulse" />
+            <div className="flex gap-3 w-full lg:w-auto">
+              <div className="h-10 w-28 rounded-xl bg-zinc-200 dark:bg-zinc-800 animate-pulse" />
+              <div className="h-10 w-28 rounded-xl bg-zinc-200 dark:bg-zinc-800 animate-pulse" />
+            </div>
+          </div>
+          {/* Mock Grid of cards */}
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
+            {Array.from({ length: 6 }).map((_, index) => (
+              <div
+                key={index}
+                className="h-48 rounded-2xl border border-zinc-200/90 bg-white p-5 shadow-sm dark:border-zinc-800 dark:bg-zinc-900/60"
+              >
+                <div className="h-full w-full rounded-xl bg-[linear-gradient(110deg,rgba(228,228,231,0.6),rgba(250,250,250,0.95),rgba(228,228,231,0.6))] bg-size-[200%_100%] animate-[shimmer_1.3s_linear_infinite] dark:bg-[linear-gradient(110deg,rgba(39,39,42,0.9),rgba(63,63,70,0.95),rgba(39,39,42,0.9))]" />
+              </div>
+            ))}
+          </div>
+        </div>
+      ) : (
 
       {/* Mobile Filter / Action Panel (Consistent layout with Hackathons page, only when not viewing team workspace) */}
       {!selectedTeamId && (
@@ -1483,7 +1497,7 @@ export default function TeamsPage() {
                 <div className="space-y-4">
                   {loadingTeamData ? (
                     <div className="flex flex-col items-center justify-center gap-3 rounded-2xl border border-zinc-200/60 bg-white px-4 py-8 text-sm text-zinc-500 dark:border-zinc-800 dark:bg-zinc-900/40 dark:text-zinc-400 shadow-xs">
-                      <LogoTransition width={200} height={130} loop={true} />
+                      <LogoTransition width={330} height={225} loop={true} />
                       <p className="font-semibold">Loading participations timeline...</p>
                     </div>
                   ) : teamParticipations.length === 0 ? (
@@ -2342,7 +2356,7 @@ export default function TeamsPage() {
                 <div className="space-y-6">
                   {loadingTeamData ? (
                     <div className="flex flex-col items-center justify-center gap-3 rounded-2xl border border-zinc-200/60 bg-white px-4 py-8 text-sm text-zinc-500 dark:border-zinc-800 dark:bg-zinc-900/40 dark:text-zinc-400 shadow-xs">
-                      <LogoTransition width={200} height={130} loop={true} />
+                      <LogoTransition width={330} height={225} loop={true} />
                       <p className="font-semibold">Loading stages list...</p>
                     </div>
                   ) : selectedParticipation ? (() => {
@@ -3426,6 +3440,7 @@ export default function TeamsPage() {
           </div>
         )}
       </AnimatePresence>
+      )}
     </div>
   );
 }

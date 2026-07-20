@@ -29,6 +29,7 @@ import HackathonCard from "../components/HackathonCard";
 import { teamApi, userApi } from "../services";
 import type { HackathonLite, Stage, Team, TeamHackathon, TeamInvitation } from "../types";
 import LogoTransition from "../components/LogoAnimation";
+import LoadingProgress from "../components/LoadingProgress";
 
 type SavedHackathon = HackathonLite;
 type Participation = TeamHackathon & { teamInfo: Team };
@@ -721,11 +722,39 @@ export default function DashboardPage() {
   }, [dashboardActions, setPageActions]);
 
   return (
-    <div className="mx-auto w-full max-w-7xl px-4 py-2 md:px-6 space-y-6">
+    <div className="mx-auto w-full max-w-7xl px-4 py-2 md:px-6 space-y-6 relative">
+      {loadingData && (
+        <div className="absolute inset-0 z-20 flex justify-center items-center bg-zinc-950/5 dark:bg-black/10 backdrop-blur-[2.5px] p-4 rounded-3xl min-h-[400px]">
+          <div className="w-full max-w-sm shrink-0">
+            <LoadingProgress simulate={true} label="Loading Workspace" description="Retrieving your hackathons, active teams, and progress metrics..." />
+          </div>
+        </div>
+      )}
+
       {loadingData ? (
-        <div className="flex h-60 w-full flex-col items-center justify-center gap-3">
-          <LogoTransition width={220} height={140} loop={true} />
-          <p className="text-sm font-semibold text-zinc-550 dark:text-zinc-400">Loading your workspace details...</p>
+        <div className="space-y-6 opacity-40 select-none pointer-events-none">
+          {/* Metric Cards Skeleton */}
+          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4 rounded-3xl border border-zinc-250 bg-gradient-to-r from-blue-50/45 to-indigo-50/25 dark:from-zinc-150/35 dark:to-zinc-150/15 p-4.5 shadow-xs">
+            {Array.from({ length: 4 }).map((_, index) => (
+              <div key={index} className="flex items-center gap-4 bg-white dark:bg-zinc-150 p-4 rounded-2xl border border-zinc-250 shadow-xs h-20 animate-pulse" />
+            ))}
+          </div>
+
+          <div className="grid gap-6 lg:grid-cols-3">
+            {/* Upcoming Deadlines Column Skeleton */}
+            <div className="lg:col-span-2 space-y-6">
+              <div className="rounded-3xl border border-zinc-200/90 bg-white p-6 shadow-xs dark:border-zinc-800 dark:bg-zinc-950/40 h-80">
+                <div className="h-full w-full rounded-2xl bg-[linear-gradient(110deg,rgba(228,228,231,0.6),rgba(250,250,250,0.95),rgba(228,228,231,0.6))] bg-size-[200%_100%] animate-[shimmer_1.3s_linear_infinite] dark:bg-[linear-gradient(110deg,rgba(39,39,42,0.9),rgba(63,63,70,0.95),rgba(39,39,42,0.9))]" />
+              </div>
+            </div>
+
+            {/* Reflections Column Skeleton */}
+            <div className="space-y-6">
+              <div className="rounded-3xl border border-zinc-200/90 bg-white p-6 shadow-xs dark:border-zinc-800 dark:bg-zinc-950/40 h-80">
+                <div className="h-full w-full rounded-2xl bg-[linear-gradient(110deg,rgba(228,228,231,0.6),rgba(250,250,250,0.95),rgba(228,228,231,0.6))] bg-size-[200%_100%] animate-[shimmer_1.3s_linear_infinite] dark:bg-[linear-gradient(110deg,rgba(39,39,42,0.9),rgba(63,63,70,0.95),rgba(39,39,42,0.9))]" />
+              </div>
+            </div>
+          </div>
         </div>
       ) : (
         <div className="min-h-[40vh]">

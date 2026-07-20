@@ -17,6 +17,7 @@ import { usePageChrome } from "../context/pageChrome";
 import { teamApi } from "../services";
 import type { Team, TeamHackathon } from "../types";
 import LogoTransition from "../components/LogoAnimation";
+import LoadingProgress from "../components/LoadingProgress";
 
 export const isRegistrationStage = (name: string): boolean => {
   return /register|registration|apply|application|prep|regn/i.test(name);
@@ -175,19 +176,42 @@ export default function TrackerPage() {
     }
   };
 
-  if (loading) {
-    return (
-      <div className="flex-1 flex flex-col items-center justify-center min-h-[350px]">
-        <LogoTransition width={120} height={80} loop={true} />
-        <p className="text-xs text-zinc-400 dark:text-zinc-500 mt-2 font-semibold">
-          Loading your universal trackers...
-        </p>
-      </div>
-    );
-  }
-
   return (
-    <div className="w-full max-w-7xl mx-auto space-y-6 px-4 py-6 md:px-6">
+    <div className="w-full max-w-7xl mx-auto space-y-6 px-4 py-6 md:px-6 relative">
+      {loading && (
+        <div className="absolute inset-0 z-20 flex justify-center items-center bg-zinc-950/5 dark:bg-black/10 backdrop-blur-[2.5px] p-4 rounded-3xl min-h-[400px]">
+          <div className="w-full max-w-sm shrink-0">
+            <LoadingProgress simulate={true} label="Loading Trackers" description="Loading your universal trackers across all active workspaces..." />
+          </div>
+        </div>
+      )}
+
+      {loading ? (
+        <div className="space-y-6 opacity-40 select-none pointer-events-none">
+          {/* Header Info Skeleton */}
+          <div className="border-b border-zinc-150 dark:border-zinc-800 pb-5">
+            <div className="h-8 w-64 bg-zinc-200 dark:bg-zinc-800 rounded-lg animate-pulse" />
+            <div className="h-4 w-96 bg-zinc-150 dark:bg-zinc-850 rounded-lg animate-pulse mt-2" />
+          </div>
+          {/* Filters Skeleton */}
+          <div className="flex flex-wrap items-center gap-3">
+            <div className="h-9 w-24 bg-zinc-200 dark:bg-zinc-800 rounded-lg animate-pulse" />
+            <div className="h-9 w-24 bg-zinc-200 dark:bg-zinc-800 rounded-lg animate-pulse" />
+          </div>
+          {/* Timeline List Skeleton */}
+          <div className="space-y-4">
+            {Array.from({ length: 4 }).map((_, index) => (
+              <div
+                key={index}
+                className="h-28 rounded-2xl border border-zinc-200 bg-white p-4 dark:border-zinc-800 dark:bg-zinc-900/60"
+              >
+                <div className="h-full w-full rounded-xl bg-[linear-gradient(110deg,rgba(228,228,231,0.6),rgba(250,250,250,0.95),rgba(228,228,231,0.6))] bg-size-[200%_100%] animate-[shimmer_1.3s_linear_infinite] dark:bg-[linear-gradient(110deg,rgba(39,39,42,0.9),rgba(63,63,70,0.95),rgba(39,39,42,0.9))]" />
+              </div>
+            ))}
+          </div>
+        </div>
+      ) : (
+        <div className="w-full max-w-7xl mx-auto space-y-6 px-4 py-6 md:px-6">
       {/* Header Info */}
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 border-b border-zinc-150 dark:border-zinc-800 pb-5">
         <div>
@@ -510,6 +534,7 @@ export default function TrackerPage() {
           </div>
         )}
       </AnimatePresence>
+      )}
     </div>
   );
 }
