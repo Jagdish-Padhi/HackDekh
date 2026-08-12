@@ -141,6 +141,10 @@ git clone https://github.com/your-org/HackDekh.git
 cd HackDekh
 ```
 
+### Configure ENV
+
+for frontend and backend refer .env.example
+
 ### Backend
 
 ```bash
