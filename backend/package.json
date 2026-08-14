@@ -2,7 +2,6 @@
   "name": "backend",
   "version": "1.0.0",
   "main": "src/index.ts",
-  
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
     "start": "node dist/index.js",
@@ -14,6 +13,8 @@
   "license": "MIT",
   "description": "Modular scalable hackathon aggregator backend with unified API.",
   "dependencies": {
+    "@aws-sdk/client-dynamodb": "^3.1110.0",
+    "@aws-sdk/lib-dynamodb": "^3.1110.0",
     "axios": "^1.13.2",
     "bcrypt": "^6.0.0",
     "cheerio": "^1.1.2",

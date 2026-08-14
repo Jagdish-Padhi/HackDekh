@@ -1,15 +1,16 @@
-import mongoose from "mongoose";
-import { DB_NAME } from "../constants.ts";
+import { getDynamoDBClient } from "./dynamo.ts";
+import { ensureTables } from "./initTables.ts";
 
 const connectDB = async (retries = 5, delay = 3000): Promise<void> => {
   for (let i = 1; i <= retries; i++) {
     try {
-      console.log(`[DB] Connecting to MongoDB (Attempt ${i}/${retries})...`);
-      await mongoose.connect(`${process.env.MONGO_URI}/${DB_NAME}`);
-      console.log("[DB] MongoDB connected successfully");
+      console.log(`[DB] Connecting to DynamoDB (Attempt ${i}/${retries})...`);
+      getDynamoDBClient();
+      await ensureTables();
+      console.log("[DB] DynamoDB connected successfully");
       return;
     } catch (err: any) {
-      console.error(`[DB] MongoDB connection attempt ${i} failed:`, err.message);
+      console.error(`[DB] DynamoDB connection attempt ${i} failed:`, err.message);
       if (i === retries) {
         console.error("[DB] All connection attempts failed. Exiting process.");
         process.exit(1);
