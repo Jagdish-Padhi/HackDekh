@@ -26,6 +26,7 @@ function collectTargets(node: any, parts: string[], index = 0, out: PopulateTarg
   if (typeof node !== "object") return out;
 
   const part = parts[index];
+  if (part === undefined) return out;
   if (!(part in node)) return out;
 
   if (index === parts.length - 1) {
@@ -87,8 +88,10 @@ export async function populate(docs: any | any[], specs: PopulateSpec | Populate
         })
       );
 
-      if (response.Responses && response.Responses[spec.table]) {
-        response.Responses[spec.table].forEach((item: any) => {
+      const responses = response.Responses;
+      const items = responses?.[spec.table];
+      if (items) {
+        items.forEach((item: any) => {
           fetchedItems.set(item._id, item);
         });
       }
