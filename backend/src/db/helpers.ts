@@ -38,6 +38,19 @@ export function toISO(value: string | number | Date | undefined | null): string 
   return value.toISOString();
 }
 
+export function normalizeDates(value: unknown): unknown {
+  if (value instanceof Date) return value.toISOString();
+  if (Array.isArray(value)) return value.map(normalizeDates);
+  if (value && typeof value === "object") {
+    const out: Record<string, unknown> = {};
+    for (const [key, item] of Object.entries(value as Record<string, unknown>)) {
+      out[key] = normalizeDates(item);
+    }
+    return out;
+  }
+  return value;
+}
+
 export function isNonEmptyString(value: unknown): boolean {
   return typeof value === "string" && value.trim().length > 0;
 }

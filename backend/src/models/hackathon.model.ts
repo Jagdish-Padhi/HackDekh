@@ -1,5 +1,6 @@
 import { getDynamoDBClient } from "../db/dynamo.ts";
 import { TABLES } from "../constants.ts";
+import { normalizeDates } from "../db/helpers.ts";
 import { GetCommand, PutCommand, DeleteCommand, QueryCommand, ScanCommand, BatchGetCommand } from "@aws-sdk/lib-dynamodb";
 import crypto from "crypto";
 
@@ -106,7 +107,7 @@ export const Hackathon = {
         await client.send(
             new PutCommand({
                 TableName: TABLES.HACKATHONS,
-                Item: hackathon,
+                Item: normalizeDates(hackathon) as Record<string, unknown>,
                 ConditionExpression: "attribute_not_exists(#id)",
                 ExpressionAttributeNames: { "#id": "_id" }
             })
@@ -123,7 +124,7 @@ export const Hackathon = {
         await client.send(
             new PutCommand({
                 TableName: TABLES.HACKATHONS,
-                Item: doc,
+                Item: normalizeDates(doc) as Record<string, unknown>,
                 ConditionExpression: "attribute_exists(#id)",
                 ExpressionAttributeNames: { "#id": "_id" }
             })
