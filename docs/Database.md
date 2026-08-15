@@ -104,3 +104,14 @@ erDiagram
 - The backend connects using `AWS_REGION`, `AWS_ACCESS_KEY_ID`, `AWS_SECRET_ACCESS_KEY`, and optionally `DYNAMODB_ENDPOINT` (local only). Tables are auto-created on boot.
 - Timestamps are stored as ISO-8601 strings. The `DYNAMODB_ENDPOINT` variable must be **omitted** when running against real AWS.
 - Any new model should follow the same repository style: a `*Document` interface plus a model object wrapping the `@aws-sdk/lib-dynamodb` commands.
+
+## Seeding
+
+The seed script (`backend/src/seed.ts`) is **standalone and never runs automatically**. On a fresh environment the tables start empty, so run it once manually to load demo users, teams, and a demo hackathon:
+
+```bash
+cd backend
+npx ts-node src/seed.ts
+```
+
+It clears the tables, creates 6 users (login: `jagdish@example.com` / `password123`), 4 teams, 3 invitations, 1 demo hackathon, a linked team-hackathon with stages, and reflections.

@@ -161,6 +161,17 @@ npm install
 npm run dev
 ```
 
+### Seed demo data (optional)
+
+The database is seeded **manually** — it is never run automatically. On a fresh setup the tables start empty (no users, no hackathons), so run this once to load demo users, teams, and a demo hackathon:
+
+```bash
+cd backend
+npx ts-node src/seed.ts
+```
+
+You can then log in with `jagdish@example.com` / `password123`. Scraped hackathons are populated later by the scraper cron or the `/api/v1/scrape/*` routes.
+
 ### Frontend
 
 ```bash
