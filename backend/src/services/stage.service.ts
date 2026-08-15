@@ -1,118 +1,173 @@
-import { Types } from 'mongoose';
 import Stage from '../models/stage.model.ts';
 import TeamHackathon from '../models/teamHackathon.model.ts';
 import Team from '../models/team.model.ts';
+import { populate } from '../models/populate.ts';
+import { TABLES } from '../constants.ts';
+import {
+    dbQueryAll,
+    dbUpdate,
+    dbTransactChunks,
+    nowISO,
+    genId,
+    isNonEmptyString,
+    listPendingReflectionStageIds,
+    listPendingReflectionUsersForStage,
+    sanitizeUserDoc,
+} from '../db/helpers.ts';
 
 // ─── Helper: assert caller is a team member ──────────────────────────────────
-async function getTeamMembersForStage(stageId: string, userId: Types.ObjectId) {
-    const stage = await Stage.findById(stageId).populate({
-        path: 'teamHackathon',
-        populate: { path: 'team', select: 'members owner' },
-    });
+async function getTeamMembersForStage(stageId: string, userId: string) {
+    const stage = await Stage.findById(stageId);
+    if (!stage) return { stage: null, members: [] as string[] };
 
-    if (!stage) return { stage: null, members: [] as Types.ObjectId[] };
+    const th = await TeamHackathon.findById(stage.teamHackathon);
+    if (!th) return { stage: null, members: [] as string[] };
 
-    const th = stage.teamHackathon as any;
-    const team = th?.team as any;
-    if (!team) return { stage, members: [] as Types.ObjectId[] };
+    const team = await Team.findById(th.team);
+    if (!team) return { stage: null, members: [] as string[] };
 
-    const isMember = (team.members as Types.ObjectId[]).some(
-        (m) => String(m) === String(userId)
-    );
-    if (!isMember) return { stage: null, members: [] as Types.ObjectId[] };
+    const members = (team.members || []).map((m) => String(m));
+    if (!members.includes(String(userId))) return { stage: null, members: [] as string[] };
 
-    return { stage, members: team.members as Types.ObjectId[] };
+    return { stage, members };
+}
+
+// ─── Sync PENDING_REFLECTIONS companion table from a stage doc ───────────────
+async function syncPendingReflections(stageId: string): Promise<void> {
+    const stage = await Stage.findById(stageId);
+    if (!stage) return;
+
+    const desired = new Set((stage.pendingReflectionFor || []).map((u) => String(u)));
+    const existing = await listPendingReflectionUsersForStage(stageId);
+    const existingUsers = new Set(existing.map((e) => String(e.userId)));
+
+    const requests: any[] = [];
+    for (const uid of desired) {
+        if (!existingUsers.has(uid)) {
+            requests.push({ Put: { TableName: TABLES.PENDING_REFLECTIONS, Item: { userId: uid, stageId } } });
+        }
+    }
+    for (const item of existing) {
+        if (!desired.has(String(item.userId))) {
+            requests.push({ Delete: { TableName: TABLES.PENDING_REFLECTIONS, Key: { userId: item.userId, stageId } } });
+        }
+    }
+    await dbTransactChunks(requests);
+}
+
+async function clearAllPendingReflectionsForStage(stageId: string): Promise<void> {
+    const existing = await listPendingReflectionUsersForStage(stageId);
+    const requests = existing.map((item) => ({
+        Delete: { TableName: TABLES.PENDING_REFLECTIONS, Key: { userId: item.userId, stageId } },
+    }));
+    await dbTransactChunks(requests);
 }
 
 // ─── Auto Update Team Hackathon Status ─────────────────────────────────────────
 async function autoUpdateTeamHackathonStatus(thId: string) {
-    const th = await TeamHackathon.findById(thId).populate('stages');
+    const th = await TeamHackathon.findById(thId);
     if (!th) return;
 
-    const stages = th.stages as any[];
+    const stages = (await Stage.batchGet(th.stages || [])).sort((a, b) =>
+        String(a.createdAt || '').localeCompare(String(b.createdAt || ''))
+    );
     const isRegistrationStageName = (name: string) => /register|registration|apply|application|prep|regn/i.test(name);
-    const competitiveStages = stages.filter(s => !isRegistrationStageName(s.name));
+    const competitiveStages = stages.filter((s) => !isRegistrationStageName(s.name));
 
     if (competitiveStages.length === 0) {
         if (th.status !== 'tracking') {
-            th.status = 'active';
-            await th.save();
+            await TeamHackathon.findOneAndUpdate(thId, { status: 'active' });
         }
         return;
     }
 
-    const failedStageIdx = competitiveStages.findIndex(s => s.result === 'rejected');
+    const failedStageIdx = competitiveStages.findIndex((s) => s.result === 'rejected');
     if (failedStageIdx !== -1) {
         // Reset all subsequent stages to 'pending'
         for (let j = failedStageIdx + 1; j < competitiveStages.length; j++) {
             const subStage = competitiveStages[j];
+            if (!subStage) continue;
             if (subStage.result !== 'pending') {
-                subStage.result = 'pending';
-                subStage.pendingReflectionFor = [];
-                await subStage.save();
+                await dbUpdate(TABLES.STAGES, { _id: subStage._id }, {
+                    SET: { result: 'pending', pendingReflectionFor: [] },
+                });
+                await clearAllPendingReflectionsForStage(String(subStage._id));
             }
         }
-        th.status = 'eliminated';
-        await th.save();
+        await TeamHackathon.findOneAndUpdate(thId, { status: 'eliminated' });
         return;
     }
 
-    const allQualified = competitiveStages.every(s => s.result === 'qualified');
+    const allQualified = competitiveStages.every((s) => s.result === 'qualified');
     if (allQualified) {
-        th.status = 'won';
-        await th.save();
+        await TeamHackathon.findOneAndUpdate(thId, { status: 'won' });
         return;
     }
 
     if (competitiveStages.length >= 2) {
         const lastStage = competitiveStages[competitiveStages.length - 1];
         const priorStages = competitiveStages.slice(0, -1);
-        const priorsQualified = priorStages.every(s => s.result === 'qualified');
+        const priorsQualified = priorStages.every((s) => s.result === 'qualified');
 
-        if (lastStage.result === 'pending' && priorsQualified) {
-            th.status = 'finalist';
-            await th.save();
+        if (lastStage && lastStage.result === 'pending' && priorsQualified) {
+            await TeamHackathon.findOneAndUpdate(thId, { status: 'finalist' });
             return;
         }
     }
 
     if (th.status !== 'tracking' && ['eliminated', 'finalist', 'won'].includes(th.status)) {
-        th.status = 'active';
-        await th.save();
+        await TeamHackathon.findOneAndUpdate(thId, { status: 'active' });
     }
+}
+
+function sanitizeStageUsers(stage: any): any {
+    if (Array.isArray(stage.reflections)) {
+        stage.reflections = stage.reflections.map((r: any) =>
+            r && typeof r === 'object' && r.user ? { ...r, user: sanitizeUserDoc(r.user) } : r
+        );
+    }
+    if (Array.isArray(stage.pendingReflectionFor)) {
+        stage.pendingReflectionFor = stage.pendingReflectionFor
+            .map((u: any) => sanitizeUserDoc(u))
+            .filter(Boolean);
+    }
+    return stage;
+}
+
+async function getPopulatedStage(stageId: string): Promise<any> {
+    const stage = await Stage.findById(stageId);
+    if (!stage) return null;
+    let populated = await populate(stage, { path: 'reflections.user', table: TABLES.USERS });
+    populated = await populate(populated, { path: 'pendingReflectionFor', table: TABLES.USERS });
+    return sanitizeStageUsers(populated);
 }
 
 // ─── Add Stage ───────────────────────────────────────────────────────────────
 export async function addStage(
     thId: string,
-    userId: Types.ObjectId,
+    userId: string,
     payload: { name: string; deadline?: string }
 ) {
-    if (!Types.ObjectId.isValid(thId)) return null;
+    if (!isNonEmptyString(thId)) return null;
 
-    const th = await TeamHackathon.findById(thId).populate('team');
+    const th = await TeamHackathon.findById(thId);
     if (!th) return null;
 
-    const team = th.team as any;
-    const isMember = (team.members as Types.ObjectId[]).some(
-        (m) => String(m) === String(userId)
-    );
-    if (!isMember) return null;
+    const team = await Team.findById(th.team);
+    if (!team || !(team.members || []).map(String).includes(String(userId))) return null;
 
-    const stageData: { name: string; teamHackathon: string; deadline?: Date } = {
+    const stageData: any = {
         name: payload.name.trim(),
         teamHackathon: thId,
+        result: 'pending',
     };
     if (payload.deadline) {
-        stageData.deadline = new Date(payload.deadline);
+        stageData.deadline = new Date(payload.deadline).toISOString();
     }
 
-    const stage = new Stage(stageData);
-    await stage.save();
+    const stage = await Stage.create(stageData);
 
-    await TeamHackathon.findByIdAndUpdate(thId, {
-        $push: { stages: stage._id },
-    });
+    await TeamHackathon.findOneAndUpdate(thId, { stages: [...(th.stages || []), stage._id] });
 
     await autoUpdateTeamHackathonStatus(thId);
 
@@ -122,7 +177,7 @@ export async function addStage(
 // ─── Update Stage ─────────────────────────────────────────────────────────────
 export async function updateStage(
     stageId: string,
-    userId: Types.ObjectId,
+    userId: string,
     payload: { name?: string; deadline?: string | null; result?: string; notes?: string }
 ) {
     const { stage, members } = await getTeamMembersForStage(stageId, userId);
@@ -130,19 +185,22 @@ export async function updateStage(
 
     const prevResult = stage.result;
 
-    if (payload.name !== undefined) stage.name = payload.name.trim();
+    const SET: Record<string, unknown> = {};
+    const REMOVE: string[] = [];
+
+    if (payload.name !== undefined) SET.name = payload.name.trim();
     if (payload.deadline !== undefined) {
         if (payload.deadline) {
-            (stage as any).deadline = new Date(payload.deadline);
+            SET.deadline = new Date(payload.deadline).toISOString();
         } else {
-            (stage as any).deadline = null;
+            REMOVE.push('deadline');
         }
     }
-    if (payload.result !== undefined) stage.result = payload.result as any;
-    if (payload.notes !== undefined) stage.notes = payload.notes;
+    if (payload.result !== undefined) SET.result = payload.result;
+    if (payload.notes !== undefined) SET.notes = payload.notes;
 
     if (payload.result === 'pending') {
-        stage.pendingReflectionFor = [];
+        SET.pendingReflectionFor = [];
     }
 
     const resultChanged =
@@ -151,39 +209,57 @@ export async function updateStage(
         payload.result !== 'pending';
 
     if (resultChanged && members.length > 0) {
-        const alreadyReflected = stage.reflections.map((r: any) => String(r.user));
-        const needReflection = members
-            .map((m) => String(m))
-            .filter((id) => !alreadyReflected.includes(id));
+        const alreadyReflected = (stage.reflections || []).map((r: any) => String(r.user));
+        const needReflection = members.filter((id) => !alreadyReflected.includes(id));
 
         if (needReflection.length > 0) {
-            (stage as any).pendingReflectionFor = [
-                ...((stage as any).pendingReflectionFor || []),
-                ...needReflection.map((id) => new Types.ObjectId(id)),
-            ];
+            const combined = new Set([...((stage.pendingReflectionFor || []).map(String)), ...needReflection]);
+            SET.pendingReflectionFor = [...combined];
         }
     }
 
-    await stage.save();
+    await dbUpdate(TABLES.STAGES, { _id: stageId }, { SET, REMOVE });
 
-    const thId = stage.teamHackathon?._id ? String(stage.teamHackathon._id) : String(stage.teamHackathon);
+    await syncPendingReflections(stageId);
+
+    const thId = String(stage.teamHackathon);
     await autoUpdateTeamHackathonStatus(thId);
 
-    return stage;
+    return getPopulatedStage(stageId);
 }
 
 // ─── Delete Stage ─────────────────────────────────────────────────────────────
-export async function deleteStage(stageId: string, userId: Types.ObjectId) {
+export async function deleteStage(stageId: string, userId: string) {
     const { stage } = await getTeamMembersForStage(stageId, userId);
     if (!stage) return null;
 
-    const thId = stage.teamHackathon?._id ? String(stage.teamHackathon._id) : String(stage.teamHackathon);
+    const thId = String(stage.teamHackathon);
 
-    await TeamHackathon.findByIdAndUpdate(thId, {
-        $pull: { stages: stage._id },
+    const th = await TeamHackathon.findById(thId);
+    if (th) {
+        await TeamHackathon.findOneAndUpdate(thId, {
+            stages: (th.stages || []).filter((id) => String(id) !== stageId),
+        });
+    }
+
+    const requests: any[] = [{ Delete: { TableName: TABLES.STAGES, Key: { _id: stageId } } }];
+
+    const reflections = await dbQueryAll({
+        table: TABLES.REFLECTIONS,
+        index: 'stage-index',
+        keyCondition: 'stage = :stage',
+        values: { ':stage': stageId },
     });
+    for (const r of reflections) {
+        requests.push({ Delete: { TableName: TABLES.REFLECTIONS, Key: { _id: r._id } } });
+    }
 
-    await Stage.findByIdAndDelete(stageId);
+    const pending = await listPendingReflectionUsersForStage(stageId);
+    for (const p of pending) {
+        requests.push({ Delete: { TableName: TABLES.PENDING_REFLECTIONS, Key: { userId: p.userId, stageId } } });
+    }
+
+    await dbTransactChunks(requests);
 
     await autoUpdateTeamHackathonStatus(thId);
 
@@ -193,45 +269,106 @@ export async function deleteStage(stageId: string, userId: Types.ObjectId) {
 // ─── Add / Update Reflection ──────────────────────────────────────────────────
 export async function addReflection(
     stageId: string,
-    userId: Types.ObjectId,
+    userId: string,
     note: string
 ) {
     const { stage } = await getTeamMembersForStage(stageId, userId);
     if (!stage) return null;
 
-    const existingIndex = stage.reflections.findIndex(
-        (r: any) => String(r.user) === String(userId)
-    );
+    const reflections = (stage.reflections || []).slice();
+    const existingIndex = reflections.findIndex((r: any) => String(r.user) === String(userId));
 
     if (existingIndex >= 0) {
-        (stage.reflections as any)[existingIndex] = { user: userId, note };
+        reflections[existingIndex] = { user: String(userId), note };
     } else {
-        (stage.reflections as any).push({ user: userId, note });
+        reflections.push({ user: String(userId), note });
     }
 
-    (stage as any).pendingReflectionFor = ((stage as any).pendingReflectionFor || []).filter(
-        (uid: any) => String(uid) !== String(userId)
-    );
+    const pendingReflectionFor = (stage.pendingReflectionFor || [])
+        .map(String)
+        .filter((uid: string) => uid !== String(userId));
 
-    await stage.save();
+    await dbUpdate(TABLES.STAGES, { _id: stageId }, {
+        SET: { reflections, pendingReflectionFor },
+    });
 
-    return Stage.findById(stageId)
-        .populate('reflections.user', 'username fullName')
-        .populate('pendingReflectionFor', 'username fullName');
+    await syncPendingReflections(stageId);
+
+    // Sync the standalone REFLECTIONS table
+    const existingRefs = await dbQueryAll({
+        table: TABLES.REFLECTIONS,
+        index: 'stage-index',
+        keyCondition: 'stage = :stage',
+        values: { ':stage': stageId },
+    });
+    const existingRef = existingRefs.find((r) => String(r.user) === String(userId));
+
+    const requests: any[] = [];
+    if (existingRef) {
+        requests.push({
+            Update: {
+                TableName: TABLES.REFLECTIONS,
+                Key: { _id: existingRef._id },
+                UpdateExpression: 'SET note = :note, updatedAt = :up',
+                ExpressionAttributeValues: { ':note': note, ':up': nowISO() },
+            },
+        });
+    } else {
+        requests.push({
+            Put: {
+                TableName: TABLES.REFLECTIONS,
+                Item: {
+                    _id: genId(),
+                    stage: stageId,
+                    user: String(userId),
+                    note,
+                    createdAt: nowISO(),
+                    updatedAt: nowISO(),
+                },
+            },
+        });
+    }
+    await dbTransactChunks(requests);
+
+    return getPopulatedStage(stageId);
 }
 
 // ─── Get Pending Reflections for a User ───────────────────────────────────────
-export async function getPendingReflections(userId: Types.ObjectId) {
-    return Stage.find({ pendingReflectionFor: userId })
-        .select('name result deadline teamHackathon')
-        .populate({
-            path: 'teamHackathon',
-            select: 'hackathon team',
-            populate: [
-                { path: 'hackathon', select: 'title platform' },
-                { path: 'team', select: 'name' },
-            ],
-        });
+export async function getPendingReflections(userId: string) {
+    const stageIds = await listPendingReflectionStageIds(userId);
+    const stages = await Stage.batchGet(stageIds);
+
+    let populated = await populate(stages, { path: 'teamHackathon', table: TABLES.TEAM_HACKATHONS });
+    populated = await populate(populated, { path: 'teamHackathon.hackathon', table: TABLES.HACKATHONS });
+    populated = await populate(populated, { path: 'teamHackathon.team', table: TABLES.TEAMS });
+
+    return populated.map((stage: any) => {
+        const teamHackathon = stage.teamHackathon || null;
+        return {
+            _id: stage._id,
+            name: stage.name,
+            result: stage.result,
+            deadline: stage.deadline,
+            teamHackathon: teamHackathon
+                ? {
+                      _id: teamHackathon._id,
+                      hackathon: teamHackathon.hackathon
+                          ? {
+                                _id: teamHackathon.hackathon._id,
+                                title: teamHackathon.hackathon.title,
+                                platform: teamHackathon.hackathon.platform,
+                            }
+                          : null,
+                      team: teamHackathon.team
+                          ? {
+                                _id: teamHackathon.team._id,
+                                name: teamHackathon.team.name,
+                            }
+                          : null,
+                  }
+                : null,
+        };
+    });
 }
 
 // ─── Deep Canonical Stage Name Helper ─────────────────────────────────────────
@@ -286,38 +423,54 @@ export function getCanonicalStageName(name: string): string {
 
 // ─── Check duplicate stage ──────────────────────────────────────────────────
 export async function stageExists(thId: string, name: string, excludeStageId?: string): Promise<boolean> {
-    if (!Types.ObjectId.isValid(thId)) return false;
-    const stages = await Stage.find({ teamHackathon: thId }).select('name');
+    if (!isNonEmptyString(thId)) return false;
+
+    const stages = await dbQueryAll({
+        table: TABLES.STAGES,
+        index: 'teamhackathon-index',
+        keyCondition: 'teamHackathon = :th',
+        values: { ':th': thId },
+    });
+
     const targetCanonical = getCanonicalStageName(name);
-    return stages.some(s => {
+    return stages.some((s) => {
         if (excludeStageId && String(s._id) === String(excludeStageId)) {
             return false;
         }
-        const canonical = getCanonicalStageName(s.name);
-        return canonical === targetCanonical;
+        return getCanonicalStageName(String(s.name)) === targetCanonical;
     });
 }
 
 // ─── Remove Reflection ────────────────────────────────────────────────────────
 export async function removeReflection(
     stageId: string,
-    userId: Types.ObjectId
+    userId: string
 ) {
     const { stage } = await getTeamMembersForStage(stageId, userId);
     if (!stage) return null;
 
-    (stage as any).reflections = stage.reflections.filter(
-        (r: any) => String(r.user) !== String(userId)
-    );
+    const reflections = (stage.reflections || []).filter((r: any) => String(r.user) !== String(userId));
 
-    // Put user back into pendingReflectionFor if not present
-    if (!(stage.pendingReflectionFor || []).some((uid: any) => String(uid) === String(userId))) {
-        (stage.pendingReflectionFor as any).push(userId);
+    const pendingReflectionFor = new Set([...((stage.pendingReflectionFor || []).map(String)), String(userId)]);
+
+    await dbUpdate(TABLES.STAGES, { _id: stageId }, {
+        SET: { reflections, pendingReflectionFor: [...pendingReflectionFor] },
+    });
+
+    await syncPendingReflections(stageId);
+
+    const existingRefs = await dbQueryAll({
+        table: TABLES.REFLECTIONS,
+        index: 'stage-index',
+        keyCondition: 'stage = :stage',
+        values: { ':stage': stageId },
+    });
+    const existingRef = existingRefs.find((r) => String(r.user) === String(userId));
+    if (existingRef) {
+        await dbTransactChunks([
+            { Delete: { TableName: TABLES.REFLECTIONS, Key: { _id: existingRef._id } } },
+        ]);
     }
 
-    await stage.save();
-
-    return Stage.findById(stageId)
-        .populate('reflections.user', 'username fullName')
-        .populate('pendingReflectionFor', 'username fullName');
+    return getPopulatedStage(stageId);
 }
