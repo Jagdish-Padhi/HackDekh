@@ -91,7 +91,8 @@ export async function createTeam(teamData: CreateTeamInput, ownerId: string) {
     const ownedTeams = await dbQueryAll({
         table: TABLES.TEAMS,
         index: 'owner-index',
-        keyCondition: 'owner = :owner',
+        keyCondition: '#owner = :owner',
+        names: { '#owner': 'owner' },
         values: { ':owner': String(ownerId) },
     });
     const existingTeam = ownedTeams.find((t) => String(t.name).toLowerCase() === trimmedName.toLowerCase());
