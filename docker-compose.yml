@@ -5,6 +5,10 @@ services:
     ports:
       - "8000:8000"
     command: "-jar DynamoDBLocal.jar -sharedDb -dbPath /home/dynamodblocal/data"
+    # Run as root so the named volume (root-owned on Docker Desktop) stays writable.
+    # Otherwise DynamoDB Local (which runs as the dynamodblocal user) cannot open
+    # its SQLite data file and every table operation hangs.
+    user: root
     volumes:
       - dynamodb_data:/home/dynamodblocal/data
     restart: unless-stopped
