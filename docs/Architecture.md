@@ -6,13 +6,14 @@
 - [Database](Database.md)
 - [Deployment](Deployment.md)
 - [Scraper System](Scraper-System.md)
+- [DynamoDB AWS Migration](DynamoDB-Deployment.md)
 
 ## Overview
 
 HackDekh is organized as a two-workspace TypeScript application:
 
 - A React frontend for browsing hackathons and managing team workflows.
-- An Express backend that serves the API, runs scraper jobs, and stores data in MongoDB.
+- An Express backend that serves the API, runs scraper jobs, and stores data in Amazon DynamoDB.
 
 The codebase is structured around a few core workflows:
 
@@ -25,7 +26,7 @@ The codebase is structured around a few core workflows:
 
 ```mermaid
 flowchart LR
-  A[Scraper jobs] --> B[MongoDB]
+  A[Scraper jobs] --> B[DynamoDB]
   C[Frontend React app] --> D[Express API]
   D --> B
   D --> E[Email delivery]
@@ -40,7 +41,7 @@ flowchart LR
 | Frontend | UI, routing, protected pages, dashboard workflows | `frontend/src/App.tsx`, `frontend/src/components/MainLayout.tsx`, `frontend/src/pages/*` |
 | API | Route registration, request handling, authentication, errors | `backend/src/app.ts`, `backend/src/index.ts`, `backend/src/routes/*` |
 | Domain logic | Team, stage, reflection, and hackathon workflows | `backend/src/controllers/*`, `backend/src/services/*` |
-| Data | MongoDB models and persistence rules | `backend/src/models/*`, `backend/src/db/connection.ts` |
+| Data | DynamoDB models and persistence rules | `backend/src/models/*`, `backend/src/db/` |
 | Ingestion | Scrapers and refresh orchestration | `backend/src/scrappers/*`, `backend/src/cron/*` |
 
 ## Frontend Structure
@@ -67,7 +68,7 @@ The server also starts the nightly scraper scheduler during application boot.
 
 ## Data Flow
 
-1. Scrapers normalize hackathon listings into MongoDB.
+1. Scrapers normalize hackathon listings into DynamoDB.
 2. The frontend reads those listings through the hackathon API.
 3. Authenticated users save hackathons, create teams, and link teams to hackathons.
 4. Stage updates and reflections are stored against the team-hackathon relationship.

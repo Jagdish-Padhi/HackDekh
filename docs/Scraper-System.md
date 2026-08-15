@@ -6,10 +6,11 @@
 - [API](API.md)
 - [Database](Database.md)
 - [Deployment](Deployment.md)
+- [DynamoDB AWS Migration](DynamoDB-Deployment.md)
 
 ## Overview
 
-HackDekh uses a modular scraper system to normalize hackathon listings from supported external sources and store them in MongoDB.
+HackDekh uses a modular scraper system to normalize hackathon listings from supported external sources and store them in DynamoDB via `Hackathon.upsertHackathon({ slug, platform }, data)`.
 
 ## Supported Sources
 
@@ -25,7 +26,7 @@ HackDekh uses a modular scraper system to normalize hackathon listings from supp
 
 1. A scraper fetches source-specific listings.
 2. The scraper normalizes the data into the hackathon schema.
-3. Existing records are deduplicated using the model-level uniqueness constraints.
+3. Existing records are deduplicated using the `slug-platform-index` GSI via the `upsertHackathon` model method.
 4. The nightly cron job refreshes the full set at 3:00 AM.
 
 ## Trigger Paths
