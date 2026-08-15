@@ -13,7 +13,7 @@ Many MORE things to come...Stay tuned!
   <img src="https://img.shields.io/badge/TypeScript-3178C6?style=flat-square&logo=typescript&logoColor=white" alt="TypeScript" />
   <img src="https://img.shields.io/badge/React-19-61DAFB?style=flat-square&logo=react&logoColor=white" alt="React" />
   <img src="https://img.shields.io/badge/Node.js-Express-339933?style=flat-square&logo=node.js&logoColor=white" alt="Node.js" />
-  <img src="https://img.shields.io/badge/MongoDB-Mongoose-47A248?style=flat-square&logo=mongodb&logoColor=white" alt="MongoDB" />
+  <img src="https://img.shields.io/badge/Amazon_DynamoDB-4053D6?style=flat-square&logo=amazondynamodb&logoColor=white" alt="DynamoDB" />
 </p>
 
 [Features](#-features) • [Screenshots](#️-product-preview) • [Quick Start](#-quick-start) • [Contributing](#-contributing) • [License](#-license)
@@ -122,7 +122,7 @@ React 19 · TypeScript · Vite · Tailwind CSS · Framer Motion · Lucide Icons
 Node.js · Express 5 · TypeScript · node-cron
 
 **Database**
-MongoDB · Mongoose
+DynamoDB · AWS SDK for JavaScript (v3)
 
 **Data Collection**
 Axios · Cheerio (scraper layer with per-platform formatters)
@@ -171,8 +171,11 @@ The frontend expects the backend to be reachable at the URL configured in `VITE_
 
 | Variable | Description |
 |---|---|
-| `PORT` | Port the API server listens on |
-| `MONGO_URI` | MongoDB connection string |
+| `PORT` | Port the API server listens on (use 8001 locally to avoid clashing with DynamoDB Local) |
+| `AWS_REGION` | AWS region for DynamoDB (e.g. `ap-south-1`) |
+| `AWS_ACCESS_KEY_ID` / `AWS_SECRET_ACCESS_KEY` | AWS credentials (use `local`/`local` for DynamoDB Local) |
+| `DYNAMODB_TABLE_PREFIX` | Prefix prepended to all table names (defaults to `hackdekh`) |
+| `DYNAMODB_ENDPOINT` | DynamoDB Local endpoint (e.g. `http://localhost:8000`); omit when using real AWS |
 | `ACCESS_TOKEN_SECRET` | Signing secret for short-lived access tokens |
 | `ACCESS_TOKEN_EXPIRY` | Access token lifetime (e.g. `1d`) |
 | `REFRESH_TOKEN_SECRET` | Signing secret for refresh tokens |
