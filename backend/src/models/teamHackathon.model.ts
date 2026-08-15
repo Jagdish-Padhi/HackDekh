@@ -54,7 +54,8 @@ export const TeamHackathon = {
             new PutCommand({
                 TableName: TABLES.TEAM_HACKATHONS,
                 Item: teamHackathon,
-                ConditionExpression: "attribute_not_exists(_id)"
+                ConditionExpression: "attribute_not_exists(#id)",
+                ExpressionAttributeNames: { "#id": "_id" }
             })
         );
         
@@ -69,7 +70,8 @@ export const TeamHackathon = {
             new PutCommand({
                 TableName: TABLES.TEAM_HACKATHONS,
                 Item: doc,
-                ConditionExpression: "attribute_exists(_id)"
+                ConditionExpression: "attribute_exists(#id)",
+                ExpressionAttributeNames: { "#id": "_id" }
             })
         );
         return doc;

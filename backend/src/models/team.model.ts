@@ -78,7 +78,8 @@ export const Team = {
             new PutCommand({
                 TableName: TABLES.TEAMS,
                 Item: team,
-                ConditionExpression: "attribute_not_exists(_id)"
+                ConditionExpression: "attribute_not_exists(#id)",
+                ExpressionAttributeNames: { "#id": "_id" }
             })
         );
         
@@ -94,7 +95,8 @@ export const Team = {
             new PutCommand({
                 TableName: TABLES.TEAMS,
                 Item: doc,
-                ConditionExpression: "attribute_exists(_id)"
+                ConditionExpression: "attribute_exists(#id)",
+                ExpressionAttributeNames: { "#id": "_id" }
             })
         );
         return doc;

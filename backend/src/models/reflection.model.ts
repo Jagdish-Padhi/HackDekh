@@ -51,7 +51,8 @@ export const Reflection = {
             new PutCommand({
                 TableName: TABLES.REFLECTIONS,
                 Item: reflection,
-                ConditionExpression: "attribute_not_exists(_id)"
+                ConditionExpression: "attribute_not_exists(#id)",
+                ExpressionAttributeNames: { "#id": "_id" }
             })
         );
         
@@ -66,7 +67,8 @@ export const Reflection = {
             new PutCommand({
                 TableName: TABLES.REFLECTIONS,
                 Item: doc,
-                ConditionExpression: "attribute_exists(_id)"
+                ConditionExpression: "attribute_exists(#id)",
+                ExpressionAttributeNames: { "#id": "_id" }
             })
         );
         return doc;

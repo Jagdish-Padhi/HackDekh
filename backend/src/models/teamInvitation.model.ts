@@ -50,7 +50,8 @@ export const TeamInvitation = {
                 new QueryCommand({
                     TableName: TABLES.TEAM_INVITATIONS,
                     IndexName: "token-index",
-                    KeyConditionExpression: "token = :token",
+                    KeyConditionExpression: "#token = :token",
+                    ExpressionAttributeNames: { "#token": "token" },
                     ExpressionAttributeValues: { 
                         ":token": filter.token
                     }
@@ -71,8 +72,6 @@ export const TeamInvitation = {
             _id,
             team: data.team || '',
             invitedBy: data.invitedBy || '',
-            invitedEmail: data.invitedEmail?.toLowerCase() || '',
-            invitedUser: data.invitedUser || '',
             token: data.token || crypto.randomUUID(),
             status: data.status || 'pending',
             expiresAt: data.expiresAt || new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString(),
@@ -81,13 +80,23 @@ export const TeamInvitation = {
             ...data
         };
 
+        if (data.invitedEmail) {
+            teamInvitation.invitedEmail = data.invitedEmail.toLowerCase();
+        } else {
+            delete teamInvitation.invitedEmail;
+        }
+        if (!data.invitedUser) {
+            delete teamInvitation.invitedUser;
+        }
+
         await ensureUniqueInvitationToken(teamInvitation.token);
 
         await client.send(
             new PutCommand({
                 TableName: TABLES.TEAM_INVITATIONS,
                 Item: teamInvitation,
-                ConditionExpression: "attribute_not_exists(_id)"
+                ConditionExpression: "attribute_not_exists(#id)",
+                ExpressionAttributeNames: { "#id": "_id" }
             })
         );
         
@@ -98,12 +107,15 @@ export const TeamInvitation = {
         const client = getDynamoDBClient();
         await ensureUniqueInvitationToken(doc.token, doc._id);
         doc.updatedAt = new Date().toISOString();
+        if (!doc.invitedEmail) delete doc.invitedEmail;
+        if (!doc.invitedUser) delete doc.invitedUser;
 
         await client.send(
             new PutCommand({
                 TableName: TABLES.TEAM_INVITATIONS,
                 Item: doc,
-                ConditionExpression: "attribute_exists(_id)"
+                ConditionExpression: "attribute_exists(#id)",
+                ExpressionAttributeNames: { "#id": "_id" }
             })
         );
         return doc;

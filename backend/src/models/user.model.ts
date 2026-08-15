@@ -137,7 +137,8 @@ export const User = {
                 new PutCommand({
                     TableName: TABLES.USERS,
                     Item: user,
-                    ConditionExpression: "attribute_not_exists(_id)"
+                    ConditionExpression: "attribute_not_exists(#id)",
+                    ExpressionAttributeNames: { "#id": "_id" }
                 })
             );
         } catch (error: any) {
@@ -166,7 +167,8 @@ export const User = {
             new PutCommand({
                 TableName: TABLES.USERS,
                 Item: doc,
-                ConditionExpression: "attribute_exists(_id)"
+                ConditionExpression: "attribute_exists(#id)",
+                ExpressionAttributeNames: { "#id": "_id" }
             })
         );
         return doc;

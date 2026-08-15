@@ -63,7 +63,8 @@ export const Stage = {
             new PutCommand({
                 TableName: TABLES.STAGES,
                 Item: stage,
-                ConditionExpression: "attribute_not_exists(_id)"
+                ConditionExpression: "attribute_not_exists(#id)",
+                ExpressionAttributeNames: { "#id": "_id" }
             })
         );
         
@@ -78,7 +79,8 @@ export const Stage = {
             new PutCommand({
                 TableName: TABLES.STAGES,
                 Item: doc,
-                ConditionExpression: "attribute_exists(_id)"
+                ConditionExpression: "attribute_exists(#id)",
+                ExpressionAttributeNames: { "#id": "_id" }
             })
         );
         return doc;
