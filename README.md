@@ -141,6 +141,14 @@ git clone https://github.com/your-org/HackDekh.git
 cd HackDekh
 ```
 
+### Start DynamoDB Local (Docker)
+
+```bash
+docker compose up -d
+```
+
+This starts DynamoDB Local on port `8000`. The backend auto-creates the required tables on boot.
+
 ### Configure ENV
 
 for frontend and backend refer .env.example
@@ -176,6 +184,8 @@ The frontend expects the backend to be reachable at the URL configured in `VITE_
 | `AWS_ACCESS_KEY_ID` / `AWS_SECRET_ACCESS_KEY` | AWS credentials (use `local`/`local` for DynamoDB Local) |
 | `DYNAMODB_TABLE_PREFIX` | Prefix prepended to all table names (defaults to `hackdekh`) |
 | `DYNAMODB_ENDPOINT` | DynamoDB Local endpoint (e.g. `http://localhost:8000`); omit when using real AWS |
+
+> For moving from the local Docker DynamoDB to AWS DynamoDB in production, see [docs/DynamoDB-Deployment.md](docs/DynamoDB-Deployment.md).
 | `ACCESS_TOKEN_SECRET` | Signing secret for short-lived access tokens |
 | `ACCESS_TOKEN_EXPIRY` | Access token lifetime (e.g. `1d`) |
 | `REFRESH_TOKEN_SECRET` | Signing secret for refresh tokens |
