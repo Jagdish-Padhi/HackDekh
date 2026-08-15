@@ -1400,18 +1400,21 @@ export default function TeamsPage() {
                     {/* Overlapping member avatars */}
                     <div className="flex items-center gap-2">
                       <div className={`flex items-center overflow-visible ${shouldOverlap ? "-space-x-2.5" : "gap-1.5"}`}>
-                        {t.members.map((member, mIdx) => (
-                          <img
-                            key={member._id || mIdx}
-                            src={`https://github.com/${member.username || 'octocat'}.png`}
-                            onError={(e) => {
-                              (e.target as HTMLImageElement).src = `https://api.dicebear.com/7.x/identicon/svg?seed=${member.username || member._id}`;
-                            }}
-                            className="inline-block h-7 w-7 rounded-full border-2 border-white dark:border-zinc-900 object-cover shadow-sm transition-transform duration-250 hover:scale-110 hover:z-20 cursor-pointer"
-                            title={member.fullName || member.username}
-                            alt="member avatar"
-                          />
-                        ))}
+                        {t.members.map((member, mIdx) => {
+                          const fullName = member.fullName || "";
+                          const initials = fullName
+                            ? fullName.split(" ").map((p) => p[0]).filter(Boolean).slice(0, 2).join("").toUpperCase()
+                            : (member.username || member._id || "?").slice(0, 2).toUpperCase();
+                          return (
+                            <div
+                              key={member._id || mIdx}
+                              className={`inline-flex h-7 w-7 items-center justify-center rounded-full border-2 border-white dark:border-zinc-900 bg-gradient-to-tr ${getGradientClass(member.username || member._id || String(mIdx))} text-[9px] font-bold text-white shadow-sm transition-transform duration-250 hover:scale-110 hover:z-20 cursor-pointer`}
+                              title={fullName || member.username}
+                            >
+                              {initials}
+                            </div>
+                          );
+                        })}
                       </div>
                       <span className="text-[10px] font-semibold text-zinc-400 dark:text-zinc-500">
                         {t.members.length} {t.members.length === 1 ? "member" : "members"}
