@@ -314,7 +314,7 @@ export const getHackathons = asyncHandler(async (req: any, res: any) => {
 
   // Format prize strings in returned list to attractive INR-only format
   const plainList = list.map((h: any) => {
-    const obj = h.toObject ? h.toObject() : h;
+    const obj = { ...h };
     obj.prize = convertAndFormatPrizeToINR(obj.prize, obj.platform, usdToInrRate);
     return obj;
   });
