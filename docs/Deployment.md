@@ -6,6 +6,7 @@
 - [API](API.md)
 - [Database](Database.md)
 - [Scraper System](Scraper-System.md)
+- [DynamoDB AWS Migration](DynamoDB-Deployment.md)
 
 ## Runtime Layout
 
@@ -14,7 +15,7 @@ HackDekh is deployed as two applications:
 | Component | Deployment style |
 | --- | --- |
 | Frontend | Static React build served from a hosting platform such as Vercel |
-| Backend | Long-running Node.js process with MongoDB access |
+| Backend | Long-running Node.js process with DynamoDB access |
 
 ## Required Configuration
 
@@ -22,7 +23,10 @@ HackDekh is deployed as two applications:
 
 | Variable | Purpose | Required |
 | --- | --- | --- |
-| `MONGO_URI` | MongoDB connection string | Yes |
+| `AWS_REGION` | AWS region where the DynamoDB tables live | Yes |
+| `AWS_ACCESS_KEY_ID` / `AWS_SECRET_ACCESS_KEY` | AWS credentials (IAM user/role with DynamoDB access) | Yes |
+| `DYNAMODB_TABLE_PREFIX` | Prefix for all table names (defaults to `hackdekh`) | No |
+| `DYNAMODB_ENDPOINT` | DynamoDB Local endpoint — **omit in production** | Only for local dev |
 | `PORT` | Backend listen port | Yes in deployment, optional locally |
 | `ACCESS_TOKEN_SECRET` | Access token signing secret | Yes |
 | `ACCESS_TOKEN_EXPIRY` | Access token lifetime | Yes |
@@ -51,6 +55,7 @@ The repository already contains a Vercel rewrite configuration for SPA routing o
 ## Deployment Notes
 
 - Keep the backend and frontend deployed against compatible API URLs.
-- Ensure the MongoDB instance is reachable from the backend runtime.
+- Ensure the backend runtime has network + IAM access to the DynamoDB tables in the target region.
 - If email invitations are enabled, verify SMTP credentials before enabling the flow in production.
 - The cron scheduler runs inside the backend process, so the backend must stay online for scheduled refreshes to execute.
+- See [DynamoDB AWS Migration](DynamoDB-Deployment.md) for moving from DynamoDB Local (Docker) to AWS.
