@@ -132,13 +132,9 @@ export async function scrapeUnstopData() {
   let saveCount = 0;
   for (const hack of uniqueHackathons as any[]) {
     try {
-      await hackathon.findOneAndUpdate(
-        {
-          slug: hack.slug,
-          platform: hack.platform,
-        },
-        { $set: hack },
-        { upsert: true, returnDocument: 'after' }
+      await hackathon.upsertHackathon(
+        { slug: hack.slug, platform: hack.platform },
+        hack
       );
       saveCount++;
     } catch (err: any) {

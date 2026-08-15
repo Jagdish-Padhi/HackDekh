@@ -304,10 +304,9 @@ export async function scrapeDevpostData() {
     let saveCount = 0;
     for (const hack of normalizedList as any[]) {
       try {
-        await hackathon.findOneAndUpdate(
+        await hackathon.upsertHackathon(
           { slug: hack.slug, platform: hack.platform },
-          { $set: hack },
-          { upsert: true, returnDocument: 'after' }
+          hack
         );
         saveCount++;
       } catch (err: any) {

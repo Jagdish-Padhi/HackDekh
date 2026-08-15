@@ -349,10 +349,9 @@ export async function scrapeDevfolioData() {
     console.log(`[Devfolio Scraper] Upserting ${normalizedList.length} items to database...`);
     let upsertCount = 0;
     for (const hack of normalizedList as any[]) {
-      await hackathon.findOneAndUpdate(
+      await hackathon.upsertHackathon(
         { slug: hack.slug, platform: hack.platform },
-        { $set: hack },
-        { upsert: true, returnDocument: 'after' }
+        hack
       );
       upsertCount++;
     }
