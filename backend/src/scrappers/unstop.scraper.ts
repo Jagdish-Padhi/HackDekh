@@ -138,7 +138,7 @@ export async function scrapeUnstopData() {
       );
       saveCount++;
     } catch (err: any) {
-      if (err.code === 11000) {
+      if (err.name === "ConditionalCheckFailedException") {
         console.log(`[Unstop Scraper] Skipped duplicate hackathon: ${hack.slug}`);
       } else {
         console.error(`[Unstop Scraper] DB Error for ${hack.slug}: `, err);
