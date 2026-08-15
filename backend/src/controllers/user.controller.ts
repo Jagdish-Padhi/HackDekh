@@ -1,19 +1,22 @@
 import { asyncHandler } from "../utils/asyncHandler.ts";
 import { ApiError } from "../utils/apiError.ts";
-import User from "../models/user.model.ts";
+import User, { UserMethods } from "../models/user.model.ts";
+import Hackathon from "../models/hackathon.model.ts";
 import { ApiResponse } from "../utils/apiResponse.ts";
 import jwt from "jsonwebtoken";
 import { getPendingReflections as fetchPendingReflections } from "../services/stage.service.ts";
 import axios from "axios";
+import crypto from "crypto";
+import { dbScan, dbUpdate, genId, sanitizeUserDoc } from "../db/helpers.ts";
+import { TABLES } from "../constants.ts";
 
 const generateAccessAndRefreshTokens = async (userId: string) => {
   try {
     const user = await User.findById(userId);
     if (!user) throw new ApiError(404, "User not found");
-    const accessToken = (user as any).generateAccessToken();
-    const refreshToken = (user as any).generateRefreshToken();
-    user.refreshToken = refreshToken;
-    await user.save({ validateBeforeSave: false });
+    const accessToken = UserMethods.generateAccessToken(user);
+    const refreshToken = UserMethods.generateRefreshToken(user);
+    await User.findOneAndUpdate(userId, { refreshToken });
     return { accessToken, refreshToken };
   } catch (err) {
     throw new ApiError(
@@ -38,28 +41,23 @@ const registerUser = asyncHandler(async (req: any, res: any) => {
   }
 
   //check if user already exists: username, email
-  const exitedUser = await User.findOne({
-    $or: [{ username }, { email }],
-  });
+  const existingByUsername = await User.findOne({ username: String(username).toLowerCase() });
+  const existingByEmail = await User.findOne({ email: String(email).toLowerCase() });
 
-  if (exitedUser) {
+  if (existingByUsername || existingByEmail) {
     throw new ApiError(409, "User with email or username already exist");
   }
-
-
 
   //create user object - create entry in db
   const user = await User.create({
     fullName,
     email,
     password,
-    username: username.toLowerCase(),
+    username: String(username).toLowerCase(),
   });
 
   //remove password and refresh token field from response
-  const createdUser = await User.findById(user._id).select(
-    "-password -refreshToken"
-  );
+  const createdUser = sanitizeUserDoc(await User.findById(user._id));
 
   //check for user creation
   if (!createdUser) {
@@ -80,33 +78,27 @@ const loginUser = asyncHandler(async (req: any, res: any) => {
     throw new ApiError(400, "username or email is required");
   }
 
-  const user = await User.findOne({
-    $or: [{ username }, { email }],
-  });
+  let user = username
+    ? await User.findOne({ username: String(username).toLowerCase() })
+    : null;
+  if (!user && email) {
+    user = await User.findOne({ email: String(email).toLowerCase() });
+  }
 
   if (!user) {
     throw new ApiError(404, "User not exists");
   }
 
-  const isPasswordValid = await (user as any).isPasswordCorrect(password);
+  const isPasswordValid = await UserMethods.isPasswordCorrect(user, password);
   if (!isPasswordValid) {
     throw new ApiError(401, "Invalid user credentials");
   }
 
   const { accessToken, refreshToken } = await generateAccessAndRefreshTokens(
-    user._id.toString()
+    user._id
   );
 
-  //VERY IMPORTANT:ab yaha pe ye ratna nahi hai logically sochna
-  //pahle jo user object findone kiya tha above humare pass uska ref
-  //hai aur generateAccessAndRefreshTokens method to niche call kiya
-  //so us user object me refreshToken EMPTY hoga So.....
-  //AAPKE PASS 2 OPTIONS HAIN ya to 1 aur db query karke firse user
-  //object findone kar...OR....usi user object ko update karo....
-  //agar db query expensive hai then choose to update otherwise
-  //apply 1 more db query to get user object.... SIMPLE LOGIC!
-
-  const loggedInUser = await User.findById(user._id).select("-password -refreshToken");
+  const loggedInUser = sanitizeUserDoc(await User.findById(user._id));
 
   const options = {
     httpOnly: true,
@@ -132,11 +124,7 @@ const loginUser = asyncHandler(async (req: any, res: any) => {
 
 
 const logoutUser = asyncHandler(async (req: any, res: any) => {
-  await User.findByIdAndUpdate(
-    req.user._id,
-    { $set: { refreshToken: undefined } },
-    { returnDocument: 'after' }
-  );
+  await dbUpdate(TABLES.USERS, { _id: req.user._id }, { REMOVE: ["refreshToken"] });
   const options = { httpOnly: true, secure: true };
   return res
     .status(200)
@@ -166,7 +154,7 @@ const refreshAccessToken = asyncHandler(async (req: any, res: any) => {
       throw new ApiError(401, "Refresh token is expired or used!");
     }
     const options = { httpOnly: true, secure: true };
-    const { accessToken, refreshToken } = await generateAccessAndRefreshTokens(user._id.toString());
+    const { accessToken, refreshToken } = await generateAccessAndRefreshTokens(user._id);
     return res
       .status(200)
       .cookie("accessToken", accessToken, options)
@@ -195,12 +183,11 @@ const changeCurrentPassword = asyncHandler(async (req: any, res: any) => {
   if (!user) {
     throw new ApiError(404, "User not found");
   }
-  const isPasswordCorrect = await (user as any).isPasswordCorrect(oldPassword);
+  const isPasswordCorrect = await UserMethods.isPasswordCorrect(user, oldPassword);
   if (!isPasswordCorrect) {
     throw new ApiError(400, "Invalid password!");
   }
-  user.password = newPassword;
-  await user.save({ validateBeforeSave: false });
+  await User.findOneAndUpdate(user._id, { password: newPassword });
   return res
     .status(200)
     .json(new ApiResponse(200, {}, "Password changed successfully!"));
@@ -215,9 +202,6 @@ const getCurrentUser = asyncHandler(async (req: any, res: any) => {
 
 
 const updateAccountDetails = asyncHandler(async (req: any, res: any) => {
-  //BEST PRACTICE: agar kahi pe file update karana ho to
-  //make seperate controller for that!
-
   const { fullName, email } = req.body;
 
   if (!(fullName || email)) {
@@ -225,19 +209,13 @@ const updateAccountDetails = asyncHandler(async (req: any, res: any) => {
   }
 
   const user = await User.findOneAndUpdate(
-    { _id: req.user?._id },
-    {
-      $set: {
-        fullName,
-        email,
-      },
-    },
-    { returnDocument: 'after' }
-  ).select("-password");
+    req.user?._id,
+    { fullName, email }
+  );
 
   return res
     .status(200)
-    .json(new ApiResponse(200, user, "Account details updated successfully!"));
+    .json(new ApiResponse(200, sanitizeUserDoc(user), "Account details updated successfully!"));
 });
 
 
@@ -251,21 +229,22 @@ const toggleSaveHackathon = asyncHandler(async (req: any, res: any) => {
     throw new ApiError(404, "User not found");
   }
 
-  const index = user.savedHackathons.indexOf(hackathonId as any);
-  if (index === -1) {
-    user.savedHackathons.push(hackathonId as any);
+  const saved = user.savedHackathons || [];
+  let next: string[];
+  if (saved.indexOf(hackathonId) === -1) {
+    next = [...saved, hackathonId];
   } else {
-    user.savedHackathons.splice(index, 1);
+    next = saved.filter((id) => id !== hackathonId);
   }
 
-  await user.save({ validateBeforeSave: false });
+  await User.findOneAndUpdate(user._id, { savedHackathons: next });
 
   return res
     .status(200)
     .json(
       new ApiResponse(
         200,
-        { savedHackathons: user.savedHackathons },
+        { savedHackathons: next },
         "Hackathon bookmark toggled successfully!"
       )
     );
@@ -273,17 +252,19 @@ const toggleSaveHackathon = asyncHandler(async (req: any, res: any) => {
 
 // Fetch Populated Saved Hackathons
 const getSavedHackathons = asyncHandler(async (req: any, res: any) => {
-  const user = await User.findById(req.user?._id).populate("savedHackathons");
+  const user = await User.findById(req.user?._id);
   if (!user) {
     throw new ApiError(404, "User not found");
   }
+
+  const hackathons = await Hackathon.batchGet((user.savedHackathons || []) as string[]);
 
   return res
     .status(200)
     .json(
       new ApiResponse(
         200,
-        user.savedHackathons,
+        hackathons,
         "Saved hackathons fetched successfully!"
       )
     );
@@ -302,33 +283,29 @@ const addApplication = asyncHandler(async (req: any, res: any) => {
     throw new ApiError(404, "User not found");
   }
 
-  const existingApp = user.applications.find(
-    (app) => app.hackathon.toString() === hackathonId
-  );
-  if (existingApp) {
+  const applications = user.applications || [];
+  if (applications.some((app) => String(app.hackathon) === hackathonId)) {
     throw new ApiError(400, "Application for this hackathon already exists!");
   }
 
-  user.applications.push({
+  const newApp = {
+    _id: genId(),
     hackathon: hackathonId,
     status: status || "Applied",
     notes: notes || "",
-    appliedAt: new Date()
-  } as any);
+    appliedAt: new Date().toISOString(),
+  };
 
-  await user.save({ validateBeforeSave: false });
+  await User.findOneAndUpdate(user._id, { applications: [...applications, newApp] });
 
-  const updatedUser = await User.findById(req.user?._id).populate("applications.hackathon");
-  const newApp = updatedUser?.applications.find(
-    (app) => app.hackathon._id.toString() === hackathonId
-  );
+  const hack = await Hackathon.findById(hackathonId);
 
   return res
     .status(201)
     .json(
       new ApiResponse(
         201,
-        newApp,
+        { ...newApp, hackathon: hack || hackathonId },
         "Application added successfully!"
       )
     );
@@ -344,25 +321,32 @@ const updateApplication = asyncHandler(async (req: any, res: any) => {
     throw new ApiError(404, "User not found");
   }
 
-  const app = user.applications.id(applicationId);
-  if (!app) {
+  const applications = (user.applications || []).map((app) => {
+    if (String(app._id) === applicationId) {
+      return {
+        ...app,
+        ...(status ? { status } : {}),
+        ...(notes !== undefined ? { notes } : {}),
+      };
+    }
+    return app;
+  });
+
+  if (!applications.some((app) => String(app._id) === applicationId)) {
     throw new ApiError(404, "Application entry not found");
   }
 
-  if (status) app.status = status;
-  if (notes !== undefined) app.notes = notes;
+  await User.findOneAndUpdate(user._id, { applications });
 
-  await user.save({ validateBeforeSave: false });
-
-  const updatedUser = await User.findById(req.user?._id).populate("applications.hackathon");
-  const updatedApp = updatedUser?.applications.id(applicationId);
+  const hackById = await fetchHackathonsById(applications.map((app) => app.hackathon));
+  const updatedApp = applications.find((app) => String(app._id) === applicationId);
 
   return res
     .status(200)
     .json(
       new ApiResponse(
         200,
-        updatedApp,
+        { ...updatedApp, hackathon: hackById.get(String(updatedApp?.hackathon)) || updatedApp?.hackathon },
         "Application updated successfully!"
       )
     );
@@ -377,15 +361,14 @@ const removeApplication = asyncHandler(async (req: any, res: any) => {
     throw new ApiError(404, "User not found");
   }
 
-  const appIndex = user.applications.findIndex(
-    (app) => app._id.toString() === applicationId
+  const applications = (user.applications || []).filter(
+    (app) => String(app._id) !== applicationId
   );
-  if (appIndex === -1) {
+  if (applications.length === (user.applications || []).length) {
     throw new ApiError(404, "Application entry not found");
   }
 
-  user.applications.splice(appIndex, 1);
-  await user.save({ validateBeforeSave: false });
+  await User.findOneAndUpdate(user._id, { applications });
 
   return res
     .status(200)
@@ -398,19 +381,32 @@ const removeApplication = asyncHandler(async (req: any, res: any) => {
     );
 });
 
+async function fetchHackathonsById(ids: string[]): Promise<Map<string, any>> {
+  const hacks = await Hackathon.batchGet(ids);
+  return new Map(hacks.map((h) => [String(h._id), h]));
+}
+
 // Fetch Populated Applications
 const getUserApplications = asyncHandler(async (req: any, res: any) => {
-  const user = await User.findById(req.user?._id).populate("applications.hackathon");
+  const user = await User.findById(req.user?._id);
   if (!user) {
     throw new ApiError(404, "User not found");
   }
+
+  const applications = (user.applications || []).slice();
+  const hackById = await fetchHackathonsById(applications.map((app) => app.hackathon));
+
+  const populated = applications.map((app) => ({
+    ...app,
+    hackathon: hackById.get(String(app.hackathon)) || app.hackathon,
+  }));
 
   return res
     .status(200)
     .json(
       new ApiResponse(
         200,
-        user.applications,
+        populated,
         "User applications fetched successfully!"
       )
     );
@@ -490,9 +486,10 @@ const githubAuth = asyncHandler(async (req: any, res: any) => {
   }
 
   // Find or create user
-  let user = await User.findOne({
-    $or: [{ email: email.toLowerCase() }, { username: githubUser.login.toLowerCase() }],
-  });
+  let user = await User.findOne({ email: email.toLowerCase() });
+  if (!user) {
+    user = await User.findOne({ username: githubUser.login.toLowerCase() });
+  }
 
   if (!user) {
     // Create new user
@@ -505,8 +502,8 @@ const githubAuth = asyncHandler(async (req: any, res: any) => {
     });
   }
 
-  const { accessToken, refreshToken } = await generateAccessAndRefreshTokens(user._id.toString());
-  const loggedInUser = await User.findById(user._id).select("-password -refreshToken");
+  const { accessToken, refreshToken } = await generateAccessAndRefreshTokens(user._id);
+  const loggedInUser = sanitizeUserDoc(await User.findById(user._id));
 
   const options = {
     httpOnly: true,
@@ -536,16 +533,20 @@ const searchUsers = asyncHandler(async (req: any, res: any) => {
     return res.status(200).json(new ApiResponse(200, [], "Empty query"));
   }
 
-  const users = await User.find({
-    _id: { $ne: req.user._id },
-    $or: [
-      { username: { $regex: query, $options: "i" } },
-      { fullName: { $regex: query, $options: "i" } },
-      { email: { $regex: query, $options: "i" } }
-    ]
-  })
-    .select("username fullName email")
-    .limit(10);
+  // DynamoDB has no regex queries: scan the users table and filter in memory.
+  const allUsers = await dbScan(TABLES.USERS);
+  const re = new RegExp(query, "i");
+
+  const users = allUsers
+    .filter((u) => String(u._id) !== String(req.user._id))
+    .filter(
+      (u) =>
+        re.test(String(u.username || "")) ||
+        re.test(String(u.fullName || "")) ||
+        re.test(String(u.email || ""))
+    )
+    .slice(0, 10)
+    .map((u) => sanitizeUserDoc(u));
 
   return res.status(200).json(new ApiResponse(200, users, "Users fetched successfully!"));
 });

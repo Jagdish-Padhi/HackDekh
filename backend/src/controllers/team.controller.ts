@@ -1,5 +1,4 @@
 import type { Request, Response } from 'express';
-import type { Types } from 'mongoose';
 import * as teamService from '../services/team.service.ts';
 import { ApiResponse } from '../utils/apiResponse.ts';
 import { ApiError } from '../utils/apiError.ts';
@@ -35,7 +34,7 @@ interface AcceptInvitationBody {
 }
 
 interface AuthRequest extends Request {
-    user: { _id: Types.ObjectId };
+    user: { _id: string };
     body: CreateTeamRequestBody;
 }
 
@@ -168,7 +167,7 @@ export const generateInvitationLink = asyncHandler(async (
             invitationLink: result.invitationLink,
             teamName: result.team?.name || 'your team',
             ownerName,
-            expiresAt: result.expiresAt,
+            expiresAt: new Date(result.expiresAt),
         });
     } catch (emailError) {
         emailSent = false;
@@ -201,7 +200,7 @@ export const getInvitationPreview = asyncHandler(async (
 });
 
 export const acceptInvitationLink = asyncHandler(async (
-    req: Request<unknown, unknown, AcceptInvitationBody> & { user?: { _id: Types.ObjectId; email: string } },
+    req: Request<unknown, unknown, AcceptInvitationBody> & { user?: { _id: string; email: string } },
     res: Response
 ) => {
     const { token } = req.body;

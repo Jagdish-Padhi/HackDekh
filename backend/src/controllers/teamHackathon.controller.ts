@@ -1,12 +1,11 @@
 import type { Request, Response } from 'express';
-import type { Types } from 'mongoose';
 import { asyncHandler } from '../utils/asyncHandler.ts';
 import { ApiResponse } from '../utils/apiResponse.ts';
 import { ApiError } from '../utils/apiError.ts';
 import * as thService from '../services/teamHackathon.service.ts';
 
 interface AuthRequest extends Request {
-    user: { _id: Types.ObjectId };
+    user: { _id: string };
     params: Record<string, string>;
 }
 

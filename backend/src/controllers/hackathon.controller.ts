@@ -1,8 +1,10 @@
-import hackathon from "../models/hackathon.model.ts";
+import Hackathon from "../models/hackathon.model.ts";
 import { asyncHandler } from "../utils/asyncHandler.ts";
 import { ApiResponse } from "../utils/apiResponse.ts";
 import { ApiError } from "../utils/apiError.ts";
 import axios from "axios";
+import { dbScan } from "../db/helpers.ts";
+import { TABLES } from "../constants.ts";
 
 const isUnavailablePrize = (value: string) =>
   /^(?:tbd|na|n\/a|none|null|undefined|not\s*(?:announced|disclosed)|to\s*be\s*announced|--?)$/i.test(value.trim());
@@ -203,32 +205,33 @@ export const getHackathons = asyncHandler(async (req: any, res: any) => {
   // Fetch exchange rate dynamically with self-healing background caching
   const usdToInrRate = await getUSDToINRExchangeRate();
 
-  // Build MongoDB query
-  const query: any = {};
+  // Scan the hackathons table, then filter in memory (DynamoDB has no regex queries)
+  let list: any[] = await dbScan(TABLES.HACKATHONS);
 
   if (platform) {
-    query.platform = { $regex: new RegExp(`^${platform}$`, "i") };
+    const re = new RegExp(`^${String(platform)}$`, "i");
+    list = list.filter((h) => re.test(String(h.platform || "")));
   }
 
   if (mode) {
-    query.mode = { $regex: new RegExp(`^${mode}$`, "i") };
+    const re = new RegExp(`^${String(mode)}$`, "i");
+    list = list.filter((h) => re.test(String(h.mode || "")));
   }
 
   if (location) {
-    query.location = { $regex: new RegExp(location, "i") };
+    const re = new RegExp(String(location), "i");
+    list = list.filter((h) => re.test(String(h.location || "")));
   }
 
   if (search) {
-    const searchRegex = new RegExp(search, "i");
-    query.$or = [
-      { title: { $regex: searchRegex } },
-      { organization: { $regex: searchRegex } },
-      { tags: { $in: [searchRegex] } }
-    ];
+    const re = new RegExp(String(search), "i");
+    list = list.filter(
+      (h) =>
+        re.test(String(h.title || "")) ||
+        re.test(String(h.organization || "")) ||
+        (Array.isArray(h.tags) && h.tags.some((t: any) => re.test(String(t))))
+    );
   }
-
-  // Fetch from database
-  let list = await hackathon.find(query);
 
   // Filter out explicit 0 or no cash prizes
   list = list.filter((h) => !isZeroOrNoCashPrize(h.prize));
@@ -322,7 +325,7 @@ export const getHackathons = asyncHandler(async (req: any, res: any) => {
 export const getHackathonById = asyncHandler(async (req: any, res: any) => {
   const { id } = req.params;
   
-  const hack = await hackathon.findById(id);
+  const hack = await Hackathon.findById(id);
   if (!hack) {
     throw new ApiError(404, "Hackathon not found");
   }
@@ -330,7 +333,7 @@ export const getHackathonById = asyncHandler(async (req: any, res: any) => {
   // Fetch exchange rate dynamically with self-healing background caching
   const usdToInrRate = await getUSDToINRExchangeRate();
 
-  const obj = hack.toObject();
+  const obj: any = { ...hack };
   obj.prize = convertAndFormatPrizeToINR(obj.prize, obj.platform, usdToInrRate);
 
   return res.status(200).json(new ApiResponse(200, obj, "Hackathon details fetched successfully"));
