@@ -23,7 +23,8 @@
     "jsonwebtoken": "^9.0.3",
     "mongoose": "^9.2.1",
     "node-cron": "^4.2.1",
-    "nodemailer": "^8.0.4"
+    "nodemailer": "^9.0.5",
+    "redis": "^6.2.1"
   },
   "devDependencies": {
     "@types/bcrypt": "^6.0.0",
