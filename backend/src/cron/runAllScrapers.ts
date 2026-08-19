@@ -4,9 +4,13 @@ import { scrapeUnstopData } from "../scrappers/unstop.scraper.ts";
 import { scrapeDevpostData } from "../scrappers/devpost.scraper.ts";
 import { scrapeMLHData } from "../scrappers/mlh.scraper.ts";
 import { scrapeHack2SkillData } from "../scrappers/hack2skill.scraper.ts";
+import { invalidateHackathonCache } from "../cache/redis.ts";
 
 export async function runAllScrapers() {
     console.log('[CRON] Starting all scrapers...');
+    
+    let successfulScrapers = 0;
+    
     const scrapers = [
         { name: 'Devfolio', run: scrapeDevfolioData },
         { name: 'Unstop', run: scrapeUnstopData },
@@ -19,10 +23,13 @@ export async function runAllScrapers() {
         try {
             console.log(`[CRON] Starting ${scraper.name} scraper...`);
             await scraper.run();
+            successfulScrapers++;
             console.log(`[CRON] ${scraper.name} scraper completed successfully.`);
         } catch (err: any) {
             console.error(`[CRON] ${scraper.name} scraper failed:`, err?.message || err);
         }
     }
     console.log('[CRON] All scrapers processed.');
+
+    if (successfulScrapers > 0) await invalidateHackathonCache();
 }
