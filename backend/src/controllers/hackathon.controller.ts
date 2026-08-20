@@ -7,6 +7,7 @@ import redisClient from "../cache/redis.ts";
 import { hackathonListCacheKey } from "../cache/cacheKeys.ts";
 
 const HACKATHON_CACHE_TTL = 60;
+const CACHE_ENABLED = process.env.CACHE_ENABLED !== "false";
 
 const isUnavailablePrize = (value: string) =>
   /^(?:tbd|na|n\/a|none|null|undefined|not\s*(?:announced|disclosed)|to\s*be\s*announced|--?)$/i.test(value.trim());
@@ -209,7 +210,8 @@ export const getHackathons = asyncHandler(async (req: any, res: any) => {
     search, platform, mode, location, sortBy, showExpired,
   });
 
-  const cachedData = await redisClient.get(cacheKey);
+ if(CACHE_ENABLED){
+   const cachedData = await redisClient.get(cacheKey);
 
   if(cachedData){
     console.log(`[Redis] CACHE HIT: ${cacheKey}`);
@@ -224,6 +226,7 @@ export const getHackathons = asyncHandler(async (req: any, res: any) => {
   }
 
   console.log(`[Redis] CACHE MISS: ${cacheKey}`);
+ }
 
 
   // Fetch exchange rate dynamically with self-healing background caching
@@ -342,13 +345,15 @@ export const getHackathons = asyncHandler(async (req: any, res: any) => {
     return obj;
   });
 
-  await redisClient.set(
+if(CACHE_ENABLED){
+    await redisClient.set(
     cacheKey,
     JSON.stringify(plainList),
     {
       EX: HACKATHON_CACHE_TTL
     }
   );
+}
 
   console.log(`[Redis] cache set: ${cacheKey}`);
 
