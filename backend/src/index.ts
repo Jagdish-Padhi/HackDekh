@@ -1,6 +1,7 @@
 import dotenv from "dotenv";
 dotenv.config();
 import connectDB from "./db/connection.ts";
+import redisClient, {connectRedis} from "./cache/redis.ts";
 import { app } from "./app.ts";
 import { isEmailDeliveryConfigured } from "./utils/email.ts";
 
@@ -19,6 +20,15 @@ const serverPort = process.env.PORT || 8000;
 app.listen(serverPort, () => {
   console.log(`Server is running at PORT: ${serverPort}`);
 });
+
+// Caching service connection
+connectRedis()
+.then(() => {
+  console.log("[Startup] Redis connected successfully!")
+})
+.catch((err) => {
+  console.error("[Startup] Redis connection failed:", err.message);
+})
 
 // Initialize database connection asynchronously in the background
 connectDB()

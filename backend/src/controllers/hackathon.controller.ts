@@ -3,6 +3,11 @@ import { asyncHandler } from "../utils/asyncHandler.ts";
 import { ApiResponse } from "../utils/apiResponse.ts";
 import { ApiError } from "../utils/apiError.ts";
 import axios from "axios";
+import redisClient from "../cache/redis.ts";
+import { hackathonListCacheKey } from "../cache/cacheKeys.ts";
+
+const HACKATHON_CACHE_TTL = 60;
+const CACHE_ENABLED = process.env.CACHE_ENABLED !== "false";
 
 const isUnavailablePrize = (value: string) =>
   /^(?:tbd|na|n\/a|none|null|undefined|not\s*(?:announced|disclosed)|to\s*be\s*announced|--?)$/i.test(value.trim());
@@ -199,6 +204,30 @@ const compareNullableNumbers = (a: number | null, b: number | null, direction: "
 
 export const getHackathons = asyncHandler(async (req: any, res: any) => {
   const { search, platform, mode, location, sortBy, showExpired } = req.query;
+  
+  // Redis caching logic
+  const cacheKey = hackathonListCacheKey({
+    search, platform, mode, location, sortBy, showExpired,
+  });
+
+ if(CACHE_ENABLED){
+   const cachedData = await redisClient.get(cacheKey);
+
+  if(cachedData){
+    console.log(`[Redis] CACHE HIT: ${cacheKey}`);
+
+    return res.status(200).json(
+      new ApiResponse(
+        200, 
+        JSON.parse(cachedData),
+        "Hackathons fetched from Redis cache"
+      )
+    )
+  }
+
+  console.log(`[Redis] CACHE MISS: ${cacheKey}`);
+ }
+
 
   // Fetch exchange rate dynamically with self-healing background caching
   const usdToInrRate = await getUSDToINRExchangeRate();
@@ -315,6 +344,18 @@ export const getHackathons = asyncHandler(async (req: any, res: any) => {
     obj.prize = convertAndFormatPrizeToINR(obj.prize, obj.platform, usdToInrRate);
     return obj;
   });
+
+if(CACHE_ENABLED){
+    await redisClient.set(
+    cacheKey,
+    JSON.stringify(plainList),
+    {
+      EX: HACKATHON_CACHE_TTL
+    }
+  );
+}
+
+  console.log(`[Redis] cache set: ${cacheKey}`);
 
   return res.status(200).json(new ApiResponse(200, plainList, "Hackathons fetched successfully"));
 });
