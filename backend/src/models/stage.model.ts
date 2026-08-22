@@ -8,17 +8,6 @@ export interface StageReflection {
     note: string;
 }
 
-export interface StageAttachment {
-    _id: string;
-    name: string;
-    url: string;
-    s3Key: string;
-    fileType: string;
-    size: number;
-    uploadedBy: string; // User ID
-    uploadedAt: string;
-}
-
 export interface StageDocument {
     _id: string;
     name: string;
@@ -28,7 +17,6 @@ export interface StageDocument {
     notes: string;
     reflections: StageReflection[];
     pendingReflectionFor: string[]; // User IDs
-    attachments?: StageAttachment[];
     createdAt?: string;
     updatedAt?: string;
 }
@@ -66,7 +54,6 @@ export const Stage = {
             notes: data.notes || '',
             reflections: data.reflections || [],
             pendingReflectionFor: data.pendingReflectionFor || [],
-            attachments: data.attachments || [],
             createdAt: now,
             updatedAt: now,
             ...data

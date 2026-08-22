@@ -32,7 +32,6 @@ import { teamApi, userApi } from "../services";
 import LogoTransition from "../components/LogoAnimation";
 import LoadingProgress from "../components/LoadingProgress";
 import AppDropdown from "../components/AppDropdown";
-import StageAttachments from "../components/StageAttachments";
 import type { Team, TeamHackathon, Stage, TeamInvitation, UserLite } from "../types";
 import { motion, AnimatePresence } from "framer-motion";
 
@@ -2477,29 +2476,6 @@ export default function TeamsPage() {
                                       </span>
                                     )}
                                   </div>
-
-                                  {/* AWS S3 Stage Deliverables & Attachments */}
-                                  <StageAttachments
-                                    teamId={selectedTeam._id}
-                                    thId={selectedParticipation._id}
-                                    stage={stage}
-                                    isEditable={isStageEditable}
-                                    onStageUpdated={(updatedStage) => {
-                                      setAllParticipations((prev) => ({
-                                        ...prev,
-                                        [selectedTeam._id]: (prev[selectedTeam._id] || []).map((p) =>
-                                          p._id === selectedParticipation._id
-                                            ? {
-                                                ...p,
-                                                stages: p.stages.map((s) =>
-                                                  s._id === updatedStage._id ? { ...s, ...updatedStage } : s
-                                                ),
-                                              }
-                                            : p
-                                        ),
-                                      }));
-                                    }}
-                                  />
                                 </div>
                               );
                             });

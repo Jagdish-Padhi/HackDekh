@@ -115,39 +115,6 @@ export const teamApi = {
     return unwrap(response);
   },
 
-  uploadStageAttachment: async (
-    teamId: string,
-    thId: string,
-    stageId: string,
-    file: File
-  ): Promise<Stage> => {
-    const formData = new FormData();
-    formData.append("file", file);
-
-    const response = await axiosInstance.post<ApiResponse<Stage>>(
-      `/teams/${teamId}/hackathons/${thId}/stages/${stageId}/attachments`,
-      formData,
-      {
-        headers: {
-          "Content-Type": "multipart/form-data",
-        },
-      }
-    );
-    return unwrap(response);
-  },
-
-  deleteStageAttachment: async (
-    teamId: string,
-    thId: string,
-    stageId: string,
-    attachmentId: string
-  ): Promise<Stage> => {
-    const response = await axiosInstance.delete<ApiResponse<Stage>>(
-      `/teams/${teamId}/hackathons/${thId}/stages/${stageId}/attachments/${attachmentId}`
-    );
-    return unwrap(response);
-  },
-
   // Invitation link methods
   generateInvitationLink: async (teamId: string, email: string): Promise<GeneratedInvitationLink> => {
     const response = await axiosInstance.post<ApiResponse<GeneratedInvitationLink>>(

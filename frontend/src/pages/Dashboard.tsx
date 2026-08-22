@@ -30,7 +30,6 @@ import { teamApi, userApi } from "../services";
 import type { HackathonLite, Stage, Team, TeamHackathon, TeamInvitation } from "../types";
 import LogoTransition from "../components/LogoAnimation";
 import LoadingProgress from "../components/LoadingProgress";
-import StageAttachments from "../components/StageAttachments";
 
 type SavedHackathon = HackathonLite;
 type Participation = TeamHackathon & { teamInfo: Team };
@@ -1653,28 +1652,6 @@ export default function DashboardPage() {
                                             {noteSavingStatus[stage._id] === "error" && "Save Failed"}
                                           </div>
                                         )}
-
-                                        {/* AWS S3 Stage Deliverables & Attachments */}
-                                        <StageAttachments
-                                          teamId={activePart.teamInfo._id}
-                                          thId={activePart._id}
-                                          stage={stage}
-                                          isEditable={isStageEditable}
-                                          onStageUpdated={(updatedStage) => {
-                                            setParticipations((current) =>
-                                              current.map((p) =>
-                                                p._id === activePart._id
-                                                  ? {
-                                                      ...p,
-                                                      stages: p.stages.map((s) =>
-                                                        s._id === updatedStage._id ? { ...s, ...updatedStage } : s
-                                                      ),
-                                                    }
-                                                  : p
-                                              )
-                                            );
-                                          }}
-                                        />
 
                                         {/* Reflections Section Footer */}
                                         <div className="mt-4 pt-3 border-t border-zinc-250 flex flex-col gap-3">

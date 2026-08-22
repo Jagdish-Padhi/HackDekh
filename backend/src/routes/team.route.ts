@@ -29,9 +29,6 @@ import {
     deleteStage,
     addReflection,
     removeReflection,
-    uploadAttachment,
-    deleteAttachment,
-    uploadAttachmentMiddleware,
 } from "../controllers/stage.controller.ts";
 import { verifyJWT } from "../middlewares/auth.middleware.ts";
 
@@ -74,15 +71,9 @@ router.route("/:id/hackathons/:thId/status").patch(updateParticipationStatus);
 router.route("/:id/hackathons/:thId/stages").post(addStage);
 router.route("/:id/hackathons/:thId/stages/:stageId").put(updateStage).delete(deleteStage);
 
-// Stage Attachments (Amazon S3)
-router.route("/:id/hackathons/:thId/stages/:stageId/attachments")
-    .post(uploadAttachmentMiddleware.single("file"), uploadAttachment);
-router.route("/:id/hackathons/:thId/stages/:stageId/attachments/:attachmentId")
-    .delete(deleteAttachment);
-
 // Reflections
 router.route("/:id/hackathons/:thId/stages/:stageId/reflections")
     .post(addReflection)
     .delete(removeReflection);
 
-export default router;
+export default router;
