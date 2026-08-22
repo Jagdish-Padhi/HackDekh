@@ -126,7 +126,7 @@ async function runBenchmark(): Promise<void> {
   const redisAverage = average(redisHitLatencies);
 
   console.log(
-    `First request (CACHE MISS): ${cacheLatencies[0].toFixed(2)} ms`
+    `First request (CACHE MISS): ${cacheLatencies[0]?.toFixed(2) ?? "0"} ms`
   );
 
   console.log(

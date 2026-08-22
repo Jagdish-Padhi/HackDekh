@@ -49,6 +49,9 @@ const seedDatabase = async () => {
         console.log(`Created ${createdUsers.length} users.`);
 
         const [jagdish, twinkle, saman, poorvaja, ruturaj, vedang] = createdUsers;
+        if (!jagdish || !twinkle || !saman || !poorvaja || !ruturaj || !vedang) {
+            throw new Error("Seed users missing");
+        }
 
         // 2. Create Teams
         const team1 = new Team({
