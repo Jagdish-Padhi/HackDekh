@@ -120,6 +120,8 @@ async function autoUpdateTeamHackathonStatus(thId: string) {
     }
 }
 
+import { uploadFileToS3, deleteFileFromS3 } from '../db/s3.ts';
+
 function sanitizeStageUsers(stage: any): any {
     if (Array.isArray(stage.reflections)) {
         stage.reflections = stage.reflections.map((r: any) =>
@@ -131,6 +133,11 @@ function sanitizeStageUsers(stage: any): any {
             .map((u: any) => sanitizeUserDoc(u))
             .filter(Boolean);
     }
+    if (Array.isArray(stage.attachments)) {
+        stage.attachments = stage.attachments.map((a: any) =>
+            a && typeof a === 'object' && a.uploadedBy ? { ...a, uploadedBy: typeof a.uploadedBy === 'object' ? sanitizeUserDoc(a.uploadedBy) : a.uploadedBy } : a
+        );
+    }
     return stage;
 }
 
@@ -139,6 +146,7 @@ async function getPopulatedStage(stageId: string): Promise<any> {
     if (!stage) return null;
     let populated = await populate(stage, { path: 'reflections.user', table: TABLES.USERS });
     populated = await populate(populated, { path: 'pendingReflectionFor', table: TABLES.USERS });
+    populated = await populate(populated, { path: 'attachments.uploadedBy', table: TABLES.USERS });
     return sanitizeStageUsers(populated);
 }
 
@@ -474,3 +482,81 @@ export async function removeReflection(
 
     return getPopulatedStage(stageId);
 }
+
+// ─── S3 File Attachments (Pitch Decks, Documents, Deliverables) ─────────────────
+export async function uploadStageAttachment(
+    stageId: string,
+    userId: string,
+    file: Express.Multer.File
+) {
+    const { stage } = await getTeamMembersForStage(stageId, userId);
+    if (!stage) return null;
+
+    const th = await TeamHackathon.findById(stage.teamHackathon);
+    const teamId = th ? String(th.team) : 'general';
+
+    // Generate S3 key: teams/{teamId}/stages/{stageId}/{uuid}-{sanitizedFilename}
+    const safeName = (file.originalname || 'document').replace(/[^a-zA-Z0-9._-]/g, '_');
+    const s3Key = `teams/${teamId}/stages/${stageId}/${genId()}-${safeName}`;
+
+    // Upload to Amazon S3
+    const uploadResult = await uploadFileToS3({
+        fileBuffer: file.buffer,
+        key: s3Key,
+        contentType: file.mimetype || 'application/octet-stream',
+        originalName: file.originalname,
+    });
+
+    const attachmentId = genId();
+    const newAttachment = {
+        _id: attachmentId,
+        name: file.originalname || safeName,
+        url: uploadResult.url,
+        s3Key: uploadResult.key,
+        fileType: file.mimetype || 'application/octet-stream',
+        size: file.size || file.buffer.length,
+        uploadedBy: String(userId),
+        uploadedAt: nowISO(),
+    };
+
+    const currentAttachments = Array.isArray(stage.attachments) ? stage.attachments : [];
+    const updatedAttachments = [...currentAttachments, newAttachment];
+
+    await dbUpdate(TABLES.STAGES, { _id: stageId }, {
+        SET: { attachments: updatedAttachments },
+    });
+
+    return getPopulatedStage(stageId);
+}
+
+export async function deleteStageAttachment(
+    stageId: string,
+    userId: string,
+    attachmentId: string
+) {
+    const { stage } = await getTeamMembersForStage(stageId, userId);
+    if (!stage) return null;
+
+    const currentAttachments = Array.isArray(stage.attachments) ? stage.attachments : [];
+    const targetAttachment = currentAttachments.find((a: any) => String(a._id) === String(attachmentId));
+
+    if (!targetAttachment) return null;
+
+    // Delete object from AWS S3
+    if (targetAttachment.s3Key) {
+        try {
+            await deleteFileFromS3(targetAttachment.s3Key);
+        } catch (err) {
+            console.error(`[AWS S3] Failed to delete object ${targetAttachment.s3Key}:`, err);
+        }
+    }
+
+    const updatedAttachments = currentAttachments.filter((a: any) => String(a._id) !== String(attachmentId));
+
+    await dbUpdate(TABLES.STAGES, { _id: stageId }, {
+        SET: { attachments: updatedAttachments },
+    });
+
+    return getPopulatedStage(stageId);
+}
+

@@ -26,6 +26,17 @@ export interface StageReflection {
   updatedAt?: string;
 }
 
+export interface StageAttachment {
+  _id: string;
+  name: string;
+  url: string;
+  s3Key: string;
+  fileType: string;
+  size: number;
+  uploadedBy: UserLite | string;
+  uploadedAt: string;
+}
+
 export interface Stage {
   _id: string;
   name: string;
@@ -35,6 +46,7 @@ export interface Stage {
   notes?: string;
   reflections: StageReflection[];
   pendingReflectionFor?: UserLite[] | string[];
+  attachments?: StageAttachment[];
   createdAt: string;
   updatedAt: string;
 }

@@ -111,3 +111,48 @@ export const removeReflection = asyncHandler(async (req: AuthRequest, res: Respo
 
     return res.status(200).json(new ApiResponse(200, stage, 'Reflection deleted successfully'));
 });
+
+import multer from 'multer';
+
+export const uploadAttachmentMiddleware = multer({
+    storage: multer.memoryStorage(),
+    limits: {
+        fileSize: 25 * 1024 * 1024, // 25 MB max limit
+    },
+});
+
+// POST /teams/:id/hackathons/:thId/stages/:stageId/attachments
+export const uploadAttachment = asyncHandler(async (req: AuthRequest, res: Response) => {
+    if (!req.file) {
+        throw new ApiError(400, 'No file provided. Please select a document, pitch deck, or image to upload.');
+    }
+
+    const stage = await stageService.uploadStageAttachment(
+        String(req.params.stageId),
+        req.user._id,
+        req.file
+    );
+
+    if (!stage) {
+        throw new ApiError(404, 'Stage not found or you are not a team member');
+    }
+
+    return res.status(201).json(new ApiResponse(201, stage, 'File uploaded to AWS S3 successfully'));
+});
+
+// DELETE /teams/:id/hackathons/:thId/stages/:stageId/attachments/:attachmentId
+export const deleteAttachment = asyncHandler(async (req: AuthRequest, res: Response) => {
+    const stage = await stageService.deleteStageAttachment(
+        String(req.params.stageId),
+        req.user._id,
+        String(req.params.attachmentId)
+    );
+
+    if (!stage) {
+        throw new ApiError(404, 'Attachment or stage not found or you are not a team member');
+    }
+
+    return res.status(200).json(new ApiResponse(200, stage, 'Attachment deleted successfully'));
+});
+
+
