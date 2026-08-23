@@ -1,0 +1,55 @@
+name: HackDekh Continuous Integration Pipeline
+
+on:
+  push:
+    branches: [ main, dev ]
+  pull_request:
+    branches: [ main, dev ]
+
+permissions:
+  contents: read
+
+jobs:
+  backend-ci:
+    name: Backend Build & Test Suite
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js Environment
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: 'npm'
+
+      - name: Install Backend Dependencies
+        run: cd backend && npm ci
+
+      - name: Typecheck Backend Code
+        run: cd backend && npm run build
+
+      - name: Run Backend Unit & Integration Tests
+        run: cd backend && npm run test
+
+  frontend-ci:
+    name: Frontend Build & Test Suite
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js Environment
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: 'npm'
+
+      - name: Install Frontend Dependencies
+        run: cd frontend && npm ci
+
+      - name: Typecheck & Build Frontend
+        run: cd frontend && npm run build
+
+      - name: Run Frontend Tests
+        run: cd frontend && npm run test

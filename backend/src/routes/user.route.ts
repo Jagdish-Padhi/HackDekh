@@ -1,47 +1,38 @@
 import { Router } from "express";
 import {
-	registerUser,
-	loginUser,
-	logoutUser,
-	refreshAccessToken,
-	getCurrentUser,
-	changeCurrentPassword,
-	updateAccountDetails,
-	toggleSaveHackathon,
-	getSavedHackathons,
-	addApplication,
-	updateApplication,
-	removeApplication,
-	getUserApplications,
-	getPendingReflections,
-	githubAuth,
-	searchUsers,
+  registerUser,
+  loginUser,
+  logoutUser,
+  refreshAccessToken,
+  getCurrentUser,
+  changeCurrentPassword,
+  updateAccountDetails,
+  toggleSaveHackathon,
+  getSavedHackathons,
+  getPendingReflections,
+  githubAuth,
+  searchUsers,
 } from "../controllers/user.controller.ts";
 import { verifyJWT } from "../middlewares/auth.middleware.ts";
+import { authRateLimiter, searchRateLimiter } from "../middlewares/rateLimiter.ts";
 
 const router = Router();
 
-router.post("/register", registerUser);
-router.post("/login", loginUser);
-router.post("/auth/github", githubAuth);
+router.post("/register", authRateLimiter, registerUser);
+router.post("/login", authRateLimiter, loginUser);
+router.post("/auth/github", authRateLimiter, githubAuth);
 router.post("/logout", verifyJWT, logoutUser);
-router.post("/refresh", refreshAccessToken);
+router.post("/refresh", authRateLimiter, refreshAccessToken);
 router.get("/me", verifyJWT, getCurrentUser);
-router.get("/search", verifyJWT, searchUsers);
-router.post("/change-password", verifyJWT, changeCurrentPassword);
+router.get("/search", verifyJWT, searchRateLimiter, searchUsers);
+router.post("/change-password", verifyJWT, authRateLimiter, changeCurrentPassword);
 router.put("/update", verifyJWT, updateAccountDetails);
 
 // Bookmarks / Saved Hackathons
 router.post("/saved/:hackathonId", verifyJWT, toggleSaveHackathon);
 router.get("/saved", verifyJWT, getSavedHackathons);
 
-// Application Tracker (user-level, individual tracking)
-router.post("/applications", verifyJWT, addApplication);
-router.put("/applications/:applicationId", verifyJWT, updateApplication);
-router.delete("/applications/:applicationId", verifyJWT, removeApplication);
-router.get("/applications", verifyJWT, getUserApplications);
-
-// Pending stage reflections (team hackathon system)
+// Pending stage reflections
 router.get("/pending-reflections", verifyJWT, getPendingReflections);
 
 export default router;

@@ -2,7 +2,6 @@ import mongoose from 'mongoose';
 import bcrypt from 'bcrypt';
 import jwt from 'jsonwebtoken';
 
-
 const userSchema = new mongoose.Schema({
     username: {
         type: String,
@@ -41,47 +40,19 @@ const userSchema = new mongoose.Schema({
         type: mongoose.Schema.Types.ObjectId,
         ref: 'Hackathon',
     }],
-
-    applications: [{
-        hackathon: {
-            type: mongoose.Schema.Types.ObjectId,
-            ref: 'Hackathon',
-            required: true,
-        },
-        status: {
-            type: String,
-            enum: ['Applied', 'Accepted', 'Rejected', 'Under Review', 'Completed'],
-            default: 'Applied',
-        },
-        notes: {
-            type: String,
-            default: '',
-        },
-        appliedAt: {
-            type: Date,
-            default: Date.now,
-        }
-    }]
-
 }, { timestamps: true });
 
-
-// Password hashing before save
 userSchema.pre("save", async function () {
     if (!this.isModified("password")) return;
-
     this.password = await bcrypt.hash(this.password, 10);
 });
-
-
 
 userSchema.methods.isPasswordCorrect = async function (password: string): Promise<boolean> {
     return await bcrypt.compare(password, this.password);
 };
 
-
 userSchema.methods.generateAccessToken = function (): string {
-    const secret = process.env.ACCESS_TOKEN_SECRET || "";
+    const secret = process.env.ACCESS_TOKEN_SECRET  || "fallback_access_secret_32_chars_minimum";
     const expiresIn = process.env.ACCESS_TOKEN_EXPIRY || "1d";
     return jwt.sign(
         {
@@ -95,16 +66,15 @@ userSchema.methods.generateAccessToken = function (): string {
     );
 };
 
-
 userSchema.methods.generateRefreshToken = function (): string {
-    const secret = process.env.REFRESH_TOKEN_SECRET || "";
-    const expiresIn = process.env.REFRESH_TOKEN_EXPIRY || "7d";
+    const secret = process.env.REFRESH_TOKEN_SECRET || "fallback_refresh_secret_32_chars_minimum";
+    const secretExpiresIn = process.env.REFRESH_TOKEN_EXPIRY || "10d";
     return jwt.sign(
         {
             _id: this._id,
         },
         secret,
-        ({ expiresIn: expiresIn } as any)
+        ({ expiresIn: secretExpiresIn } as any)
     );
 };
 

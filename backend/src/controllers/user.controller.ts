@@ -1,255 +1,147 @@
 import { asyncHandler } from "../utils/asyncHandler.ts";
 import { ApiError } from "../utils/apiError.ts";
-import User from "../models/user.model.ts";
 import { ApiResponse } from "../utils/apiResponse.ts";
-import jwt from "jsonwebtoken";
+import User from "../models/user.model.ts";
+import {
+  registerUserService,
+  loginUserService,
+  githubAuthService,
+  searchUsersService,
+  generateAccessAndRefreshTokens,
+} from "../services/user.service.ts";
 import { getPendingReflections as fetchPendingReflections } from "../services/stage.service.ts";
-import axios from "axios";
+import jwt from "jsonwebtoken";
 
-const generateAccessAndRefreshTokens = async (userId: string) => {
-  try {
-    const user = await User.findById(userId);
-    if (!user) throw new ApiError(404, "User not found");
-    const accessToken = (user as any).generateAccessToken();
-    const refreshToken = (user as any).generateRefreshToken();
-    user.refreshToken = refreshToken;
-    await user.save({ validateBeforeSave: false });
-    return { accessToken, refreshToken };
-  } catch (err) {
-    throw new ApiError(
-      500,
-      "Something went wrong while generating refresh and access token!"
-    );
-  }
+const cookieOptions = {
+  httpOnly: true,
+  secure: true,
 };
 
-
-const registerUser = asyncHandler(async (req: any, res: any) => {
-  //Get user details from frontend
-  const { username, fullName, email, password } = req.body;
-
-  //validations
-  if (
-    [fullName, email, username, password].some(
-      (field) => String(field)?.trim() === ""
-    )
-  ) {
-    throw new ApiError(400, "All fields are required!");
-  }
-
-  //check if user already exists: username, email
-  const exitedUser = await User.findOne({
-    $or: [{ username }, { email }],
-  });
-
-  if (exitedUser) {
-    throw new ApiError(409, "User with email or username already exist");
-  }
-
-
-
-  //create user object - create entry in db
-  const user = await User.create({
-    fullName,
-    email,
-    password,
-    username: username.toLowerCase(),
-  });
-
-  //remove password and refresh token field from response
-  const createdUser = await User.findById(user._id).select(
-    "-password -refreshToken"
-  );
-
-  //check for user creation
-  if (!createdUser) {
-    throw new ApiError(500, "Something went wrong while registering the user!");
-  }
-
-  //return response
+export const registerUser = asyncHandler(async (req: any, res: any) => {
+  const createdUser = await registerUserService(req.body);
   return res
     .status(201)
-    .json(new ApiResponse(200, createdUser, "User registered successfully!"));
+    .json(new ApiResponse(201, createdUser, "User registered successfully!"));
 });
 
-
-const loginUser = asyncHandler(async (req: any, res: any) => {
-  const { username, email, password } = req.body;
-
-  if (!(username || email)) {
-    throw new ApiError(400, "username or email is required");
-  }
-
-  const user = await User.findOne({
-    $or: [{ username }, { email }],
-  });
-
-  if (!user) {
-    throw new ApiError(404, "User not exists");
-  }
-
-  const isPasswordValid = await (user as any).isPasswordCorrect(password);
-  if (!isPasswordValid) {
-    throw new ApiError(401, "Invalid user credentials");
-  }
-
-  const { accessToken, refreshToken } = await generateAccessAndRefreshTokens(
-    user._id.toString()
-  );
-
-  //VERY IMPORTANT:ab yaha pe ye ratna nahi hai logically sochna
-  //pahle jo user object findone kiya tha above humare pass uska ref
-  //hai aur generateAccessAndRefreshTokens method to niche call kiya
-  //so us user object me refreshToken EMPTY hoga So.....
-  //AAPKE PASS 2 OPTIONS HAIN ya to 1 aur db query karke firse user
-  //object findone kar...OR....usi user object ko update karo....
-  //agar db query expensive hai then choose to update otherwise
-  //apply 1 more db query to get user object.... SIMPLE LOGIC!
-
-  const loggedInUser = await User.findById(user._id).select("-password -refreshToken");
-
-  const options = {
-    httpOnly: true,
-    secure: true,
-  };
-
+export const loginUser = asyncHandler(async (req: any, res: any) => {
+  const { user, accessToken, refreshToken } = await loginUserService(req.body);
   return res
     .status(200)
-    .cookie("accessToken", accessToken, options)
-    .cookie("refreshToken", refreshToken, options)
+    .cookie("accessToken", accessToken, cookieOptions)
+    .cookie("refreshToken", refreshToken, cookieOptions)
     .json(
       new ApiResponse(
         200,
-        {
-          user: loggedInUser,
-          accessToken,
-          refreshToken,
-        },
-        "User loggedIn successfully!"
+        { user, accessToken, refreshToken },
+        "User logged in successfully!"
       )
     );
 });
 
-
-const logoutUser = asyncHandler(async (req: any, res: any) => {
+export const logoutUser = asyncHandler(async (req: any, res: any) => {
   await User.findByIdAndUpdate(
     req.user._id,
     { $set: { refreshToken: undefined } },
     { returnDocument: 'after' }
   );
-  const options = { httpOnly: true, secure: true };
   return res
     .status(200)
-    .clearCookie("accessToken", options)
-    .clearCookie("refreshToken", options)
+    .clearCookie("accessToken", cookieOptions)
+    .clearCookie("refreshToken", cookieOptions)
     .json(new ApiResponse(200, {}, "User logged out successfully!"));
 });
 
-
-const refreshAccessToken = asyncHandler(async (req: any, res: any) => {
+export const refreshAccessToken = asyncHandler(async (req: any, res: any) => {
   const incomingRefreshToken =
-    req.cookies.refreshToken || req.body.refreshToken;
+    req.cookies?.refreshToken || req.body?.refreshToken;
 
   if (!incomingRefreshToken) {
     throw new ApiError(401, "Unauthorized request!");
   }
+
   try {
     const decodedToken = jwt.verify(
       incomingRefreshToken,
-      process.env.REFRESH_TOKEN_SECRET || ""
-    ) as any;
+      process.env.REFRESH_TOKEN_SECRET || "fallback_refresh_secret_32_chars_minimum"
+       ) as any;
+
     const user = await User.findById(decodedToken?._id);
-    if (!user) {
-      throw new ApiError(401, "Invalid refreshtoken");
+    if (!user || incomingRefreshToken !== user.refreshToken) {
+      throw new ApiError(401, "Refresh token is invalid or expired!");
     }
-    if (incomingRefreshToken !== user?.refreshToken) {
-      throw new ApiError(401, "Refresh token is expired or used!");
-    }
-    const options = { httpOnly: true, secure: true };
+
     const { accessToken, refreshToken } = await generateAccessAndRefreshTokens(user._id.toString());
     return res
       .status(200)
-      .cookie("accessToken", accessToken, options)
-      .cookie("refreshToken", refreshToken, options)
+      .cookie("accessToken", accessToken, cookieOptions)
+      .cookie("refreshToken", refreshToken, cookieOptions)
       .json(
         new ApiResponse(
           200,
-          {
-            accessToken,
-            refreshToken,
-          },
-          "Access Token refreshed successfully!"
+        { accessToken, refreshToken },
+        "Access token refreshed successfully!"
         )
       );
   } catch (error: any) {
-    throw new ApiError(401, error?.message || "invalid refresh token");
+    throw new ApiError(401, error?.message || "Invalid refresh token");
   }
 });
 
-
-const changeCurrentPassword = asyncHandler(async (req: any, res: any) => {
+export const changeCurrentPassword = asyncHandler(async (req: any, res: any) => {
   const { oldPassword, newPassword } = req.body;
+  if (!oldPassword || !newPassword) {
+    throw new ApiError(400, "Both old and new passwords are required.");
+  }
 
   const user = await User.findById(req.user?._id);
+  if (!user) throw new ApiError(404, "User not found");
 
-  if (!user) {
-    throw new ApiError(404, "User not found");
-  }
   const isPasswordCorrect = await (user as any).isPasswordCorrect(oldPassword);
   if (!isPasswordCorrect) {
-    throw new ApiError(400, "Invalid password!");
+    throw new ApiError(400, "Invalid old password!");
   }
+
+
   user.password = newPassword;
   await user.save({ validateBeforeSave: false });
+
   return res
     .status(200)
     .json(new ApiResponse(200, {}, "Password changed successfully!"));
 });
 
-
-const getCurrentUser = asyncHandler(async (req: any, res: any) => {
+export const getCurrentUser = asyncHandler(async (req: any, res: any) => {
   return res
     .status(200)
     .json(new ApiResponse(200, req.user, "Current user fetched successfully!"));
 });
 
-
-const updateAccountDetails = asyncHandler(async (req: any, res: any) => {
-  //BEST PRACTICE: agar kahi pe file update karana ho to
-  //make seperate controller for that!
-
+export const updateAccountDetails = asyncHandler(async (req: any, res: any) => {
   const { fullName, email } = req.body;
-
-  if (!(fullName || email)) {
-    throw new ApiError(400, "All fields are required!");
+  if (!fullName && !email) {
+    throw new ApiError(400, "At least one field (fullName or email) is required.");
   }
 
-  const user = await User.findOneAndUpdate(
-    { _id: req.user?._id },
-    {
-      $set: {
-        fullName,
-        email,
-      },
-    },
+  const updateFields: any = {};
+  if (fullName) updateFields.fullName = fullName;
+  if (email) updateFields.email = email;
+
+  const user = await User.findByIdAndUpdate(
+    req.user?._id,
+    { $set: updateFields },
     { returnDocument: 'after' }
-  ).select("-password");
+  ).select("-password -refreshToken");
 
   return res
     .status(200)
     .json(new ApiResponse(200, user, "Account details updated successfully!"));
 });
 
-
-
-// Toggle Bookmark (Save / Unsave) a Hackathon
-const toggleSaveHackathon = asyncHandler(async (req: any, res: any) => {
+export const toggleSaveHackathon = asyncHandler(async (req: any, res: any) => {
   const { hackathonId } = req.params;
   const user = await User.findById(req.user?._id);
-
-  if (!user) {
-    throw new ApiError(404, "User not found");
-  }
+  if (!user) throw new ApiError(404, "User not found");
 
   const index = user.savedHackathons.indexOf(hackathonId as any);
   if (index === -1) {
@@ -259,7 +151,6 @@ const toggleSaveHackathon = asyncHandler(async (req: any, res: any) => {
   }
 
   await user.save({ validateBeforeSave: false });
-
   return res
     .status(200)
     .json(
@@ -271,12 +162,9 @@ const toggleSaveHackathon = asyncHandler(async (req: any, res: any) => {
     );
 });
 
-// Fetch Populated Saved Hackathons
-const getSavedHackathons = asyncHandler(async (req: any, res: any) => {
+export const getSavedHackathons = asyncHandler(async (req: any, res: any) => {
   const user = await User.findById(req.user?._id).populate("savedHackathons");
-  if (!user) {
-    throw new ApiError(404, "User not found");
-  }
+  if (!user) throw new ApiError(404, "User not found");
 
   return res
     .status(200)
@@ -289,282 +177,32 @@ const getSavedHackathons = asyncHandler(async (req: any, res: any) => {
     );
 });
 
-// Add a Hackathon Application
-const addApplication = asyncHandler(async (req: any, res: any) => {
-  const { hackathonId, status, notes } = req.body;
-
-  if (!hackathonId) {
-    throw new ApiError(400, "Hackathon ID is required!");
-  }
-
-  const user = await User.findById(req.user?._id);
-  if (!user) {
-    throw new ApiError(404, "User not found");
-  }
-
-  const existingApp = user.applications.find(
-    (app) => app.hackathon.toString() === hackathonId
-  );
-  if (existingApp) {
-    throw new ApiError(400, "Application for this hackathon already exists!");
-  }
-
-  user.applications.push({
-    hackathon: hackathonId,
-    status: status || "Applied",
-    notes: notes || "",
-    appliedAt: new Date()
-  } as any);
-
-  await user.save({ validateBeforeSave: false });
-
-  const updatedUser = await User.findById(req.user?._id).populate("applications.hackathon");
-  const newApp = updatedUser?.applications.find(
-    (app) => app.hackathon._id.toString() === hackathonId
-  );
-
-  return res
-    .status(201)
-    .json(
-      new ApiResponse(
-        201,
-        newApp,
-        "Application added successfully!"
-      )
-    );
-});
-
-// Update an Application (Status / Notes)
-const updateApplication = asyncHandler(async (req: any, res: any) => {
-  const { applicationId } = req.params;
-  const { status, notes } = req.body;
-
-  const user = await User.findById(req.user?._id);
-  if (!user) {
-    throw new ApiError(404, "User not found");
-  }
-
-  const app = user.applications.id(applicationId);
-  if (!app) {
-    throw new ApiError(404, "Application entry not found");
-  }
-
-  if (status) app.status = status;
-  if (notes !== undefined) app.notes = notes;
-
-  await user.save({ validateBeforeSave: false });
-
-  const updatedUser = await User.findById(req.user?._id).populate("applications.hackathon");
-  const updatedApp = updatedUser?.applications.id(applicationId);
-
-  return res
-    .status(200)
-    .json(
-      new ApiResponse(
-        200,
-        updatedApp,
-        "Application updated successfully!"
-      )
-    );
-});
-
-// Remove an Application Entry
-const removeApplication = asyncHandler(async (req: any, res: any) => {
-  const { applicationId } = req.params;
-
-  const user = await User.findById(req.user?._id);
-  if (!user) {
-    throw new ApiError(404, "User not found");
-  }
-
-  const appIndex = user.applications.findIndex(
-    (app) => app._id.toString() === applicationId
-  );
-  if (appIndex === -1) {
-    throw new ApiError(404, "Application entry not found");
-  }
-
-  user.applications.splice(appIndex, 1);
-  await user.save({ validateBeforeSave: false });
-
-  return res
-    .status(200)
-    .json(
-      new ApiResponse(
-        200,
-        { applicationId },
-        "Application removed successfully!"
-      )
-    );
-});
-
-// Fetch Populated Applications
-const getUserApplications = asyncHandler(async (req: any, res: any) => {
-  const user = await User.findById(req.user?._id).populate("applications.hackathon");
-  if (!user) {
-    throw new ApiError(404, "User not found");
-  }
-
-  return res
-    .status(200)
-    .json(
-      new ApiResponse(
-        200,
-        user.applications,
-        "User applications fetched successfully!"
-      )
-    );
-});
-
-
-const getPendingReflections = asyncHandler(async (req: any, res: any) => {
+export const getPendingReflections = asyncHandler(async (req: any, res: any) => {
   const stages = await fetchPendingReflections(req.user._id);
   return res
     .status(200)
-    .json(new ApiResponse(200, stages, 'Pending reflections fetched successfully'));
+    .json(new ApiResponse(200, stages, "Pending reflections fetched successfully"));
 });
 
-
-const githubAuth = asyncHandler(async (req: any, res: any) => {
+export const githubAuth = asyncHandler(async (req: any, res: any) => {
   const { code } = req.body;
-  if (!code) {
-    throw new ApiError(400, "Authorization code is required");
-  }
-
-  const clientId = process.env.GITHUB_CLIENT_ID;
-  const clientSecret = process.env.GITHUB_CLIENT_SECRET;
-
-  if (!clientId || !clientSecret) {
-    throw new ApiError(500, "GitHub OAuth is not configured. Set GITHUB_CLIENT_ID and GITHUB_CLIENT_SECRET in your .env file.");
-  }
-
-  let githubUser: any;
-  let email: string;
-
-  try {
-    // 1. Exchange code for access token
-    const tokenResponse = await axios.post(
-      "https://github.com/login/oauth/access_token",
-      {
-        client_id: clientId,
-        client_secret: clientSecret,
-        code,
-      },
-      {
-        headers: {
-          Accept: "application/json",
-        },
-      }
-    );
-
-    const { access_token: githubToken, error: tokenError, error_description } = tokenResponse.data;
-    console.log("[GitHub OAuth] Token exchange response:", JSON.stringify(tokenResponse.data));
-    if (tokenError || !githubToken) {
-      throw new ApiError(400, error_description || "Failed to retrieve GitHub access token");
-    }
-
-    // 2. Fetch user profile
-    const userResponse = await axios.get("https://api.github.com/user", {
-      headers: {
-        Authorization: `token ${githubToken}`,
-      },
-    });
-    githubUser = userResponse.data;
-
-    // 3. Fetch user emails to get verified primary email
-    const emailsResponse = await axios.get("https://api.github.com/user/emails", {
-      headers: {
-        Authorization: `token ${githubToken}`,
-      },
-    });
-    
-    const primaryEmailObj = emailsResponse.data.find(
-      (e: any) => e.primary && e.verified
-    ) || emailsResponse.data[0];
-    
-    email = primaryEmailObj ? primaryEmailObj.email : `${githubUser.login}@github.com`;
-  } catch (err: any) {
-    if (err instanceof ApiError) throw err;
-    console.error("GitHub Auth Error:", err.response?.data || err.message);
-    throw new ApiError(500, `GitHub authentication failed: ${err.message}`);
-  }
-
-  // Find or create user
-  let user = await User.findOne({
-    $or: [{ email: email.toLowerCase() }, { username: githubUser.login.toLowerCase() }],
-  });
-
-  if (!user) {
-    // Create new user
-    const randomPassword = Math.random().toString(36).substring(2) + Math.random().toString(36).substring(2);
-    user = await User.create({
-      username: githubUser.login.toLowerCase(),
-      fullName: githubUser.name || githubUser.login,
-      email: email.toLowerCase(),
-      password: randomPassword,
-    });
-  }
-
-  const { accessToken, refreshToken } = await generateAccessAndRefreshTokens(user._id.toString());
-  const loggedInUser = await User.findById(user._id).select("-password -refreshToken");
-
-  const options = {
-    httpOnly: true,
-    secure: true,
-  };
-
+  const { user, accessToken, refreshToken } = await githubAuthService(code);
   return res
     .status(200)
-    .cookie("accessToken", accessToken, options)
-    .cookie("refreshToken", refreshToken, options)
+    .cookie("accessToken", accessToken, cookieOptions)
+    .cookie("refreshToken", refreshToken, cookieOptions)
     .json(
       new ApiResponse(
         200,
-        {
-          user: loggedInUser,
-          accessToken,
-          refreshToken,
-        },
+        { user, accessToken, refreshToken },
         "User logged in via GitHub successfully!"
       )
     );
 });
 
-const searchUsers = asyncHandler(async (req: any, res: any) => {
-  const query = String(req.query.query || '').trim();
-  if (!query) {
-    return res.status(200).json(new ApiResponse(200, [], "Empty query"));
-  }
-
-  const users = await User.find({
-    _id: { $ne: req.user._id },
-    $or: [
-      { username: { $regex: query, $options: "i" } },
-      { fullName: { $regex: query, $options: "i" } },
-      { email: { $regex: query, $options: "i" } }
-    ]
-  })
-    .select("username fullName email")
-    .limit(10);
-
-  return res.status(200).json(new ApiResponse(200, users, "Users fetched successfully!"));
+export const searchUsers = asyncHandler(async (req: any, res: any) => {
+  const users = await searchUsersService(req.user._id, String(req.query.query || ''));
+  return res
+    .status(200)
+    .json(new ApiResponse(200, users, "Users fetched successfully!"));
 });
-
-export {
-  registerUser,
-  loginUser,
-  logoutUser,
-  refreshAccessToken,
-  changeCurrentPassword,
-  getCurrentUser,
-  updateAccountDetails,
-  toggleSaveHackathon,
-  getSavedHackathons,
-  addApplication,
-  updateApplication,
-  removeApplication,
-  getUserApplications,
-  getPendingReflections,
-  githubAuth,
-  searchUsers,
-};
