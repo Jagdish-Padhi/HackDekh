@@ -1,19 +1,19 @@
 import express from "express";
+import cors from "cors";
+import scrapperRoutes from "./routes/scrape.route.ts";
+import hackathonRoutes from "./routes/hackathon.route.ts";
+import userRoutes from "./routes/user.route.ts";
+import teamRoutes from "./routes/team.route.ts";
+import { globalErrorHandler } from "./utils/globalErrorHandler.ts";
+import { apiRateLimiter } from "./middlewares/rateLimiter.ts";
+import "./cron/scrapeScheduler.ts";
+
 const app = express();
-import scrapperRoutes from './routes/scrape.route.ts';
-import hackathonRoutes from './routes/hackathon.route.ts';
-import userRoutes from './routes/user.route.ts';
-import teamRoutes from './routes/team.route.ts';
-import cors from 'cors';
-import { globalErrorHandler } from './utils/globalErrorHandler.ts';
-import { apiRateLimiter } from './middlewares/rateLimiter.ts';
-import './cron/scrapeScheduler.ts';
 
 app.use(express.json({ limit: "16kb" }));
 app.use(express.urlencoded({ extended: true, limit: "16kb" }));
 app.use(cors());
 
-// Apply global rate limiting to all API endpoints
 app.use("/api", apiRateLimiter);
 
 app.use("/api/v1/scrape", scrapperRoutes);
@@ -26,4 +26,5 @@ app.get("/api/v1/ping", (req, res) => {
 });
 
 app.use(globalErrorHandler);
+
 export { app };

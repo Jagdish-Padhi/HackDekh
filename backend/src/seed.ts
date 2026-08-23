@@ -15,7 +15,6 @@ async function seedDatabase() {
 
     console.log('[Seed] Seeding sample data...');
 
-    // 1. Seed Demo User
     let demoUser = await User.findOne({ email: 'demo@hackdekh.com' });
     if (!demoUser) {
       demoUser = await User.create({
@@ -27,7 +26,6 @@ async function seedDatabase() {
       console.log('[Seed] Created Demo User:', demoUser.email);
     }
 
-    // 2. Seed Demo Hackathon
     let demoHackathon = await Hackathon.findOne({ slug: 'hackdekh-buildathon-2026' });
     if (!demoHackathon) {
       demoHackathon = await Hackathon.create({
@@ -46,7 +44,6 @@ async function seedDatabase() {
       console.log('[Seed] Created Demo Hackathon:', demoHackathon.title);
     }
 
-    // 3. Seed Demo Team
     let demoTeam = await Team.findOne({ name: 'Alpha Builders', owner: demoUser._id });
     if (!demoTeam) {
       demoTeam = await Team.create({
@@ -58,7 +55,6 @@ async function seedDatabase() {
       console.log('[Seed] Created Demo Team:', (demoTeam as any).name);
     }
 
-    // 4. Link Team to Hackathon
     let demoParticipation = await TeamHackathon.findOne({
       team: demoTeam._id,
       hackathon: demoHackathon._id,
@@ -69,9 +65,7 @@ async function seedDatabase() {
         hackathon: demoHackathon._id,
         status: 'active',
       });
-      console.log('[Seed] Linked Team to Hackathon.');
 
-      // 5. Seed Stages
       await Stage.create({
         name: 'Initial Proposal Submission',
         teamHackathon: demoParticipation._id,
@@ -87,13 +81,13 @@ async function seedDatabase() {
         result: 'pending',
         notes: 'Building core MVP endpoints and UI walkthrough.',
       });
-      console.log('[Seed] Seeded timeline stages.');
+      console.log('[Seed] Linked Team to Hackathon and seeded stages.');
     }
 
-    console.log('[Seed] Database Seeding Completed Successfully!');
+    console.log('[Seed] Seeding completed.');
     process.exit(0);
   } catch (error) {
-    console.error('[Seed] Database Seeding Failed:', error);
+    console.error('[Seed] Seeding failed:', error);
     process.exit(1);
   }
 }
