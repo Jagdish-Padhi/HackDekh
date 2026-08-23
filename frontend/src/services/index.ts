@@ -147,10 +147,6 @@ export const teamApi = {
     return unwrap(response);
   },
 
-  addMembers: async (teamId: string, userIds: string[]): Promise<Team> => {
-    const response = await axiosInstance.post<ApiResponse<Team>>(`/teams/${teamId}/members`, { userIds });
-    return unwrap(response);
-  },
 
   removeMember: async (teamId: string, userId: string): Promise<Team> => {
     const response = await axiosInstance.delete<ApiResponse<Team>>(`/teams/${teamId}/members/${userId}`);
