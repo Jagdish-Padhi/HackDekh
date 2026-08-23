@@ -2,6 +2,7 @@ import User from '../models/user.model.ts';
 import { ApiError } from '../utils/apiError.ts';
 import jwt from 'jsonwebtoken';
 import axios from 'axios';
+import { randomBytes } from 'crypto';
 
 export async function generateAccessAndRefreshTokens(userId: string) {
   const user = await User.findById(userId);
@@ -129,7 +130,7 @@ export async function githubAuthService(code: string) {
   });
 
   if (!user) {
-    const randomPassword = Math.random().toString(36).substring(2) + Math.random().toString(36).substring(2);
+    const randomPassword = randomBytes(32).toString('hex');
     user = await User.create({
       username: githubUser.login.toLowerCase(),
       fullName: githubUser.name || githubUser.login,
