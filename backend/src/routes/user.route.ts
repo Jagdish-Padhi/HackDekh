@@ -1,21 +1,17 @@
 import { Router } from "express";
 import {
-	registerUser,
-	loginUser,
-	logoutUser,
-	refreshAccessToken,
-	getCurrentUser,
-	changeCurrentPassword,
-	updateAccountDetails,
-	toggleSaveHackathon,
-	getSavedHackathons,
-	addApplication,
-	updateApplication,
-	removeApplication,
-	getUserApplications,
-	getPendingReflections,
-	githubAuth,
-	searchUsers,
+  registerUser,
+  loginUser,
+  logoutUser,
+  refreshAccessToken,
+  getCurrentUser,
+  changeCurrentPassword,
+  updateAccountDetails,
+  toggleSaveHackathon,
+  getSavedHackathons,
+  getPendingReflections,
+  githubAuth,
+  searchUsers,
 } from "../controllers/user.controller.ts";
 import { verifyJWT } from "../middlewares/auth.middleware.ts";
 
@@ -35,13 +31,7 @@ router.put("/update", verifyJWT, updateAccountDetails);
 router.post("/saved/:hackathonId", verifyJWT, toggleSaveHackathon);
 router.get("/saved", verifyJWT, getSavedHackathons);
 
-// Application Tracker (user-level, individual tracking)
-router.post("/applications", verifyJWT, addApplication);
-router.put("/applications/:applicationId", verifyJWT, updateApplication);
-router.delete("/applications/:applicationId", verifyJWT, removeApplication);
-router.get("/applications", verifyJWT, getUserApplications);
-
-// Pending stage reflections (team hackathon system)
+// Pending stage reflections
 router.get("/pending-reflections", verifyJWT, getPendingReflections);
 
 export default router;
