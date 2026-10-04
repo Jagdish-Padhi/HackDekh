@@ -60,13 +60,16 @@ export async function registerUserService(payload: {
   // Send verification email via Brevo SMTP
   const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:5173';
   const verificationLink = `${frontendUrl}/verify-email?token=${rawVerificationToken}`;
-  sendEmailVerificationEmail({
-    to: user.email,
-    fullName: user.fullName,
-    verificationLink,
-  }).catch((err) => {
-    console.warn('[Email] Verification dispatch failed:', err.message);
-  });
+  try {
+    await sendEmailVerificationEmail({
+      to: user.email,
+      fullName: user.fullName,
+      verificationLink,
+    });
+    console.log([Email] Verification email dispatched to: );
+  } catch (err: any) {
+    console.error([Email] Failed to dispatch verification email to :, err.message);
+  }
 
   return createdUser;
 }
