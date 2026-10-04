@@ -53,55 +53,6 @@ Hackathon teams rarely lose because of bad ideas. They lose because the process 
 
 ---
 
-## 🏗️ Architecture
-
-HackDekh is engineered as a decoupled, production-ready stack with automated scraper pipelines, in-memory caching, rate-limited REST endpoints, and an interactive React frontend.
-
-```mermaid
-flowchart TD
-    subgraph ExternalSources["External Platforms"]
-        D1[Devfolio]
-        D2[Devpost]
-        D3[Unstop]
-        D4[MLH]
-        D5[Hack2Skill]
-    end
-
-    subgraph Ingestion["Scraper & Aggregation Layer"]
-        CRON[Background Cron Scheduler] --> SCRAPERS[Platform Scrapers]
-        D1 & D2 & D3 & D4 & D5 --> SCRAPERS
-        SCRAPERS --> FORMAT[Universal Formatter & Normalizer]
-    end
-
-    subgraph DataStorage["Persistence & Cache"]
-        FORMAT --> MONGODB[(MongoDB Database)]
-        REDIS[(Redis In-Memory Cache)]
-    end
-
-    subgraph API["Backend API Layer (Express 5 + TypeScript)"]
-        AUTH[Auth Service: JWT + Google Firebase + GitHub OAuth]
-        RL[Rate Limiters & Trust Proxy Guard]
-        TEAM_SVC[Team & Invitation Engine]
-        TRACK_SVC[Stage Tracker & Reflections]
-        HACK_SVC[Hackathon Query Service]
-    end
-
-    MONGODB <--> API
-    REDIS <--> API
-
-    subgraph Frontend["Frontend Client (React 19 + Vite)"]
-        UI_HOME[Modern Hero & Landing]
-        UI_EXPLORE[Hackathon Feed & Filter Engine]
-        UI_TEAMS[Team Workspaces & Invite Modals]
-        UI_TRACKER[Stage Milestones & Reflection Logs]
-        UI_DASH[Personal Win Analytics & Bookmarks]
-    end
-
-    API <--> Frontend
-```
-
----
-
 ## 🧩 Core Features
 
 ### 🔍 Unified Hackathon Feed
