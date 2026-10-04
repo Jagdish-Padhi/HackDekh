@@ -3,7 +3,6 @@ import { useSearchParams, useNavigate, Link } from 'react-router-dom';
 import { CheckCircle2, XCircle, Mail, ArrowRight, RefreshCw, ArrowLeft, ShieldCheck } from 'lucide-react';
 import axiosInstance from '../utils/axiosInstance';
 import { useAuth } from '../context/AuthContext';
-import DarkModeToggle from '../components/DarkModeToggle';
 
 export default function VerifyEmailPage() {
   const [searchParams] = useSearchParams();
@@ -92,7 +91,7 @@ export default function VerifyEmailPage() {
   };
 
   return (
-    <div className="relative min-h-screen w-screen overflow-hidden flex items-center justify-center p-4 bg-gradient-to-tr from-slate-100 via-sky-50 to-blue-100 dark:from-zinc-950 dark:via-zinc-900 dark:to-zinc-950">
+    <div className="relative min-h-screen w-screen overflow-hidden flex items-center justify-center p-4 bg-transparent">
       
       {/* Absolute Header Controls */}
       <div className="absolute top-4 left-4 sm:top-6 sm:left-6 z-45">
@@ -105,18 +104,19 @@ export default function VerifyEmailPage() {
         </Link>
       </div>
 
-      <div className="absolute top-4 right-4 sm:top-6 sm:right-6 z-45">
+      {/* <div className="absolute top-4 right-4 sm:top-6 sm:right-6 z-45">
         <DarkModeToggle />
-      </div>
+      </div> */}
 
       {/* Verification Card */}
       <div className="relative w-full max-w-md rounded-3xl overflow-hidden shadow-2xl border border-zinc-200/80 dark:border-zinc-800 bg-white/80 dark:bg-zinc-900/80 backdrop-blur-xl p-8 sm:p-10 z-10 text-center">
         
         {/* Brand Logo Header */}
         <div className="flex items-center justify-center gap-3 mb-6">
-          <img src="/BrandImages/HackDekh.png" alt="HackDekh Logo" className="h-10 w-10 rounded-xl object-contain" />
-          <span className="text-xl font-extrabold tracking-tight text-zinc-900 dark:text-zinc-50 font-logo">
-            HackDekh
+          <img src="/BrandImages/HackDekh.png" alt="HackDekh Logo" className="h-12 w-12 rounded-full object-contain shrink-0 drop-shadow-lg" />
+          <span className="text-2xl font-black tracking-tight font-logo flex items-center">
+            <span className="text-zinc-900 dark:text-white">Hack</span>
+            <span className="bg-gradient-to-r from-blue-500 to-indigo-500 dark:from-blue-400 dark:via-sky-400 dark:to-indigo-400 bg-clip-text text-transparent">Dekh</span>
           </span>
         </div>
 
@@ -151,7 +151,7 @@ export default function VerifyEmailPage() {
             <button
               type="button"
               onClick={() => navigate('/dashboard', { replace: true })}
-              className="w-full inline-flex items-center justify-center gap-2 rounded-xl bg-blue-600 hover:bg-blue-500 text-white font-bold py-3 text-sm shadow-md shadow-blue-500/25 transition cursor-pointer"
+              className="btn-brand-primary rounded-xl w-full py-3 text-sm gap-2"
             >
               <span>Go to Dashboard ({countdown}s)</span>
               <ArrowRight className="w-4 h-4 animate-pulse" />
@@ -177,7 +177,7 @@ export default function VerifyEmailPage() {
               <button
                 type="button"
                 onClick={() => setStatus('resend')}
-                className="w-full py-2.5 px-4 rounded-xl bg-blue-600 hover:bg-blue-500 text-white font-semibold text-sm transition shadow-md shadow-blue-500/25 cursor-pointer"
+                className="btn-brand-primary rounded-xl w-full py-2.5 px-4 text-sm font-semibold"
               >
                 Request a New Link
               </button>
@@ -230,7 +230,7 @@ export default function VerifyEmailPage() {
               <button
                 type="submit"
                 disabled={resending}
-                className="w-full py-2.5 px-4 rounded-xl bg-blue-600 hover:bg-blue-500 disabled:opacity-50 text-white font-semibold text-sm shadow-md shadow-blue-500/25 transition flex items-center justify-center gap-2 cursor-pointer"
+                className="btn-brand-primary rounded-xl w-full py-2.5 px-4 text-sm font-semibold"
               >
                 {resending ? (
                   <>
