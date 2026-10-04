@@ -1,6 +1,6 @@
-import { useEffect, useMemo, useState, useRef } from 'react';
-import { Link, Navigate, useNavigate, useSearchParams, useLocation } from 'react-router-dom';
-import { ArrowLeft, ShieldCheck, Eye, EyeOff, Github } from 'lucide-react';
+﻿import { useEffect, useMemo, useState, useRef } from 'react';
+import { Link, useNavigate, useSearchParams, useLocation } from 'react-router-dom';
+import { ArrowLeft, ShieldCheck, Eye, EyeOff, Github, Mail, ExternalLink, RefreshCw, X } from 'lucide-react';
 import { signInWithGooglePopup } from '../config/firebase';
 import { useAuth } from '../context/AuthContext';
 import LogoTransition from '../components/LogoAnimation';
@@ -39,6 +39,12 @@ const LoginPage = () => {
   const [apiCompleted, setApiCompleted] = useState(false);
   const [animationCompleted, setAnimationCompleted] = useState(false);
 
+  // Email verification modal states
+  const [showVerifyModal, setShowVerifyModal] = useState(false);
+  const [registeredEmail, setRegisteredEmail] = useState('');
+  const [isResending, setIsResending] = useState(false);
+  const [resendStatus, setResendStatus] = useState<{ type: 'success' | 'error'; message: string } | null>(null);
+
   const returnTo = useMemo(() => searchParams.get('returnTo') || '/', [searchParams]);
 
   // Sync mode with route changes
@@ -50,8 +56,9 @@ const LoginPage = () => {
     setSuccessMessage('');
   }, [location.pathname]);
 
+  // Redirect if already authenticated
   useEffect(() => {
-    if (!isLoading && isAuthenticated && !transitioning && !loading) {
+    if (isAuthenticated && !isLoading && !transitioning && !loading) {
       navigate(returnTo, { replace: true });
     }
   }, [isAuthenticated, isLoading, navigate, returnTo, transitioning, loading]);
@@ -64,7 +71,8 @@ const LoginPage = () => {
         setPendingDestination(null);
         setIsLogin(true);
         setDirection(-1);
-        setSuccessMessage('Account created successfully! Please sign in.');
+        setShowVerifyModal(true);
+        setSuccessMessage('Account created! Please check your email to verify.');
         setLoading(false);
         setApiCompleted(false);
         setAnimationCompleted(false);
@@ -85,98 +93,69 @@ const LoginPage = () => {
   useEffect(() => {
     const timer = setTimeout(() => {
       if (isLogin) {
-        emailRef.current?.focus();
+        if (!email) {
+          emailRef.current?.focus();
+        }
       } else {
-        usernameRef.current?.focus();
+        if (!username) {
+          usernameRef.current?.focus();
+        } else if (!email) {
+          emailRef.current?.focus();
+        }
       }
-    }, 120);
+    }, 50);
+
     return () => clearTimeout(timer);
   }, [isLogin]);
 
-  const handleForgotPassword = () => {
-    setError('');
-    setSuccessMessage('');
-    if (!email) {
-      setError('Please enter your email address first to reset your password.');
-      return;
-    }
-    setSuccessMessage(`A password reset link has been sent to ${email} (mocked).`);
-  };
-
+  // Google OAuth flow
   const handleGoogleLogin = async () => {
     setError('');
     setSuccessMessage('');
     setLoading(true);
+    setPendingDestination(returnTo);
+    setTransitioning(true);
 
     try {
       const idToken = await signInWithGooglePopup();
-      setLoading(true);
-      const res = await axiosInstance.post('/users/auth/google', { idToken });
+      const response = await axiosInstance.post('/users/auth/google', { idToken });
+      const { accessToken, refreshToken, user } = response.data.data;
 
-      if (res.data?.success && res.data?.data) {
-        const { accessToken, refreshToken, user: loggedUser } = res.data.data;
-        localStorage.setItem('accessToken', accessToken);
-        localStorage.setItem('refreshToken', refreshToken);
-        updateUser(loggedUser);
-        setSuccessMessage('Signed in with Google successfully!');
-        setPendingDestination(returnTo);
-        setApiCompleted(true);
-      } else {
-        throw new Error('Invalid response received from server.');
-      }
+      localStorage.setItem('accessToken', accessToken);
+      localStorage.setItem('refreshToken', refreshToken);
+      updateUser(user);
+
+      setApiCompleted(true);
     } catch (err: any) {
-      console.error('Google Auth error:', err);
-      if (err.code === 'auth/popup-closed-by-user') {
-        setError('Google sign-in popup was closed before completing.');
-      } else if (err.code === 'auth/cancelled-popup-request') {
-        // Ignored duplicate popup click
-      } else {
-        setError(err.response?.data?.message || err.message || 'Failed to sign in with Google.');
-      }
-    } finally {
+      setError(err.response?.data?.message || err.message || 'Google authentication failed');
       setLoading(false);
+      setTransitioning(false);
+      setPendingDestination(null);
     }
   };
 
+  // GitHub OAuth flow
   const handleGithubLogin = () => {
     setError('');
-    setSuccessMessage('');
     const clientId = import.meta.env.VITE_GITHUB_CLIENT_ID;
-    
     if (!clientId) {
-      setError('GitHub OAuth is not configured. Set VITE_GITHUB_CLIENT_ID in your .env.local file.');
+      setError('GitHub login is not configured. Missing VITE_GITHUB_CLIENT_ID.');
       return;
     }
 
-    const redirectUri = encodeURIComponent(window.location.origin + '/auth/github/callback');
-    window.location.href = `https://github.com/login/oauth/authorize?client_id=${clientId}&redirect_uri=${redirectUri}&scope=user:email`;
+    sessionStorage.setItem('oauth_return_to', returnTo);
+
+    const redirectUri = `${window.location.origin}/auth/callback`;
+    const scope = 'read:user user:email';
+    const state = Math.random().toString(36).substring(7);
+    sessionStorage.setItem('oauth_state', state);
+
+    window.location.href = `https://github.com/login/oauth/authorize?client_id=${clientId}&redirect_uri=${encodeURIComponent(
+      redirectUri
+    )}&scope=${encodeURIComponent(scope)}&state=${state}`;
   };
 
-  if (isLoading) {
-    return (
-      <div className="relative flex min-h-screen w-screen items-center justify-center overflow-hidden px-4 py-8 bg-zinc-50 dark:bg-zinc-950">
-        <div className="relative w-full max-w-md rounded-[2rem] border border-zinc-200/80 bg-white/90 p-6 shadow-[0_24px_80px_-30px_rgba(15,23,42,0.22)] backdrop-blur-xl dark:border-zinc-800 dark:bg-zinc-950/85 sm:p-8">
-          <div className="mb-5 flex items-center gap-3">
-            <div className="flex h-11 w-11 items-center justify-center rounded-2xl border border-blue-500/20 bg-blue-500/10 text-blue-600 dark:text-blue-300">
-              <ShieldCheck className="h-5 w-5" />
-            </div>
-            <div>
-              <p className="text-sm font-semibold text-zinc-900 dark:text-zinc-100">Restoring your session</p>
-              <p className="text-sm text-zinc-500 dark:text-zinc-400">Checking secure access…</p>
-            </div>
-          </div>
-          <div className="h-2 overflow-hidden rounded-full bg-zinc-100 dark:bg-zinc-800">
-            <div className="h-full w-3/5 animate-pulse rounded-full bg-linear-to-r from-blue-600 via-cyan-500 to-blue-400" />
-          </div>
-        </div>
-      </div>
-    );
-  }
-
-  if (isAuthenticated && !transitioning) {
-    return <Navigate to={returnTo} replace />;
-  }
-
+  // Form submit handler
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
@@ -207,6 +186,7 @@ const LoginPage = () => {
           fullName,
           password,
         });
+        setRegisteredEmail(email);
         setApiCompleted(true);
       } catch (err: any) {
         setError(err.response?.data?.message || 'Signup failed');
@@ -217,8 +197,27 @@ const LoginPage = () => {
     }
   };
 
-  const handleTransitionComplete = () => {
-    setAnimationCompleted(true);
+  // Resend verification link
+  const handleResendVerification = async () => {
+    if (!registeredEmail) return;
+    setIsResending(true);
+    setResendStatus(null);
+    try {
+      const res = await axiosInstance.post('/users/resend-verification', {
+        email: registeredEmail,
+      });
+      setResendStatus({
+        type: 'success',
+        message: res.data?.message || 'Verification email sent! Check your inbox.',
+      });
+    } catch (err: any) {
+      setResendStatus({
+        type: 'error',
+        message: err.response?.data?.message || 'Failed to resend verification email.',
+      });
+    } finally {
+      setIsResending(false);
+    }
   };
 
   const handleToggleMode = (targetLogin: boolean) => {
@@ -228,6 +227,10 @@ const LoginPage = () => {
     setDirection(targetLogin ? -1 : 1);
     setIsLogin(targetLogin);
     navigate(targetLogin ? `/login?returnTo=${encodeURIComponent(returnTo)}` : `/signup?returnTo=${encodeURIComponent(returnTo)}`, { replace: true });
+  };
+
+  const handleForgotPassword = () => {
+    setError('Password reset instructions will be sent if an account with that email exists.');
   };
 
   return (
@@ -248,78 +251,53 @@ const LoginPage = () => {
         <DarkModeToggle />
       </div>
 
-      {/* Success Redirect Transitions */}
-      {transitioning && (
-        <div className="fixed inset-0 z-50 flex flex-col items-center justify-center bg-white/60 dark:bg-zinc-950/60 backdrop-blur-xl">
-          <LogoTransition width={550} height={330} onComplete={handleTransitionComplete} />
-          <div className="text-center mt-6 flex flex-col items-center gap-2">
-            <p className="text-lg font-bold text-zinc-900 dark:text-zinc-50 tracking-wide uppercase">
-              {apiCompleted 
-                ? (pendingDestination === 'login-mode' ? 'Account Created' : "You're signed in")
-                : (isLogin ? 'Authenticating' : 'Creating Account')
-              }
-            </p>
-            <div className="flex items-center gap-2 mt-1.5 justify-center">
-              <p className="text-sm font-medium text-zinc-650 dark:text-zinc-400">
-                {apiCompleted
-                  ? (pendingDestination === 'login-mode' ? 'Taking you to sign in…' : 'Preparing your workspace…')
-                  : (isLogin ? 'Verifying secure credentials…' : 'Setting up your profile…')
-                }
-              </p>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* Main Centered Auth Modal Card */}
-      <div className="relative w-full max-w-6xl h-[90vh] max-h-[640px] rounded-[2.5rem] overflow-hidden bg-white dark:bg-zinc-900 border border-zinc-200/60 dark:border-zinc-800 shadow-[0_32px_96px_-24px_rgba(15,23,42,0.22)] dark:shadow-[0_32px_96px_-24px_rgba(0,0,0,0.55)] flex flex-col lg:flex-row">
+      {/* Main Container */}
+      <div className="relative w-full max-w-4xl h-[560px] sm:h-[600px] rounded-3xl overflow-hidden shadow-2xl border border-zinc-200/80 dark:border-zinc-800 bg-white/70 dark:bg-zinc-900/70 backdrop-blur-xl flex flex-col md:flex-row z-10">
         
-        {/* Left side: Premium theme-aware marketing panel (Product Story Only) */}
-        <div className="hidden lg:flex lg:w-[48%] relative bg-zinc-50/50 dark:bg-zinc-950 text-zinc-900 dark:text-white flex-col items-center justify-center p-8 xl:p-10 overflow-hidden border-r border-zinc-200/60 dark:border-zinc-800/20 gap-8">
-          {/* Ambient Glows - theme adaptive opacity */}
-          <div className="pointer-events-none absolute -top-40 -right-40 h-[600px] w-[600px] rounded-full bg-blue-500/6 dark:bg-blue-600/12 blur-[120px]" />
-          <div className="pointer-events-none absolute -bottom-40 -left-40 h-[600px] w-[600px] rounded-full bg-indigo-500/6 dark:bg-indigo-600/12 blur-[120px]" />
-          <div className="pointer-events-none absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 h-[500px] w-[500px] rounded-full bg-sky-500/4 dark:bg-sky-500/8 blur-[130px]" />
+        {/* Left Story Side */}
+        <div className="hidden md:flex md:w-1/2 relative bg-zinc-950 flex-col justify-between p-6 sm:p-8 text-white overflow-hidden border-r border-zinc-800/80">
+          <div className="absolute -top-24 -left-24 w-72 h-72 bg-blue-600/20 rounded-full blur-3xl pointer-events-none" />
+          <div className="absolute -bottom-24 -right-24 w-72 h-72 bg-indigo-600/20 rounded-full blur-3xl pointer-events-none" />
 
-          {/* Centered Logo Branding Header */}
-          <div className="w-full relative z-10 flex flex-col items-center justify-center gap-2">
-            <img src="/BrandImages/HackDekh.png" alt="HackDekh Logo" className="h-10 w-10 rounded-2xl object-contain shadow-lg border border-zinc-200/50 dark:border-white/10" />
-            <div className="flex items-center">
-              <span className="text-xl font-extrabold tracking-tight text-zinc-900 dark:text-white font-logo">HackDekh</span>
+          <div className="relative z-10 flex items-center gap-2.5">
+            <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-blue-600 font-black text-white shadow-md shadow-blue-500/25">
+              H
             </div>
+            <span className="text-lg font-black tracking-tight text-white">HackDekh</span>
           </div>
 
-          {/* Product Story Animation Display - Direct layout, no nested border container */}
-          <div className="relative z-10 w-full max-w-[420px] mx-auto flex items-center justify-center">
+          <div className="relative z-10 my-auto py-2">
             <ProductStoryAnimation />
           </div>
+
+          <div className="relative z-10 flex items-center gap-2 text-xs text-zinc-400">
+            <ShieldCheck className="h-4 w-4 text-emerald-400" />
+            <span>End-to-end Hackathon Workspace</span>
+          </div>
         </div>
 
-        {/* Right side: White/zinc form panel */}
-        <div className="w-full lg:w-[52%] bg-white dark:bg-zinc-900 flex flex-col justify-center p-6 sm:px-10 sm:py-8 lg:px-8 lg:py-6 xl:px-10 xl:py-8 overflow-hidden relative">
-          <div className="mx-auto w-full max-w-[390px]">
+        {/* Right Form Side */}
+        <div className="w-full md:w-1/2 flex flex-col justify-center px-6 sm:px-10 py-6 sm:py-8 relative overflow-y-auto bg-white/40 dark:bg-zinc-900/40">
+          <div className="w-full max-w-sm mx-auto">
             
-            <AnimatePresence mode="wait" initial={false}>
+            <AnimatePresence mode="wait" custom={direction}>
               <motion.div
                 key={isLogin ? 'login' : 'signup'}
-                initial={{ opacity: 0, x: direction === 1 ? 50 : -50 }}
+                custom={direction}
+                initial={{ opacity: 0, x: direction * 40 }}
                 animate={{ opacity: 1, x: 0 }}
-                exit={{ opacity: 0, x: direction === 1 ? -50 : 50 }}
-                transition={{ duration: 0.22, ease: 'easeInOut' }}
-                className="w-full"
+                exit={{ opacity: 0, x: direction * -40 }}
+                transition={{ duration: 0.25, ease: 'easeOut' }}
               >
-                {/* Form header */}
-                <div>
-                  <span className="inline-flex items-center gap-1 rounded-full border border-emerald-500/30 bg-emerald-500/10 dark:bg-emerald-500/20 px-3.5 py-1 text-[10px] font-black uppercase tracking-wider text-emerald-600 dark:text-emerald-400 shadow-xs animate-pulse-blink mb-2">
-                    100% Free • Built for us! ❤️
-                  </span>
-                  <h2 className="text-2xl font-black tracking-tight text-zinc-950 dark:text-white">
-                    {isLogin ? 'Welcome back' : 'Create free account'}
+                {/* Header title */}
+                <div className="mb-4 text-center">
+                  <h2 className="text-2xl font-black tracking-tight text-zinc-900 dark:text-white">
+                    {isLogin ? 'Welcome back' : 'Create an account'}
                   </h2>
-                  <p className="mt-0.5 text-xs text-zinc-500 dark:text-zinc-400 leading-normal">
-                    {isLogin 
-                      ? 'Sign in to your HackDekh dashboard workspace'
-                      : 'Join now to start managing your hackathon lifecycle'}
+                  <p className="mt-1 text-xs text-zinc-500 dark:text-zinc-400">
+                    {isLogin
+                      ? 'Enter your credentials to access your workspace'
+                      : 'Join HackDekh to discover and manage hackathons'}
                   </p>
                 </div>
 
@@ -330,7 +308,7 @@ const LoginPage = () => {
                   </div>
                 )}
 
-                {successMessage && (
+                {successMessage && !showVerifyModal && (
                   <div className="mt-3 rounded-xl border border-green-500/25 bg-green-500/8 px-3.5 py-2 text-xs font-semibold text-green-600 dark:text-green-400">
                     {successMessage}
                   </div>
@@ -343,36 +321,38 @@ const LoginPage = () => {
                       <span className="relative inline-flex rounded-full h-2 w-2 bg-amber-500"></span>
                     </span>
                     <span className="font-semibold tracking-tight">
-                      Waking up production server... please hang tight!
+                      Backend is waking up (cold start)... Requests might take up to ~30s.
                     </span>
                   </div>
                 )}
 
-                {/* Form elements */}
-                <form onSubmit={handleSubmit} className={`mt-4 ${isLogin ? 'space-y-3.5' : 'space-y-2'}`}>
+                {/* Form fields */}
+                <form onSubmit={handleSubmit} className="mt-3.5 space-y-2.5">
                   {!isLogin && (
                     <>
                       <div>
-                        <label className="mb-0.5 block text-[10px] font-bold uppercase tracking-wider text-zinc-500 dark:text-zinc-400">Username</label>
+                        <label className="block text-[10px] font-bold uppercase tracking-wider text-zinc-500 dark:text-zinc-400 mb-0.5">Username</label>
                         <input
-                          type="text"
                           ref={usernameRef}
-                          placeholder="dev_runner"
+                          type="text"
+                          placeholder="johndoe"
                           className="w-full rounded-xl border border-zinc-200 bg-zinc-50/50 px-3.5 py-2 text-sm text-zinc-900 placeholder:text-zinc-400 shadow-xs transition duration-200 focus:border-blue-500 focus:bg-white focus:outline-none focus:ring-4 focus:ring-blue-500/10 dark:border-zinc-800 dark:bg-zinc-950 dark:text-zinc-100 dark:placeholder:text-zinc-500 dark:focus:border-blue-500 dark:focus:bg-zinc-900 dark:focus:ring-blue-500/20"
                           value={username}
                           onChange={e => setUsername(e.target.value)}
+                          autoComplete="username"
                           required
                         />
                       </div>
-                      
+
                       <div>
-                        <label className="mb-0.5 block text-[10px] font-bold uppercase tracking-wider text-zinc-500 dark:text-zinc-400">Full Name</label>
+                        <label className="block text-[10px] font-bold uppercase tracking-wider text-zinc-500 dark:text-zinc-400 mb-0.5">Full Name</label>
                         <input
                           type="text"
-                          placeholder="Alex Johnson"
+                          placeholder="John Doe"
                           className="w-full rounded-xl border border-zinc-200 bg-zinc-50/50 px-3.5 py-2 text-sm text-zinc-900 placeholder:text-zinc-400 shadow-xs transition duration-200 focus:border-blue-500 focus:bg-white focus:outline-none focus:ring-4 focus:ring-blue-500/10 dark:border-zinc-800 dark:bg-zinc-950 dark:text-zinc-100 dark:placeholder:text-zinc-500 dark:focus:border-blue-500 dark:focus:bg-zinc-900 dark:focus:ring-blue-500/20"
                           value={fullName}
                           onChange={e => setFullName(e.target.value)}
+                          autoComplete="name"
                           required
                         />
                       </div>
@@ -380,13 +360,11 @@ const LoginPage = () => {
                   )}
 
                   <div>
-                    <label className="mb-0.5 block text-[10px] font-bold uppercase tracking-wider text-zinc-500 dark:text-zinc-400">
-                      Email Address
-                    </label>
+                    <label className="block text-[10px] font-bold uppercase tracking-wider text-zinc-500 dark:text-zinc-400 mb-0.5">Email address</label>
                     <input
-                      type="email"
                       ref={emailRef}
-                      placeholder="you@example.com"
+                      type="email"
+                      placeholder="you@domain.com"
                       className="w-full rounded-xl border border-zinc-200 bg-zinc-50/50 px-3.5 py-2 text-sm text-zinc-900 placeholder:text-zinc-400 shadow-xs transition duration-200 focus:border-blue-500 focus:bg-white focus:outline-none focus:ring-4 focus:ring-blue-500/10 dark:border-zinc-800 dark:bg-zinc-950 dark:text-zinc-100 dark:placeholder:text-zinc-500 dark:focus:border-blue-500 dark:focus:bg-zinc-900 dark:focus:ring-blue-500/20"
                       value={email}
                       onChange={e => setEmail(e.target.value)}
@@ -505,7 +483,7 @@ const LoginPage = () => {
                       Don’t have an account?{' '}
                       <button
                         onClick={() => handleToggleMode(false)}
-                        className="font-bold text-blue-600 hover:text-blue-500 dark:text-blue-400 dark:hover:text-blue-300 transition"
+                        className="font-bold text-blue-600 hover:text-blue-500 dark:text-blue-400 dark:hover:text-blue-300 transition cursor-pointer"
                       >
                         Sign up
                       </button>
@@ -515,7 +493,7 @@ const LoginPage = () => {
                       Already have an account?{' '}
                       <button
                         onClick={() => handleToggleMode(true)}
-                        className="font-bold text-blue-600 hover:text-blue-500 dark:text-blue-400 dark:hover:text-blue-300 transition"
+                        className="font-bold text-blue-600 hover:text-blue-500 dark:text-blue-400 dark:hover:text-blue-300 transition cursor-pointer"
                       >
                         Log in
                       </button>
@@ -529,6 +507,107 @@ const LoginPage = () => {
         </div>
 
       </div>
+
+      {/* Verification Email Sent Modal */}
+      <AnimatePresence>
+        {showVerifyModal && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70 backdrop-blur-sm"
+          >
+            <motion.div
+              initial={{ scale: 0.92, opacity: 0, y: 20 }}
+              animate={{ scale: 1, opacity: 1, y: 0 }}
+              exit={{ scale: 0.95, opacity: 0, y: 10 }}
+              className="w-full max-w-md bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-2xl p-6 sm:p-8 shadow-2xl relative text-center"
+            >
+              {/* Close Button */}
+              <button
+                onClick={() => setShowVerifyModal(false)}
+                className="absolute top-4 right-4 text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-200 transition cursor-pointer"
+              >
+                <X className="w-5 h-5" />
+              </button>
+
+              {/* Glowing Icon */}
+              <div className="w-16 h-16 bg-blue-500/10 border border-blue-500/20 rounded-2xl flex items-center justify-center mx-auto mb-4 text-blue-600 dark:text-blue-400">
+                <Mail className="w-8 h-8" />
+              </div>
+
+              <h3 className="text-xl font-bold text-zinc-900 dark:text-white mb-2">
+                Check Your Email
+              </h3>
+
+              <p className="text-sm text-zinc-600 dark:text-zinc-400 mb-1">
+                We sent a verification link to:
+              </p>
+              <div className="text-sm font-semibold text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-950/40 border border-blue-200 dark:border-blue-900/50 rounded-lg py-1.5 px-3 mb-4 inline-block break-all">
+                {registeredEmail}
+              </div>
+
+              <p className="text-xs text-zinc-500 dark:text-zinc-400 mb-6 leading-relaxed">
+                Click the confirmation link in the email to activate your account.
+                <span className="block mt-1 text-amber-600 dark:text-amber-400 font-medium">
+                  Don&apos;t see it? Please check your Spam or Promotions folder!
+                </span>
+              </p>
+
+              {resendStatus && (
+                <div
+                  className={`p-2.5 rounded-lg text-xs mb-4 ${
+                    resendStatus.type === 'success'
+                      ? 'bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800/50'
+                      : 'bg-rose-50 dark:bg-rose-950/40 text-rose-700 dark:text-rose-300 border border-rose-200 dark:border-rose-800/50'
+                  }`}
+                >
+                  {resendStatus.message}
+                </div>
+              )}
+
+              <div className="space-y-2.5">
+                {registeredEmail.includes('@gmail.com') ? (
+                  <a
+                    href="https://mail.google.com"
+                    target="_blank"
+                    rel="noreferrer"
+                    className="w-full inline-flex items-center justify-center gap-2 py-2.5 px-4 rounded-xl bg-blue-600 hover:bg-blue-500 text-white text-sm font-semibold transition shadow-md shadow-blue-500/20"
+                  >
+                    Open Gmail
+                    <ExternalLink className="w-4 h-4" />
+                  </a>
+                ) : null}
+
+                <button
+                  type="button"
+                  onClick={handleResendVerification}
+                  disabled={isResending}
+                  className="w-full inline-flex items-center justify-center gap-2 py-2.5 px-4 rounded-xl border border-zinc-300 dark:border-zinc-700 hover:bg-zinc-100 dark:hover:bg-zinc-800 text-zinc-800 dark:text-zinc-200 text-sm font-medium transition disabled:opacity-50 cursor-pointer"
+                >
+                  {isResending ? (
+                    <>
+                      <RefreshCw className="w-4 h-4 animate-spin" />
+                      Resending...
+                    </>
+                  ) : (
+                    'Resend Verification Link'
+                  )}
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => setShowVerifyModal(false)}
+                  className="text-xs text-zinc-500 dark:text-zinc-400 hover:text-zinc-800 dark:hover:text-zinc-200 pt-2 transition cursor-pointer"
+                >
+                  Proceed to Sign In
+                </button>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
     </div>
   );
 };
