@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState, useRef } from 'react';
 import { Link, Navigate, useNavigate, useSearchParams, useLocation } from 'react-router-dom';
 import { ArrowLeft, ShieldCheck, Eye, EyeOff, Github } from 'lucide-react';
+import { signInWithGooglePopup } from '../config/firebase';
 import { useAuth } from '../context/AuthContext';
 import LogoTransition from '../components/LogoAnimation';
 import axiosInstance from '../utils/axiosInstance';
@@ -12,7 +13,7 @@ const LoginPage = () => {
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
   const location = useLocation();
-  const { login, isAuthenticated, isLoading, isBackendWarming } = useAuth();
+  const { login, isAuthenticated, isLoading, isBackendWarming, updateUser } = useAuth();
 
   // Mode state: login or signup, synced with location path
   const [isLogin, setIsLogin] = useState(location.pathname !== '/signup');
@@ -102,9 +103,39 @@ const LoginPage = () => {
     setSuccessMessage(`A password reset link has been sent to ${email} (mocked).`);
   };
 
-  const handleGoogleLogin = () => {
+  const handleGoogleLogin = async () => {
     setError('');
-    setSuccessMessage('Google authentication process initialized (mocked).');
+    setSuccessMessage('');
+    setLoading(true);
+
+    try {
+      const idToken = await signInWithGooglePopup();
+      setLoading(true);
+      const res = await axiosInstance.post('/users/auth/google', { idToken });
+
+      if (res.data?.success && res.data?.data) {
+        const { accessToken, refreshToken, user: loggedUser } = res.data.data;
+        localStorage.setItem('accessToken', accessToken);
+        localStorage.setItem('refreshToken', refreshToken);
+        updateUser(loggedUser);
+        setSuccessMessage('Signed in with Google successfully!');
+        setPendingDestination(returnTo);
+        setApiCompleted(true);
+      } else {
+        throw new Error('Invalid response received from server.');
+      }
+    } catch (err: any) {
+      console.error('Google Auth error:', err);
+      if (err.code === 'auth/popup-closed-by-user') {
+        setError('Google sign-in popup was closed before completing.');
+      } else if (err.code === 'auth/cancelled-popup-request') {
+        // Ignored duplicate popup click
+      } else {
+        setError(err.response?.data?.message || err.message || 'Failed to sign in with Google.');
+      }
+    } finally {
+      setLoading(false);
+    }
   };
 
   const handleGithubLogin = () => {

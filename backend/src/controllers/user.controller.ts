@@ -6,6 +6,7 @@ import {
   registerUserService,
   loginUserService,
   githubAuthService,
+  googleAuthService,
   searchUsersService,
   generateAccessAndRefreshTokens,
 } from "../services/user.service.ts";
@@ -64,7 +65,7 @@ export const refreshAccessToken = asyncHandler(async (req: any, res: any) => {
     const decodedToken = jwt.verify(
       incomingRefreshToken,
       process.env.REFRESH_TOKEN_SECRET || "fallback_refresh_secret_32_chars_minimum"
-       ) as any;
+     ) as any;
 
     const user = await User.findById(decodedToken?._id);
     if (!user || incomingRefreshToken !== user.refreshToken) {
@@ -102,7 +103,6 @@ export const changeCurrentPassword = asyncHandler(async (req: any, res: any) => 
     throw new ApiError(400, "Invalid old password!");
   }
 
-
   user.password = newPassword;
   await user.save({ validateBeforeSave: false });
 
@@ -124,7 +124,7 @@ export const updateAccountDetails = asyncHandler(async (req: any, res: any) => {
   }
 
   const updateFields: any = {};
-  if (fullName) updateFields.fullName = fullName;
+  if (fullName ) updateFields.fullName = fullName;
   if (email) updateFields.email = email;
 
   const user = await User.findByIdAndUpdate(
@@ -196,6 +196,22 @@ export const githubAuth = asyncHandler(async (req: any, res: any) => {
         200,
         { user, accessToken, refreshToken },
         "User logged in via GitHub successfully!"
+      )
+    );
+});
+
+export const googleAuth = asyncHandler(async (req: any, res: any) => {
+  const { idToken } = req.body;
+  const { user, accessToken, refreshToken } = await googleAuthService(idToken);
+  return res
+    .status(200)
+    .cookie("accessToken", accessToken, cookieOptions)
+    .cookie("refreshToken", refreshToken, cookieOptions)
+    .json(
+      new ApiResponse(
+        200,
+        { user, accessToken, refreshToken },
+        "User logged in via Google Firebase successfully!"
       )
     );
 });

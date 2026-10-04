@@ -11,6 +11,7 @@ import {
   getSavedHackathons,
   getPendingReflections,
   githubAuth,
+  googleAuth,
   searchUsers,
 } from "../controllers/user.controller.ts";
 import { verifyJWT } from "../middlewares/auth.middleware.ts";
@@ -21,6 +22,7 @@ const router = Router();
 router.post("/register", authRateLimiter, registerUser);
 router.post("/login", authRateLimiter, loginUser);
 router.post("/auth/github", authRateLimiter, githubAuth);
+router.post("/auth/google", authRateLimiter, googleAuth);
 router.post("/logout", verifyJWT, logoutUser);
 router.post("/refresh", authRateLimiter, refreshAccessToken);
 router.get("/me", verifyJWT, getCurrentUser);
