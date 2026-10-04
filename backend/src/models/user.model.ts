@@ -32,6 +32,40 @@ const userSchema = new mongoose.Schema({
         required: [true, "Password is required"],
     },
 
+    avatar: {
+        type: String,
+        default: '',
+    },
+
+    role: {
+        type: String,
+        enum: ['hacker', 'organizer', 'sponsor', 'judge', 'admin'],
+        default: 'hacker',
+    },
+
+    authProvider: {
+        type: String,
+        enum: ['local', 'google', 'github'],
+        default: 'local',
+    },
+
+    googleId: {
+        type: String,
+        sparse: true,
+        index: true,
+    },
+
+    githubId: {
+        type: String,
+        sparse: true,
+        index: true,
+    },
+
+    isEmailVerified: {
+        type: Boolean,
+        default: false,
+    },
+
     refreshToken: {
         type: String,
     },
@@ -52,7 +86,7 @@ userSchema.methods.isPasswordCorrect = async function (password: string): Promis
 };
 
 userSchema.methods.generateAccessToken = function (): string {
-    const secret = process.env.ACCESS_TOKEN_SECRET  || "fallback_access_secret_32_chars_minimum";
+    const secret = process.env.ACCESS_TOKEN_SECRET || "fallback_access_secret_32_chars_minimum";
     const expiresIn = process.env.ACCESS_TOKEN_EXPIRY || "1d";
     return jwt.sign(
         {
@@ -60,6 +94,9 @@ userSchema.methods.generateAccessToken = function (): string {
             email: this.email,
             username: this.username,
             fullName: this.fullName,
+            role: this.role || 'hacker',
+            authProvider: this.authProvider || 'local',
+            avatar: this.avatar || '',
         },
         secret,
         ({ expiresIn: expiresIn } as any)
