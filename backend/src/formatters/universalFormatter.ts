@@ -1,5 +1,5 @@
 import formatDevfolio from "./devfolioFormatter.ts";
-import formatUnstop from "./unstopFormat.ts";
+import formatUnstop from "./unstopFormatter.ts";
 import formatDevpost from "./devpostFormatter.ts";
 import formatMLH from "./mlhFormatter.ts";
 import formatHack2Skill from "./hack2skillFormatter.ts";
