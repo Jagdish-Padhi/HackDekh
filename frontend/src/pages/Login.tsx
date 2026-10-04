@@ -32,10 +32,6 @@ const LoginPage = () => {
   const [error, setError] = useState('');
   const [successMessage, setSuccessMessage] = useState('');
   const [loading, setLoading] = useState(false);
-  const [transitioning, setTransitioning] = useState(false);
-  const [pendingDestination, setPendingDestination] = useState<string | null>(null);
-  const [apiCompleted, setApiCompleted] = useState(false);
-  const [animationCompleted, setAnimationCompleted] = useState(false);
 
   // Email verification modal states
   const [showVerifyModal, setShowVerifyModal] = useState(false);
@@ -56,23 +52,10 @@ const LoginPage = () => {
 
   // Redirect if already authenticated
   useEffect(() => {
-    if (isAuthenticated && !isLoading && !transitioning && !loading) {
+    if (isAuthenticated && !isLoading) {
       navigate(returnTo, { replace: true });
     }
-  }, [isAuthenticated, isLoading, navigate, returnTo, transitioning, loading]);
-
-  // Sync animation + API parallel completions for login landing
-  useEffect(() => {
-    if (apiCompleted && animationCompleted) {
-      const destination = pendingDestination || returnTo;
-      setTransitioning(false);
-      setPendingDestination(null);
-      setLoading(false);
-      setApiCompleted(false);
-      setAnimationCompleted(false);
-      navigate(destination, { replace: true });
-    }
-  }, [apiCompleted, animationCompleted, pendingDestination, returnTo, navigate]);
+  }, [isAuthenticated, isLoading, navigate, returnTo]);
 
   // Auto-focus first empty field on mode toggling
   useEffect(() => {
@@ -98,8 +81,6 @@ const LoginPage = () => {
     setError('');
     setSuccessMessage('');
     setLoading(true);
-    setPendingDestination(returnTo);
-    setTransitioning(true);
 
     try {
       const idToken = await signInWithGooglePopup();
@@ -110,12 +91,11 @@ const LoginPage = () => {
       localStorage.setItem('refreshToken', refreshToken);
       updateUser(user);
 
-      setApiCompleted(true);
+      navigate(returnTo, { replace: true });
     } catch (err: any) {
       setError(err.response?.data?.message || err.message || 'Google authentication failed');
+    } finally {
       setLoading(false);
-      setTransitioning(false);
-      setPendingDestination(null);
     }
   };
 
@@ -148,19 +128,14 @@ const LoginPage = () => {
 
     if (isLogin) {
       setLoading(true);
-      setPendingDestination(returnTo);
-      setTransitioning(true);
-      setApiCompleted(false);
-      setAnimationCompleted(false);
 
       try {
         await login(email, password);
-        setApiCompleted(true);
+        navigate(returnTo, { replace: true });
       } catch (err: any) {
         setError(err.response?.data?.message || 'Login failed');
+      } finally {
         setLoading(false);
-        setTransitioning(false);
-        setPendingDestination(null);
       }
     } else {
       // Direct registration submission with instant modal feedback
@@ -440,9 +415,9 @@ const LoginPage = () => {
                   <button
                     type="submit"
                     className="btn-brand-primary rounded-xl w-full py-3 text-sm gap-2 mt-2"
-                    disabled={loading || transitioning || isBackendWarming}
+                    disabled={loading || isBackendWarming}
                   >
-                    {loading || transitioning || isBackendWarming ? (
+                    {loading || isBackendWarming ? (
                       <>
                         <LogoTransition width={28} height={18} loop={true} />
                         {isBackendWarming ? 'Waking up server...' : 'Please wait...'}
@@ -468,7 +443,7 @@ const LoginPage = () => {
                   <button
                     type="button"
                     onClick={handleGoogleLogin}
-                    disabled={loading || transitioning || isBackendWarming}
+                    disabled={loading || isBackendWarming}
                     className="inline-flex items-center justify-center gap-2 rounded-lg border border-zinc-200 dark:border-zinc-800 hover:bg-zinc-50 dark:hover:bg-zinc-800/50 py-2 text-xs font-semibold text-zinc-700 dark:text-zinc-300 transition duration-200 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
                   >
                     <svg className="h-4 w-4 shrink-0" viewBox="0 0 24 24">
@@ -494,7 +469,7 @@ const LoginPage = () => {
                   <button
                     type="button"
                     onClick={handleGithubLogin}
-                    disabled={loading || transitioning || isBackendWarming}
+                    disabled={loading || isBackendWarming}
                     className="inline-flex items-center justify-center gap-2 rounded-lg border border-zinc-200 dark:border-zinc-800 hover:bg-zinc-50 dark:hover:bg-zinc-800/50 py-2 text-xs font-semibold text-zinc-700 dark:text-zinc-300 transition duration-200 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
                   >
                     <Github className="h-4 w-4 shrink-0 text-zinc-900 dark:text-white" />
