@@ -63,29 +63,16 @@ const LoginPage = () => {
     }
   }, [isAuthenticated, isLoading, navigate, returnTo, transitioning, loading]);
 
-  // Sync animation + API parallel completions for seamless page landing
+  // Sync animation + API parallel completions for login landing
   useEffect(() => {
     if (apiCompleted && animationCompleted) {
-      if (pendingDestination === 'login-mode') {
-        setTransitioning(false);
-        setPendingDestination(null);
-        setIsLogin(true);
-        setDirection(-1);
-        setShowVerifyModal(true);
-        setSuccessMessage('Account created! Please check your email to verify.');
-        setLoading(false);
-        setApiCompleted(false);
-        setAnimationCompleted(false);
-        navigate('/login', { replace: true });
-      } else {
-        const destination = pendingDestination || returnTo;
-        setTransitioning(false);
-        setPendingDestination(null);
-        setLoading(false);
-        setApiCompleted(false);
-        setAnimationCompleted(false);
-        navigate(destination, { replace: true });
-      }
+      const destination = pendingDestination || returnTo;
+      setTransitioning(false);
+      setPendingDestination(null);
+      setLoading(false);
+      setApiCompleted(false);
+      setAnimationCompleted(false);
+      navigate(destination, { replace: true });
     }
   }, [apiCompleted, animationCompleted, pendingDestination, returnTo, navigate]);
 
@@ -160,13 +147,14 @@ const LoginPage = () => {
     e.preventDefault();
     setError('');
     setSuccessMessage('');
-    setLoading(true);
-    setApiCompleted(false);
-    setAnimationCompleted(false);
 
     if (isLogin) {
+      setLoading(true);
       setPendingDestination(returnTo);
       setTransitioning(true);
+      setApiCompleted(false);
+      setAnimationCompleted(false);
+
       try {
         await login(email, password);
         setApiCompleted(true);
@@ -177,8 +165,9 @@ const LoginPage = () => {
         setPendingDestination(null);
       }
     } else {
-      setPendingDestination('login-mode');
-      setTransitioning(true);
+      // Direct registration submission with instant modal feedback
+      setLoading(true);
+
       try {
         await axiosInstance.post('/users/register', {
           username,
@@ -187,12 +176,13 @@ const LoginPage = () => {
           password,
         });
         setRegisteredEmail(email);
-        setApiCompleted(true);
+        setShowVerifyModal(true);
+        setIsLogin(true);
+        setLoading(false);
+        setSuccessMessage('Account created! Please check your email to verify.');
       } catch (err: any) {
         setError(err.response?.data?.message || 'Signup failed');
         setLoading(false);
-        setTransitioning(false);
-        setPendingDestination(null);
       }
     }
   };
@@ -234,7 +224,7 @@ const LoginPage = () => {
   };
 
   return (
-    <div className="relative h-screen w-screen overflow-hidden flex items-center justify-center p-4 bg-gradient-to-tr from-slate-100 via-sky-50 to-blue-100 dark:from-zinc-950 dark:via-zinc-900 dark:to-zinc-950">
+    <div className="relative min-h-screen w-screen overflow-hidden flex items-center justify-center p-4 bg-gradient-to-tr from-slate-100 via-sky-50 to-blue-100 dark:from-zinc-950 dark:via-zinc-900 dark:to-zinc-950">
       
       {/* Absolute Header Controls */}
       <div className="absolute top-4 left-4 sm:top-6 sm:left-6 z-45">
@@ -252,7 +242,7 @@ const LoginPage = () => {
       </div>
 
       {/* Main Container */}
-      <div className="relative w-full max-w-4xl h-[560px] sm:h-[600px] rounded-3xl overflow-hidden shadow-2xl border border-zinc-200/80 dark:border-zinc-800 bg-white/70 dark:bg-zinc-900/70 backdrop-blur-xl flex flex-col md:flex-row z-10">
+      <div className="relative w-full max-w-4xl min-h-[560px] sm:min-h-[600px] rounded-3xl overflow-hidden shadow-2xl border border-zinc-200/80 dark:border-zinc-800 bg-white/70 dark:bg-zinc-900/70 backdrop-blur-xl flex flex-col md:flex-row z-10">
         
         {/* Left Story Side */}
         <div className="hidden md:flex md:w-1/2 relative bg-zinc-950 flex-col justify-between p-6 sm:p-8 text-white overflow-hidden border-r border-zinc-800/80">

@@ -159,20 +159,21 @@ const Shell = ({ children }: MainLayoutProps) => {
         )
     }
 
-    if (!isAuthenticated) {
-        const isAuthPage = location.pathname === '/login' || location.pathname === '/signup';
+    const isAuthPage = location.pathname === '/login' || location.pathname === '/signup' || location.pathname === '/verify-email';
 
-        if (isAuthPage) {
-            return (
-                <div className="relative flex min-h-screen w-screen flex-col bg-white text-zinc-900 transition-colors duration-300 dark:bg-zinc-950 dark:text-zinc-100">
-                    <div className="pointer-events-none absolute inset-0 -z-10 app-background-light dark:hidden" />
-                    <div className="pointer-events-none absolute inset-0 -z-10 hidden app-background-dark dark:block" />
-                    <main className="w-full flex-1 flex flex-col">
-                        {children}
-                    </main>
-                </div>
-            )
-        }
+    if (isAuthPage) {
+        return (
+            <div className="relative flex min-h-screen w-screen flex-col bg-white text-zinc-900 transition-colors duration-300 dark:bg-zinc-950 dark:text-zinc-100">
+                <div className="pointer-events-none absolute inset-0 -z-10 app-background-light dark:hidden" />
+                <div className="pointer-events-none absolute inset-0 -z-10 hidden app-background-dark dark:block" />
+                <main className="w-full flex-1 flex flex-col">
+                    {children}
+                </main>
+            </div>
+        )
+    }
+
+    if (!isAuthenticated) {
 
         return (
             <div className="relative flex min-h-screen flex-col bg-white text-zinc-900 transition-colors duration-300 dark:bg-zinc-950 dark:text-zinc-100">
