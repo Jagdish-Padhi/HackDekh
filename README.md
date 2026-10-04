@@ -1,21 +1,21 @@
 <div align="center">
 
+  <br />
   <a href="https://hackdekh.jdecodes.tech/">
-    <img src="docs/assets/hackdekh-logo.svg" alt="HackDekh Logo" width="360" />
+    <img src="docs/assets/hackdekh-logo.svg" alt="HackDekh" width="400" />
   </a>
-
   <br />
   <br />
 
-  <h1>Discover Faster. Build Better. Win Together.</h1>
+  <h3>Centralizing Hackathon Ecosystem.</h3>
 
   <p>
-    <strong>The end-to-end workspace built for developers who love hackathons.</strong><br />
-    Aggregate listings, organize your teams, track stage deadlines, and compound learnings into repeatable victories.
-  </p>
-
-  <p>
-    <a href="https://hackdekh.jdecodes.tech/"><strong>Explore Live Platform »</strong></a>
+    <a href="https://hackdekh.jdecodes.tech/">Live App</a> •
+    <a href="#-overview">Overview</a> •
+    <a href="#-core-features">Features</a> •
+    <a href="#-product-preview">Preview</a> •
+    <a href="#-quick-start">Quick Start</a> •
+    <a href="#-environment-variables">Configuration</a>
   </p>
 
   <p>
@@ -25,16 +25,6 @@
     <img src="https://img.shields.io/badge/Node.js-Express_5-339933?style=flat-square&logo=node.js&logoColor=white" alt="Node.js" />
     <img src="https://img.shields.io/badge/MongoDB-Mongoose-47A248?style=flat-square&logo=mongodb&logoColor=white" alt="MongoDB" />
     <img src="https://img.shields.io/badge/Redis-Cache-DC382D?style=flat-square&logo=redis&logoColor=white" alt="Redis" />
-  </p>
-
-  <p>
-    <a href="#-overview">Overview</a> •
-    <a href="#-architecture">Architecture</a> •
-    <a href="#-core-features">Features</a> •
-    <a href="#-product-preview">Preview</a> •
-    <a href="#-quick-start">Quick Start</a> •
-    <a href="#-environment-variables">Configuration</a> •
-    <a href="#-contributing">Contributing</a>
   </p>
 
 </div>
@@ -182,17 +172,6 @@ Visit `http://localhost:5173` to explore HackDekh locally.
 - `npm run dev`: Start Vite development server
 - `npm run build`: Run TypeScript validation and create minified production bundle
 - `npm test`: Run component unit tests
-
----
-
-## 🤝 Contributing
-
-Contributions make the hackathon community stronger. Feedback, bug reports, and pull requests are warmly welcomed:
-
-1. Fork the repo and create your branch (`git checkout -b feature/amazing-feature`)
-2. Commit your changes (`git commit -m 'feat: add amazing feature'`)
-3. Push to your branch (`git push origin feature/amazing-feature`)
-4. Open a Pull Request on the `dev` branch
 
 ---
 
