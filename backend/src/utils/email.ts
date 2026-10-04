@@ -82,3 +82,56 @@ export async function sendTeamInvitationEmail(input: SendTeamInvitationEmailInpu
     text,
   });
 }
+
+interface SendEmailVerificationInput {
+  to: string;
+  fullName: string;
+  verificationLink: string;
+}
+
+// Send branded email verification message via SMTP
+export async function sendEmailVerificationEmail(input: SendEmailVerificationInput): Promise<void> {
+  const transportConfig = getTransportConfig();
+  const from = process.env.SMTP_FROM || process.env.SMTP_USER;
+
+  if (!transportConfig || !from) {
+    throw new Error('Email delivery is not configured. Please set SMTP parameters.');
+  }
+
+  const transporter = nodemailer.createTransport(transportConfig);
+  const subject = `Verify your email for ${appName}`;
+
+  const html = `
+  <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; max-width: 580px; margin: 0 auto; color: #18181b; padding: 20px;">
+    <div style="padding: 32px; border: 1px solid #e4e4e7; border-radius: 20px; background: #ffffff; box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);">
+      <div style="margin-bottom: 24px;">
+        <span style="font-size: 20px; font-weight: 800; color: #2563eb;">${appName}</span>
+      </div>
+      <h2 style="margin: 0 0 12px; font-size: 22px; font-weight: 700; color: #09090b;">Verify your email address</h2>
+      <p style="margin: 0 0 16px; font-size: 15px; line-height: 1.6; color: #52525b;">
+        Hi <strong>${input.fullName}</strong>, thanks for joining ${appName}. Please confirm your email address to activate your account.
+      </p>
+      <div style="margin: 28px 0;">
+        <a href="${input.verificationLink}" style="display: inline-block; padding: 12px 28px; border-radius: 10px; background: #2563eb; color: #ffffff; text-decoration: none; font-weight: 600; font-size: 14px;">
+          Confirm Email Address
+        </a>
+      </div>
+      <p style="margin: 0 0 10px; font-size: 13px; color: #71717a;">
+        This verification link will expire in 24 hours.
+      </p>
+      <p style="margin: 0; font-size: 12px; color: #a1a1aa; word-break: break-all;">
+        If the button above does not work, visit: <a href="${input.verificationLink}" style="color: #2563eb;">${input.verificationLink}</a>
+      </p>
+    </div>
+  </div>`;
+
+  const text = `Hi ${input.fullName},\n\nPlease confirm your email address for ${appName} by visiting:\n${input.verificationLink}\n\nThis link will expire in 24 hours.`;
+
+  await transporter.sendMail({
+    from,
+    to: input.to,
+    subject,
+    html,
+    text,
+  });
+}

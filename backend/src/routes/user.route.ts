@@ -1,6 +1,8 @@
 import { Router } from "express";
 import {
   registerUser,
+  verifyEmail,
+  resendVerificationEmail,
   loginUser,
   logoutUser,
   refreshAccessToken,
@@ -20,6 +22,8 @@ import { authRateLimiter, searchRateLimiter } from "../middlewares/rateLimiter.t
 const router = Router();
 
 router.post("/register", authRateLimiter, registerUser);
+router.post("/verify-email", authRateLimiter, verifyEmail);
+router.post("/resend-verification", authRateLimiter, resendVerificationEmail);
 router.post("/login", authRateLimiter, loginUser);
 router.post("/auth/github", authRateLimiter, githubAuth);
 router.post("/auth/google", authRateLimiter, googleAuth);
