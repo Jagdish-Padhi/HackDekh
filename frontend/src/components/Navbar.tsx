@@ -58,7 +58,7 @@ const Navbar = () => {
                     type="button"
                     onClick={() => {
                       setProfileOpen(false)
-                      navigate('/dashboard?tab=settings')
+                      navigate('/settings')
                     }}
                     className="flex w-full items-center gap-2 rounded-xl px-3 py-2 text-sm text-zinc-700 transition hover:bg-zinc-100 dark:text-zinc-200 dark:hover:bg-zinc-800"
                   >

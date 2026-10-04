@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
-import { NavLink, useLocation, useNavigate } from 'react-router-dom'
-import { BarChart3, LogOut, Menu, Moon, PanelLeftClose, PanelLeftOpen, Sun, Trophy, Users, X, Settings, Crosshair } from 'lucide-react'
+import { NavLink, useLocation, useNavigate, Link } from 'react-router-dom'
+import { BarChart3, LogOut, Menu, PanelLeftClose, PanelLeftOpen, Trophy, Users, X, Settings, Crosshair } from 'lucide-react'
 import { usePageChrome } from '../context/pageChrome'
 import { useAuth, useCache } from '../context'
 
@@ -25,7 +25,7 @@ const Sidebar = () => {
     })
     const { user, isAuthenticated, logout } = useAuth()
     const { clearCache } = useCache()
-    const [isDark, setIsDark] = useState(false)
+    // const [isDark, setIsDark] = useState(false)
 
     useEffect(() => {
         if (typeof window === 'undefined') {
@@ -40,31 +40,28 @@ const Sidebar = () => {
         return () => window.removeEventListener('resize', updateViewportMode)
     }, [])
 
-    useEffect(() => {
-        if (typeof window === 'undefined') {
-            return
-        }
+    // useEffect(() => {
+    //     if (typeof window === 'undefined') {
+    //         return
+    //     }
+    //     const initialDark = window.localStorage.getItem('theme') === 'dark'
+    //     setIsDark(initialDark)
+    //     document.documentElement.classList.toggle('dark', initialDark)
+    //     const onThemeSync = (event: Event) => {
+    //         const detail = (event as CustomEvent<'light' | 'dark'>).detail
+    //         setIsDark(detail === 'dark')
+    //     }
+    //     window.addEventListener('hackdekh-theme-change', onThemeSync)
+    //     return () => window.removeEventListener('hackdekh-theme-change', onThemeSync)
+    // }, [])
 
-        const initialDark = window.localStorage.getItem('theme') === 'dark'
-        setIsDark(initialDark)
-        document.documentElement.classList.toggle('dark', initialDark)
-
-        const onThemeSync = (event: Event) => {
-            const detail = (event as CustomEvent<'light' | 'dark'>).detail
-            setIsDark(detail === 'dark')
-        }
-
-        window.addEventListener('hackdekh-theme-change', onThemeSync)
-        return () => window.removeEventListener('hackdekh-theme-change', onThemeSync)
-    }, [])
-
-    const toggleTheme = () => {
-        const nextIsDark = !isDark
-        setIsDark(nextIsDark)
-        document.documentElement.classList.toggle('dark', nextIsDark)
-        window.localStorage.setItem('theme', nextIsDark ? 'dark' : 'light')
-        window.dispatchEvent(new CustomEvent('hackdekh-theme-change', { detail: nextIsDark ? 'dark' : 'light' }))
-    }
+    // const toggleTheme = () => {
+    //     const nextIsDark = !isDark
+    //     setIsDark(nextIsDark)
+    //     document.documentElement.classList.toggle('dark', nextIsDark)
+    //     window.localStorage.setItem('theme', nextIsDark ? 'dark' : 'light')
+    //     window.dispatchEvent(new CustomEvent('hackdekh-theme-change', { detail: nextIsDark ? 'dark' : 'light' }))
+    // }
 
     const handleLogout = async () => {
         try {
@@ -86,19 +83,23 @@ const Sidebar = () => {
         <>
             {/* Mobile logo header - fixed at top, visible on mobile */}
             <div className="fixed inset-x-0 top-0 z-90 flex items-center justify-between border-b border-zinc-200 bg-white/95 px-4 py-4 backdrop-blur-xl dark:border-zinc-800 dark:bg-zinc-950/95 lg:hidden">
-                <div className="flex items-center gap-3">
-                    <img src="/BrandImages/HackDekh.png" alt="HackDekh Logo" className="h-10 w-10 rounded-lg object-contain" />
-                    <span className="text-lg font-semibold tracking-tight text-zinc-900 dark:text-zinc-100 font-logo">HackDekh</span>
-                </div>
+                <Link to="/dashboard" className="flex items-center gap-2.5">
+                    <img src="/BrandImages/HackDekh.png" alt="HackDekh Logo" className="h-10 w-10 sm:h-11 sm:w-11 rounded-full object-contain shrink-0 drop-shadow-md" />
+                    <span className="text-lg font-extrabold tracking-tight font-logo flex items-center">
+                        <span className="text-zinc-900 dark:text-white">Hack</span>
+                        <span className="bg-gradient-to-r from-blue-500 to-indigo-500 dark:from-blue-400 dark:via-sky-400 dark:to-indigo-400 bg-clip-text text-transparent">Dekh</span>
+                    </span>
+                </Link>
                 <div className="flex items-center gap-2">
-                    <button
+                    {/* Theme button commented out */}
+                    {/* <button
                         type="button"
                         onClick={toggleTheme}
                         className="inline-flex h-9 w-9 items-center justify-center rounded-full border border-zinc-200 bg-white text-zinc-700 shadow-sm transition hover:border-blue-400 hover:text-blue-700 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-200 dark:hover:border-blue-400 dark:hover:text-blue-300"
                         aria-label={isDark ? 'Switch to light mode' : 'Switch to dark mode'}
                     >
                         {isDark ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
-                    </button>
+                    </button> */}
                     <button
                         type="button"
                         onClick={toggleSidebar}
@@ -112,23 +113,27 @@ const Sidebar = () => {
 
             {/* Desktop logo header - fixed at top, always visible */}
             <div className="hidden fixed inset-x-0 top-0 z-40 items-center gap-4 border-b border-zinc-200 bg-white/95 px-4 py-4 backdrop-blur-xl dark:border-zinc-800 dark:bg-zinc-950/95 lg:flex lg:h-16">
-                <div className="flex shrink-0 items-center gap-3">
-                    <img src="/BrandImages/HackDekh.png" alt="HackDekh Logo" className="h-10 w-10 rounded-lg object-contain" />
+                <Link to="/dashboard" className="flex shrink-0 items-center gap-2.5">
+                    <img src="/BrandImages/HackDekh.png" alt="HackDekh Logo" className="h-10 w-10 sm:h-11 sm:w-11 rounded-full object-contain shrink-0 drop-shadow-md" />
                     <div>
-                        <p className="text-base font-semibold text-zinc-900 dark:text-zinc-100 font-logo">HackDekh</p>
-                        <p className="text-xs text-zinc-500 dark:text-zinc-400">Hackathon OS</p>
+                        <div className="text-base font-extrabold tracking-tight font-logo flex items-center">
+                            <span className="text-zinc-900 dark:text-white">Hack</span>
+                            <span className="bg-gradient-to-r from-blue-500 to-indigo-500 dark:from-blue-400 dark:via-sky-400 dark:to-indigo-400 bg-clip-text text-transparent">Dekh</span>
+                        </div>
+                        <p className="text-[11px] text-zinc-500 dark:text-zinc-400 font-medium">Hackathon OS</p>
                     </div>
-                </div>
+                </Link>
 
                 <div className="flex shrink-0 items-center gap-2">
-                    <button
+                    {/* Theme button commented out */}
+                    {/* <button
                         type="button"
                         onClick={toggleTheme}
                         className="inline-flex h-9 w-9 items-center justify-center rounded-full border border-zinc-200 bg-white text-zinc-700 shadow-sm transition hover:border-blue-400 hover:text-blue-700 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-200 dark:hover:border-blue-400 dark:hover:text-blue-300"
                         aria-label={isDark ? 'Switch to light mode' : 'Switch to dark mode'}
                     >
                         {isDark ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
-                    </button>
+                    </button> */}
                     <button
                         type="button"
                         onClick={toggleSidebar}
