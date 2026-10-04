@@ -606,13 +606,11 @@ const HackathonList = () => {
                             exit={{ y: 20, scale: 0.96, opacity: 0 }}
                             transition={{ duration: 0.22, ease: "easeOut" }}
                             onClick={(e) => e.stopPropagation()}
-                            className="w-full max-w-md rounded-[2.25rem] border border-zinc-200 bg-white p-6 shadow-2xl dark:border-zinc-800 dark:bg-zinc-950 relative overflow-hidden"
+                            className="w-full max-w-md rounded-2xl border border-zinc-200 bg-white p-6 shadow-2xl dark:border-zinc-800 dark:bg-zinc-950 relative overflow-hidden"
                         >
 
                             <div className="flex flex-col items-center text-center space-y-4 pt-3">
-                                <span className="inline-flex items-center gap-1.5 rounded-full border border-emerald-500/30 bg-emerald-500/10 dark:bg-emerald-500/20 px-6 py-2.5 text-xs font-black uppercase tracking-wider text-emerald-600 dark:text-emerald-400 shadow-xs animate-pulse-blink mb-2">
-                                    100% Free • Built for us! ❤️
-                                </span>
+
 
                                 <div className="space-y-4 w-full">
                                     <h3 className="text-xl font-extrabold text-zinc-900 dark:text-zinc-50 tracking-tight leading-snug">

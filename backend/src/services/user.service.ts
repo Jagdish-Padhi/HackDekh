@@ -1,16 +1,20 @@
+import { randomBytes, createHash } from 'crypto';
+import axios from 'axios';
 import User from '../models/user.model.ts';
 import { ApiError } from '../utils/apiError.ts';
-import jwt from 'jsonwebtoken';
-import axios from 'axios';
-import { randomBytes } from 'crypto';
+import { verifyFirebaseIdToken } from '../config/firebase.ts';
+import { sendEmailVerificationEmail } from '../utils/email.ts';
 
 export async function generateAccessAndRefreshTokens(userId: string) {
   const user = await User.findById(userId);
-  if (!user) throw new ApiError(404, 'User not found');
+  if (!user) {
+    throw new ApiError(404, 'User not found');
+  }
 
   const accessToken = (user as any).generateAccessToken();
   const refreshToken = (user as any).generateRefreshToken();
-  user.refreshToken = refreshToken;
+
+  (user as any).refreshToken = refreshToken;
   await user.save({ validateBeforeSave: false });
 
   return { accessToken, refreshToken };
@@ -18,55 +22,139 @@ export async function generateAccessAndRefreshTokens(userId: string) {
 
 export async function registerUserService(payload: {
   username: string;
-  fullName: string;
   email: string;
+  fullName: string;
   password: string;
 }) {
-  const { username, fullName, email, password } = payload;
+  const { username, email, fullName, password } = payload;
 
-  if ([fullName, email, username, password].some((f) => !f || String(f).trim() === '')) {
-    throw new ApiError(400, 'All fields are required!');
-  }
-
-  const normalizedUsername = username.toLowerCase().trim();
-  const normalizedEmail = email.toLowerCase().trim();
-
-  const existingUser = await User.findOne({
-    $or: [{ username: normalizedUsername }, { email: normalizedEmail }],
+  const existedUser = await User.findOne({
+    $or: [{ username: username.toLowerCase() }, { email: email.toLowerCase() }],
   });
 
-  if (existingUser) {
+  if (existedUser) {
     throw new ApiError(409, 'User with email or username already exists');
   }
 
+  // Generate email verification token
+  const rawVerificationToken = randomBytes(32).toString('hex');
+  const hashedVerificationToken = createHash('sha256').update(rawVerificationToken).digest('hex');
+  const tokenExpiry = new Date(Date.now() + 24 * 60 * 60 * 1000);
+
   const user = await User.create({
-    fullName: fullName.trim(),
-    email: normalizedEmail,
+    fullName,
+    email: email.toLowerCase(),
     password,
-    username: normalizedUsername,
+    username: username.toLowerCase(),
+    authProvider: 'local',
+    isEmailVerified: false,
+    emailVerificationToken: hashedVerificationToken,
+    emailVerificationExpiry: tokenExpiry,
   });
 
-  const createdUser = await User.findById(user._id).select('-password -refreshToken');
+  const createdUser = await User.findById(user._id).select('-password -refreshToken -emailVerificationToken');
   if (!createdUser) {
-    throw new ApiError(500, 'Something went wrong while registering user!');
+    throw new ApiError(500, 'Something went wrong while registering the user');
+  }
+
+  // Send verification email via Brevo SMTP
+  const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:5173';
+  const verificationLink = `${frontendUrl}/verify-email?token=${rawVerificationToken}`;
+  try {
+    await sendEmailVerificationEmail({
+      to: user.email,
+      fullName: user.fullName,
+      verificationLink,
+    });
+    console.log(`[Email] Verification email dispatched to: ${user.email}`);
+  } catch (err: any) {
+    console.error(`[Email] Failed to dispatch verification email to ${user.email}:`, err.message);
   }
 
   return createdUser;
 }
 
+export async function verifyEmailService(rawToken: string) {
+  if (!rawToken) {
+    throw new ApiError(400, 'Verification token is required');
+  }
+
+  const hashedToken = createHash('sha256').update(rawToken).digest('hex');
+  const user = await User.findOne({
+    emailVerificationToken: hashedToken,
+    emailVerificationExpiry: { $gt: new Date() },
+  });
+
+
+  if (!user) {
+    throw new ApiError(400, 'Invalid or expired verification token');
+  }
+
+  (user as any).isEmailVerified = true;
+  (user as any).emailVerificationToken = undefined;
+  (user as any).emailVerificationExpiry = undefined;
+  await user.save();
+
+
+  const tokens = await generateAccessAndRefreshTokens(user._id.toString());
+  const loggedInUser = await User.findById(user._id).select('-password -refreshToken');
+
+  return { user: loggedInUser, ...tokens };
+}
+
+export async function resendVerificationService(email: string) {
+  if (!email) {
+    throw new ApiError(400, 'Email is required');
+  }
+
+  const user = await User.findOne({ email: email.toLowerCase() });
+  if (!user) {
+    throw new ApiError(404, 'User with this email was not found');
+  }
+
+  if ((user as any).isEmailVerified) {
+    throw new ApiError(400, 'Email is already verified');
+  }
+
+  // Issue new token and expire previous ones
+  const rawVerificationToken = randomBytes(32).toString('hex');
+  const hashedVerificationToken = createHash('sha256').update(rawVerificationToken).digest('hex');
+  const tokenExpiry = new Date(Date.now() + 24 * 60 * 60 * 1000);
+
+  (user as any).emailVerificationToken = hashedVerificationToken;
+  (user as any).emailVerificationExpiry = tokenExpiry;
+  await user.save();
+
+  const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:5173';
+  const verificationLink = `${frontendUrl}/verify-email?token=${rawVerificationToken}`;
+  await sendEmailVerificationEmail({
+    to: user.email,
+    fullName: user.fullName,
+    verificationLink,
+  });
+
+
+  return { message: 'Verification email sent successfully' };
+}
+
 export async function loginUserService(payload: {
-  username?: string;
   email?: string;
+  username?: string;
   password?: string;
 }) {
-  const { username, email, password } = payload;
-  if (!(username || email) || !password) {
-    throw new ApiError(400, 'Username/Email and password are required');
+  const { email, username, password } = payload;
+
+  if (!password) {
+    throw new ApiError(400, 'Password is required');
   }
 
   const queryConditions: any[] = [];
-  if (username) queryConditions.push({ username: username.toLowerCase().trim() });
-  if (email) queryConditions.push({ email: email.toLowerCase().trim() });
+  if (email) queryConditions.push({ email: email.toLowerCase() });
+  if (username) queryConditions.push({ username: username.toLowerCase() });
+
+  if (queryConditions.length === 0) {
+    throw new ApiError(400, 'Username or email is required');
+  }
 
   const user = await User.findOne({ $or: queryConditions });
 
@@ -79,7 +167,7 @@ export async function loginUserService(payload: {
     throw new ApiError(401, 'Invalid user credentials');
   }
 
-  const tokens = await generateAccessAndRefreshTokens(user._id.toString());
+  const tokens = await generateAccessAndRefreshTokens(user!._id.toString());
   const loggedInUser = await User.findById(user._id).select('-password -refreshToken');
 
   return { user: loggedInUser, ...tokens };
@@ -136,7 +224,98 @@ export async function githubAuthService(code: string) {
       fullName: githubUser.name || githubUser.login,
       email: email.toLowerCase(),
       password: randomPassword,
+      avatar: githubUser.avatar_url || '',
+      githubId: String(githubUser.id),
+      authProvider: 'github',
+      isEmailVerified: true,
+      role: 'hacker',
     });
+  } else {
+    let needsSave = false;
+    if (!(user as any).githubId) {
+      (user as any).githubId = String(githubUser.id);
+      needsSave = true;
+    }
+    if (!(user as any).isEmailVerified) {
+      (user as any).isEmailVerified = true;
+      needsSave = true;
+    }
+    if (githubUser.avatar_url && !(user as any).avatar) {
+      (user as any).avatar = githubUser.avatar_url;
+      needsSave = true;
+    }
+    if (needsSave) {
+      await user.save();
+    }
+  }
+
+  const tokens = await generateAccessAndRefreshTokens(user._id.toString());
+  const loggedInUser = await User.findById(user._id).select('-password -refreshToken');
+
+  return { user: loggedInUser, ...tokens };
+}
+
+export async function googleAuthService(idToken: string) {
+  if (!idToken) {
+    throw new ApiError(400, 'Firebase ID token is required');
+  }
+
+
+  const verifiedPayload = await verifyFirebaseIdToken(idToken);
+  const email = verifiedPayload.email.toLowerCase();
+
+  if (!email) {
+    throw new ApiError(400, 'Unable to retrieve email from Google authentication');
+  }
+
+  let user = await User.findOne({ email });
+
+  if (!user) {
+    const emailPrefix = email.split('@')[0] || 'hacker';
+    const rawName = verifiedPayload.name || emailPrefix;
+    const baseUsername = rawName
+      .toLowerCase()
+      .replace(/[^az0-9_]/g, '')
+      .slice(0, 15) || 'hacker';
+
+
+    let username = baseUsername;
+    let counter = 1;
+    while (await User.findOne({ username })) {
+      username = `${baseUsername}${counter}`;
+      counter++;
+    }
+
+    const randomPassword = randomBytes(32).toString('hex');
+
+    user = await User.create({
+      username,
+      fullName: verifiedPayload.name || username,
+      email,
+      password: randomPassword,
+      avatar: verifiedPayload.picture || '',
+      googleId: verifiedPayload.uid,
+      authProvider: 'google',
+      isEmailVerified: true,
+      role: 'hacker',
+    });
+  } else {
+    let needsSave = false;
+    if (!(user as any).googleId) {
+      (user as any).googleId = verifiedPayload.uid;
+      needsSave = true;
+    }
+    if (!(user as any).isEmailVerified) {
+      (user as any).isEmailVerified = true;
+      needsSave = true;
+    }
+    if (verifiedPayload.picture && !(user as any).avatar) {
+      (user as any).avatar = verifiedPayload.picture;
+      needsSave = true;
+    }
+    if (needsSave) {
+      await user.save();
+    }
   }
 
   const tokens = await generateAccessAndRefreshTokens(user._id.toString());

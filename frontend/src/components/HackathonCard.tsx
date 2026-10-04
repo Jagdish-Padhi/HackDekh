@@ -220,7 +220,7 @@ const HackathonCard = ({ hackathon, displayIndex, extraActions = [], trackingSta
     return (
         <div
             ref={cardRef}
-            className={`group premium-border-card relative flex h-full flex-col overflow-hidden rounded-[1.75rem] border border-zinc-200/80 bg-white p-4 shadow-sm transition-all duration-500 ease-out hover:-translate-y-1 hover:border-zinc-300 hover:shadow-lg dark:border-zinc-800 dark:bg-zinc-900 dark:shadow-md dark:hover:border-zinc-700 dark:hover:shadow-lg ${isExpired ? "expired opacity-80" : ""} ${isVisible ? "translate-x-0 translate-y-0 opacity-100" : "-translate-x-3 translate-y-2 opacity-0"}`}
+            className={`group premium-border-card relative flex h-full flex-col overflow-hidden rounded-2xl border border-zinc-200/80 bg-white p-4 shadow-sm transition-all duration-500 ease-out hover:-translate-y-1 hover:border-zinc-300 hover:shadow-lg dark:border-zinc-800 dark:bg-zinc-900 dark:shadow-md dark:hover:border-zinc-700 dark:hover:shadow-lg ${isExpired ? "expired opacity-80" : ""} ${isVisible ? "translate-x-0 translate-y-0 opacity-100" : "-translate-x-3 translate-y-2 opacity-0"}`}
             style={{ transitionDelay: isVisible ? `${revealDelay}ms` : "0ms" }}
         >
             {isExpired && (

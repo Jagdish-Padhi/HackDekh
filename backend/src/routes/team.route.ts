@@ -31,6 +31,7 @@ import {
     removeReflection,
 } from "../controllers/stage.controller.ts";
 import { verifyJWT } from "../middlewares/auth.middleware.ts";
+import { joinCodeRateLimiter } from "../middlewares/rateLimiter.ts";
 
 const router = Router();
 
@@ -42,7 +43,7 @@ router.route("/invitations/preview").get(getInvitationPreview);
 router.use(verifyJWT);
 
 // Team Join By Code & Fetch Invites
-router.route("/join").post(joinTeamByCode);
+router.route("/join").post(joinCodeRateLimiter, joinTeamByCode);
 router.route("/user/invitations").get(getUserInvitations);
 router.route("/user/invitations/:invitationId/respond").post(respondToInvitation);
 

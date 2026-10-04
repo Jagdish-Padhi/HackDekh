@@ -154,17 +154,24 @@ html.dark ::-webkit-scrollbar-thumb:hover {
 }
 
 .app-background-light {
-	background:
-		radial-gradient(circle at 10% 8%, rgba(59, 130, 246, 0.10), transparent 28%),
-		radial-gradient(circle at 88% 2%, rgba(96, 165, 250, 0.06), transparent 24%),
-		linear-gradient(180deg, #FFFFFF 0%, #F4F4F5 48%, #FFFFFF 100%);
+	background-color: #fafafc;
+	background-image:
+		radial-gradient(ellipse 80% 50% at 50% -20%, rgba(59, 130, 246, 0.08), transparent 60%),
+		linear-gradient(to right, rgba(0, 0, 0, 0.035) 1px, transparent 1px),
+		linear-gradient(to bottom, rgba(0, 0, 0, 0.035) 1px, transparent 1px);
+	background-size: 100% 100%, 40px 40px, 40px 40px;
+	background-position: center top, center top, center top;
 }
 
 .app-background-dark {
-	background:
-		radial-gradient(circle at 16% 12%, rgba(79, 140, 255, 0.14), transparent 26%),
-		radial-gradient(circle at 84% 8%, rgba(121, 168, 255, 0.08), transparent 22%),
-		linear-gradient(180deg, #09090B 0%, #111113 52%, #09090B 100%);
+	background-color: #08090d;
+	background-image:
+		radial-gradient(ellipse 80% 60% at 50% -20%, rgba(59, 130, 246, 0.15), transparent 70%),
+		radial-gradient(circle at 85% 15%, rgba(99, 102, 241, 0.08), transparent 45%),
+		linear-gradient(to right, rgba(255, 255, 255, 0.028) 1px, transparent 1px),
+		linear-gradient(to bottom, rgba(255, 255, 255, 0.028) 1px, transparent 1px);
+	background-size: 100% 100%, 100% 100%, 40px 40px, 40px 40px;
+	background-position: center top, center top, center top, center top;
 }
 
 @keyframes shimmer {
@@ -177,90 +184,47 @@ html.dark ::-webkit-scrollbar-thumb:hover {
 }
 
 /* Registering the angle property for professional border-following animation */
-@property --border-angle {
-	syntax: "<angle>";
-	initial-value: 0deg;
-	inherits: false;
-}
-
-@keyframes border-angle-rotate {
-	from {
-		--border-angle: 0deg;
-	}
-	to {
-		--border-angle: 360deg;
-	}
-}
-
+/* --- Sharp Contrast Neon Edge Border Expansion --- */
 .premium-border-card {
 	position: relative;
 }
 
-/* The sharp shining beam - now follows the rectangular path */
+/* Sharp high-contrast neon border line spreading from center */
 .premium-border-card::before {
 	content: "";
 	position: absolute;
-	inset: -1px;
-	padding: 1.5px;
+	inset: 0;
 	border-radius: inherit;
-	background: conic-gradient(
-		from var(--border-angle),
-		transparent 80%,
-		var(--border-glow-1) 88%,
-		#ffffff 92%,
-		var(--border-glow-2) 96%,
-		transparent 100%
-	);
-	-webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
-	mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
-	-webkit-mask-composite: xor;
-	mask-composite: exclude;
-	opacity: 0;
-	transition: opacity 0.5s ease;
-	pointer-events: none;
-	z-index: 20;
-}
-
-/* Soft glowing trail that also follows the rectangular path */
-.premium-border-card::after {
-	content: "";
-	position: absolute;
-	inset: -1px;
-	padding: 4px;
-	border-radius: inherit;
-	background: conic-gradient(
-		from var(--border-angle),
-		transparent 75%,
-		var(--border-glow-1) 85%,
-		var(--border-glow-2) 95%,
-		transparent 100%
-	);
-	-webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
-	mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
-	-webkit-mask-composite: xor;
-	mask-composite: exclude;
-	filter: blur(12px);
-	opacity: 0;
-	transition: opacity 0.5s ease;
 	pointer-events: none;
 	z-index: 10;
+	background:
+		linear-gradient(90deg, #2563eb, #00d4ff) top center / 0% 1.5px no-repeat,
+		linear-gradient(90deg, #2563eb, #00d4ff) bottom center / 0% 1.5px no-repeat,
+		linear-gradient(180deg, #2563eb, #6366f1) left center / 1.5px 0% no-repeat,
+		linear-gradient(180deg, #2563eb, #00d4ff) right center / 1.5px 0% no-repeat;
+	transition: background-size 0.3s cubic-bezier(0.16, 1, 0.3, 1), filter 0.3s ease;
+	filter: drop-shadow(0 0 1.5px rgba(0, 212, 255, 0.45));
 }
 
-.premium-border-card:hover::before,
-.premium-border-card:hover::after {
-	opacity: 1;
-	animation: border-angle-rotate 4s linear infinite;
+.premium-border-card:hover::before {
+	background-size: 100% 1.5px, 100% 1.5px, 1.5px 100%, 1.5px 100%;
+	filter: drop-shadow(0 0 2.5px rgba(0, 212, 255, 0.85));
 }
 
-.premium-border-card.expired {
-	border-color: rgba(239, 68, 68, 0.25) !important;
-	--border-glow-1: #ef4444;
-	--border-glow-2: #b91c1c;
+.premium-border-card.expired::before {
+	background:
+		linear-gradient(90deg, #ef4444, #f43f5e) top center / 0% 1.5px no-repeat,
+		linear-gradient(90deg, #ef4444, #f43f5e) bottom center / 0% 1.5px no-repeat,
+		linear-gradient(180deg, #ef4444, #f43f5e) left center / 1.5px 0% no-repeat,
+		linear-gradient(180deg, #ef4444, #f43f5e) right center / 1.5px 0% no-repeat;
+	filter: drop-shadow(0 0 1.5px rgba(239, 68, 68, 0.45));
 }
 
-.premium-border-card.expired:hover {
-	border-color: rgba(239, 68, 68, 0.5) !important;
+.premium-border-card.expired:hover::before {
+	background-size: 100% 1.5px, 100% 1.5px, 1.5px 100%, 1.5px 100%;
+	filter: drop-shadow(0 0 2.5px rgba(239, 68, 68, 0.85));
 }
+
 
 /* Professional Color Palette */
 :root {
@@ -537,4 +501,105 @@ html.dark .btn-icon {
 html.dark .btn-icon:hover:not(:disabled) {
 	background-color: var(--zinc-250);
 	color: var(--zinc-750);
+}
+
+/* --- Deep High-Contrast Brand Buttons (Matching HackDekh Theme) --- */
+.btn-brand-primary {
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	font-weight: 600;
+	background-color: #2563eb;
+	color: #ffffff !important;
+	border: 1px solid rgba(255, 255, 255, 0.2);
+	box-shadow: 0 2px 12px 0 rgba(37, 99, 235, 0.35), inset 0 1px 0 0 rgba(255, 255, 255, 0.2);
+	transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+	cursor: pointer;
+	text-decoration: none;
+}
+
+.btn-brand-primary:hover:not(:disabled) {
+	background-color: #1d4ed8;
+	box-shadow: 0 4px 18px 0 rgba(37, 99, 235, 0.5), inset 0 1px 0 0 rgba(255, 255, 255, 0.3);
+	transform: translateY(-1px);
+}
+
+.btn-brand-primary:active:not(:disabled) {
+	transform: translateY(0);
+	box-shadow: 0 1px 4px 0 rgba(37, 99, 235, 0.3);
+}
+
+.btn-brand-primary:disabled {
+	opacity: 0.5;
+	cursor: not-allowed;
+	transform: none;
+}
+
+.btn-brand-secondary {
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	font-weight: 500;
+	border: 1px solid #e4e4e7;
+	background-color: #ffffff;
+	color: #18181b !important;
+	box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+	transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+	cursor: pointer;
+	text-decoration: none;
+}
+
+html.dark .btn-brand-secondary {
+	border: 1px solid rgba(255, 255, 255, 0.12);
+	background-color: rgba(24, 24, 27, 0.8);
+	color: #f4f4f5 !important;
+	backdrop-filter: blur(8px);
+	box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.3);
+}
+
+.btn-brand-secondary:hover:not(:disabled) {
+	background-color: #f4f4f5;
+	border-color: #d4d4d8;
+	color: #09090b !important;
+	transform: translateY(-1px);
+}
+
+html.dark .btn-brand-secondary:hover:not(:disabled) {
+	background-color: rgba(39, 39, 42, 0.95);
+	border-color: rgba(255, 255, 255, 0.22);
+	color: #ffffff !important;
+	transform: translateY(-1px);
+}
+
+.btn-brand-secondary:active:not(:disabled) {
+	transform: translateY(0);
+}
+/* Deep Contrast Moving Logo Gradient (Confined strictly to text) */
+@keyframes shine-logo-gradient {
+	0% {
+		background-position: 0% center;
+	}
+	100% {
+		background-position: 200% center;
+	}
+}
+
+.moving-logo-gradient {
+	background: linear-gradient(90deg, #2563eb 0%, #0284c7 25%, #4f46e5 50%, #0284c7 75%, #2563eb 100%);
+	background-size: 200% auto;
+	-webkit-background-clip: text;
+	background-clip: text;
+	-webkit-text-fill-color: transparent;
+	animation: shine-logo-gradient 4s linear infinite;
+	display: inline-block;
+}
+
+html.dark .moving-logo-gradient {
+	background: linear-gradient(90deg, #3b82f6 0%, #38bdf8 25%, #818cf8 50%, #38bdf8 75%, #3b82f6 100%);
+	background-size: 200% auto;
+	-webkit-background-clip: text;
+	background-clip: text;
+	-webkit-text-fill-color: transparent;
+	animation: shine-logo-gradient 4s linear infinite;
+	display: inline-block;
 }

@@ -1,11 +1,11 @@
-
-import { BrowserRouter as Router, Routes, Route, useLocation } from 'react-router-dom';
+﻿import { BrowserRouter as Router, Routes, Route, useLocation } from 'react-router-dom';
 import { AnimatePresence, motion } from 'framer-motion';
 import MainLayout from './components/MainLayout';
 import HomePage from './pages/Home';
 import HackathonsPage from './pages/Hackathons';
 import HackathonDetailsPage from './pages/HackathonDetails';
 import LoginPage from './pages/Login';
+import VerificationPage from './pages/VerifyEmail';
 import TeamsPage from './pages/Teams';
 import AcceptInvitationPage from './pages/AcceptInvitation';
 import DashboardPage from './pages/Dashboard';
@@ -20,18 +20,21 @@ function AppContent() {
   const { isLoading } = useAuth();
   const location = useLocation();
 
-  if (isLoading) {
+  const isLandingPage = location.pathname === '/';
+
+  // Landing page loads instantly and reveals sleekly without the custom app loader
+  if (isLoading && !isLandingPage) {
     return (
       <div className="fixed inset-0 z-50 flex flex-col items-center justify-center bg-white dark:bg-zinc-950 transition-colors duration-300">
         <LogoTransition width={330} height={225} loop={true} />
-        <p className="text-sm font-semibold text-zinc-550 dark:text-zinc-400 mt-2">
+        <p className="text-sm font-semibold text-zinc-500 dark:text-zinc-400 mt-2">
           Loading HackDekh Workspace...
         </p>
       </div>
     );
   }
 
-  const isAuthRoute = location.pathname === '/login' || location.pathname === '/signup';
+  const isAuthRoute = location.pathname === '/login' || location.pathname === '/signup' || location.pathname === '/verify-email';
   const pageTransitionKey = isAuthRoute ? '/auth' : location.pathname;
 
   return (
@@ -49,6 +52,7 @@ function AppContent() {
             <Route path="/" element={<HomePage />} />
             <Route path="/login" element={<LoginPage />} />
             <Route path="/signup" element={<LoginPage />} />
+            <Route path="/verify-email" element={<VerificationPage />} />
             <Route path="/hackathons" element={<HackathonsPage />} />
             <Route path="/hackathons/:id" element={<HackathonDetailsPage />} />
             <Route path="/accept-invitation" element={<AcceptInvitationPage />} />

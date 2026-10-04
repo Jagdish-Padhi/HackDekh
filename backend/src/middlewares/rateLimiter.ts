@@ -24,6 +24,42 @@ export const searchRateLimiter = rateLimit({
   },
 });
 
+export const emailRateLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 3,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: {
+    statusCode: 429,
+    success: false,
+    message: 'Too many verification email requests. Please wait 15 minutes before requesting again.',
+  },
+});
+
+export const joinCodeRateLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 10,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: {
+    statusCode: 429,
+    success: false,
+    message: 'Too many team join attempts. Please check the code and try again in 15 minutes.',
+  },
+});
+
+export const scraperRateLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 2,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: {
+    statusCode: 429,
+    success: false,
+    message: 'Scraper rate limit reached. Manual scraping operations cannot be triggered continuously.',
+  },
+});
+
 export const apiRateLimiter = rateLimit({
   windowMs: 15 * 60 * 1000,
   max: 200,
