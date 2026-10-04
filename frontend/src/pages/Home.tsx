@@ -16,9 +16,9 @@ import { Navigate, Link } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
 
 const HomePage = () => {
-    const { isAuthenticated } = useAuth();
+    const { isAuthenticated, isLoading } = useAuth();
 
-    if (isAuthenticated) {
+    if (!isLoading && isAuthenticated) {
         return <Navigate to="/dashboard" replace />;
     }
 

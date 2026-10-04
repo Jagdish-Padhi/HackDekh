@@ -20,7 +20,10 @@ function AppContent() {
   const { isLoading } = useAuth();
   const location = useLocation();
 
-  if (isLoading) {
+  const isLandingPage = location.pathname === '/';
+
+  // Landing page loads instantly and reveals sleekly without the custom app loader
+  if (isLoading && !isLandingPage) {
     return (
       <div className="fixed inset-0 z-50 flex flex-col items-center justify-center bg-white dark:bg-zinc-950 transition-colors duration-300">
         <LogoTransition width={330} height={225} loop={true} />
