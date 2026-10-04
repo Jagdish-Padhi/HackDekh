@@ -1,13 +1,11 @@
 ﻿import { useEffect, useMemo, useState, useRef } from 'react';
 import { Link, useNavigate, useSearchParams, useLocation } from 'react-router-dom';
-import { ArrowLeft, ShieldCheck, Eye, EyeOff, Github, Mail, ExternalLink, RefreshCw, X } from 'lucide-react';
+import { ArrowLeft, Eye, EyeOff, Github, Mail, ExternalLink, RefreshCw, X } from 'lucide-react';
 import { signInWithGooglePopup } from '../config/firebase';
 import { useAuth } from '../context/AuthContext';
 import LogoTransition from '../components/LogoAnimation';
 import axiosInstance from '../utils/axiosInstance';
-import ProductStoryAnimation from '../components/productStory/ProductStoryAnimation';
 import { motion, AnimatePresence } from 'framer-motion';
-import DarkModeToggle from '../components/DarkModeToggle';
 
 const LoginPage = () => {
   const [searchParams] = useSearchParams();
@@ -224,7 +222,7 @@ const LoginPage = () => {
   };
 
   return (
-    <div className="relative min-h-screen w-screen overflow-hidden flex items-center justify-center p-4 bg-gradient-to-tr from-slate-100 via-sky-50 to-blue-100 dark:from-zinc-950 dark:via-zinc-900 dark:to-zinc-950">
+    <div className="relative min-h-screen w-screen overflow-hidden flex items-center justify-center p-4 bg-transparent">
       
       {/* Absolute Header Controls */}
       <div className="absolute top-4 left-4 sm:top-6 sm:left-6 z-45">
@@ -237,32 +235,70 @@ const LoginPage = () => {
         </Link>
       </div>
 
-      <div className="absolute top-4 right-4 sm:top-6 sm:right-6 z-45">
+      {/* <div className="absolute top-4 right-4 sm:top-6 sm:right-6 z-45">
         <DarkModeToggle />
-      </div>
+      </div> */}
 
       {/* Main Container */}
       <div className="relative w-full max-w-4xl min-h-[560px] sm:min-h-[600px] rounded-3xl overflow-hidden shadow-2xl border border-zinc-200/80 dark:border-zinc-800 bg-white/70 dark:bg-zinc-900/70 backdrop-blur-xl flex flex-col md:flex-row z-10">
         
-        {/* Left Story Side */}
-        <div className="hidden md:flex md:w-1/2 relative bg-zinc-950 flex-col justify-between p-6 sm:p-8 text-white overflow-hidden border-r border-zinc-800/80">
-          <div className="absolute -top-24 -left-24 w-72 h-72 bg-blue-600/20 rounded-full blur-3xl pointer-events-none" />
-          <div className="absolute -bottom-24 -right-24 w-72 h-72 bg-indigo-600/20 rounded-full blur-3xl pointer-events-none" />
+        {/* Left Brand Side */}
+        <div className="hidden md:flex md:w-1/2 relative bg-zinc-950 flex-col items-center justify-center p-10 text-white overflow-hidden border-r border-zinc-800/80">
+          {/* Subtle ambient glow */}
+          <div className="absolute -top-32 -left-32 w-96 h-96 bg-blue-600/12 rounded-full blur-3xl pointer-events-none" />
+          <div className="absolute -bottom-32 -right-32 w-96 h-96 bg-indigo-600/12 rounded-full blur-3xl pointer-events-none" />
 
-          <div className="relative z-10 flex items-center gap-2.5">
-            <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-blue-600 font-black text-white shadow-md shadow-blue-500/25">
-              H
+          <div className="relative z-10 flex flex-col items-center gap-5 select-none">
+            {/* Logo — larger */}
+            <img
+              src="/BrandImages/HackDekh.png"
+              alt="HackDekh Logo"
+              className="h-20 w-20 rounded-full object-contain drop-shadow-2xl"
+            />
+
+            {/* Brand Name */}
+            <span className="text-3xl font-black tracking-tight font-logo flex items-center">
+              <span className="text-white">Hack</span>
+              <span className="bg-gradient-to-r from-blue-400 via-sky-400 to-indigo-400 bg-clip-text text-transparent">Dekh</span>
+            </span>
+
+            {/* Tagline lockup */}
+            <div className="flex flex-col items-center gap-1 mt-4 text-center">
+              <span className="text-[2.6rem] font-extrabold tracking-[-0.03em] leading-none text-white whitespace-nowrap">
+                Let&apos;s Win
+              </span>
+              <span className="relative inline-block whitespace-nowrap pb-5">
+                <span className="text-[2.6rem] font-extrabold tracking-[-0.03em] leading-none bg-gradient-to-r from-blue-400 via-sky-300 to-indigo-400 bg-clip-text text-transparent">
+                  Together!
+                </span>
+                {/* Handwritten pen scribble underline — matches hero section style */}
+                <svg
+                  viewBox="0 0 200 16"
+                  fill="none"
+                  xmlns="http://www.w3.org/2000/svg"
+                  className="absolute -bottom-0.5 left-0 w-full overflow-visible pointer-events-none"
+                  aria-hidden="true"
+                >
+                  <motion.path
+                    d="M 2 6 C 38 3, 100 3, 198 5 C 148 8.5, 68 11, 14 13 C 70 12, 142 10, 192 11"
+                    stroke="url(#authScribbleGrad)"
+                    strokeWidth="2.4"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    initial={{ pathLength: 0, opacity: 0 }}
+                    animate={{ pathLength: 1, opacity: 1 }}
+                    transition={{ duration: 0.85, delay: 0.35, ease: [0.22, 1, 0.36, 1] }}
+                  />
+                  <defs>
+                    <linearGradient id="authScribbleGrad" x1="0" y1="0" x2="200" y2="0" gradientUnits="userSpaceOnUse">
+                      <stop offset="0%" stopColor="#60a5fa" />
+                      <stop offset="50%" stopColor="#7dd3fc" />
+                      <stop offset="100%" stopColor="#818cf8" />
+                    </linearGradient>
+                  </defs>
+                </svg>
+              </span>
             </div>
-            <span className="text-lg font-black tracking-tight text-white">HackDekh</span>
-          </div>
-
-          <div className="relative z-10 my-auto py-2">
-            <ProductStoryAnimation />
-          </div>
-
-          <div className="relative z-10 flex items-center gap-2 text-xs text-zinc-400">
-            <ShieldCheck className="h-4 w-4 text-emerald-400" />
-            <span>End-to-end Hackathon Workspace</span>
           </div>
         </div>
 
@@ -403,7 +439,7 @@ const LoginPage = () => {
 
                   <button
                     type="submit"
-                    className="inline-flex w-full items-center justify-center gap-2 rounded-lg bg-blue-600 hover:bg-blue-500 dark:bg-blue-500 dark:hover:bg-blue-400 text-sm font-bold text-white py-2.5 shadow-md hover:-translate-y-0.5 transition-all duration-200 disabled:cursor-not-allowed disabled:opacity-70 mt-1.5 cursor-pointer"
+                    className="btn-brand-primary rounded-xl w-full py-3 text-sm gap-2 mt-2"
                     disabled={loading || transitioning || isBackendWarming}
                   >
                     {loading || transitioning || isBackendWarming ? (
@@ -562,7 +598,7 @@ const LoginPage = () => {
                     href="https://mail.google.com"
                     target="_blank"
                     rel="noreferrer"
-                    className="w-full inline-flex items-center justify-center gap-2 py-2.5 px-4 rounded-xl bg-blue-600 hover:bg-blue-500 text-white text-sm font-semibold transition shadow-md shadow-blue-500/20"
+                    className="btn-brand-primary rounded-xl w-full py-3 text-sm gap-2"
                   >
                     Open Gmail
                     <ExternalLink className="w-4 h-4" />

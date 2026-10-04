@@ -413,7 +413,7 @@ export default function HackathonDetailsPage() {
                 <div className="inline-flex items-center gap-2 rounded-2xl border border-emerald-500/20 bg-emerald-500/10 px-3 py-1.5 text-sm font-semibold text-emerald-700 dark:text-emerald-400">
                   <CheckCircle2 className="h-4 w-4" />
                   Participating with {participationTeamName}
-                  <Link to="/dashboard?tab=tracker" className="inline-flex items-center gap-1 text-emerald-700 underline-offset-2 hover:underline dark:text-emerald-300">
+                  <Link to="/tracker" className="inline-flex items-center gap-1 text-emerald-700 underline-offset-2 hover:underline dark:text-emerald-300">
                     View on Dashboard
                     <ChevronRight className="h-3.5 w-3.5" />
                   </Link>
@@ -572,7 +572,7 @@ export default function HackathonDetailsPage() {
             <div className="flex w-full flex-col gap-3 sm:w-auto sm:flex-row">
               {isAlreadyParticipating ? (
                 <Link
-                  to="/dashboard?tab=tracker"
+                  to="/tracker"
                   className="inline-flex items-center justify-center gap-2 rounded-2xl border border-emerald-500/30 bg-emerald-500/10 px-5 py-3 text-sm font-semibold text-emerald-700 transition hover:bg-emerald-500/20 dark:text-emerald-400"
                 >
                   <CheckCircle2 className="h-4 w-4" />
