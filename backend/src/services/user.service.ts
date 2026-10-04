@@ -1,8 +1,9 @@
-import { randomBytes } from 'crypto';
+import { randomBytes, createHash } from 'crypto';
 import axios from 'axios';
 import User from '../models/user.model.ts';
 import { ApiError } from '../utils/apiError.ts';
 import { verifyFirebaseIdToken } from '../config/firebase.ts';
+import { sendEmailVerificationEmail } from '../utils/email.ts';
 
 export async function generateAccessAndRefreshTokens(userId: string) {
   const user = await User.findById(userId);
@@ -35,20 +36,102 @@ export async function registerUserService(payload: {
     throw new ApiError(409, 'User with email or username already exists');
   }
 
+  // Generate email verification token
+  const rawVerificationToken = randomBytes(32).toString('hex');
+  const hashedVerificationToken = createHash('sha256').update(rawVerificationToken).digest('hex');
+  const tokenExpiry = new Date(Date.now() + 24 * 60 * 60 * 1000);
+
   const user = await User.create({
     fullName,
     email: email.toLowerCase(),
     password,
     username: username.toLowerCase(),
     authProvider: 'local',
+    isEmailVerified: false,
+    emailVerificationToken: hashedVerificationToken,
+    emailVerificationExpiry: tokenExpiry,
   });
 
-  const createdUser = await User.findById(user._id).select('-password -refreshToken');
+  const createdUser = await User.findById(user._id).select('-password -refreshToken -emailVerificationToken');
   if (!createdUser) {
     throw new ApiError(500, 'Something went wrong while registering the user');
   }
 
+  // Send verification email via Brevo SMTP
+  const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:5173';
+  const verificationLink = `${frontendUrl}/verify-email?token=${rawVerificationToken}`;
+  sendEmailVerificationEmail({
+    to: user.email,
+    fullName: user.fullName,
+    verificationLink,
+  }).catch((err) => {
+    console.warn('[Email] Verification dispatch failed:', err.message);
+  });
+
   return createdUser;
+}
+
+export async function verifyEmailService(rawToken: string) {
+  if (!rawToken) {
+    throw new ApiError(400, 'Verification token is required');
+  }
+
+  const hashedToken = createHash('sha256').update(rawToken).digest('hex');
+  const user = await User.findOne({
+    emailVerificationToken: hashedToken,
+    emailVerificationExpiry: { $gt: new Date() },
+  });
+
+
+  if (!user) {
+    throw new ApiError(400, 'Invalid or expired verification token');
+  }
+
+  (user as any).isEmailVerified = true;
+  (user as any).emailVerificationToken = undefined;
+  (user as any).emailVerificationExpiry = undefined;
+  await user.save();
+
+
+  const tokens = await generateAccessAndRefreshTokens(user._id.toString());
+  const loggedInUser = await User.findById(user._id).select('-password -refreshToken');
+
+  return { user: loggedInUser, ...tokens };
+}
+
+export async function resendVerificationService(email: string) {
+  if (!email) {
+    throw new ApiError(400, 'Email is required');
+  }
+
+  const user = await User.findOne({ email: email.toLowerCase() });
+  if (!user) {
+    throw new ApiError(404, 'User with this email was not found');
+  }
+
+  if ((user as any).isEmailVerified) {
+    throw new ApiError(400, 'Email is already verified');
+  }
+
+  // Issue new token and expire previous ones
+  const rawVerificationToken = randomBytes(32).toString('hex');
+  const hashedVerificationToken = createHash('sha256').update(rawVerificationToken).digest('hex');
+  const tokenExpiry = new Date(Date.now() + 24 * 60 * 60 * 1000);
+
+  (user as any).emailVerificationToken = hashedVerificationToken;
+  (user as any).emailVerificationExpiry = tokenExpiry;
+  await user.save();
+
+  const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:5173';
+  const verificationLink = `${frontendUrl}/verify-email?token=${rawVerificationToken}`;
+  await sendEmailVerificationEmail({
+    to: user.email,
+    fullName: user.fullName,
+    verificationLink,
+  });
+
+
+  return { message: 'Verification email sent successfully' };
 }
 
 export async function loginUserService(payload: {
@@ -174,6 +257,7 @@ export async function googleAuthService(idToken: string) {
     throw new ApiError(400, 'Firebase ID token is required');
   }
 
+
   const verifiedPayload = await verifyFirebaseIdToken(idToken);
   const email = verifiedPayload.email.toLowerCase();
 
@@ -190,6 +274,7 @@ export async function googleAuthService(idToken: string) {
       .toLowerCase()
       .replace(/[^az0-9_]/g, '')
       .slice(0, 15) || 'hacker';
+
 
     let username = baseUsername;
     let counter = 1;

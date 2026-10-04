@@ -6,6 +6,7 @@ import HomePage from './pages/Home';
 import HackathonsPage from './pages/Hackathons';
 import HackathonDetailsPage from './pages/HackathonDetails';
 import LoginPage from './pages/Login';
+import VerificationPage from './pages/VerifyEmail';
 import TeamsPage from './pages/Teams';
 import AcceptInvitationPage from './pages/AcceptInvitation';
 import DashboardPage from './pages/Dashboard';
@@ -49,6 +50,7 @@ function AppContent() {
             <Route path="/" element={<HomePage />} />
             <Route path="/login" element={<LoginPage />} />
             <Route path="/signup" element={<LoginPage />} />
+            <Route path="/verify-email" element={<VerificationPage />} />
             <Route path="/hackathons" element={<HackathonsPage />} />
             <Route path="/hackathons/:id" element={<HackathonDetailsPage />} />
             <Route path="/accept-invitation" element={<AcceptInvitationPage />} />

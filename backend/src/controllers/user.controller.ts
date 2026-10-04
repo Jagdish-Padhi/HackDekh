@@ -5,6 +5,8 @@ import User from "../models/user.model.ts";
 import {
   registerUserService,
   loginUserService,
+  verifyEmailService,
+  resendVerificationService,
   githubAuthService,
   googleAuthService,
   searchUsersService,
@@ -22,7 +24,31 @@ export const registerUser = asyncHandler(async (req: any, res: any) => {
   const createdUser = await registerUserService(req.body);
   return res
     .status(201)
-    .json(new ApiResponse(201, createdUser, "User registered successfully!"));
+    .json(new ApiResponse(201, createdUser, "User registered successfully! Please check your email to verify your account."));
+});
+
+export const verifyEmail = asyncHandler(async (req: any, res: any) => {
+  const { token } = req.body;
+  const { user, accessToken, refreshToken } = await verifyEmailService(token);
+  return res
+    .status(200)
+    .cookie("accessToken", accessToken, cookieOptions)
+    .cookie("refreshToken", refreshToken, cookieOptions)
+    .json(
+      new ApiResponse(
+        200,
+        { user, accessToken, refreshToken },
+        "Email verified successfully!"
+      )
+    );
+});
+
+export const resendVerificationEmail = asyncHandler(async (req: any, res: any) => {
+  const { email } = req.body;
+  const result = await resendVerificationService(email);
+  return res
+    .status(200)
+    .json(new ApiResponse(200, result, "Verification email resent successfully!"));
 });
 
 export const loginUser = asyncHandler(async (req: any, res: any) => {
@@ -50,7 +76,7 @@ export const logoutUser = asyncHandler(async (req: any, res: any) => {
     .status(200)
     .clearCookie("accessToken", cookieOptions)
     .clearCookie("refreshToken", cookieOptions)
-    .json(new ApiResponse(200, {}, "User logged out successfully!"));
+    .json(new ApiResponse(200, {}, "User logout successfully!"));
 });
 
 export const refreshAccessToken = asyncHandler(async (req: any, res: any) => {
@@ -103,6 +129,7 @@ export const changeCurrentPassword = asyncHandler(async (req: any, res: any) => 
     throw new ApiError(400, "Invalid old password!");
   }
 
+
   user.password = newPassword;
   await user.save({ validateBeforeSave: false });
 
@@ -127,11 +154,13 @@ export const updateAccountDetails = asyncHandler(async (req: any, res: any) => {
   if (fullName ) updateFields.fullName = fullName;
   if (email) updateFields.email = email;
 
+
   const user = await User.findByIdAndUpdate(
     req.user?._id,
     { $set: updateFields },
     { returnDocument: 'after' }
   ).select("-password -refreshToken");
+
 
   return res
     .status(200)
@@ -142,6 +171,7 @@ export const toggleSaveHackathon = asyncHandler(async (req: any, res: any) => {
   const { hackathonId } = req.params;
   const user = await User.findById(req.user?._id);
   if (!user) throw new ApiError(404, "User not found");
+
 
   const index = user.savedHackathons.indexOf(hackathonId as any);
   if (index === -1) {
@@ -165,6 +195,7 @@ export const toggleSaveHackathon = asyncHandler(async (req: any, res: any) => {
 export const getSavedHackathons = asyncHandler(async (req: any, res: any) => {
   const user = await User.findById(req.user?._id).populate("savedHackathons");
   if (!user) throw new ApiError(404, "User not found");
+
 
   return res
     .status(200)
