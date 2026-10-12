@@ -92,7 +92,7 @@ const Shell = ({ children }: MainLayoutProps) => {
         )
     }
 
-    if (!isAuthenticated) {
+    if (!isAuthenticated && location.pathname === '/') {
         return (
             <div className="relative flex min-h-screen flex-col bg-white text-zinc-900 transition-colors duration-300 dark:bg-zinc-950 dark:text-zinc-100">
                 <div className="pointer-events-none absolute inset-0 -z-10 app-background-light dark:hidden" />

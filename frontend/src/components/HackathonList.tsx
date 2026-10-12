@@ -42,8 +42,6 @@ const HackathonList = () => {
     const [refreshNonce, setRefreshNonce] = useState(0)
     const [hasLoadedFromServer, setHasLoadedFromServer] = useState(!!cachedHackathons)
     const isStillLoading = loading || !hasLoadedFromServer
-    const [progressTarget, setProgressTarget] = useState(cachedHackathons ? 100 : 0)
-    const [progressDisplay, setProgressDisplay] = useState(cachedHackathons ? 100 : 0)
     const [showResults, setShowResults] = useState(!!cachedHackathons)
     const [search, setSearch] = useState(hackathonsFilters.search)
     const [platform, setPlatform] = useState(hackathonsFilters.platform)
@@ -288,22 +286,6 @@ const HackathonList = () => {
     }, [])
 
     useEffect(() => {
-        const intervalId = window.setInterval(() => {
-            setProgressDisplay(previous => {
-                const nextStep = progressTarget - previous
-                if (Math.abs(nextStep) <= 0.2) {
-                    return progressTarget
-                }
-
-                const easedStep = Math.max(0.35, nextStep * 0.2)
-                return Math.min(progressTarget, previous + easedStep)
-            })
-        }, 16)
-
-        return () => window.clearInterval(intervalId)
-    }, [progressTarget])
-
-    useEffect(() => {
         if (loading) {
             setShowResults(false)
             return
@@ -327,9 +309,7 @@ const HackathonList = () => {
     useEffect(() => {
         let isMounted = true
         let finishTimeout: number | undefined
-        let retryTimeout: number | undefined
         let activeRequestAbort: AbortController | null = null
-        let retryAttempt = 0
 
         const isInitialMount = isInitialMountRef.current;
         isInitialMountRef.current = false;
@@ -342,9 +322,6 @@ const HackathonList = () => {
             setLoading(true)
         }
 
-        const fallbackProgress = window.setInterval(() => {
-            setProgressTarget(previous => Math.max(previous, Math.min(previous + Math.random() * 6, 92)))
-        }, 220)
 
         const fetchHackathons = () => {
             activeRequestAbort = new AbortController()
@@ -359,14 +336,6 @@ const HackathonList = () => {
                     sortBy,
                     showExpired: showExpired ? "true" : "false"
                 },
-                onDownloadProgress: event => {
-                    if (!isMounted || !event.total) {
-                        return
-                    }
-
-                    const networkProgress = (event.loaded / event.total) * 100
-                    setProgressTarget(previous => Math.max(previous, Math.min(networkProgress, 99)))
-                },
             })
                 .then(res => {
                     if (!isMounted) {
@@ -378,11 +347,9 @@ const HackathonList = () => {
                         : Array.isArray(res.data)
                             ? res.data
                             : []
-                    window.clearInterval(fallbackProgress)
                     setHackathons(responseData)
                     setCachedHackathons(responseData)
                     setHasLoadedFromServer(true)
-                    setProgressTarget(100)
                     finishTimeout = window.setTimeout(() => {
                         if (!isMounted) {
                             return
@@ -396,19 +363,14 @@ const HackathonList = () => {
                         return
                     }
 
-                    if (retryAttempt >= 3) {
-                        window.clearInterval(fallbackProgress)
-                        setProgressTarget(100)
-                        setLoading(false)
-                        setIsRefreshing(false)
-                        showToast(error?.response?.data?.message || "Failed to load hackathons. Please check your connection.", "error")
+                    if (error?.name === 'CanceledError' || error?.name === 'AbortError') {
                         return
                     }
 
-                    // Keep loading visible during cold starts/transient failures and retry.
-                    retryAttempt += 1
-                    setProgressTarget(previous => Math.max(25, Math.min(previous, 85)))
-                    retryTimeout = window.setTimeout(fetchHackathons, Math.min(2500 + retryAttempt * 1000, 10000))
+                    console.error("[Hackathons] Failed to load hackathons:", error?.message || error)
+                    // Release loading spinner gracefully without annoying intrusive error toasts
+                    setLoading(false)
+                    setIsRefreshing(false)
                 })
         }
 
@@ -417,10 +379,6 @@ const HackathonList = () => {
         return () => {
             isMounted = false
             activeRequestAbort?.abort()
-            window.clearInterval(fallbackProgress)
-            if (retryTimeout) {
-                window.clearTimeout(retryTimeout)
-            }
             if (finishTimeout) {
                 window.clearTimeout(finishTimeout)
             }
@@ -439,8 +397,6 @@ const HackathonList = () => {
         setLoading(true)
         setHasLoadedFromServer(false)
         setShowResults(false)
-        setProgressDisplay(0)
-        setProgressTarget(8)
         setRefreshNonce(previous => previous + 1)
     }, [isStillLoading])
 
@@ -544,7 +500,7 @@ const HackathonList = () => {
                 {isStillLoading && (
                     <div className="absolute inset-0 z-20 flex justify-center items-center bg-zinc-950/5 dark:bg-black/10 backdrop-blur-[2.5px] p-4 rounded-3xl">
                         <div className="w-full max-w-sm shrink-0">
-                            <LoadingProgress progress={progressDisplay} label={loadingLabel} />
+                            <LoadingProgress label={loadingLabel} />
                         </div>
                     </div>
                 )}

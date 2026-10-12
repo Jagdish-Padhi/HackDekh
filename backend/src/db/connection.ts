@@ -8,7 +8,7 @@ const connectDB = async (retries = 5, delay = 3000): Promise<void> => {
   for (let i = 1; i <= retries; i++) {
     try {
       await mongoose.connect(baseUri, {
-        dbName: DB_NAME,
+        dbName: process.env.DB_NAME || DB_NAME,
       });
       console.log("[DB] MongoDB connected successfully");
       return;

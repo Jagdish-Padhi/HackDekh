@@ -102,7 +102,7 @@ export async function verifyEmailService(rawToken: string) {
   return { user: loggedInUser, ...tokens };
 }
 
-export async function resendVerificationService(email: string) {
+export async function resendVerificationService(email: string, clientOrigin?: string) {
   if (!email) {
     throw new ApiError(400, 'Email is required');
   }
