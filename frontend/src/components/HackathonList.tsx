@@ -1,4 +1,4 @@
-import { RefreshCw, ArrowRight, AlertTriangle } from 'lucide-react'
+import { RefreshCw, ArrowRight, AlertTriangle, X } from 'lucide-react'
 import { useCallback, useDeferredValue, useEffect, useMemo, useRef, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { AnimatePresence, motion } from 'framer-motion'
@@ -159,7 +159,7 @@ const HackathonList = () => {
 
     const handleInitiateTrack = (hackathonId: string) => {
         if (!isAuthenticated) {
-            navigate(`/login?returnTo=${encodeURIComponent(window.location.pathname)}`);
+            setShowFunnelModal(true);
             return;
         }
         setSelectedHackathonToTrack(hackathonId);
@@ -269,22 +269,9 @@ const HackathonList = () => {
     };
 
 
-    useEffect(() => {
-        if (isAuthenticated) return;
-        const dismissed = sessionStorage.getItem("dismissedSignupFunnel") === "true";
-        if (dismissed) return;
-
-        const timer = setTimeout(() => {
-            setShowFunnelModal(true);
-        }, 5000);
-
-        return () => clearTimeout(timer);
-    }, [isAuthenticated]);
-
     const handleDismissFunnel = () => {
         setShowFunnelModal(false);
-        sessionStorage.setItem("dismissedSignupFunnel", "true");
-    }
+    };
 
     useEffect(() => {
         if (typeof window === 'undefined') {
@@ -404,8 +391,17 @@ const HackathonList = () => {
                         setIsRefreshing(false)
                     }, 280)
                 })
-                .catch(() => {
+                .catch((error) => {
                     if (!isMounted) {
+                        return
+                    }
+
+                    if (retryAttempt >= 3) {
+                        window.clearInterval(fallbackProgress)
+                        setProgressTarget(100)
+                        setLoading(false)
+                        setIsRefreshing(false)
+                        showToast(error?.response?.data?.message || "Failed to load hackathons. Please check your connection.", "error")
                         return
                     }
 
@@ -450,7 +446,7 @@ const HackathonList = () => {
 
     const loadingLabel = hasLoadedFromServer
         ? 'Loading hackathons'
-        : 'Connecting to server and loading hackathons'
+        : 'Scraping from server for you...'
 
     const visibleHackathons = hackathons
 
@@ -598,6 +594,7 @@ const HackathonList = () => {
                         initial={{ opacity: 0 }}
                         animate={{ opacity: 1 }}
                         exit={{ opacity: 0 }}
+                        onClick={handleDismissFunnel}
                         className="fixed inset-0 z-[100] flex items-center justify-center bg-zinc-950/70 backdrop-blur-[4px] px-4 py-8"
                     >
                         <motion.div
@@ -608,6 +605,14 @@ const HackathonList = () => {
                             onClick={(e) => e.stopPropagation()}
                             className="w-full max-w-md rounded-2xl border border-zinc-200 bg-white p-6 shadow-2xl dark:border-zinc-800 dark:bg-zinc-950 relative overflow-hidden"
                         >
+                            <button
+                                type="button"
+                                onClick={handleDismissFunnel}
+                                className="absolute top-4 right-4 p-1.5 rounded-xl text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-200 hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors cursor-pointer"
+                                aria-label="Close modal"
+                            >
+                                <X className="h-4 w-4" />
+                            </button>
 
                             <div className="flex flex-col items-center text-center space-y-4 pt-3">
 

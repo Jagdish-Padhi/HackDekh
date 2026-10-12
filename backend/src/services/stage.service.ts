@@ -1,7 +1,6 @@
 import { Types } from 'mongoose';
 import Stage from '../models/stage.model.ts';
 import TeamHackathon from '../models/teamHackathon.model.ts';
-import Team from '../models/team.model.ts';
 
 // ─── Helper: assert caller is a team member ──────────────────────────────────
 async function getTeamMembersForStage(stageId: string, userId: Types.ObjectId) {

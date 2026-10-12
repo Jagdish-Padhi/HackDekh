@@ -1,4 +1,3 @@
-import axios from "axios";
 import * as cheerio from "cheerio";
 import hackathon from "../models/hackathon.model.ts";
 import { universalFormatter } from "../formatters/universalFormatter.ts";

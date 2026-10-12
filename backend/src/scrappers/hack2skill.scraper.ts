@@ -1,4 +1,3 @@
-import axios from "axios";
 import hackathon from "../models/hackathon.model.ts";
 import { universalFormatter } from "../formatters/universalFormatter.ts";
 import { asyncHandler } from "../utils/asyncHandler.ts";

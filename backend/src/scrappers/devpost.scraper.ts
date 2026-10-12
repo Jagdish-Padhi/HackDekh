@@ -1,4 +1,3 @@
-import axios from "axios";
 import * as cheerio from "cheerio";
 import hackathon from "../models/hackathon.model.ts";
 import { universalFormatter } from "../formatters/universalFormatter.ts";
@@ -9,10 +8,6 @@ import { axiosGetWithRetry } from "../utils/scraperUtils.ts";
 
 const DEVPOST_API_URL = "https://devpost.com/api/hackathons";
 const DEVPOST_DETAIL_CONCURRENCY = 5;
-
-const HEADERS = {
-  "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
-};
 
 const normalizeString = (value: unknown): string | null => {
   if (typeof value !== "string") return null;

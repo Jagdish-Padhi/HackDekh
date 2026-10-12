@@ -14,7 +14,7 @@ const LoadingProgress = ({
     progress,
     label = 'Loading hackathons',
     simulate = false,
-    description = 'Syncing latest listings and metadata.',
+    description = '',
 }: LoadingProgressProps) => {
     const [simulatedProgress, setSimulatedProgress] = useState(12)
 

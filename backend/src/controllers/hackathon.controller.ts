@@ -31,15 +31,6 @@ const getComparableDeadlineDate = (deadline?: Date | string | null) => {
   return Number.isNaN(parsed.getTime()) ? null : parsed;
 };
 
-const hasDeadlinePassed = (deadline?: Date | string | null) => {
-  const comparableDeadline = getComparableDeadlineDate(deadline);
-  if (!comparableDeadline) {
-    return false;
-  }
-
-  return comparableDeadline.getTime() < Date.now();
-};
-
 let cachedRate = 84;
 let lastFetchedTime = 0;
 const CACHE_TTL_MS = 12 * 60 * 60 * 1000; // Cache rate for 12 hours
@@ -52,7 +43,7 @@ const getUSDToINRExchangeRate = async (): Promise<number> => {
 
   try {
     const response = await axios.get("https://api.frankfurter.app/latest?from=USD&to=INR", {
-      timeout: 5000,
+      timeout: 2000,
     });
     if (response.data && response.data.rates && typeof response.data.rates.INR === "number") {
       cachedRate = response.data.rates.INR;
@@ -60,10 +51,9 @@ const getUSDToINRExchangeRate = async (): Promise<number> => {
       console.log(`[ExchangeRate] Updated USD to INR exchange rate: ${cachedRate}`);
     }
   } catch (error: any) {
-    console.error("[ExchangeRate] Failed to fetch live rate from Frankfurter, trying backup er-api...", error.message);
     try {
       const response = await axios.get("https://open.er-api.com/v6/latest/USD", {
-        timeout: 5000,
+        timeout: 2000,
       });
       if (response.data && response.data.rates && typeof response.data.rates.INR === "number") {
         cachedRate = response.data.rates.INR;
@@ -71,7 +61,8 @@ const getUSDToINRExchangeRate = async (): Promise<number> => {
         console.log(`[ExchangeRate] Updated USD to INR from er-api: ${cachedRate}`);
       }
     } catch (err: any) {
-      console.error("[ExchangeRate] Failed to fetch from backup API. Using fallback:", cachedRate, err.message);
+      lastFetchedTime = now; // Prevent re-requesting every call if offline
+      console.warn("[ExchangeRate] Using fallback rate:", cachedRate);
     }
   }
 
@@ -203,6 +194,7 @@ const compareNullableNumbers = (a: number | null, b: number | null, direction: "
 };
 
 export const getHackathons = asyncHandler(async (req: any, res: any) => {
+
   const { search, platform, mode, location, sortBy, showExpired } = req.query;
   
   // Redis caching logic
@@ -210,169 +202,138 @@ export const getHackathons = asyncHandler(async (req: any, res: any) => {
     search, platform, mode, location, sortBy, showExpired,
   });
 
- if(CACHE_ENABLED){
-   const cachedData = await redisClient.get(cacheKey);
-
-  if(cachedData){
-    console.log(`[Redis] CACHE HIT: ${cacheKey}`);
-
-    return res.status(200).json(
-      new ApiResponse(
-        200, 
-        JSON.parse(cachedData),
-        "Hackathons fetched from Redis cache"
-      )
-    )
+  if (CACHE_ENABLED && redisClient.isOpen) {
+    try {
+      const cachedData = await redisClient.get(cacheKey);
+      if (cachedData) {
+        console.log(`[Redis] CACHE HIT: ${cacheKey}`);
+        return res.status(200).json(
+          new ApiResponse(
+            200, 
+            JSON.parse(cachedData),
+            "Hackathons fetched from Redis cache"
+          )
+        );
+      }
+      console.log(`[Redis] CACHE MISS: ${cacheKey}`);
+    } catch (redisErr) {
+      console.warn("[Redis] Failed to read from cache:", redisErr);
+    }
   }
 
-  console.log(`[Redis] CACHE MISS: ${cacheKey}`);
- }
 
-
-  // Fetch exchange rate dynamically with self-healing background caching
   const usdToInrRate = await getUSDToINRExchangeRate();
 
-  // Build MongoDB query
-  const query: any = {};
+  // Build MongoDB query with database-level expired filtering and projection
+  const isShowExpired = showExpired === "true";
+  const conditions: any[] = [];
 
   if (platform) {
-    query.platform = { $regex: new RegExp(`^${platform}$`, "i") };
+    conditions.push({ platform: { $regex: new RegExp(`^${platform}$`, "i") } });
   }
 
   if (mode) {
-    query.mode = { $regex: new RegExp(`^${mode}$`, "i") };
+    conditions.push({ mode: { $regex: new RegExp(`^${mode}$`, "i") } });
   }
 
   if (location) {
-    query.location = { $regex: new RegExp(location, "i") };
+    conditions.push({ location: { $regex: new RegExp(location, "i") } });
   }
 
   if (search) {
     const searchRegex = new RegExp(search, "i");
-    query.$or = [
-      { title: { $regex: searchRegex } },
-      { organization: { $regex: searchRegex } },
-      { tags: { $in: [searchRegex] } }
-    ];
+    conditions.push({
+      $or: [
+        { title: { $regex: searchRegex } },
+        { organization: { $regex: searchRegex } },
+        { tags: { $in: [searchRegex] } }
+      ]
+    });
   }
 
-  // Fetch from database
-  let list = await hackathon.find(query);
-
-  // Filter out explicit 0 or no cash prizes
-  list = list.filter((h) => !isZeroOrNoCashPrize(h.prize));
-
-  // Filter expired hackathons by default
-  const isShowExpired = showExpired === "true";
   if (!isShowExpired) {
-    list = list.filter((h) => !hasDeadlinePassed(h.deadline));
+    conditions.push({
+      $or: [
+        { deadline: { $gte: new Date(Date.now() - 24 * 60 * 60 * 1000) } },
+        { deadline: null }
+      ]
+    });
   }
 
-  // Partition active vs expired list
-  const activeList = list.filter((h) => !hasDeadlinePassed(h.deadline));
-  const expiredList = list.filter((h) => hasDeadlinePassed(h.deadline));
+  const query = conditions.length === 0 ? {} : conditions.length === 1 ? conditions[0] : { $and: conditions };
+
+  // Fetch from database with lean() and exclude bulky unused fields (-description, -stages) for ultra-fast payload transfer
+  let list = await hackathon.find(query).select("-description -stages -__v").lean();
+
+  // Precompute deadline timestamp and prize amount once per item (O(N) instead of O(N log N) regexes)
+  const nowMs = Date.now();
+  
+  const activeList: any[] = [];
+  const expiredList: any[] = [];
+
+  for (const h of list as any[]) {
+    if (isZeroOrNoCashPrize(h.prize)) continue;
+    
+    const deadlineDate = getComparableDeadlineDate(h.deadline);
+    const deadlineTime = deadlineDate ? deadlineDate.getTime() : null;
+    const isExpired = deadlineTime !== null && deadlineTime < nowMs;
+
+    if (!isShowExpired && isExpired) continue;
+
+    h._deadlineTime = deadlineTime;
+    h._prizeAmount = getPrizeAmountInINR(h.prize, h.platform, usdToInrRate);
+
+    if (isExpired) {
+      expiredList.push(h);
+    } else {
+      activeList.push(h);
+    }
+  }
 
   const sortOption = sortBy || "deadline-asc";
 
-  // Sort active hackathons
+  // Fast number sorting in V8
   activeList.sort((a: any, b: any) => {
-    if (sortOption === "deadline-asc") {
-      const da = getComparableDeadlineDate(a.deadline)?.getTime() ?? null;
-      const db = getComparableDeadlineDate(b.deadline)?.getTime() ?? null;
-      return compareNullableNumbers(da, db, "asc");
-    }
-
-    if (sortOption === "deadline-desc") {
-      const da = getComparableDeadlineDate(a.deadline)?.getTime() ?? null;
-      const db = getComparableDeadlineDate(b.deadline)?.getTime() ?? null;
-      return compareNullableNumbers(da, db, "desc");
-    }
-
-    if (sortOption === "prize-asc") {
-      return compareNullableNumbers(
-        getPrizeAmountInINR(a.prize, a.platform, usdToInrRate),
-        getPrizeAmountInINR(b.prize, b.platform, usdToInrRate),
-        "asc"
-      );
-    }
-
-    if (sortOption === "prize-desc") {
-      return compareNullableNumbers(
-        getPrizeAmountInINR(a.prize, a.platform, usdToInrRate),
-        getPrizeAmountInINR(b.prize, b.platform, usdToInrRate),
-        "desc"
-      );
-    }
-
+    if (sortOption === "deadline-asc") return compareNullableNumbers(a._deadlineTime, b._deadlineTime, "asc");
+    if (sortOption === "deadline-desc") return compareNullableNumbers(a._deadlineTime, b._deadlineTime, "desc");
+    if (sortOption === "prize-asc") return compareNullableNumbers(a._prizeAmount, b._prizeAmount, "asc");
+    if (sortOption === "prize-desc") return compareNullableNumbers(a._prizeAmount, b._prizeAmount, "desc");
     return 0;
   });
 
-  // Sort expired hackathons
   expiredList.sort((a: any, b: any) => {
-    // For expired events, deadline-asc or no-sort defaults to showing most recently expired first
     if (!sortBy || sortOption === "deadline-asc" || sortOption === "deadline-desc") {
-      const da = getComparableDeadlineDate(a.deadline)?.getTime() ?? null;
-      const db = getComparableDeadlineDate(b.deadline)?.getTime() ?? null;
-      return compareNullableNumbers(da, db, "desc");
+      return compareNullableNumbers(a._deadlineTime, b._deadlineTime, "desc");
     }
-
-    if (sortOption === "prize-asc") {
-      return compareNullableNumbers(
-        getPrizeAmountInINR(a.prize, a.platform, usdToInrRate),
-        getPrizeAmountInINR(b.prize, b.platform, usdToInrRate),
-        "asc"
-      );
-    }
-
-    if (sortOption === "prize-desc") {
-      return compareNullableNumbers(
-        getPrizeAmountInINR(a.prize, a.platform, usdToInrRate),
-        getPrizeAmountInINR(b.prize, b.platform, usdToInrRate),
-        "desc"
-      );
-    }
-
+    if (sortOption === "prize-asc") return compareNullableNumbers(a._prizeAmount, b._prizeAmount, "asc");
+    if (sortOption === "prize-desc") return compareNullableNumbers(a._prizeAmount, b._prizeAmount, "desc");
     return 0;
   });
 
-  // Combine lists: active first, followed by expired
   list = [...activeList, ...expiredList];
 
-  // Format prize strings in returned list to attractive INR-only format
   const plainList = list.map((h: any) => {
-    const obj = h.toObject ? h.toObject() : h;
-    obj.prize = convertAndFormatPrizeToINR(obj.prize, obj.platform, usdToInrRate);
-    return obj;
+    delete h._deadlineTime;
+    delete h._prizeAmount;
+    h.prize = convertAndFormatPrizeToINR(h.prize, h.platform, usdToInrRate);
+    return h;
   });
 
-if(CACHE_ENABLED){
-    await redisClient.set(
-    cacheKey,
-    JSON.stringify(plainList),
-    {
-      EX: HACKATHON_CACHE_TTL
+  if (CACHE_ENABLED && redisClient.isOpen) {
+    try {
+      await redisClient.set(
+        cacheKey,
+        JSON.stringify(plainList),
+        {
+          EX: HACKATHON_CACHE_TTL
+        }
+      );
+      console.log(`[Redis] cache set: ${cacheKey}`);
+    } catch (redisErr) {
+      console.warn("[Redis] Failed to save to cache:", redisErr);
     }
-  );
-}
-
-  console.log(`[Redis] cache set: ${cacheKey}`);
+  }
 
   return res.status(200).json(new ApiResponse(200, plainList, "Hackathons fetched successfully"));
 });
 
-export const getHackathonById = asyncHandler(async (req: any, res: any) => {
-  const { id } = req.params;
-  
-  const hack = await hackathon.findById(id);
-  if (!hack) {
-    throw new ApiError(404, "Hackathon not found");
-  }
-
-  // Fetch exchange rate dynamically with self-healing background caching
-  const usdToInrRate = await getUSDToINRExchangeRate();
-
-  const obj = hack.toObject();
-  obj.prize = convertAndFormatPrizeToINR(obj.prize, obj.platform, usdToInrRate);
-
-  return res.status(200).json(new ApiResponse(200, obj, "Hackathon details fetched successfully"));
-});

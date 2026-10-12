@@ -1,3 +1,4 @@
+import "dotenv/config";
 import {createClient} from "redis";
 
 const redisClient = createClient({
@@ -9,11 +10,11 @@ redisClient.on("error", (error) => {
 });
 
 redisClient.on("connect", () => {
-    console.error("[Redis] connecting...");
+    console.log("[Redis] connecting...");
 });
 
 redisClient.on("ready", () => {
-    console.error("[Redis] connected successfully");
+    console.log("[Redis] connected successfully");
 });
 
 export const connectRedis = async () => {
@@ -23,13 +24,17 @@ export const connectRedis = async () => {
 };
 
 export const invalidateHackathonCache = async () => {
-    const keys = await redisClient.keys("hackathons:list:*");
-
-    if(keys.length > 0){
-        await redisClient.del(keys);
-        console.log(`[Redis] Invalidated ${keys.length} hackathon cache key(s)`);
-    }else{
-        console.log("[Redis] No hackathon cache keys to invalidate");
+    if (!redisClient.isOpen) return;
+    try {
+        const keys = await redisClient.keys("hackathons:list:*");
+        if (keys.length > 0) {
+            await redisClient.del(keys);
+            console.log(`[Redis] Invalidated ${keys.length} hackathon cache key(s)`);
+        } else {
+            console.log("[Redis] No hackathon cache keys to invalidate");
+        }
+    } catch (err) {
+        console.warn("[Redis] Cache invalidation failed:", err);
     }
 };
 
