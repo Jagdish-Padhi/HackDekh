@@ -6,7 +6,6 @@ import { PageChromeProvider } from '../context/pageChrome'
 import { ArrowUp } from 'lucide-react'
 import { useAuth } from '../context/AuthContext'
 import { Link, useLocation } from 'react-router-dom'
-// import DarkModeToggle from './DarkModeToggle'
 
 type MainLayoutProps = {
     children: React.ReactNode

@@ -9,7 +9,6 @@ import LogoTransition from './components/LogoAnimation';
 
 // Code-split non-landing routes so the initial landing page bundle is lightweight
 const HackathonsPage = lazy(() => import('./pages/Hackathons'));
-const HackathonDetailsPage = lazy(() => import('./pages/HackathonDetails'));
 const LoginPage = lazy(() => import('./pages/Login'));
 const VerificationPage = lazy(() => import('./pages/VerifyEmail'));
 const TeamsPage = lazy(() => import('./pages/Teams'));
@@ -58,7 +57,6 @@ function AppContent() {
             <Route path="/signup" element={<LoginPage />} />
             <Route path="/verify-email" element={<VerificationPage />} />
             <Route path="/hackathons" element={<HackathonsPage />} />
-            <Route path="/hackathons/:id" element={<HackathonDetailsPage />} />
             <Route path="/accept-invitation" element={<AcceptInvitationPage />} />
             <Route path="/auth/github/callback" element={<GithubCallbackPage />} />
             
