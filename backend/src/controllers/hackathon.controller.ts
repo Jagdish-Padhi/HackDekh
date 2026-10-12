@@ -229,7 +229,8 @@ export const getHackathons = asyncHandler(async (req: any, res: any) => {
   const conditions: any[] = [];
 
   if (platform) {
-    conditions.push({ platform: { $regex: new RegExp(`^${platform}$`, "i") } });
+    const safePlatform = String(platform).replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+    conditions.push({ platform: { $regex: new RegExp(`^${safePlatform}$`, "i") } });
   }
 
   if (mode) {
