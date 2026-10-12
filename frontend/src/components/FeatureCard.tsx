@@ -1,4 +1,5 @@
-﻿import type { LucideIcon } from "lucide-react";
+﻿import { memo } from "react";
+import type { LucideIcon } from "lucide-react";
 
 type FeatureCardProps = {
   icon: LucideIcon;
@@ -6,7 +7,7 @@ type FeatureCardProps = {
   desc: string;
 };
 
-const FeatureCard = ({ icon: Icon, title, desc }: FeatureCardProps) => (
+const FeatureCard = memo(({ icon: Icon, title, desc }: FeatureCardProps) => (
   <div className="group premium-border-card relative flex h-full flex-col items-start overflow-hidden rounded-2xl border border-zinc-200/90 bg-white p-7 text-left shadow-sm transition-all duration-200 hover:-translate-y-1 hover:border-zinc-300 hover:shadow-lg dark:border-zinc-800 dark:bg-zinc-900 dark:shadow-md dark:hover:border-zinc-700 dark:hover:shadow-lg">
     <div className="pointer-events-none absolute inset-0 bg-[linear-gradient(140deg,rgba(59,130,246,0.08),transparent_42%,rgba(24,24,27,0.03))] dark:bg-[linear-gradient(140deg,rgba(96,165,250,0.14),transparent_46%,rgba(255,255,255,0.02))]" />
 
@@ -17,6 +18,8 @@ const FeatureCard = ({ icon: Icon, title, desc }: FeatureCardProps) => (
     <h3 className="relative z-10 mb-3 text-xl font-semibold tracking-tight text-zinc-900 dark:text-zinc-100">{title}</h3>
     <p className="relative z-10 text-sm leading-7 text-zinc-600 dark:text-zinc-400 sm:text-base">{desc}</p>
   </div>
-);
+));
+
+FeatureCard.displayName = "FeatureCard";
 
 export default FeatureCard;

@@ -1,6 +1,7 @@
 import {
   AnimatePresence,
   motion,
+  useInView,
   useMotionValue,
   useReducedMotion,
   useSpring,
@@ -45,13 +46,17 @@ export default function ProductStoryAnimation() {
   const shouldReduceMotion = useReducedMotion();
   const [scene, setScene] = useState(0);
   const containerRef = useRef<HTMLDivElement>(null);
+  const isInView = useInView(containerRef, { margin: "100px" });
+  const rectRef = useRef<DOMRect | null>(null);
 
+  // Automatically pause the interval when scrolled out of view to save CPU/GPU cycles
   useEffect(() => {
+    if (!isInView) return;
     const timer = window.setInterval(() => {
       setScene((prev) => (prev + 1) % storyScenes.length);
     }, SCENE_DURATION_MS);
     return () => window.clearInterval(timer);
-  }, [scene]);
+  }, [scene, isInView]);
 
   const mouseX = useMotionValue(0);
   const mouseY = useMotionValue(0);
@@ -59,13 +64,29 @@ export default function ProductStoryAnimation() {
   const rotateX = useSpring(useTransform(mouseY, [-0.5, 0.5], [4, -2]), springConfig);
   const rotateY = useSpring(useTransform(mouseX, [-0.5, 0.5], [-6, 2]), springConfig);
 
+  // Cache rect on mouse enter — avoids calling getBoundingClientRect() on every frame
+  const handleMouseEnter = () => {
+    if (containerRef.current) {
+      rectRef.current = containerRef.current.getBoundingClientRect();
+    }
+  };
+
   const handleMouseMove = (e: React.MouseEvent<HTMLDivElement>) => {
-    if (shouldReduceMotion || !containerRef.current) return;
-    const rect = containerRef.current.getBoundingClientRect();
+    if (shouldReduceMotion) return;
+    if (!rectRef.current && containerRef.current) {
+      rectRef.current = containerRef.current.getBoundingClientRect();
+    }
+    const rect = rectRef.current;
+    if (!rect) return;
     mouseX.set((e.clientX - rect.left) / rect.width - 0.5);
     mouseY.set((e.clientY - rect.top) / rect.height - 0.5);
   };
-  const handleMouseLeave = () => { mouseX.set(0); mouseY.set(0); };
+
+  const handleMouseLeave = () => {
+    rectRef.current = null;
+    mouseX.set(0);
+    mouseY.set(0);
+  };
 
   const active = storyScenes[scene];
   const ActiveScene = active.component;
@@ -74,12 +95,14 @@ export default function ProductStoryAnimation() {
     <div className="relative w-full [perspective:1200px]">
       <motion.div
         ref={containerRef}
+        onMouseEnter={handleMouseEnter}
         onMouseMove={handleMouseMove}
         onMouseLeave={handleMouseLeave}
         style={{
           rotateX: shouldReduceMotion ? 0 : rotateX,
           rotateY: shouldReduceMotion ? 0 : rotateY,
           transformStyle: "preserve-3d",
+          willChange: "transform",
         }}
         className="relative overflow-hidden rounded-2xl border border-zinc-200/90 bg-white
           shadow-[0_16px_40px_-8px_rgba(0,0,0,0.12)]
@@ -146,6 +169,7 @@ export default function ProductStoryAnimation() {
               animate={{ opacity: 1, y: 0 }}
               exit={shouldReduceMotion ? { opacity: 0 } : { opacity: 0, y: -6 }}
               transition={{ duration: 0.18, ease: "easeOut" }}
+              style={{ willChange: "transform, opacity" }}
               className="absolute inset-0 p-3 overflow-hidden flex flex-col"
             >
               <ActiveScene />

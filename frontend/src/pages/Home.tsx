@@ -31,6 +31,7 @@ const HomePage = () => {
                         initial={{ opacity: 0, y: 16 }}
                         animate={{ opacity: 1, y: 0 }}
                         transition={{ duration: 0.5, ease: "easeOut" }}
+                        style={{ willChange: "transform, opacity" }}
                         className="relative text-center lg:text-left flex flex-col items-center lg:items-start lg:-translate-y-5"
                     >
                         {/* Pure Clean Industry-Grade Headline Lockup */}
@@ -82,6 +83,7 @@ const HomePage = () => {
                         initial={{ opacity: 0, scale: 0.96 }}
                         animate={{ opacity: 1, scale: 1 }}
                         transition={{ duration: 0.6, delay: 0.1, ease: "easeOut" }}
+                        style={{ willChange: "transform, opacity" }}
                         className="relative mx-auto w-full max-w-2xl lg:max-w-none flex justify-center lg:justify-end"
                     >
                         <ProductStoryAnimation />
@@ -94,7 +96,8 @@ const HomePage = () => {
                 initial={{ opacity: 0, y: 24 }}
                 whileInView={{ opacity: 1, y: 0 }}
                 viewport={{ once: true, margin: "-40px" }}
-                transition={{ duration: 0.5, ease: "easeOut" }}
+                transition={{ duration: 0.45, ease: "easeOut" }}
+                style={{ willChange: "transform, opacity" }}
                 className="w-full space-y-10"
             >
                 <div className="mx-auto max-w-3xl text-center space-y-3">
@@ -153,7 +156,8 @@ const HomePage = () => {
                 initial={{ opacity: 0, y: 24 }}
                 whileInView={{ opacity: 1, y: 0 }}
                 viewport={{ once: true, margin: "-40px" }}
-                transition={{ duration: 0.5, ease: "easeOut" }}
+                transition={{ duration: 0.45, ease: "easeOut" }}
+                style={{ willChange: "transform, opacity" }}
                 className="w-full space-y-10"
             >
                 <div className="mx-auto max-w-3xl text-center space-y-3">
@@ -204,7 +208,8 @@ const HomePage = () => {
                 initial={{ opacity: 0, y: 24 }}
                 whileInView={{ opacity: 1, y: 0 }}
                 viewport={{ once: true, margin: "-40px" }}
-                transition={{ duration: 0.5, ease: "easeOut" }}
+                transition={{ duration: 0.45, ease: "easeOut" }}
+                style={{ willChange: "transform, opacity" }}
                 className="w-full"
             >
                 <div className="group premium-border-card relative overflow-hidden rounded-2xl border border-zinc-200/90 bg-white/70 p-8 sm:p-12 text-center dark:border-zinc-800/90 dark:bg-zinc-900/70 backdrop-blur-md">
