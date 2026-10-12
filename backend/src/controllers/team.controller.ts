@@ -246,22 +246,6 @@ export const deleteTeam = asyncHandler(async (
     return res.status(200).json(new ApiResponse(200, deletedTeam, 'Team deleted successfully'));
 });
 
-interface RegenerateCodeParams {
-    id: string;
-}
-
-interface InviteUserBody {
-    userIdOrUsername: string;
-}
-
-interface RespondInvitationParams {
-    invitationId: string;
-}
-
-interface RespondInvitationBody {
-    action: 'accept' | 'decline';
-}
-
 export const regenerateTeamCode = asyncHandler(async (req: any, res: Response) => {
     const updatedTeam = await teamService.regenerateTeamCode(req.params.id, req.user._id);
     if (!updatedTeam) {

@@ -1,7 +1,6 @@
-import dotenv from "dotenv";
-dotenv.config();
+import "dotenv/config";
 import connectDB from "./db/connection.ts";
-import redisClient, {connectRedis} from "./cache/redis.ts";
+import {connectRedis} from "./cache/redis.ts";
 import { app } from "./app.ts";
 import { isEmailDeliveryConfigured } from "./utils/email.ts";
 

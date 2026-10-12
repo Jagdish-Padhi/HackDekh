@@ -24,6 +24,7 @@ const Sidebar = () => {
         return window.innerWidth < 1024
     })
     const { user, isAuthenticated, logout } = useAuth()
+    const logoDestination = isAuthenticated ? '/dashboard' : '/hackathons'
     const { clearCache } = useCache()
     // const [isDark, setIsDark] = useState(false)
 
@@ -83,7 +84,7 @@ const Sidebar = () => {
         <>
             {/* Mobile logo header - fixed at top, visible on mobile */}
             <div className="fixed inset-x-0 top-0 z-90 flex items-center justify-between border-b border-zinc-200 bg-white/95 px-4 py-4 backdrop-blur-xl dark:border-zinc-800 dark:bg-zinc-950/95 lg:hidden">
-                <Link to="/dashboard" className="flex items-center gap-2.5">
+                <Link to={logoDestination} className="flex items-center gap-2.5">
                     <img src="/BrandImages/HackDekh.png" alt="HackDekh Logo" className="h-10 w-10 sm:h-11 sm:w-11 rounded-full object-contain shrink-0 drop-shadow-md" />
                     <span className="text-lg font-extrabold tracking-tight font-logo flex items-center">
                         <span className="text-zinc-900 dark:text-white">Hack</span>
@@ -113,7 +114,7 @@ const Sidebar = () => {
 
             {/* Desktop logo header - fixed at top, always visible */}
             <div className="hidden fixed inset-x-0 top-0 z-40 items-center gap-4 border-b border-zinc-200 bg-white/95 px-4 py-4 backdrop-blur-xl dark:border-zinc-800 dark:bg-zinc-950/95 lg:flex lg:h-16">
-                <Link to="/dashboard" className="flex shrink-0 items-center gap-2.5">
+                <Link to={logoDestination} className="flex shrink-0 items-center gap-2.5">
                     <img src="/BrandImages/HackDekh.png" alt="HackDekh Logo" className="h-10 w-10 sm:h-11 sm:w-11 rounded-full object-contain shrink-0 drop-shadow-md" />
                     <div>
                         <div className="text-base font-extrabold tracking-tight font-logo flex items-center">

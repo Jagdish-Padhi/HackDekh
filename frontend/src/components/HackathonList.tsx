@@ -1,4 +1,4 @@
-import { RefreshCw, ArrowRight, AlertTriangle } from 'lucide-react'
+import { RefreshCw, ArrowRight, AlertTriangle, X } from 'lucide-react'
 import { useCallback, useDeferredValue, useEffect, useMemo, useRef, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { AnimatePresence, motion } from 'framer-motion'
@@ -42,8 +42,6 @@ const HackathonList = () => {
     const [refreshNonce, setRefreshNonce] = useState(0)
     const [hasLoadedFromServer, setHasLoadedFromServer] = useState(!!cachedHackathons)
     const isStillLoading = loading || !hasLoadedFromServer
-    const [progressTarget, setProgressTarget] = useState(cachedHackathons ? 100 : 0)
-    const [progressDisplay, setProgressDisplay] = useState(cachedHackathons ? 100 : 0)
     const [showResults, setShowResults] = useState(!!cachedHackathons)
     const [search, setSearch] = useState(hackathonsFilters.search)
     const [platform, setPlatform] = useState(hackathonsFilters.platform)
@@ -159,7 +157,7 @@ const HackathonList = () => {
 
     const handleInitiateTrack = (hackathonId: string) => {
         if (!isAuthenticated) {
-            navigate(`/login?returnTo=${encodeURIComponent(window.location.pathname)}`);
+            setShowFunnelModal(true);
             return;
         }
         setSelectedHackathonToTrack(hackathonId);
@@ -269,22 +267,9 @@ const HackathonList = () => {
     };
 
 
-    useEffect(() => {
-        if (isAuthenticated) return;
-        const dismissed = sessionStorage.getItem("dismissedSignupFunnel") === "true";
-        if (dismissed) return;
-
-        const timer = setTimeout(() => {
-            setShowFunnelModal(true);
-        }, 5000);
-
-        return () => clearTimeout(timer);
-    }, [isAuthenticated]);
-
     const handleDismissFunnel = () => {
         setShowFunnelModal(false);
-        sessionStorage.setItem("dismissedSignupFunnel", "true");
-    }
+    };
 
     useEffect(() => {
         if (typeof window === 'undefined') {
@@ -299,22 +284,6 @@ const HackathonList = () => {
 
         return () => mediaQuery.removeEventListener('change', updateViewMode)
     }, [])
-
-    useEffect(() => {
-        const intervalId = window.setInterval(() => {
-            setProgressDisplay(previous => {
-                const nextStep = progressTarget - previous
-                if (Math.abs(nextStep) <= 0.2) {
-                    return progressTarget
-                }
-
-                const easedStep = Math.max(0.35, nextStep * 0.2)
-                return Math.min(progressTarget, previous + easedStep)
-            })
-        }, 16)
-
-        return () => window.clearInterval(intervalId)
-    }, [progressTarget])
 
     useEffect(() => {
         if (loading) {
@@ -340,9 +309,7 @@ const HackathonList = () => {
     useEffect(() => {
         let isMounted = true
         let finishTimeout: number | undefined
-        let retryTimeout: number | undefined
         let activeRequestAbort: AbortController | null = null
-        let retryAttempt = 0
 
         const isInitialMount = isInitialMountRef.current;
         isInitialMountRef.current = false;
@@ -355,9 +322,6 @@ const HackathonList = () => {
             setLoading(true)
         }
 
-        const fallbackProgress = window.setInterval(() => {
-            setProgressTarget(previous => Math.max(previous, Math.min(previous + Math.random() * 6, 92)))
-        }, 220)
 
         const fetchHackathons = () => {
             activeRequestAbort = new AbortController()
@@ -372,14 +336,6 @@ const HackathonList = () => {
                     sortBy,
                     showExpired: showExpired ? "true" : "false"
                 },
-                onDownloadProgress: event => {
-                    if (!isMounted || !event.total) {
-                        return
-                    }
-
-                    const networkProgress = (event.loaded / event.total) * 100
-                    setProgressTarget(previous => Math.max(previous, Math.min(networkProgress, 99)))
-                },
             })
                 .then(res => {
                     if (!isMounted) {
@@ -391,11 +347,9 @@ const HackathonList = () => {
                         : Array.isArray(res.data)
                             ? res.data
                             : []
-                    window.clearInterval(fallbackProgress)
                     setHackathons(responseData)
                     setCachedHackathons(responseData)
                     setHasLoadedFromServer(true)
-                    setProgressTarget(100)
                     finishTimeout = window.setTimeout(() => {
                         if (!isMounted) {
                             return
@@ -404,15 +358,19 @@ const HackathonList = () => {
                         setIsRefreshing(false)
                     }, 280)
                 })
-                .catch(() => {
+                .catch((error) => {
                     if (!isMounted) {
                         return
                     }
 
-                    // Keep loading visible during cold starts/transient failures and retry.
-                    retryAttempt += 1
-                    setProgressTarget(previous => Math.max(25, Math.min(previous, 85)))
-                    retryTimeout = window.setTimeout(fetchHackathons, Math.min(2500 + retryAttempt * 1000, 10000))
+                    if (error?.name === 'CanceledError' || error?.name === 'AbortError') {
+                        return
+                    }
+
+                    console.error("[Hackathons] Failed to load hackathons:", error?.message || error)
+                    // Release loading spinner gracefully without annoying intrusive error toasts
+                    setLoading(false)
+                    setIsRefreshing(false)
                 })
         }
 
@@ -421,10 +379,6 @@ const HackathonList = () => {
         return () => {
             isMounted = false
             activeRequestAbort?.abort()
-            window.clearInterval(fallbackProgress)
-            if (retryTimeout) {
-                window.clearTimeout(retryTimeout)
-            }
             if (finishTimeout) {
                 window.clearTimeout(finishTimeout)
             }
@@ -443,14 +397,12 @@ const HackathonList = () => {
         setLoading(true)
         setHasLoadedFromServer(false)
         setShowResults(false)
-        setProgressDisplay(0)
-        setProgressTarget(8)
         setRefreshNonce(previous => previous + 1)
     }, [isStillLoading])
 
     const loadingLabel = hasLoadedFromServer
         ? 'Loading hackathons'
-        : 'Connecting to server and loading hackathons'
+        : 'Scraping from server for you...'
 
     const visibleHackathons = hackathons
 
@@ -548,7 +500,7 @@ const HackathonList = () => {
                 {isStillLoading && (
                     <div className="absolute inset-0 z-20 flex justify-center items-center bg-zinc-950/5 dark:bg-black/10 backdrop-blur-[2.5px] p-4 rounded-3xl">
                         <div className="w-full max-w-sm shrink-0">
-                            <LoadingProgress progress={progressDisplay} label={loadingLabel} />
+                            <LoadingProgress label={loadingLabel} />
                         </div>
                     </div>
                 )}
@@ -598,6 +550,7 @@ const HackathonList = () => {
                         initial={{ opacity: 0 }}
                         animate={{ opacity: 1 }}
                         exit={{ opacity: 0 }}
+                        onClick={handleDismissFunnel}
                         className="fixed inset-0 z-[100] flex items-center justify-center bg-zinc-950/70 backdrop-blur-[4px] px-4 py-8"
                     >
                         <motion.div
@@ -608,6 +561,14 @@ const HackathonList = () => {
                             onClick={(e) => e.stopPropagation()}
                             className="w-full max-w-md rounded-2xl border border-zinc-200 bg-white p-6 shadow-2xl dark:border-zinc-800 dark:bg-zinc-950 relative overflow-hidden"
                         >
+                            <button
+                                type="button"
+                                onClick={handleDismissFunnel}
+                                className="absolute top-4 right-4 p-1.5 rounded-xl text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-200 hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors cursor-pointer"
+                                aria-label="Close modal"
+                            >
+                                <X className="h-4 w-4" />
+                            </button>
 
                             <div className="flex flex-col items-center text-center space-y-4 pt-3">
 

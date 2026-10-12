@@ -603,3 +603,33 @@ html.dark .moving-logo-gradient {
 	animation: shine-logo-gradient 4s linear infinite;
 	display: inline-block;
 }
+
+/* Branded Indeterminate Loader Beam (Hero Gradient) */
+@keyframes loader-beam-pulse {
+	0% {
+		transform: translateX(-100%);
+		opacity: 0.6;
+	}
+	50% {
+		transform: translateX(60%);
+		opacity: 1;
+	}
+	100% {
+		transform: translateX(220%);
+		opacity: 0.6;
+	}
+}
+
+.loader-hero-beam {
+	background: linear-gradient(90deg, transparent 0%, #2563eb 25%, #0284c7 50%, #4f46e5 75%, transparent 100%);
+	background-size: 200% 100%;
+	animation: loader-beam-pulse 2s cubic-bezier(0.4, 0, 0.2, 1) infinite, shine-logo-gradient 3s linear infinite;
+	box-shadow: 0 0 14px rgba(37, 99, 235, 0.45);
+}
+
+html.dark .loader-hero-beam {
+	background: linear-gradient(90deg, transparent 0%, #3b82f6 25%, #38bdf8 50%, #818cf8 75%, transparent 100%);
+	background-size: 200% 100%;
+	animation: loader-beam-pulse 2s cubic-bezier(0.4, 0, 0.2, 1) infinite, shine-logo-gradient 3s linear infinite;
+	box-shadow: 0 0 16px rgba(59, 130, 246, 0.55);
+}

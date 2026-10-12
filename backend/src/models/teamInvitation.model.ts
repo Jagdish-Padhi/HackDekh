@@ -1,5 +1,4 @@
 import mongoose from 'mongoose';
-import crypto from 'crypto';
 
 const teamInvitationSchema = new mongoose.Schema({
     team: {

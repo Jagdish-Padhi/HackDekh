@@ -279,12 +279,22 @@ export default function TrackerPage() {
                       </div>
                       
                       <div className="min-w-0 flex-1 space-y-1 text-left pr-20">
-                        <Link
-                          to={`/hackathons/${part.hackathon._id}`}
-                          className="block text-sm font-bold text-zinc-900 dark:text-white hover:text-blue-600 dark:hover:text-blue-400 truncate transition-colors"
-                        >
-                          {part.hackathon.title}
-                        </Link>
+                        {part.hackathon.applyLink ? (
+                          <a
+                            href={part.hackathon.applyLink}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="inline-flex items-center gap-1.5 text-sm font-bold text-zinc-900 dark:text-white hover:text-blue-600 dark:hover:text-blue-400 truncate transition-colors"
+                            title="Open Official Site"
+                          >
+                            <span className="truncate">{part.hackathon.title}</span>
+                            <ExternalLink className="h-3 w-3 shrink-0 opacity-70" />
+                          </a>
+                        ) : (
+                          <span className="block text-sm font-bold text-zinc-900 dark:text-white truncate">
+                            {part.hackathon.title}
+                          </span>
+                        )}
                         <div className="flex items-center gap-2 mt-0.5 flex-wrap">
                           <span className={`text-[9px] font-extrabold uppercase tracking-wider px-2 py-0.5 rounded-md border ${
                             part.status === "won" ? "text-emerald-600 dark:text-emerald-400 bg-emerald-500/5 dark:bg-emerald-500/10 border-emerald-500/15" :

@@ -1,20 +1,22 @@
-﻿import { BrowserRouter as Router, Routes, Route, useLocation } from 'react-router-dom';
+﻿import { lazy, Suspense } from 'react';
+import { BrowserRouter as Router, Routes, Route, useLocation } from 'react-router-dom';
 import { AnimatePresence, motion } from 'framer-motion';
 import MainLayout from './components/MainLayout';
 import HomePage from './pages/Home';
-import HackathonsPage from './pages/Hackathons';
-import HackathonDetailsPage from './pages/HackathonDetails';
-import LoginPage from './pages/Login';
-import VerificationPage from './pages/VerifyEmail';
-import TeamsPage from './pages/Teams';
-import AcceptInvitationPage from './pages/AcceptInvitation';
-import DashboardPage from './pages/Dashboard';
-import TrackerPage from './pages/Tracker';
-import SettingsPage from './pages/Settings';
-import GithubCallbackPage from './pages/GithubCallback';
 import ProtectedRoute from './components/ProtectedRoute';
 import { AuthProvider, useAuth, CacheProvider, ToastProvider } from './context';
 import LogoTransition from './components/LogoAnimation';
+
+// Code-split non-landing routes so the initial landing page bundle is lightweight
+const HackathonsPage = lazy(() => import('./pages/Hackathons'));
+const LoginPage = lazy(() => import('./pages/Login'));
+const VerificationPage = lazy(() => import('./pages/VerifyEmail'));
+const TeamsPage = lazy(() => import('./pages/Teams'));
+const AcceptInvitationPage = lazy(() => import('./pages/AcceptInvitation'));
+const DashboardPage = lazy(() => import('./pages/Dashboard'));
+const TrackerPage = lazy(() => import('./pages/Tracker'));
+const SettingsPage = lazy(() => import('./pages/Settings'));
+const GithubCallbackPage = lazy(() => import('./pages/GithubCallback'));
 
 function AppContent() {
   const { isLoading } = useAuth();
@@ -48,13 +50,13 @@ function AppContent() {
           transition={{ duration: 0.2, ease: 'easeInOut' }}
           className="w-full flex-1 flex flex-col"
         >
-          <Routes location={location}>
+          <Suspense fallback={null}>
+            <Routes location={location}>
             <Route path="/" element={<HomePage />} />
             <Route path="/login" element={<LoginPage />} />
             <Route path="/signup" element={<LoginPage />} />
             <Route path="/verify-email" element={<VerificationPage />} />
             <Route path="/hackathons" element={<HackathonsPage />} />
-            <Route path="/hackathons/:id" element={<HackathonDetailsPage />} />
             <Route path="/accept-invitation" element={<AcceptInvitationPage />} />
             <Route path="/auth/github/callback" element={<GithubCallbackPage />} />
             
@@ -92,6 +94,7 @@ function AppContent() {
               } 
             />
           </Routes>
+          </Suspense>
         </motion.div>
       </AnimatePresence>
     </MainLayout>

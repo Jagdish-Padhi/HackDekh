@@ -1,10 +1,8 @@
 import axios, { AxiosError } from "axios";
 import hackathon from "../models/hackathon.model.ts";
-import * as cheerio from "cheerio";
 import { universalFormatter } from "../formatters/universalFormatter.ts";
 import { asyncHandler } from "../utils/asyncHandler.ts";
 import { ApiResponse } from "../utils/apiResponse.ts";
-import { ApiError } from "../utils/apiError.ts";
 
 const HEADERS = {
   "User-Agent":

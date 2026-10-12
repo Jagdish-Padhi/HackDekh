@@ -10,9 +10,11 @@ interface SendTeamInvitationEmailInput {
 
 const appName = process.env.APP_NAME || 'HackDekh';
 
-function getTransportConfig() {
+function createTransporter(overridePort?: number, overrideSecure?: boolean) {
   const host = process.env.SMTP_HOST;
-  const port = Number(process.env.SMTP_PORT || 587);
+  const defaultPort = Number(process.env.SMTP_PORT || 587);
+  const port = overridePort || defaultPort;
+  const secure = overrideSecure !== undefined ? overrideSecure : port === 465;
   const user = process.env.SMTP_USER;
   const pass = process.env.SMTP_PASS;
 
@@ -20,33 +22,70 @@ function getTransportConfig() {
     return null;
   }
 
-  return {
+  return nodemailer.createTransport({
     host,
     port,
-    secure: port === 465,
-    connectionTimeout: 6000,
-    greetingTimeout: 6000,
-    socketTimeout: 8000,
+    secure,
+    connectionTimeout: 15000,
+    greetingTimeout: 15000,
+    socketTimeout: 15000,
     auth: {
       user,
       pass,
     },
-  };
+  });
 }
 
 export function isEmailDeliveryConfigured(): boolean {
-  return Boolean(getTransportConfig() && (process.env.SMTP_FROM || process.env.SMTP_USER));
+  return Boolean(
+    process.env.SMTP_HOST &&
+    process.env.SMTP_USER &&
+    process.env.SMTP_PASS &&
+    (process.env.SMTP_FROM || process.env.SMTP_USER)
+  );
+}
+
+async function sendMailWithFallback(mailOptions: nodemailer.SendMailOptions): Promise<void> {
+  const primaryTransporter = createTransporter();
+  const from = process.env.SMTP_FROM || process.env.SMTP_USER;
+
+  if (!primaryTransporter || !from) {
+    throw new Error(
+      'Email delivery is not configured. Missing SMTP_HOST, SMTP_PORT, SMTP_USER, SMTP_PASS, or SMTP_FROM.'
+    );
+  }
+
+  const enrichedOptions = {
+    ...mailOptions,
+    from: mailOptions.from || from,
+  };
+
+  try {
+    await primaryTransporter.sendMail(enrichedOptions);
+    console.log(`[Email] Delivered successfully to ${enrichedOptions.to}`);
+  } catch (primaryError: any) {
+    console.warn(`[Email] Primary delivery attempt failed (${primaryError.code || primaryError.message}), attempting fallback on port 465 (SSL)...`);
+    try {
+      const sslTransporter = createTransporter(465, true);
+      if (sslTransporter) {
+        await sslTransporter.sendMail(enrichedOptions);
+        console.log(`[Email] Fallback delivery on port 465 succeeded to ${enrichedOptions.to}`);
+        return;
+      }
+    } catch (sslError: any) {
+      console.warn(`[Email] SSL fallback failed (${sslError.code || sslError.message}), attempting fallback on port 2525...`);
+      const altTransporter = createTransporter(2525, false);
+      if (altTransporter) {
+        await altTransporter.sendMail(enrichedOptions);
+        console.log(`[Email] Fallback delivery on port 2525 succeeded to ${enrichedOptions.to}`);
+        return;
+      }
+    }
+    throw primaryError;
+  }
 }
 
 export async function sendTeamInvitationEmail(input: SendTeamInvitationEmailInput): Promise<void> {
-  const transportConfig = getTransportConfig();
-  const from = process.env.SMTP_FROM || process.env.SMTP_USER;
-
-  if (!transportConfig || !from) {
-    throw new Error('Email delivery is not configured. Please set SMTP_HOST, SMTP_PORT, SMTP_USER, SMTP_PASS, and SMTP_FROM.');
-  }
-
-  const transporter = nodemailer.createTransport(transportConfig);
   const expiresOn = input.expiresAt.toLocaleString();
   const subject = `${input.ownerName} invited you to join ${input.teamName} on ${appName}`;
 
@@ -74,8 +113,7 @@ export async function sendTeamInvitationEmail(input: SendTeamInvitationEmailInpu
 
   const text = `${input.ownerName} invited you to join ${input.teamName} on ${appName}.\n\nOpen invitation: ${input.invitationLink}\n\nThis invitation expires on ${expiresOn}.`;
 
-  await transporter.sendMail({
-    from,
+  await sendMailWithFallback({
     to: input.to,
     subject,
     html,
@@ -89,16 +127,8 @@ interface SendEmailVerificationInput {
   verificationLink: string;
 }
 
-// Send branded email verification message via SMTP
+// Send branded email verification message via SMTP with automatic cloud fallback
 export async function sendEmailVerificationEmail(input: SendEmailVerificationInput): Promise<void> {
-  const transportConfig = getTransportConfig();
-  const from = process.env.SMTP_FROM || process.env.SMTP_USER;
-
-  if (!transportConfig || !from) {
-    throw new Error('Email delivery is not configured. Please set SMTP parameters.');
-  }
-
-  const transporter = nodemailer.createTransport(transportConfig);
   const subject = `Verify your email for ${appName}`;
 
   const html = `
@@ -127,8 +157,7 @@ export async function sendEmailVerificationEmail(input: SendEmailVerificationInp
 
   const text = `Hi ${input.fullName},\n\nPlease confirm your email address for ${appName} by visiting:\n${input.verificationLink}\n\nThis link will expire in 24 hours.`;
 
-  await transporter.sendMail({
-    from,
+  await sendMailWithFallback({
     to: input.to,
     subject,
     html,

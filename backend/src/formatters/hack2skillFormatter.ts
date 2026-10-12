@@ -1,9 +1,3 @@
-const normalizeString = (value: unknown): string | null => {
-  if (typeof value !== "string") return null;
-  const trimmed = value.trim();
-  return trimmed.length ? trimmed : null;
-};
-
 export default function formatHack2Skill(rawData: any[]) {
   return rawData.map((h: any) => {
     const slug = h.eventUrl || h._id;

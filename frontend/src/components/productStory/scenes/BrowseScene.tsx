@@ -133,11 +133,11 @@ export default function BrowseScene() {
             return (
               <motion.div
                 key={`${h.id}-${colIdx}`}
-                layout
                 initial={shouldReduceMotion ? { opacity: 0 } : { opacity: 0, x: 20 }}
                 animate={{ opacity: 1, x: 0 }}
                 exit={shouldReduceMotion ? { opacity: 0 } : { opacity: 0, x: -20 }}
                 transition={{ duration: 0.35, ease: "easeOut" }}
+                style={{ willChange: "transform, opacity" }}
                 className="group relative flex flex-col rounded-xl border border-zinc-200/90 bg-white p-3 shadow-xs transition-all duration-200 dark:border-zinc-800/90 dark:bg-zinc-900/90 justify-between"
               >
                 {/* 16:9 Thumbnail Box */}
@@ -145,6 +145,8 @@ export default function BrowseScene() {
                   <img
                     src={h.img}
                     alt={h.title}
+                    loading="lazy"
+                    decoding="async"
                     className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-105"
                   />
                   {/* Badges */}
