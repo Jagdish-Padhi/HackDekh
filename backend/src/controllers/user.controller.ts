@@ -167,46 +167,7 @@ export const updateAccountDetails = asyncHandler(async (req: any, res: any) => {
     .json(new ApiResponse(200, user, "Account details updated successfully!"));
 });
 
-export const toggleSaveHackathon = asyncHandler(async (req: any, res: any) => {
-  const { hackathonId } = req.params;
-  const user = await User.findById(req.user?._id);
-  if (!user) throw new ApiError(404, "User not found");
 
-
-  const index = user.savedHackathons.indexOf(hackathonId as any);
-  if (index === -1) {
-    user.savedHackathons.push(hackathonId as any);
-  } else {
-    user.savedHackathons.splice(index, 1);
-  }
-
-  await user.save({ validateBeforeSave: false });
-  return res
-    .status(200)
-    .json(
-      new ApiResponse(
-        200,
-        { savedHackathons: user.savedHackathons },
-        "Hackathon bookmark toggled successfully!"
-      )
-    );
-});
-
-export const getSavedHackathons = asyncHandler(async (req: any, res: any) => {
-  const user = await User.findById(req.user?._id).populate("savedHackathons");
-  if (!user) throw new ApiError(404, "User not found");
-
-
-  return res
-    .status(200)
-    .json(
-      new ApiResponse(
-        200,
-        user.savedHackathons,
-        "Saved hackathons fetched successfully!"
-      )
-    );
-});
 
 export const getPendingReflections = asyncHandler(async (req: any, res: any) => {
   const stages = await fetchPendingReflections(req.user._id);

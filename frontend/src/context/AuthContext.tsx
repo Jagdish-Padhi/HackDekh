@@ -6,14 +6,6 @@ export type User = {
   username: string;
   email: string;
   fullName: string;
-  savedHackathons: string[];
-  applications: Array<{
-    _id: string;
-    hackathon: string | any;
-    status: string;
-    notes: string;
-    appliedAt: string;
-  }>;
 };
 
 type AuthContextType = {

@@ -3,7 +3,7 @@ import { Link, useNavigate } from "react-router-dom";
 import {
   Calendar,
   AlertTriangle,
-  Trophy,
+  Users,
   CheckCircle2,
   Trash2,
   ExternalLink,
@@ -187,11 +187,7 @@ export default function TrackerPage() {
 
       {loading ? (
         <div className="space-y-6 opacity-40 select-none pointer-events-none">
-          {/* Header Info Skeleton */}
-          <div className="border-b border-zinc-150 dark:border-zinc-800 pb-5">
-            <div className="h-8 w-64 bg-zinc-200 dark:bg-zinc-800 rounded-lg animate-pulse" />
-            <div className="h-4 w-96 bg-zinc-150 dark:bg-zinc-850 rounded-lg animate-pulse mt-2" />
-          </div>
+
           {/* Filters Skeleton */}
           <div className="flex flex-wrap items-center gap-3">
             <div className="h-9 w-24 bg-zinc-200 dark:bg-zinc-800 rounded-lg animate-pulse" />
@@ -211,18 +207,7 @@ export default function TrackerPage() {
         </div>
       ) : (
         <>
-      {/* Header Info */}
-      <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 border-b border-zinc-150 dark:border-zinc-800 pb-5">
-        <div>
-          <h1 className="text-xl font-black text-zinc-900 dark:text-white flex items-center gap-2">
-            <Trophy className="h-5 w-5 text-blue-600 dark:text-blue-400" />
-            Hackathon Tracker
-          </h1>
-          <p className="text-xs text-zinc-500 dark:text-zinc-400 mt-1.5">
-            Universal timeline tracker across all your developer workspaces
-          </p>
-        </div>
-      </div>
+
 
       {/* Main List */}
       <div className="space-y-6">
@@ -258,7 +243,7 @@ export default function TrackerPage() {
                       to={`/teams?teamId=${part.teamInfo._id}`}
                       className="inline-flex items-center gap-1.5 rounded-lg bg-zinc-100 hover:bg-zinc-200 dark:bg-zinc-800 dark:hover:bg-zinc-700 text-[10px] font-extrabold uppercase tracking-wider text-zinc-700 dark:text-zinc-300 px-2.5 py-1 shadow-xs border border-zinc-200/50 dark:border-zinc-700/50 transition-colors"
                     >
-                      👥 {part.teamInfo.name}
+                      <Users className="h-3 w-3 text-zinc-500 dark:text-zinc-400 shrink-0" /> {part.teamInfo.name}
                     </Link>
                   </div>
 

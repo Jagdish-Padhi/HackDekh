@@ -78,11 +78,6 @@ const userSchema = new mongoose.Schema({
     refreshToken: {
         type: String,
     },
-
-    savedHackathons: [{
-        type: mongoose.Schema.Types.ObjectId,
-        ref: 'Hackathon',
-    }],
 }, { timestamps: true });
 
 userSchema.pre("save", async function () {

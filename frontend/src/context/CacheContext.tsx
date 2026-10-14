@@ -11,7 +11,6 @@ export type HackathonsFilters = {
 
 export type DashboardCache = {
   participations: any[];
-  savedHackathons: any[];
   pendingReflections: any[];
 };
 

@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import {
+  Check,
   Shield,
   Moon,
   Sun,
@@ -167,15 +168,7 @@ const SettingsPage = () => {
 
   return (
     <section className="mx-auto w-full max-w-5xl py-6 px-0">
-      {/* Page heading */}
-      <div className="mb-8 pb-6 border-b border-zinc-200 dark:border-zinc-800">
-        <h1 className="text-2xl font-extrabold text-zinc-900 dark:text-zinc-50 tracking-tight">
-          Account Settings
-        </h1>
-        <p className="mt-1 text-sm text-zinc-500 dark:text-zinc-400">
-          Manage your profile, security, and preferences.
-        </p>
-      </div>
+
 
       <div className="flex gap-10 md:gap-16">
         {/* ── Left sidebar nav ── */}
@@ -532,7 +525,7 @@ const SettingsPage = () => {
                   </div>
                   <p className="text-xs font-semibold text-zinc-700 dark:text-zinc-300">
                     Light
-                    {!isDark && <span className="ml-1.5 text-blue-600 dark:text-blue-400">✓ Active</span>}
+                    {!isDark && <span className="ml-1.5 inline-flex items-center gap-1 text-blue-600 dark:text-blue-400"><Check className="h-3 w-3" /> Active</span>}
                   </p>
                 </button>
 
@@ -551,7 +544,7 @@ const SettingsPage = () => {
                   </div>
                   <p className="text-xs font-semibold text-zinc-700 dark:text-zinc-300">
                     Dark
-                    {isDark && <span className="ml-1.5 text-blue-400">✓ Active</span>}
+                    {isDark && <span className="ml-1.5 inline-flex items-center gap-1 text-blue-400"><Check className="h-3 w-3" /> Active</span>}
                   </p>
                 </button>
               </div>

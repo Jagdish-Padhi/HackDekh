@@ -24,8 +24,6 @@ type CardAction = {
 type HackathonCardProps = {
     hackathon: Hackathon;
     displayIndex: number;
-    isBookmarked?: boolean;
-    onToggleBookmark?: () => void;
     extraActions?: CardAction[];
     trackingStatus?: 'tracking' | 'active' | 'eliminated' | 'finalist' | 'won';
     onUntrack?: () => void;
