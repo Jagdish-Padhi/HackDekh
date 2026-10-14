@@ -9,6 +9,8 @@ import { hackathonListCacheKey } from "../cache/cacheKeys.ts";
 const HACKATHON_CACHE_TTL = 60;
 const CACHE_ENABLED = process.env.CACHE_ENABLED !== "false";
 
+const escapeRegExp = (value: string) => value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+
 const isUnavailablePrize = (value: string) =>
   /^(?:tbd|na|n\/a|none|null|undefined|not\s*(?:announced|disclosed)|to\s*be\s*announced|--?)$/i.test(value.trim());
 
@@ -229,7 +231,8 @@ export const getHackathons = asyncHandler(async (req: any, res: any) => {
   const conditions: any[] = [];
 
   if (platform) {
-    conditions.push({ platform: { $regex: new RegExp(`^${platform}$`, "i") } });
+    const safePlatform = String(platform).replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+    conditions.push({ platform: { $regex: new RegExp(`^${safePlatform}$`, "i") } });
   }
 
   if (mode) {
@@ -237,7 +240,8 @@ export const getHackathons = asyncHandler(async (req: any, res: any) => {
   }
 
   if (location) {
-    conditions.push({ location: { $regex: new RegExp(location, "i") } });
+    const safeLocation = escapeRegExp(String(location));
+    conditions.push({ location: { $regex: new RegExp(safeLocation, "i") } });
   }
 
   if (search) {
