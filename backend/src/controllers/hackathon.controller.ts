@@ -210,7 +210,7 @@ export const getHackathons = asyncHandler(async (req: any, res: any) => {
         return res.status(200).json(
           new ApiResponse(
             200, 
-            JSON.parse(cachedData),
+            JSON.parse(cachedData as string),
             "Hackathons fetched from Redis cache"
           )
         );
