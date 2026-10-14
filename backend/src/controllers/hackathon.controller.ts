@@ -236,7 +236,8 @@ export const getHackathons = asyncHandler(async (req: any, res: any) => {
   }
 
   if (mode) {
-    conditions.push({ mode: { $regex: new RegExp(`^${mode}$`, "i") } });
+    const safeMode = escapeRegExp(String(mode));
+    conditions.push({ mode: { $regex: new RegExp(`^${safeMode}$`, "i") } });
   }
 
   if (location) {
