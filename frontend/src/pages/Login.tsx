@@ -1,9 +1,8 @@
 ﻿import { useEffect, useMemo, useState, useRef } from 'react';
 import { Link, useNavigate, useSearchParams, useLocation } from 'react-router-dom';
-import { ArrowLeft, Eye, EyeOff, Github, ExternalLink, RefreshCw, X } from 'lucide-react';
+import { ArrowLeft, Eye, EyeOff, Github, ExternalLink, RefreshCw, X, Loader2 } from 'lucide-react';
 import { signInWithGooglePopup } from '../config/firebase';
 import { useAuth } from '../context/AuthContext';
-import LogoTransition from '../components/LogoAnimation';
 import axiosInstance from '../utils/axiosInstance';
 import { motion, AnimatePresence } from 'framer-motion';
 
@@ -255,7 +254,7 @@ const LoginPage = () => {
       </div> */}
 
       {/* Main Container */}
-      <div className="relative w-full max-w-4xl min-h-[560px] sm:min-h-[600px] rounded-3xl overflow-hidden shadow-2xl border border-zinc-200/80 dark:border-zinc-800 bg-white/70 dark:bg-zinc-900/70 backdrop-blur-xl flex flex-col md:flex-row z-10">
+      <div className="relative w-full max-w-4xl min-h-[560px] sm:min-h-[600px] rounded-xl overflow-hidden shadow-2xl border border-zinc-200/80 dark:border-zinc-800 bg-white/70 dark:bg-zinc-900/70 backdrop-blur-xl flex flex-col md:flex-row z-10">
         
         {/* Left Brand Side */}
         <div className="hidden md:flex md:w-1/2 relative bg-zinc-950 flex-col items-center justify-center p-10 text-white overflow-hidden border-r border-zinc-800/80">
@@ -344,19 +343,19 @@ const LoginPage = () => {
 
                 {/* Feedback banners */}
                 {error && (
-                  <div className="mt-3 rounded-xl border border-red-500/25 bg-red-500/8 px-3.5 py-2 text-xs font-semibold text-red-600 dark:text-red-400">
+                  <div className="mt-3 rounded-lg border border-red-500/25 bg-red-500/8 px-3.5 py-2 text-xs font-semibold text-red-600 dark:text-red-400">
                     {error}
                   </div>
                 )}
 
                 {successMessage && !showVerifyModal && (
-                  <div className="mt-3 rounded-xl border border-green-500/25 bg-green-500/8 px-3.5 py-2 text-xs font-semibold text-green-600 dark:text-green-400">
+                  <div className="mt-3 rounded-lg border border-green-500/25 bg-green-500/8 px-3.5 py-2 text-xs font-semibold text-green-600 dark:text-green-400">
                     {successMessage}
                   </div>
                 )}
 
                 {isBackendWarming && (
-                  <div className="mt-3 rounded-xl border border-amber-500/25 bg-amber-500/8 px-3.5 py-2.5 text-xs text-amber-600 dark:text-amber-400 flex items-center gap-2.5 shadow-sm">
+                  <div className="mt-3 rounded-lg border border-amber-500/25 bg-amber-500/8 px-3.5 py-2.5 text-xs text-amber-600 dark:text-amber-400 flex items-center gap-2.5 shadow-sm">
                     <span className="relative flex h-2 w-2 shrink-0">
                       <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-amber-400 opacity-75"></span>
                       <span className="relative inline-flex rounded-full h-2 w-2 bg-amber-500"></span>
@@ -377,7 +376,7 @@ const LoginPage = () => {
                           ref={usernameRef}
                           type="text"
                           placeholder="johndoe"
-                          className="w-full rounded-xl border border-zinc-200 bg-zinc-50/50 px-3.5 py-2 text-sm text-zinc-900 placeholder:text-zinc-400 shadow-xs transition duration-200 focus:border-blue-500 focus:bg-white focus:outline-none focus:ring-4 focus:ring-blue-500/10 dark:border-zinc-800 dark:bg-zinc-950 dark:text-zinc-100 dark:placeholder:text-zinc-500 dark:focus:border-blue-500 dark:focus:bg-zinc-900 dark:focus:ring-blue-500/20"
+                          className="w-full rounded-lg border border-zinc-200 bg-zinc-50/50 px-3.5 py-2 text-sm text-zinc-900 placeholder:text-zinc-400 shadow-xs transition duration-200 focus:border-blue-500 focus:bg-white focus:outline-none focus:ring-4 focus:ring-blue-500/10 dark:border-zinc-800 dark:bg-zinc-950 dark:text-zinc-100 dark:placeholder:text-zinc-500 dark:focus:border-blue-500 dark:focus:bg-zinc-900 dark:focus:ring-blue-500/20"
                           value={username}
                           onChange={e => setUsername(e.target.value)}
                           autoComplete="username"
@@ -390,7 +389,7 @@ const LoginPage = () => {
                         <input
                           type="text"
                           placeholder="John Doe"
-                          className="w-full rounded-xl border border-zinc-200 bg-zinc-50/50 px-3.5 py-2 text-sm text-zinc-900 placeholder:text-zinc-400 shadow-xs transition duration-200 focus:border-blue-500 focus:bg-white focus:outline-none focus:ring-4 focus:ring-blue-500/10 dark:border-zinc-800 dark:bg-zinc-950 dark:text-zinc-100 dark:placeholder:text-zinc-500 dark:focus:border-blue-500 dark:focus:bg-zinc-900 dark:focus:ring-blue-500/20"
+                          className="w-full rounded-lg border border-zinc-200 bg-zinc-50/50 px-3.5 py-2 text-sm text-zinc-900 placeholder:text-zinc-400 shadow-xs transition duration-200 focus:border-blue-500 focus:bg-white focus:outline-none focus:ring-4 focus:ring-blue-500/10 dark:border-zinc-800 dark:bg-zinc-950 dark:text-zinc-100 dark:placeholder:text-zinc-500 dark:focus:border-blue-500 dark:focus:bg-zinc-900 dark:focus:ring-blue-500/20"
                           value={fullName}
                           onChange={e => setFullName(e.target.value)}
                           autoComplete="name"
@@ -406,7 +405,7 @@ const LoginPage = () => {
                       ref={emailRef}
                       type="email"
                       placeholder="you@domain.com"
-                      className="w-full rounded-xl border border-zinc-200 bg-zinc-50/50 px-3.5 py-2 text-sm text-zinc-900 placeholder:text-zinc-400 shadow-xs transition duration-200 focus:border-blue-500 focus:bg-white focus:outline-none focus:ring-4 focus:ring-blue-500/10 dark:border-zinc-800 dark:bg-zinc-950 dark:text-zinc-100 dark:placeholder:text-zinc-500 dark:focus:border-blue-500 dark:focus:bg-zinc-900 dark:focus:ring-blue-500/20"
+                      className="w-full rounded-lg border border-zinc-200 bg-zinc-50/50 px-3.5 py-2 text-sm text-zinc-900 placeholder:text-zinc-400 shadow-xs transition duration-200 focus:border-blue-500 focus:bg-white focus:outline-none focus:ring-4 focus:ring-blue-500/10 dark:border-zinc-800 dark:bg-zinc-950 dark:text-zinc-100 dark:placeholder:text-zinc-500 dark:focus:border-blue-500 dark:focus:bg-zinc-900 dark:focus:ring-blue-500/20"
                       value={email}
                       onChange={e => setEmail(e.target.value)}
                       autoComplete="email"
@@ -431,7 +430,7 @@ const LoginPage = () => {
                       <input
                         type={showPassword ? 'text' : 'password'}
                         placeholder="••••••••••••"
-                        className="w-full rounded-xl border border-zinc-200 bg-zinc-50/50 pl-3.5 pr-10 py-2 text-sm text-zinc-900 placeholder:text-zinc-400 shadow-xs transition duration-200 focus:border-blue-500 focus:bg-white focus:outline-none focus:ring-4 focus:ring-blue-500/10 dark:border-zinc-800 dark:bg-zinc-950 dark:text-zinc-100 dark:placeholder:text-zinc-500 dark:focus:border-blue-500 dark:focus:bg-zinc-900 dark:focus:ring-blue-500/20"
+                        className="w-full rounded-lg border border-zinc-200 bg-zinc-50/50 pl-3.5 pr-10 py-2 text-sm text-zinc-900 placeholder:text-zinc-400 shadow-xs transition duration-200 focus:border-blue-500 focus:bg-white focus:outline-none focus:ring-4 focus:ring-blue-500/10 dark:border-zinc-800 dark:bg-zinc-950 dark:text-zinc-100 dark:placeholder:text-zinc-500 dark:focus:border-blue-500 dark:focus:bg-zinc-900 dark:focus:ring-blue-500/20"
                         value={password}
                         onChange={e => setPassword(e.target.value)}
                         autoComplete="current-password"
@@ -454,12 +453,12 @@ const LoginPage = () => {
 
                   <button
                     type="submit"
-                    className="btn-brand-primary rounded-xl w-full py-3 text-sm gap-2 mt-2"
+                    className="btn-brand-primary rounded-lg w-full py-3 text-sm gap-2 mt-2"
                     disabled={loading || isBackendWarming}
                   >
                     {loading || isBackendWarming ? (
                       <>
-                        <LogoTransition width={28} height={18} loop={true} />
+                        <Loader2 className="h-4 w-4 animate-spin" />
                         {isBackendWarming ? 'Waking up server...' : 'Please wait...'}
                       </>
                     ) : (
@@ -563,7 +562,7 @@ const LoginPage = () => {
               animate={{ scale: 1, opacity: 1, y: 0 }}
               exit={{ scale: 0.95, opacity: 0, y: 8 }}
               transition={{ duration: 0.15 }}
-              className="w-full max-w-sm bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-2xl p-6 shadow-xl relative text-center"
+              className="w-full max-w-sm bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-xl p-6 shadow-xl relative text-center"
             >
               {/* Close Button */}
               <button
@@ -614,7 +613,7 @@ const LoginPage = () => {
                     href={emailProvider.url}
                     target="_blank"
                     rel="noreferrer"
-                    className="btn-brand-primary rounded-xl w-full py-2.5 text-sm font-semibold gap-2"
+                    className="btn-brand-primary rounded-lg w-full py-2.5 text-sm font-semibold gap-2"
                   >
                     <span>{emailProvider.name}</span>
                     <ExternalLink className="w-4 h-4" />
@@ -625,7 +624,7 @@ const LoginPage = () => {
                   type="button"
                   onClick={handleResendVerification}
                   disabled={isResending || resendCooldown > 0}
-                  className="w-full inline-flex items-center justify-center gap-2 py-2 px-4 rounded-xl border border-zinc-200 dark:border-zinc-700 hover:bg-zinc-50 dark:hover:bg-zinc-800 text-zinc-700 dark:text-zinc-300 text-xs font-medium transition disabled:opacity-50 cursor-pointer disabled:cursor-not-allowed"
+                  className="w-full inline-flex items-center justify-center gap-2 py-2 px-4 rounded-lg border border-zinc-200 dark:border-zinc-700 hover:bg-zinc-50 dark:hover:bg-zinc-800 text-zinc-700 dark:text-zinc-300 text-xs font-medium transition disabled:opacity-50 cursor-pointer disabled:cursor-not-allowed"
                 >
                   {isResending ? (
                     <>

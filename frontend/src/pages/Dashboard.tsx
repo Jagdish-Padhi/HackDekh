@@ -13,7 +13,6 @@ import { useCache, useToast } from "../context";
 import { usePageChrome } from "../context/pageChrome";
 import { teamApi, userApi } from "../services";
 import type { Stage, Team, TeamHackathon, TeamInvitation } from "../types";
-import LoadingProgress from "../components/LoadingProgress";
 
 type Participation = TeamHackathon & { teamInfo: Team };
 
@@ -229,33 +228,25 @@ export default function DashboardPage() {
 
   return (
     <div className="mx-auto w-full max-w-7xl px-4 py-2 md:px-6 space-y-6 relative">
-      {loadingData && (
-        <div className="absolute inset-0 z-20 flex justify-center items-center bg-zinc-950/5 dark:bg-black/10 backdrop-blur-[2.5px] p-4 rounded-3xl min-h-[400px]">
-          <div className="w-full max-w-sm shrink-0">
-            <LoadingProgress simulate={true} label="Loading Workspace" description="Retrieving your hackathons, active teams, and progress metrics..." />
-          </div>
-        </div>
-      )}
-
       {loadingData ? (
-        <div className="space-y-6 opacity-40 select-none pointer-events-none">
+        <div className="space-y-6 select-none pointer-events-none animate-pulse">
           {/* Metric Cards Skeleton */}
           <div className="grid gap-4 grid-cols-2 lg:grid-cols-4">
             {Array.from({ length: 4 }).map((_, index) => (
-              <div key={index} className="flex items-center gap-3.5 bg-white dark:bg-zinc-900/60 p-4 rounded-2xl border border-zinc-200 dark:border-zinc-800 shadow-xs h-18 animate-pulse" />
+              <div key={index} className="flex items-center gap-3.5 bg-white dark:bg-zinc-900/60 p-4 rounded-xl border border-zinc-200 dark:border-zinc-800 shadow-xs h-18 animate-pulse" />
             ))}
           </div>
 
           <div className="grid gap-6 lg:grid-cols-3">
             <div className="lg:col-span-2 space-y-6">
-              <div className="rounded-3xl border border-zinc-200/90 bg-white p-6 shadow-xs dark:border-zinc-800 dark:bg-zinc-950/40 h-80">
-                <div className="h-full w-full rounded-2xl bg-[linear-gradient(110deg,rgba(228,228,231,0.6),rgba(250,250,250,0.95),rgba(228,228,231,0.6))] bg-size-[200%_100%] animate-[shimmer_1.3s_linear_infinite] dark:bg-[linear-gradient(110deg,rgba(39,39,42,0.9),rgba(63,63,70,0.95),rgba(39,39,42,0.9))]" />
+              <div className="rounded-xl border border-zinc-200/90 bg-white p-6 shadow-xs dark:border-zinc-800 dark:bg-zinc-950/40 h-80">
+                <div className="h-full w-full rounded-lg bg-[linear-gradient(110deg,rgba(228,228,231,0.6),rgba(250,250,250,0.95),rgba(228,228,231,0.6))] bg-size-[200%_100%] animate-[shimmer_1.3s_linear_infinite] dark:bg-[linear-gradient(110deg,rgba(39,39,42,0.9),rgba(63,63,70,0.95),rgba(39,39,42,0.9))]" />
               </div>
             </div>
 
             <div className="space-y-6">
-              <div className="rounded-3xl border border-zinc-200/90 bg-white p-6 shadow-xs dark:border-zinc-800 dark:bg-zinc-950/40 h-80">
-                <div className="h-full w-full rounded-2xl bg-[linear-gradient(110deg,rgba(228,228,231,0.6),rgba(250,250,250,0.95),rgba(228,228,231,0.6))] bg-size-[200%_100%] animate-[shimmer_1.3s_linear_infinite] dark:bg-[linear-gradient(110deg,rgba(39,39,42,0.9),rgba(63,63,70,0.95),rgba(39,39,42,0.9))]" />
+              <div className="rounded-xl border border-zinc-200/90 bg-white p-6 shadow-xs dark:border-zinc-800 dark:bg-zinc-950/40 h-80">
+                <div className="h-full w-full rounded-lg bg-[linear-gradient(110deg,rgba(228,228,231,0.6),rgba(250,250,250,0.95),rgba(228,228,231,0.6))] bg-size-[200%_100%] animate-[shimmer_1.3s_linear_infinite] dark:bg-[linear-gradient(110deg,rgba(39,39,42,0.9),rgba(63,63,70,0.95),rgba(39,39,42,0.9))]" />
               </div>
             </div>
           </div>
@@ -265,8 +256,8 @@ export default function DashboardPage() {
           {/* Analytics Metric Row */}
           <div className="grid gap-4 grid-cols-2 lg:grid-cols-4">
             {/* Metric Card 1: Queue */}
-            <div className="flex items-center gap-3.5 rounded-2xl border border-zinc-200/80 bg-white p-4 shadow-xs dark:border-zinc-800 dark:bg-zinc-900/60">
-              <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-blue-50 text-blue-600 dark:bg-blue-950/40 dark:text-blue-400 border border-blue-200/50 dark:border-blue-900/40">
+            <div className="flex items-center gap-3.5 rounded-xl border border-zinc-200/80 bg-white p-4 shadow-xs dark:border-zinc-800 dark:bg-zinc-900/60">
+              <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-lg bg-blue-50 text-blue-600 dark:bg-blue-950/40 dark:text-blue-400 border border-blue-200/50 dark:border-blue-900/40">
                 <Clock3 className="h-5 w-5" />
               </div>
               <div className="min-w-0">
@@ -276,8 +267,8 @@ export default function DashboardPage() {
             </div>
 
             {/* Metric Card 2: Registered */}
-            <div className="flex items-center gap-3.5 rounded-2xl border border-zinc-200/80 bg-white p-4 shadow-xs dark:border-zinc-800 dark:bg-zinc-900/60">
-              <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-indigo-50 text-indigo-600 dark:bg-indigo-950/40 dark:text-indigo-400 border border-indigo-200/50 dark:border-indigo-900/40">
+            <div className="flex items-center gap-3.5 rounded-xl border border-zinc-200/80 bg-white p-4 shadow-xs dark:border-zinc-800 dark:bg-zinc-900/60">
+              <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-lg bg-indigo-50 text-indigo-600 dark:bg-indigo-950/40 dark:text-indigo-400 border border-indigo-200/50 dark:border-indigo-900/40">
                 <Trophy className="h-5 w-5" />
               </div>
               <div className="min-w-0">
@@ -298,9 +289,9 @@ export default function DashboardPage() {
                   }, 3000);
                 }
               }}
-              className="flex items-center gap-3.5 rounded-2xl border border-zinc-200/80 bg-white p-4 shadow-xs transition hover:border-amber-400/80 dark:border-zinc-800 dark:bg-zinc-900/60 dark:hover:border-amber-500/60 cursor-pointer"
+              className="flex items-center gap-3.5 rounded-xl border border-zinc-200/80 bg-white p-4 shadow-xs transition hover:border-amber-400/80 dark:border-zinc-800 dark:bg-zinc-900/60 dark:hover:border-amber-500/60 cursor-pointer"
             >
-              <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-amber-50 text-amber-600 dark:bg-amber-950/40 dark:text-amber-400 border border-amber-200/50 dark:border-amber-900/40">
+              <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-lg bg-amber-50 text-amber-600 dark:bg-amber-950/40 dark:text-amber-400 border border-amber-200/50 dark:border-amber-900/40">
                 <AlertTriangle className="h-5 w-5" />
               </div>
               <div className="min-w-0">
@@ -310,8 +301,8 @@ export default function DashboardPage() {
             </div>
 
             {/* Metric Card 4: Finished */}
-            <div className="flex items-center gap-3.5 rounded-2xl border border-zinc-200/80 bg-white p-4 shadow-xs dark:border-zinc-800 dark:bg-zinc-900/60">
-              <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-emerald-50 text-emerald-600 dark:bg-emerald-950/40 dark:text-emerald-400 border border-emerald-200/50 dark:border-emerald-900/40">
+            <div className="flex items-center gap-3.5 rounded-xl border border-zinc-200/80 bg-white p-4 shadow-xs dark:border-zinc-800 dark:bg-zinc-900/60">
+              <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-lg bg-emerald-50 text-emerald-600 dark:bg-emerald-950/40 dark:text-emerald-400 border border-emerald-200/50 dark:border-emerald-900/40">
                 <Check className="h-5 w-5" />
               </div>
               <div className="min-w-0">
@@ -325,7 +316,7 @@ export default function DashboardPage() {
             {/* Left Column: Deadlines & Results */}
             <div className="lg:col-span-2 space-y-6">
               {/* Upcoming Deadlines */}
-              <div className="rounded-3xl border border-zinc-200/90 bg-white p-6 shadow-xs dark:border-zinc-800 dark:bg-zinc-950/40">
+              <div className="rounded-xl border border-zinc-200/90 bg-white p-6 shadow-xs dark:border-zinc-800 dark:bg-zinc-950/40">
                 <div className="flex items-center justify-between mb-5">
                   <div className="flex items-center gap-2">
                     <Calendar className="h-5 w-5 text-blue-600 dark:text-blue-400" />
@@ -355,7 +346,7 @@ export default function DashboardPage() {
                         <Link 
                           key={stage._id}
                           to={`/teams?teamId=${participation.teamInfo._id}&participationId=${participation._id}&tab=Stages&stageId=${stage._id}`}
-                          className="relative group block cursor-pointer hover:bg-zinc-50/50 dark:hover:bg-zinc-900/10 p-2 -m-2 rounded-2xl transition-all duration-200"
+                          className="relative group block cursor-pointer hover:bg-zinc-50/50 dark:hover:bg-zinc-900/10 p-2 -m-2 rounded-lg transition-all duration-200"
                         >
                           {/* Marker dot */}
                           <span className={`absolute -left-[19px] top-3 h-3.5 w-3.5 rounded-full border-2 border-white dark:border-zinc-950 ${statusColor}`} />
@@ -398,7 +389,7 @@ export default function DashboardPage() {
               </div>
 
               {/* Registered Hackathons & Results */}
-              <div className="rounded-3xl border border-zinc-200/90 bg-white p-6 shadow-xs dark:border-zinc-800 dark:bg-zinc-950/40">
+              <div className="rounded-xl border border-zinc-200/90 bg-white p-6 shadow-xs dark:border-zinc-800 dark:bg-zinc-950/40">
                 <div className="flex flex-wrap items-center justify-between gap-4 mb-5 pb-3.5 border-b border-zinc-100 dark:border-zinc-800">
                   <div className="flex items-center gap-2">
                     <Trophy className="h-5 w-5 text-emerald-600 dark:text-emerald-400" />
@@ -443,7 +434,7 @@ export default function DashboardPage() {
                   return (
                     <div className="grid gap-3 sm:grid-cols-2">
                       {filtered.map((part) => (
-                        <div key={part._id} className="flex items-center justify-between p-3.5 bg-zinc-50 dark:bg-zinc-900/50 rounded-2xl border border-zinc-100 dark:border-zinc-800/80">
+                        <div key={part._id} className="flex items-center justify-between p-3.5 bg-zinc-50 dark:bg-zinc-900/50 rounded-lg border border-zinc-100 dark:border-zinc-800/80">
                           <div className="min-w-0">
                             <p className="text-xs font-extrabold text-zinc-800 dark:text-zinc-200 truncate">{part.hackathon.title}</p>
                             <p className="text-[10px] text-zinc-500 dark:text-zinc-400 truncate mt-0.5">Team: {getTeamName(part.teamInfo)}</p>
@@ -468,7 +459,7 @@ export default function DashboardPage() {
             <div className="space-y-6">
               {/* Incoming Team Invitations */}
               {incomingInvites.length > 0 && (
-                <div className="rounded-3xl border border-blue-500/20 bg-blue-500/5 p-6 dark:bg-blue-500/10 space-y-4">
+                <div className="rounded-xl border border-blue-500/20 bg-blue-500/5 p-6 dark:bg-blue-500/10 space-y-4">
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-2">
                       <Users className="h-5 w-5 text-blue-600 dark:text-blue-400" />
@@ -483,7 +474,7 @@ export default function DashboardPage() {
                     {incomingInvites.map((invite) => (
                       <div
                         key={invite._id}
-                        className="bg-white dark:bg-zinc-900/60 rounded-2xl border border-zinc-200 dark:border-zinc-800 p-4 shadow-xs space-y-3"
+                        className="bg-white dark:bg-zinc-900/60 rounded-lg border border-zinc-200 dark:border-zinc-800 p-4 shadow-xs space-y-3"
                       >
                         <div className="min-w-0">
                           <p className="text-xs text-zinc-600 dark:text-zinc-400 leading-normal">
@@ -498,14 +489,14 @@ export default function DashboardPage() {
                           <button
                             type="button"
                             onClick={() => handleRespondInvite(invite._id, 'accept')}
-                            className="flex-1 inline-flex items-center justify-center gap-1.5 rounded-xl bg-blue-600 text-white px-3 py-1.5 text-xs font-bold transition hover:bg-blue-500 cursor-pointer"
+                            className="flex-1 inline-flex items-center justify-center gap-1.5 rounded-lg bg-blue-600 text-white px-3 py-1.5 text-xs font-bold transition hover:bg-blue-500 cursor-pointer"
                           >
                             Accept
                           </button>
                           <button
                             type="button"
                             onClick={() => handleRespondInvite(invite._id, 'decline')}
-                            className="flex-1 inline-flex items-center justify-center gap-1.5 rounded-xl border border-zinc-200 bg-white text-zinc-600 dark:border-zinc-800 dark:bg-zinc-950 dark:text-zinc-400 px-3 py-1.5 text-xs font-bold transition hover:bg-zinc-50 dark:hover:bg-zinc-900 cursor-pointer"
+                            className="flex-1 inline-flex items-center justify-center gap-1.5 rounded-lg border border-zinc-200 bg-white text-zinc-600 dark:border-zinc-800 dark:bg-zinc-950 dark:text-zinc-400 px-3 py-1.5 text-xs font-bold transition hover:bg-zinc-50 dark:hover:bg-zinc-900 cursor-pointer"
                           >
                             Decline
                           </button>
@@ -517,7 +508,7 @@ export default function DashboardPage() {
               )}
 
               {/* Reflection Warnings Panel */}
-              <div id="pending-reflections-panel" className="rounded-3xl border border-amber-500/20 bg-amber-500/5 p-6 dark:bg-amber-500/10">
+              <div id="pending-reflections-panel" className="rounded-xl border border-amber-500/20 bg-amber-500/5 p-6 dark:bg-amber-500/10">
                 <div className="flex items-center gap-2 mb-3">
                   <AlertTriangle className="h-5 w-5 text-amber-600 dark:text-amber-400" />
                   <h3 className="text-sm font-extrabold text-zinc-900 dark:text-zinc-100 uppercase tracking-wider">Milestone Review Notes</h3>
@@ -536,7 +527,7 @@ export default function DashboardPage() {
                     {pendingReflections.map((stage) => {
                       const isReflecting = activeReflectionStageId === stage._id;
                       return (
-                        <div key={stage._id} className="p-3 bg-white dark:bg-zinc-900/60 rounded-2xl border border-amber-500/20 shadow-xs">
+                        <div key={stage._id} className="p-3 bg-white dark:bg-zinc-900/60 rounded-lg border border-amber-500/20 shadow-xs">
                           <Link 
                             to={
                               stage.teamHackathon && typeof stage.teamHackathon === "object" && stage.teamHackathon.team

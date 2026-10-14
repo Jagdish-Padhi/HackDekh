@@ -462,7 +462,7 @@ const HackathonList = () => {
     return (
         <div className="space-y-4">
             <div className="relative z-50 isolate space-y-3 lg:hidden">
-                <div className="relative z-50 isolate overflow-visible rounded-3xl border border-zinc-200/90 bg-white/90 p-4 shadow-sm backdrop-blur-md dark:border-zinc-800 dark:bg-zinc-900/78 dark:shadow-md">
+                <div className="relative z-50 isolate overflow-visible rounded-xl border border-zinc-200/90 bg-white/90 p-4 shadow-sm backdrop-blur-md dark:border-zinc-800 dark:bg-zinc-900/78 dark:shadow-md">
                     <div className="flex items-end gap-3">
                         <div className="min-w-0 flex-1">
                             <SearchBar value={search} onChange={setSearch} />
@@ -480,7 +480,7 @@ const HackathonList = () => {
                     </div>
                 </div>
 
-                <div className="relative z-50 isolate overflow-visible rounded-3xl border border-zinc-200/90 bg-white/90 p-4 shadow-sm backdrop-blur-md dark:border-zinc-800 dark:bg-zinc-900/78 dark:shadow-md">
+                <div className="relative z-50 isolate overflow-visible rounded-xl border border-zinc-200/90 bg-white/90 p-4 shadow-sm backdrop-blur-md dark:border-zinc-800 dark:bg-zinc-900/78 dark:shadow-md">
                     <FilterPanel
                         platform={platform}
                         setPlatform={setPlatform}
@@ -498,7 +498,7 @@ const HackathonList = () => {
 
             <div className="relative space-y-4">
                 {isStillLoading && (
-                    <div className="absolute inset-0 z-20 flex justify-center items-center bg-zinc-950/5 dark:bg-black/10 backdrop-blur-[2.5px] p-4 rounded-3xl">
+                    <div className="absolute inset-0 z-20 flex justify-center items-center bg-zinc-950/5 dark:bg-black/10 backdrop-blur-[2.5px] p-4 rounded-xl">
                         <div className="w-full max-w-sm shrink-0">
                             <LoadingProgress label={loadingLabel} />
                         </div>
@@ -510,9 +510,9 @@ const HackathonList = () => {
                         {Array.from({ length: isDesktopView ? 8 : 6 }).map((_, index) => (
                             <div
                                 key={index}
-                                className="h-84 rounded-3xl border border-zinc-200/90 bg-white p-4 shadow-sm dark:border-zinc-800 dark:bg-zinc-900"
+                                className="h-84 rounded-xl border border-zinc-200/90 bg-white p-4 shadow-sm dark:border-zinc-800 dark:bg-zinc-900"
                             >
-                                <div className="h-full w-full rounded-2xl bg-[linear-gradient(110deg,rgba(228,228,231,0.6),rgba(250,250,250,0.95),rgba(228,228,231,0.6))] bg-size-[200%_100%] animate-[shimmer_1.3s_linear_infinite] dark:bg-[linear-gradient(110deg,rgba(39,39,42,0.9),rgba(63,63,70,0.95),rgba(39,39,42,0.9))]" />
+                                <div className="h-full w-full rounded-lg bg-[linear-gradient(110deg,rgba(228,228,231,0.6),rgba(250,250,250,0.95),rgba(228,228,231,0.6))] bg-size-[200%_100%] animate-[shimmer_1.3s_linear_infinite] dark:bg-[linear-gradient(110deg,rgba(39,39,42,0.9),rgba(63,63,70,0.95),rgba(39,39,42,0.9))]" />
                             </div>
                         ))}
                     </div>
@@ -537,7 +537,7 @@ const HackathonList = () => {
                         })}
                     </div>
                 ) : (
-                    <div className={`rounded-[1.8rem] border border-zinc-200/90 bg-white/90 px-6 py-16 text-center text-base text-zinc-600 shadow-sm backdrop-blur-md transition-all duration-300 dark:border-zinc-800 dark:bg-zinc-900/78 dark:text-zinc-400 dark:shadow-md ${showResults ? 'translate-y-0 opacity-100' : 'translate-y-1 opacity-0'}`}>
+                    <div className={`rounded-xl border border-zinc-200/90 bg-white/90 px-6 py-16 text-center text-base text-zinc-600 shadow-sm backdrop-blur-md transition-all duration-300 dark:border-zinc-800 dark:bg-zinc-900/78 dark:text-zinc-400 dark:shadow-md ${showResults ? 'translate-y-0 opacity-100' : 'translate-y-1 opacity-0'}`}>
                         {emptyStateMessage}
                     </div>
                 )}
@@ -559,12 +559,12 @@ const HackathonList = () => {
                             exit={{ y: 20, scale: 0.96, opacity: 0 }}
                             transition={{ duration: 0.22, ease: "easeOut" }}
                             onClick={(e) => e.stopPropagation()}
-                            className="w-full max-w-md rounded-2xl border border-zinc-200 bg-white p-6 shadow-2xl dark:border-zinc-800 dark:bg-zinc-950 relative overflow-hidden"
+                            className="w-full max-w-md rounded-xl border border-zinc-200 bg-white p-6 shadow-2xl dark:border-zinc-800 dark:bg-zinc-950 relative overflow-hidden"
                         >
                             <button
                                 type="button"
                                 onClick={handleDismissFunnel}
-                                className="absolute top-4 right-4 p-1.5 rounded-xl text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-200 hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors cursor-pointer"
+                                className="absolute top-4 right-4 p-1.5 rounded-lg text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-200 hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors cursor-pointer"
                                 aria-label="Close modal"
                             >
                                 <X className="h-4 w-4" />
@@ -578,7 +578,7 @@ const HackathonList = () => {
                                         Ready to Win Your Next Hackathon?
                                     </h3>
                                     
-                                    <div className="space-y-3.5 text-left bg-zinc-50 dark:bg-zinc-900/60 p-4 rounded-2xl border border-zinc-100 dark:border-zinc-800/80">
+                                    <div className="space-y-3.5 text-left bg-zinc-50 dark:bg-zinc-900/60 p-4 rounded-lg border border-zinc-100 dark:border-zinc-800/80">
                                         <p className="text-[10px] font-bold text-zinc-400 dark:text-zinc-500 uppercase tracking-widest mb-1">What you get instantly:</p>
                                         {[
                                             { title: 'Advanced Discover Filters', desc: 'Devfolio, Unstop, Devpost & more in one place.' },
@@ -605,7 +605,7 @@ const HackathonList = () => {
                                             handleDismissFunnel();
                                             navigate("/signup?returnTo=/hackathons");
                                         }}
-                                        className="inline-flex w-full items-center justify-center gap-2 rounded-2xl bg-blue-600 px-5 py-3.5 text-sm font-bold text-white shadow-lg shadow-blue-500/10 transition hover:bg-blue-500 hover:-translate-y-0.5 cursor-pointer"
+                                        className="inline-flex w-full items-center justify-center gap-2 rounded-lg bg-blue-600 px-5 py-3.5 text-sm font-bold text-white shadow-lg shadow-blue-500/10 transition hover:bg-blue-500 hover:-translate-y-0.5 cursor-pointer"
                                     >
                                         Create Free Account
                                         <ArrowRight className="h-4 w-4" />
@@ -615,7 +615,7 @@ const HackathonList = () => {
                                             handleDismissFunnel();
                                             navigate("/login?returnTo=/hackathons");
                                         }}
-                                        className="w-full text-center rounded-2xl border border-zinc-200 bg-white py-3.5 text-sm font-bold text-zinc-700 transition hover:bg-zinc-50 dark:border-zinc-800 dark:bg-zinc-950 dark:text-zinc-300 dark:hover:bg-zinc-900 cursor-pointer"
+                                        className="w-full text-center rounded-lg border border-zinc-200 bg-white py-3.5 text-sm font-bold text-zinc-700 transition hover:bg-zinc-50 dark:border-zinc-800 dark:bg-zinc-950 dark:text-zinc-300 dark:hover:bg-zinc-900 cursor-pointer"
                                     >
                                         Log In to Workspace
                                     </button>
@@ -637,13 +637,13 @@ const HackathonList = () => {
                             exit={{ y: 20, scale: 0.96, opacity: 0 }}
                             transition={{ duration: 0.2, ease: "easeOut" }}
                             onClick={(e) => e.stopPropagation()}
-                            className="w-full max-w-sm rounded-3xl border border-zinc-200 bg-white p-6 shadow-2xl dark:border-zinc-800 dark:bg-zinc-950"
+                            className="w-full max-w-sm rounded-xl border border-zinc-200 bg-white p-6 shadow-2xl dark:border-zinc-800 dark:bg-zinc-950"
                         >
                             <h3 className="text-base font-extrabold text-zinc-900 dark:text-white">Track Hackathon</h3>
                             <p className="mt-1 text-xs text-zinc-550 dark:text-zinc-400">Select which of your developer teams will compete in this hackathon to start tracking.</p>
 
                             {teams.length === 0 ? (
-                                <div className="mt-4 text-center py-4 bg-zinc-50 dark:bg-zinc-900/60 rounded-2xl border border-dashed border-zinc-200 dark:border-zinc-800">
+                                <div className="mt-4 text-center py-4 bg-zinc-50 dark:bg-zinc-900/60 rounded-lg border border-dashed border-zinc-200 dark:border-zinc-800">
                                     <p className="text-xs text-zinc-500 dark:text-zinc-400">You don't have any teams yet.</p>
                                     <button
                                         onClick={() => {
@@ -706,7 +706,7 @@ const HackathonList = () => {
                                 exit={{ y: 20, scale: 0.96, opacity: 0 }}
                                 transition={{ duration: 0.2, ease: "easeOut" }}
                                 onClick={(e) => e.stopPropagation()}
-                                className="w-full max-w-sm rounded-[2.25rem] border border-zinc-200 bg-white p-6 shadow-2xl dark:border-zinc-800 dark:bg-zinc-950 text-center"
+                                className="w-full max-w-sm rounded-xl border border-zinc-200 bg-white p-6 shadow-2xl dark:border-zinc-800 dark:bg-zinc-950 text-center"
                             >
                                 <div className="mx-auto h-12 w-12 rounded-full bg-rose-500/10 flex items-center justify-center text-rose-600 dark:text-rose-455 mb-4 shrink-0">
                                     <AlertTriangle className="h-6 w-6" />
