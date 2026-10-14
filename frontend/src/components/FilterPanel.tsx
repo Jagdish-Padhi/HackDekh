@@ -51,7 +51,7 @@ const Dropdown = ({ value, onChange, options, placeholder }: DropdownProps) => {
             <button
                 type="button"
                 onClick={() => setOpen(prev => !prev)}
-                className={`flex h-10 w-full items-center justify-between gap-2 whitespace-nowrap rounded-xl border px-3 py-2 text-[0.82rem] font-medium shadow-sm transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md focus:outline-none focus:ring-3 ${
+                className={`flex h-10 w-full items-center justify-between gap-2 whitespace-nowrap rounded-lg border px-3 py-2 text-[0.82rem] font-medium shadow-sm transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md focus:outline-none focus:ring-3 ${
                     open
                         ? 'border-blue-500/45 ring-3 ring-blue-500/12 dark:border-blue-400/50 dark:ring-blue-400/20'
                         : 'border-zinc-200 dark:border-zinc-800'
@@ -80,7 +80,7 @@ const Dropdown = ({ value, onChange, options, placeholder }: DropdownProps) => {
 
             {/* Dropdown panel */}
             <div
-                className={`absolute left-0 z-60 mt-2 w-full min-w-full origin-top overflow-hidden rounded-2xl border border-zinc-200/90 bg-white shadow-sm backdrop-blur-md transition-all duration-200 dark:border-zinc-800 dark:bg-zinc-900 dark:shadow-md ${
+                className={`absolute left-0 z-60 mt-2 w-full min-w-full origin-top overflow-hidden rounded-xl border border-zinc-200/90 bg-white shadow-sm backdrop-blur-md transition-all duration-200 dark:border-zinc-800 dark:bg-zinc-900 dark:shadow-md ${
                     open
                         ? 'pointer-events-auto scale-100 opacity-100'
                         : 'pointer-events-none scale-95 opacity-0'
@@ -92,7 +92,7 @@ const Dropdown = ({ value, onChange, options, placeholder }: DropdownProps) => {
                             key={opt.value}
                             type="button"
                             onClick={() => { onChange(opt.value); setOpen(false) }}
-                            className={`flex w-full items-center gap-2 rounded-xl px-3 py-2.5 text-sm transition-colors duration-150 ${
+                            className={`flex w-full items-center gap-2 rounded-md px-3 py-2 text-sm transition-colors duration-150 ${
                                 value === opt.value
                                     ? 'bg-blue-600 font-medium text-white dark:bg-blue-500'
                                     : 'text-zinc-700 hover:bg-zinc-100 dark:text-zinc-300 dark:hover:bg-zinc-800/70'
@@ -204,7 +204,7 @@ const FilterPanel = ({
             options={locationOptions}
             placeholder="City"
         />
-        <div className="flex h-10 items-center justify-between gap-3 rounded-xl border border-zinc-200 bg-white px-3.5 shadow-sm dark:border-zinc-800 dark:bg-zinc-900 w-full sm:w-auto shrink-0 select-none">
+        <div className="flex h-10 items-center justify-between gap-3 rounded-lg border border-zinc-200 bg-white px-3.5 shadow-sm dark:border-zinc-800 dark:bg-zinc-900 w-full sm:w-auto shrink-0 select-none">
             <span className="text-[0.82rem] font-bold text-zinc-650 dark:text-zinc-400">Show Expired</span>
             <Switch
                 id="show-expired-switch"

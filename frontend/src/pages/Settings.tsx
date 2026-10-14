@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import {
+  Check,
   Shield,
   Moon,
   Sun,
@@ -8,12 +9,12 @@ import {
   EyeOff,
   Lock,
   Trash2,
+  Loader2,
   User,
 } from "lucide-react";
 import { useAuth } from "../context/AuthContext";
 import { useToast } from "../context";
 import axiosInstance from "../utils/axiosInstance";
-import LogoTransition from "../components/LogoAnimation";
 import { AnimatePresence, motion } from "framer-motion";
 
 /* ─── helpers ──────────────────────────────────────────────────────────────── */
@@ -34,7 +35,7 @@ function getPasswordStrength(pw: string) {
 }
 
 const inputCls =
-  "w-full rounded-xl border border-zinc-200 bg-zinc-50/50 px-4 py-2.5 text-sm text-zinc-800 outline-none transition focus:border-blue-400 focus:bg-white dark:border-zinc-800 dark:bg-zinc-900 dark:text-zinc-100 dark:focus:bg-zinc-950 dark:focus:border-blue-400 dark:placeholder-zinc-600";
+  "w-full rounded-lg border border-zinc-200 bg-zinc-50/50 px-4 py-2.5 text-sm text-zinc-800 outline-none transition focus:border-blue-400 focus:bg-white dark:border-zinc-800 dark:bg-zinc-900 dark:text-zinc-100 dark:focus:bg-zinc-950 dark:focus:border-blue-400 dark:placeholder-zinc-600";
 
 /* ─── sub-components ────────────────────────────────────────────────────────── */
 
@@ -167,15 +168,7 @@ const SettingsPage = () => {
 
   return (
     <section className="mx-auto w-full max-w-5xl py-6 px-0">
-      {/* Page heading */}
-      <div className="mb-8 pb-6 border-b border-zinc-200 dark:border-zinc-800">
-        <h1 className="text-2xl font-extrabold text-zinc-900 dark:text-zinc-50 tracking-tight">
-          Account Settings
-        </h1>
-        <p className="mt-1 text-sm text-zinc-500 dark:text-zinc-400">
-          Manage your profile, security, and preferences.
-        </p>
-      </div>
+
 
       <div className="flex gap-10 md:gap-16">
         {/* ── Left sidebar nav ── */}
@@ -220,7 +213,7 @@ const SettingsPage = () => {
               <button
                 key={item.id}
                 onClick={() => setActive(item.id)}
-                className={`flex items-center gap-1.5 rounded-xl px-3 py-1.5 text-xs font-semibold transition ${
+                className={`flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-semibold transition ${
                   isActive
                     ? item.danger
                       ? "bg-rose-600 text-white"
@@ -317,7 +310,7 @@ const SettingsPage = () => {
                       type="text"
                       disabled
                       value={user?.username || ""}
-                      className="w-full rounded-xl border border-zinc-200 bg-zinc-100 px-4 py-2.5 text-sm text-zinc-400 outline-none cursor-not-allowed dark:border-zinc-800 dark:bg-zinc-900/60 dark:text-zinc-500"
+                      className="w-full rounded-lg border border-zinc-200 bg-zinc-100 px-4 py-2.5 text-sm text-zinc-400 outline-none cursor-not-allowed dark:border-zinc-800 dark:bg-zinc-900/60 dark:text-zinc-500"
                     />
                     <Lock className="h-4 w-4 text-zinc-400 shrink-0" />
                   </div>
@@ -330,7 +323,7 @@ const SettingsPage = () => {
                     disabled={profileSaving}
                     className="btn btn-primary"
                   >
-                    {profileSaving ? <LogoTransition width={28} height={18} loop={true} /> : null}
+                    {profileSaving ? <Loader2 className="h-4 w-4 animate-spin text-zinc-400" /> : null}
                     Save changes
                   </button>
                 </div>
@@ -468,7 +461,7 @@ const SettingsPage = () => {
                     disabled={pwSaving || (!!confirmPw && confirmPw !== newPw)}
                     className="btn btn-primary"
                   >
-                    {pwSaving ? <LogoTransition width={28} height={18} loop={true} /> : null}
+                    {pwSaving ? <Loader2 className="h-4 w-4 animate-spin text-zinc-400" /> : null}
                     Update password
                   </button>
                 </div>
@@ -495,7 +488,7 @@ const SettingsPage = () => {
                 <button
                   type="button"
                   onClick={toggleTheme}
-                  className={`relative inline-flex h-9 w-[112px] shrink-0 items-center gap-2 rounded-xl border px-3 py-2 text-xs font-semibold transition-all duration-200 cursor-pointer ${
+                  className={`relative inline-flex h-9 w-[112px] shrink-0 items-center gap-2 rounded-lg border px-3 py-2 text-xs font-semibold transition-all duration-200 cursor-pointer ${
                     isDark
                       ? "border-blue-500/30 bg-zinc-900 text-blue-300 hover:bg-zinc-800"
                       : "border-amber-300/60 bg-amber-50 text-amber-800 hover:bg-amber-100"
@@ -519,7 +512,7 @@ const SettingsPage = () => {
               <div className="mt-6 grid grid-cols-2 gap-3 max-w-sm">
                 <button
                   onClick={() => { if (isDark) toggleTheme(); }}
-                  className={`rounded-xl border-2 p-3 text-left transition cursor-pointer ${
+                  className={`rounded-lg border-2 p-3 text-left transition cursor-pointer ${
                     !isDark
                       ? "border-blue-500 shadow-md"
                       : "border-zinc-200 dark:border-zinc-700 opacity-60 hover:opacity-80"
@@ -532,13 +525,13 @@ const SettingsPage = () => {
                   </div>
                   <p className="text-xs font-semibold text-zinc-700 dark:text-zinc-300">
                     Light
-                    {!isDark && <span className="ml-1.5 text-blue-600 dark:text-blue-400">✓ Active</span>}
+                    {!isDark && <span className="ml-1.5 inline-flex items-center gap-1 text-blue-600 dark:text-blue-400"><Check className="h-3 w-3" /> Active</span>}
                   </p>
                 </button>
 
                 <button
                   onClick={() => { if (!isDark) toggleTheme(); }}
-                  className={`rounded-xl border-2 p-3 text-left transition cursor-pointer ${
+                  className={`rounded-lg border-2 p-3 text-left transition cursor-pointer ${
                     isDark
                       ? "border-blue-500 shadow-md"
                       : "border-zinc-200 dark:border-zinc-700 opacity-60 hover:opacity-80"
@@ -551,7 +544,7 @@ const SettingsPage = () => {
                   </div>
                   <p className="text-xs font-semibold text-zinc-700 dark:text-zinc-300">
                     Dark
-                    {isDark && <span className="ml-1.5 text-blue-400">✓ Active</span>}
+                    {isDark && <span className="ml-1.5 inline-flex items-center gap-1 text-blue-400"><Check className="h-3 w-3" /> Active</span>}
                   </p>
                 </button>
               </div>
@@ -566,7 +559,7 @@ const SettingsPage = () => {
                 Irreversible and destructive account actions.
               </p>
 
-              <div className="rounded-xl border border-rose-200 bg-rose-50/30 dark:border-rose-900/50 dark:bg-rose-950/10 divide-y divide-rose-200/60 dark:divide-rose-900/40">
+              <div className="rounded-lg border border-rose-200 bg-rose-50/30 dark:border-rose-900/50 dark:bg-rose-950/10 divide-y divide-rose-200/60 dark:divide-rose-900/40">
                 {/* Delete account */}
                 <div className="flex items-center justify-between gap-6 px-5 py-4">
                   <div>
@@ -600,7 +593,7 @@ const SettingsPage = () => {
               initial={{ scale: 0.95, opacity: 0 }}
               animate={{ scale: 1, opacity: 1 }}
               exit={{ scale: 0.95, opacity: 0 }}
-              className="w-full max-w-md rounded-2xl border border-zinc-200 bg-white dark:border-zinc-800 dark:bg-zinc-950 p-6 shadow-2xl"
+              className="w-full max-w-md rounded-xl border border-zinc-200 bg-white dark:border-zinc-800 dark:bg-zinc-950 p-6 shadow-2xl"
             >
               <div className="flex items-center gap-3 mb-4">
                 <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-rose-500/10">
@@ -642,7 +635,7 @@ const SettingsPage = () => {
                   disabled={deleting || deleteInput !== user?.username}
                   className="btn btn-danger"
                 >
-                  {deleting ? <LogoTransition width={28} height={18} loop={true} /> : <Trash2 className="h-4 w-4" />}
+                  {deleting ? <Loader2 className="h-4 w-4 animate-spin" /> : <Trash2 className="h-4 w-4" />}
                   Delete my account
                 </button>
               </div>

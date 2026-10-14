@@ -87,7 +87,7 @@ export default function GithubCallbackPage() {
   if (error) {
     return (
       <div className="relative flex min-h-screen w-screen items-center justify-center overflow-hidden px-4 py-8 bg-zinc-50 dark:bg-zinc-950">
-        <div className="relative w-full max-w-md rounded-[2rem] border border-zinc-200/80 bg-white/90 p-6 shadow-2xl dark:border-zinc-800 dark:bg-zinc-950/85 sm:p-8 text-center">
+        <div className="relative w-full max-w-md rounded-xl border border-zinc-200/80 bg-white/90 p-6 shadow-2xl dark:border-zinc-800 dark:bg-zinc-950/85 sm:p-8 text-center">
           <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-red-100 text-red-650 dark:bg-red-950/30 dark:text-red-400 mb-4">
             <svg className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
               <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />

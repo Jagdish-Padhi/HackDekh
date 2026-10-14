@@ -9,8 +9,6 @@ import {
   getCurrentUser,
   changeCurrentPassword,
   updateAccountDetails,
-  toggleSaveHackathon,
-  getSavedHackathons,
   getPendingReflections,
   githubAuth,
   googleAuth,
@@ -33,10 +31,6 @@ router.get("/me", verifyJWT, getCurrentUser);
 router.get("/search", verifyJWT, searchRateLimiter, searchUsers);
 router.post("/change-password", verifyJWT, authRateLimiter, changeCurrentPassword);
 router.put("/update", verifyJWT, updateAccountDetails);
-
-// Bookmarks / Saved Hackathons
-router.post("/saved/:hackathonId", verifyJWT, toggleSaveHackathon);
-router.get("/saved", verifyJWT, getSavedHackathons);
 
 // Pending stage reflections
 router.get("/pending-reflections", verifyJWT, getPendingReflections);

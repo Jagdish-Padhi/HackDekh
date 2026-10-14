@@ -16,12 +16,13 @@ interface ApiResponse<T> {
   success: boolean;
 }
 
-const unwrap = <T>(response: { data: ApiResponse<T> }): T => response.data.data;
+const unwrap = <T>(response: { data: ApiResponse<T> }): T => response?.data?.data;
 
 export const teamApi = {
   getUserTeams: async (): Promise<Team[]> => {
     const response = await axiosInstance.get<ApiResponse<Team[]>>('/teams');
-    return unwrap(response);
+    const data = unwrap(response);
+    return Array.isArray(data) ? data : [];
   },
 
   getTeamById: async (teamId: string): Promise<Team> => {
@@ -177,7 +178,8 @@ export const teamApi = {
 
   getUserInvitations: async (): Promise<TeamInvitation[]> => {
     const response = await axiosInstance.get<ApiResponse<TeamInvitation[]>>('/teams/user/invitations');
-    return unwrap(response);
+    const data = unwrap(response);
+    return Array.isArray(data) ? data : [];
   },
 
   respondToInvitation: async (invitationId: string, action: 'accept' | 'decline'): Promise<any> => {
