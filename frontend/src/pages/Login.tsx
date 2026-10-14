@@ -1,6 +1,6 @@
 ﻿import { useEffect, useMemo, useState, useRef } from 'react';
 import { Link, useNavigate, useSearchParams, useLocation } from 'react-router-dom';
-import { ArrowLeft, Eye, EyeOff, Github, Mail, ExternalLink, RefreshCw, X } from 'lucide-react';
+import { ArrowLeft, Eye, EyeOff, Github, ExternalLink, RefreshCw, X } from 'lucide-react';
 import { signInWithGooglePopup } from '../config/firebase';
 import { useAuth } from '../context/AuthContext';
 import LogoTransition from '../components/LogoAnimation';
@@ -38,6 +38,37 @@ const LoginPage = () => {
   const [registeredEmail, setRegisteredEmail] = useState('');
   const [isResending, setIsResending] = useState(false);
   const [resendStatus, setResendStatus] = useState<{ type: 'success' | 'error'; message: string } | null>(null);
+  const [resendCooldown, setResendCooldown] = useState(0);
+
+  // Cooldown countdown for resending verification email
+  useEffect(() => {
+    if (resendCooldown <= 0) return;
+    const timer = setInterval(() => {
+      setResendCooldown((prev) => prev - 1);
+    }, 1000);
+    return () => clearInterval(timer);
+  }, [resendCooldown]);
+
+  const emailProvider = useMemo(() => {
+    if (!registeredEmail) return null;
+    const domain = registeredEmail.split('@')[1]?.toLowerCase();
+    if (domain === 'gmail.com' || domain === 'googlemail.com') {
+      return { name: 'Open Gmail', url: 'https://mail.google.com' };
+    }
+    if (domain === 'outlook.com' || domain === 'hotmail.com' || domain === 'live.com') {
+      return { name: 'Open Outlook', url: 'https://outlook.live.com' };
+    }
+    if (domain === 'yahoo.com' || domain === 'ymail.com') {
+      return { name: 'Open Yahoo Mail', url: 'https://mail.yahoo.com' };
+    }
+    if (domain === 'icloud.com') {
+      return { name: 'Open iCloud Mail', url: 'https://www.icloud.com/mail' };
+    }
+    if (domain === 'proton.me' || domain === 'protonmail.com') {
+      return { name: 'Open ProtonMail', url: 'https://mail.proton.me' };
+    }
+    return null;
+  }, [registeredEmail]);
 
   const returnTo = useMemo(() => searchParams.get('returnTo') || '/', [searchParams]);
 
@@ -138,31 +169,39 @@ const LoginPage = () => {
         setLoading(false);
       }
     } else {
-      // Direct registration submission with instant modal feedback
       setLoading(true);
+      setError('');
+      setSuccessMessage('');
 
       try {
+        const normalizedEmail = email.trim().toLowerCase();
         await axiosInstance.post('/users/register', {
-          username,
-          email,
-          fullName,
+          username: username.trim(),
+          email: normalizedEmail,
+          fullName: fullName.trim(),
           password,
         });
-        setRegisteredEmail(email);
+
+        setRegisteredEmail(normalizedEmail);
         setShowVerifyModal(true);
-        setIsLogin(true);
-        setLoading(false);
-        setSuccessMessage('Account created! Please check your email to verify.');
+        setResendStatus(null);
+        setResendCooldown(60);
       } catch (err: any) {
-        setError(err.response?.data?.message || 'Signup failed');
+        const errorMsg =
+          err.response?.data?.message ||
+          (err.code === 'ECONNABORTED'
+            ? 'Connection timed out. Please check your network and try again.'
+            : err.message || 'Signup failed');
+        setError(errorMsg);
+      } finally {
         setLoading(false);
       }
     }
   };
 
-  // Resend verification link
+  // Resend verification link with cooldown rate limiting
   const handleResendVerification = async () => {
-    if (!registeredEmail) return;
+    if (!registeredEmail || isResending || resendCooldown > 0) return;
     setIsResending(true);
     setResendStatus(null);
     try {
@@ -171,8 +210,9 @@ const LoginPage = () => {
       });
       setResendStatus({
         type: 'success',
-        message: res.data?.message || 'Verification email sent! Check your inbox.',
+        message: res.data?.message || 'Fresh verification link sent! Please check your inbox.',
       });
+      setResendCooldown(60);
     } catch (err: any) {
       setResendStatus({
         type: 'error',
@@ -509,55 +549,56 @@ const LoginPage = () => {
 
       </div>
 
-      {/* Verification Email Sent Modal */}
+      {/* Clean Human-Grade Verification Modal */}
       <AnimatePresence>
         {showVerifyModal && (
           <motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70 backdrop-blur-sm"
+            className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm"
           >
             <motion.div
-              initial={{ scale: 0.92, opacity: 0, y: 20 }}
+              initial={{ scale: 0.95, opacity: 0, y: 12 }}
               animate={{ scale: 1, opacity: 1, y: 0 }}
-              exit={{ scale: 0.95, opacity: 0, y: 10 }}
-              className="w-full max-w-md bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-2xl p-6 sm:p-8 shadow-2xl relative text-center"
+              exit={{ scale: 0.95, opacity: 0, y: 8 }}
+              transition={{ duration: 0.15 }}
+              className="w-full max-w-sm bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-2xl p-6 shadow-xl relative text-center"
             >
               {/* Close Button */}
               <button
                 onClick={() => setShowVerifyModal(false)}
-                className="absolute top-4 right-4 text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-200 transition cursor-pointer"
+                className="absolute top-4 right-4 p-1 text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-200 transition cursor-pointer"
+                title="Close"
               >
-                <X className="w-5 h-5" />
+                <X className="w-4 h-4" />
               </button>
 
-              {/* Glowing Icon */}
-              <div className="w-16 h-16 bg-blue-500/10 border border-blue-500/20 rounded-2xl flex items-center justify-center mx-auto mb-4 text-blue-600 dark:text-blue-400">
-                <Mail className="w-8 h-8" />
-              </div>
+              {/* Official HackDekh Logo */}
+              <img
+                src="/BrandImages/HackDekh.png"
+                alt="HackDekh Logo"
+                className="w-14 h-14 mx-auto mb-4 object-contain rounded-full drop-shadow-sm"
+              />
 
               <h3 className="text-xl font-bold text-zinc-900 dark:text-white mb-2">
-                Check Your Email
+                Check your email
               </h3>
 
-              <p className="text-sm text-zinc-600 dark:text-zinc-400 mb-1">
-                We sent a verification link to:
-              </p>
-              <div className="text-sm font-semibold text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-950/40 border border-blue-200 dark:border-blue-900/50 rounded-lg py-1.5 px-3 mb-4 inline-block break-all">
-                {registeredEmail}
-              </div>
-
-              <p className="text-xs text-zinc-500 dark:text-zinc-400 mb-6 leading-relaxed">
-                Click the confirmation link in the email to activate your account.
-                <span className="block mt-1 text-amber-600 dark:text-amber-400 font-medium">
-                  Don&apos;t see it? Please check your Spam or Promotions folder!
+              <p className="text-sm text-zinc-600 dark:text-zinc-400 mb-4 leading-relaxed">
+                We sent a verification link to<br />
+                <span className="font-semibold text-zinc-900 dark:text-white break-all">
+                  {registeredEmail}
                 </span>
+              </p>
+
+              <p className="text-xs text-zinc-500 dark:text-zinc-400 mb-5 leading-normal">
+                Click the link in your email to activate your account and start exploring hackathons.
               </p>
 
               {resendStatus && (
                 <div
-                  className={`p-2.5 rounded-lg text-xs mb-4 ${
+                  className={`py-2 px-3 rounded-lg text-xs mb-4 text-center ${
                     resendStatus.type === 'success'
                       ? 'bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800/50'
                       : 'bg-rose-50 dark:bg-rose-950/40 text-rose-700 dark:text-rose-300 border border-rose-200 dark:border-rose-800/50'
@@ -568,41 +609,59 @@ const LoginPage = () => {
               )}
 
               <div className="space-y-2.5">
-                {registeredEmail.includes('@gmail.com') ? (
+                {emailProvider && (
                   <a
-                    href="https://mail.google.com"
+                    href={emailProvider.url}
                     target="_blank"
                     rel="noreferrer"
-                    className="btn-brand-primary rounded-xl w-full py-3 text-sm gap-2"
+                    className="btn-brand-primary rounded-xl w-full py-2.5 text-sm font-semibold gap-2"
                   >
-                    Open Gmail
+                    <span>{emailProvider.name}</span>
                     <ExternalLink className="w-4 h-4" />
                   </a>
-                ) : null}
+                )}
 
                 <button
                   type="button"
                   onClick={handleResendVerification}
-                  disabled={isResending}
-                  className="w-full inline-flex items-center justify-center gap-2 py-2.5 px-4 rounded-xl border border-zinc-300 dark:border-zinc-700 hover:bg-zinc-100 dark:hover:bg-zinc-800 text-zinc-800 dark:text-zinc-200 text-sm font-medium transition disabled:opacity-50 cursor-pointer"
+                  disabled={isResending || resendCooldown > 0}
+                  className="w-full inline-flex items-center justify-center gap-2 py-2 px-4 rounded-xl border border-zinc-200 dark:border-zinc-700 hover:bg-zinc-50 dark:hover:bg-zinc-800 text-zinc-700 dark:text-zinc-300 text-xs font-medium transition disabled:opacity-50 cursor-pointer disabled:cursor-not-allowed"
                 >
                   {isResending ? (
                     <>
-                      <RefreshCw className="w-4 h-4 animate-spin" />
-                      Resending...
+                      <RefreshCw className="w-3.5 h-3.5 animate-spin" />
+                      <span>Sending...</span>
                     </>
+                  ) : resendCooldown > 0 ? (
+                    <span>Resend in {resendCooldown}s</span>
                   ) : (
-                    'Resend Verification Link'
+                    <span>Resend verification email</span>
                   )}
                 </button>
 
-                <button
-                  type="button"
-                  onClick={() => setShowVerifyModal(false)}
-                  className="text-xs text-zinc-500 dark:text-zinc-400 hover:text-zinc-800 dark:hover:text-zinc-200 pt-2 transition cursor-pointer"
-                >
-                  Proceed to Sign In
-                </button>
+                <div className="flex items-center justify-between pt-3 px-1 text-xs text-zinc-500 dark:text-zinc-400">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setShowVerifyModal(false);
+                      setTimeout(() => emailRef.current?.focus(), 50);
+                    }}
+                    className="hover:text-zinc-800 dark:hover:text-zinc-200 underline underline-offset-2 transition cursor-pointer"
+                  >
+                    Wrong email?
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setShowVerifyModal(false);
+                      handleToggleMode(true);
+                    }}
+                    className="hover:text-blue-600 dark:hover:text-blue-400 font-medium transition cursor-pointer"
+                  >
+                    Back to log in &rarr;
+                  </button>
+                </div>
               </div>
             </motion.div>
           </motion.div>
