@@ -21,10 +21,10 @@ const cookieOptions = {
 };
 
 export const registerUser = asyncHandler(async (req: any, res: any) => {
-  const createdUser = await registerUserService(req.body);
+  const pendingUser = await registerUserService(req.body);
   return res
     .status(201)
-    .json(new ApiResponse(201, createdUser, "User registered successfully! Please check your email to verify your account."));
+    .json(new ApiResponse(201, pendingUser, "Verification email sent! Please check your email to activate your account."));
 });
 
 export const verifyEmail = asyncHandler(async (req: any, res: any) => {

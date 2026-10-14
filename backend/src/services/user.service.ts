@@ -1,6 +1,8 @@
 import { randomBytes, createHash } from 'crypto';
+import bcrypt from 'bcrypt';
 import axios from 'axios';
 import User from '../models/user.model.ts';
+import PendingUser from '../models/pendingUser.model.ts';
 import { ApiError } from '../utils/apiError.ts';
 import { verifyFirebaseIdToken } from '../config/firebase.ts';
 import { sendEmailVerificationEmail } from '../utils/email.ts';
@@ -28,50 +30,69 @@ export async function registerUserService(payload: {
 }) {
   const { username, email, fullName, password } = payload;
 
+  if (!username || !email || !fullName || !password) {
+    throw new ApiError(400, 'All fields (username, email, fullName, password) are required');
+  }
+
+  const normalizedEmail = email.toLowerCase().trim();
+  const normalizedUsername = username.toLowerCase().trim();
+
+  // 1. Check if an active, verified user already exists
   const existedUser = await User.findOne({
-    $or: [{ username: username.toLowerCase() }, { email: email.toLowerCase() }],
+    $or: [{ username: normalizedUsername }, { email: normalizedEmail }],
   });
 
   if (existedUser) {
-    throw new ApiError(409, 'User with email or username already exists');
+    throw new ApiError(409, 'An account with this email or username already exists. Please sign in.');
   }
 
-  // Generate email verification token
+  // 2. Check if username is reserved by another pending user with a different email
+  const pendingWithUsername = await PendingUser.findOne({
+    username: normalizedUsername,
+    email: { $ne: normalizedEmail },
+    verificationExpiry: { $gt: new Date() },
+  });
+
+  if (pendingWithUsername) {
+    throw new ApiError(409, 'Username is currently reserved by another pending registration.');
+  }
+
+  // 3. Generate secure verification token and hash password
   const rawVerificationToken = randomBytes(32).toString('hex');
   const hashedVerificationToken = createHash('sha256').update(rawVerificationToken).digest('hex');
   const tokenExpiry = new Date(Date.now() + 24 * 60 * 60 * 1000);
+  const hashedPassword = await bcrypt.hash(password, 10);
 
-  const user = await User.create({
-    fullName,
-    email: email.toLowerCase(),
-    password,
-    username: username.toLowerCase(),
-    authProvider: 'local',
-    isEmailVerified: false,
-    emailVerificationToken: hashedVerificationToken,
-    emailVerificationExpiry: tokenExpiry,
+  // 4. Upsert pending registration (allows re-registering or updating details prior to verification)
+  await PendingUser.findOneAndUpdate(
+    { email: normalizedEmail },
+    {
+      fullName: fullName.trim(),
+      username: normalizedUsername,
+      email: normalizedEmail,
+      password: hashedPassword,
+      verificationToken: hashedVerificationToken,
+      verificationExpiry: tokenExpiry,
+    },
+    { upsert: true, returnDocument: 'after', setDefaultsOnInsert: true }
+  );
+
+  // 5. Send verification email asynchronously so SMTP handshake latency never blocks the HTTP response
+  const frontendUrl = process.env.FRONTEND_URL || 'https://hackdekh.jdecodes.tech';
+  const verificationLink = `${frontendUrl}/verify-email?token=${rawVerificationToken}`;
+  sendEmailVerificationEmail({
+    to: normalizedEmail,
+    fullName: fullName.trim(),
+    verificationLink,
+  }).catch((err: any) => {
+    console.error(`[Email] Failed to dispatch verification email to ${normalizedEmail}:`, err.message);
   });
 
-  const createdUser = await User.findById(user._id).select('-password -refreshToken -emailVerificationToken');
-  if (!createdUser) {
-    throw new ApiError(500, 'Something went wrong while registering the user');
-  }
-
-  // Send verification email via Brevo SMTP
-  const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:5173';
-  const verificationLink = `${frontendUrl}/verify-email?token=${rawVerificationToken}`;
-  try {
-    await sendEmailVerificationEmail({
-      to: user.email,
-      fullName: user.fullName,
-      verificationLink,
-    });
-    console.log(`[Email] Verification email dispatched to: ${user.email}`);
-  } catch (err: any) {
-    console.error(`[Email] Failed to dispatch verification email to ${user.email}:`, err.message);
-  }
-
-  return createdUser;
+  return {
+    username: normalizedUsername,
+    email: normalizedEmail,
+    fullName: fullName.trim(),
+  };
 }
 
 export async function verifyEmailService(rawToken: string) {
@@ -80,61 +101,126 @@ export async function verifyEmailService(rawToken: string) {
   }
 
   const hashedToken = createHash('sha256').update(rawToken).digest('hex');
-  const user = await User.findOne({
+
+  // 1. Check PendingUser collection
+  const pending = await PendingUser.findOne({
+    verificationToken: hashedToken,
+    verificationExpiry: { $gt: new Date() },
+  });
+
+  if (pending) {
+    // Ensure no conflict occurred while pending
+    const existingUser = await User.findOne({
+      $or: [{ email: pending.email }, { username: pending.username }],
+    });
+
+    if (existingUser) {
+      await PendingUser.deleteOne({ _id: pending._id });
+      throw new ApiError(409, 'An account with this email or username already exists. Please sign in.');
+    }
+
+    // Create user only now upon confirmed verification
+    const newUser = new User({
+      fullName: pending.fullName,
+      email: pending.email,
+      username: pending.username,
+      password: pending.password,
+      authProvider: 'local',
+      isEmailVerified: true,
+    });
+
+    await newUser.save({ validateBeforeSave: false });
+    await PendingUser.deleteOne({ _id: pending._id });
+
+    const tokens = await generateAccessAndRefreshTokens(newUser._id.toString());
+    const loggedInUser = await User.findById(newUser._id).select('-password -refreshToken');
+
+    return { user: loggedInUser, ...tokens };
+  }
+
+  // 2. Check legacy unverified user in User collection (for backward compatibility)
+  const legacyUser = await User.findOne({
     emailVerificationToken: hashedToken,
     emailVerificationExpiry: { $gt: new Date() },
   });
 
+  if (legacyUser) {
+    (legacyUser as any).isEmailVerified = true;
+    (legacyUser as any).emailVerificationToken = undefined;
+    (legacyUser as any).emailVerificationExpiry = undefined;
+    await legacyUser.save();
 
-  if (!user) {
-    throw new ApiError(400, 'Invalid or expired verification token');
+    const tokens = await generateAccessAndRefreshTokens(legacyUser._id.toString());
+    const loggedInUser = await User.findById(legacyUser._id).select('-password -refreshToken');
+
+    return { user: loggedInUser, ...tokens };
   }
 
-  (user as any).isEmailVerified = true;
-  (user as any).emailVerificationToken = undefined;
-  (user as any).emailVerificationExpiry = undefined;
-  await user.save();
-
-
-  const tokens = await generateAccessAndRefreshTokens(user._id.toString());
-  const loggedInUser = await User.findById(user._id).select('-password -refreshToken');
-
-  return { user: loggedInUser, ...tokens };
+  throw new ApiError(400, 'Invalid or expired verification token. If your account is already active, please log in.');
 }
 
-export async function resendVerificationService(email: string, clientOrigin?: string) {
+export async function resendVerificationService(email: string) {
   if (!email) {
     throw new ApiError(400, 'Email is required');
   }
 
-  const user = await User.findOne({ email: email.toLowerCase() });
-  if (!user) {
-    throw new ApiError(404, 'User with this email was not found');
+  const normalizedEmail = email.toLowerCase().trim();
+
+  // 1. Check PendingUser collection
+  const pending = await PendingUser.findOne({ email: normalizedEmail });
+  if (pending) {
+    const rawVerificationToken = randomBytes(32).toString('hex');
+    const hashedVerificationToken = createHash('sha256').update(rawVerificationToken).digest('hex');
+    const tokenExpiry = new Date(Date.now() + 24 * 60 * 60 * 1000);
+
+    pending.verificationToken = hashedVerificationToken;
+    pending.verificationExpiry = tokenExpiry;
+    await pending.save();
+
+    const frontendUrl = process.env.FRONTEND_URL || 'https://hackdekh.jdecodes.tech';
+    const verificationLink = `${frontendUrl}/verify-email?token=${rawVerificationToken}`;
+
+    sendEmailVerificationEmail({
+      to: pending.email,
+      fullName: pending.fullName,
+      verificationLink,
+    }).catch((err: any) => {
+      console.error(`[Email] Failed to resend verification email to ${pending.email}:`, err.message);
+    });
+
+    return { message: 'A fresh verification link has been sent to your email.' };
   }
 
-  if ((user as any).isEmailVerified) {
-    throw new ApiError(400, 'Email is already verified');
+  // 2. Check legacy unverified user in User collection
+  const existingUser = await User.findOne({ email: normalizedEmail });
+  if (existingUser) {
+    if ((existingUser as any).isEmailVerified) {
+      throw new ApiError(400, 'This email address is already verified. Please sign in.');
+    }
+
+    const rawVerificationToken = randomBytes(32).toString('hex');
+    const hashedVerificationToken = createHash('sha256').update(rawVerificationToken).digest('hex');
+    const tokenExpiry = new Date(Date.now() + 24 * 60 * 60 * 1000);
+
+    (existingUser as any).emailVerificationToken = hashedVerificationToken;
+    (existingUser as any).emailVerificationExpiry = tokenExpiry;
+    await existingUser.save();
+
+    const frontendUrl = process.env.FRONTEND_URL || 'https://hackdekh.jdecodes.tech';
+    const verificationLink = `${frontendUrl}/verify-email?token=${rawVerificationToken}`;
+
+    sendEmailVerificationEmail({
+      to: existingUser.email,
+      fullName: existingUser.fullName,
+      verificationLink,
+    }).catch((err: any) => {
+      console.error(`[Email] Failed to resend verification email to ${existingUser.email}:`, err.message);
+    });
+
+    return { message: 'A fresh verification link has been sent to your email.' };
   }
 
-  // Issue new token and expire previous ones
-  const rawVerificationToken = randomBytes(32).toString('hex');
-  const hashedVerificationToken = createHash('sha256').update(rawVerificationToken).digest('hex');
-  const tokenExpiry = new Date(Date.now() + 24 * 60 * 60 * 1000);
-
-  (user as any).emailVerificationToken = hashedVerificationToken;
-  (user as any).emailVerificationExpiry = tokenExpiry;
-  await user.save();
-
-  const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:5173';
-  const verificationLink = `${frontendUrl}/verify-email?token=${rawVerificationToken}`;
-  await sendEmailVerificationEmail({
-    to: user.email,
-    fullName: user.fullName,
-    verificationLink,
-  });
-
-
-  return { message: 'Verification email sent successfully' };
+  throw new ApiError(404, 'No pending registration found for this email. Please sign up first.');
 }
 
 export async function loginUserService(payload: {
@@ -149,8 +235,8 @@ export async function loginUserService(payload: {
   }
 
   const queryConditions: any[] = [];
-  if (email) queryConditions.push({ email: email.toLowerCase() });
-  if (username) queryConditions.push({ username: username.toLowerCase() });
+  if (email) queryConditions.push({ email: email.toLowerCase().trim() });
+  if (username) queryConditions.push({ username: username.toLowerCase().trim() });
 
   if (queryConditions.length === 0) {
     throw new ApiError(400, 'Username or email is required');
@@ -159,7 +245,15 @@ export async function loginUserService(payload: {
   const user = await User.findOne({ $or: queryConditions });
 
   if (!user) {
+    const pending = await PendingUser.findOne({ $or: queryConditions });
+    if (pending) {
+      throw new ApiError(403, 'Your account is pending email verification. Please check your inbox to activate your account.');
+    }
     throw new ApiError(404, 'User does not exist');
+  }
+
+  if (!(user as any).isEmailVerified) {
+    throw new ApiError(403, 'Please verify your email address before logging in.');
   }
 
   const isPasswordValid = await (user as any).isPasswordCorrect(password);
@@ -260,7 +354,6 @@ export async function googleAuthService(idToken: string) {
     throw new ApiError(400, 'Firebase ID token is required');
   }
 
-
   const verifiedPayload = await verifyFirebaseIdToken(idToken);
   const email = verifiedPayload.email.toLowerCase();
 
@@ -277,7 +370,6 @@ export async function googleAuthService(idToken: string) {
       .toLowerCase()
       .replace(/[^az0-9_]/g, '')
       .slice(0, 15) || 'hacker';
-
 
     let username = baseUsername;
     let counter = 1;

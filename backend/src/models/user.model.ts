@@ -87,6 +87,7 @@ const userSchema = new mongoose.Schema({
 
 userSchema.pre("save", async function () {
     if (!this.isModified("password")) return;
+    if (/^\$2[abxy]\$\d+\$[./A-Za-z0-9]{53}$/.test(this.password)) return;
     this.password = await bcrypt.hash(this.password, 10);
 });
 
