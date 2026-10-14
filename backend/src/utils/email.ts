@@ -14,6 +14,12 @@ interface SendEmailVerificationInput {
   verificationLink: string;
 }
 
+export interface SendPasswordResetEmailInput {
+  to: string;
+  fullName: string;
+  resetLink: string;
+}
+
 const appName = process.env.APP_NAME || 'HackDekh';
 const siteUrl = 'https://hackdekh.jdecodes.tech';
 
@@ -269,6 +275,101 @@ View invitation:
 ${input.invitationLink}
 
 This invitation expires on ${expiresOn}.
+
+HackDekh - ${siteUrl}`;
+
+  await sendMailWithFallback({
+    to: input.to,
+    subject,
+    html,
+    text,
+  });
+}
+
+
+// password reset email
+export async function sendPasswordResetEmail(input: SendPasswordResetEmailInput): Promise<void> {
+  const subject = `Reset your password - ${appName}`;
+
+  const html = `<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Reset your password - HackDekh</title>
+</head>
+<body style="margin: 0; padding: 0; background-color: #ffffff; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; -webkit-font-smoothing: antialiased; color: #111827;">
+  <table role="presentation" width="100%" border="0" cellspacing="0" cellpadding="0" style="padding: 48px 20px;">
+    <tr>
+      <td align="center">
+        <table role="presentation" width="100%" border="0" cellspacing="0" cellpadding="0" style="max-width: 460px; text-align: left;">
+          
+          <!-- Logo & Brand Header -->
+          <tr>
+            <td style="padding-bottom: 32px;">
+              <a href="${siteUrl}" target="_blank" style="text-decoration: none; display: inline-block;">
+                <span style="font-size: 20px; font-weight: 700; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; letter-spacing: -0.02em; color: #111827;">Hack<span style="color: #2563eb;">Dekh</span></span>
+              </a>
+            </td>
+          </tr>
+
+          <!-- Heading -->
+          <tr>
+            <td style="font-size: 20px; font-weight: 600; color: #111827; padding-bottom: 16px; letter-spacing: -0.01em;">
+              Reset your password
+            </td>
+          </tr>
+
+          <!-- Message Body -->
+          <tr>
+            <td style="font-size: 15px; line-height: 1.6; color: #374151; padding-bottom: 24px;">
+              Hi ${input.fullName || 'there'},<br/><br/>
+              We received a request to reset your HackDekh account password. Click the button below to choose a new password.
+            </td>
+          </tr>
+
+          <!-- Action Button -->
+          <tr>
+            <td style="padding-bottom: 28px;">
+              <table role="presentation" border="0" cellspacing="0" cellpadding="0">
+                <tr>
+                  <td align="center" style="border-radius: 8px; background-color: #2563eb;">
+                    <a href="${input.resetLink}" target="_blank" style="display: inline-block; padding: 12px 24px; font-size: 14px; font-weight: 600; color: #ffffff; text-decoration: none; border-radius: 8px;">
+                      Reset password
+                    </a>
+                  </td>
+                </tr>
+              </table>
+            </td>
+          </tr>
+
+          <!-- Expiry Note -->
+          <tr>
+            <td style="font-size: 13px; line-height: 1.5; color: #6b7280; padding-bottom: 24px;">
+              This link will expire in 1 hour. If you didn&apos;t request a password reset, you can safely ignore this email &mdash; your account remains completely secure.
+            </td>
+          </tr>
+
+          <!-- Clean Footer -->
+          <tr>
+            <td style="border-top: 1px solid #e5e7eb; padding-top: 20px; font-size: 12px; color: #9ca3af; line-height: 1.5;">
+              HackDekh &bull; <a href="${siteUrl}" target="_blank" style="color: #9ca3af; text-decoration: none;">hackdekh.jdecodes.tech</a>
+            </td>
+          </tr>
+
+        </table>
+      </td>
+    </tr>
+  </table>
+</body>
+</html>`;
+
+  const text = `Hi ${input.fullName || 'there'},
+
+We received a request to reset your HackDekh account password:
+${input.resetLink}
+
+This link will expire in 1 hour. If you didn't request a password reset, you can safely ignore this email.
 
 HackDekh - ${siteUrl}`;
 

@@ -11,6 +11,8 @@ import {
   googleAuthService,
   searchUsersService,
   generateAccessAndRefreshTokens,
+  forgotPasswordService,
+  resetPasswordService,
 } from "../services/user.service.ts";
 import { getPendingReflections as fetchPendingReflections } from "../services/stage.service.ts";
 import jwt from "jsonwebtoken";
@@ -213,4 +215,20 @@ export const searchUsers = asyncHandler(async (req: any, res: any) => {
   return res
     .status(200)
     .json(new ApiResponse(200, users, "Users fetched successfully!"));
+});
+
+
+export const forgotPassword = asyncHandler(async (req: any, res: any) => {
+  const result = await forgotPasswordService(req.body.email);
+  return res
+    .status(200)
+    .json(new ApiResponse(200, result, result.message));
+});
+
+export const resetPassword = asyncHandler(async (req: any, res: any) => {
+  const { token, newPassword } = req.body;
+  const result = await resetPasswordService(token, newPassword);
+  return res
+    .status(200)
+    .json(new ApiResponse(200, result, result.message));
 });

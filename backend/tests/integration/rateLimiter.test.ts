@@ -32,4 +32,22 @@ describe('Rate Limiter & Security Integration Tests', () => {
     expect(blockedRes.body.statusCode).toBe(429);
     expect(blockedRes.body.success).toBe(false);
   });
+
+  it('should enforce passwordResetRateLimiter on forgot-password endpoint', async () => {
+    // passwordResetRateLimiter allows 5 requests per 15 minutes
+    const makeRequest = () =>
+      request(app)
+        .post('/api/v1/users/forgot-password')
+        .send({ email: 'ratelimit-reset@hackdekh.com' });
+
+    for (let i = 0; i < 5; i++) {
+      await makeRequest();
+    }
+
+    // 6th request must be blocked with HTTP 429
+    const blockedRes = await makeRequest();
+    expect(blockedRes.status).toBe(429);
+    expect(blockedRes.body.statusCode).toBe(429);
+    expect(blockedRes.body.success).toBe(false);
+  });
 });

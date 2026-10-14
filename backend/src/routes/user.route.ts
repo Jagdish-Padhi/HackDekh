@@ -13,9 +13,11 @@ import {
   githubAuth,
   googleAuth,
   searchUsers,
+  forgotPassword,
+  resetPassword,
 } from "../controllers/user.controller.ts";
 import { verifyJWT } from "../middlewares/auth.middleware.ts";
-import { authRateLimiter, searchRateLimiter, emailRateLimiter } from "../middlewares/rateLimiter.ts";
+import { authRateLimiter, searchRateLimiter, emailRateLimiter, passwordResetRateLimiter } from "../middlewares/rateLimiter.ts";
 
 const router = Router();
 
@@ -23,6 +25,8 @@ router.post("/register", authRateLimiter, registerUser);
 router.post("/verify-email", authRateLimiter, verifyEmail);
 router.post("/resend-verification", emailRateLimiter, resendVerificationEmail);
 router.post("/login", authRateLimiter, loginUser);
+router.post("/forgot-password", passwordResetRateLimiter, forgotPassword);
+router.post("/reset-password", authRateLimiter, resetPassword);
 router.post("/auth/github", authRateLimiter, githubAuth);
 router.post("/auth/google", authRateLimiter, googleAuth);
 router.post("/logout", verifyJWT, logoutUser);

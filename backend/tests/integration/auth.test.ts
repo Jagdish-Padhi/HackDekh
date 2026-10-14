@@ -145,4 +145,62 @@ describe('User Authentication Integration API Tests', () => {
     expect(res.status).toBe(403);
     expect(res.body.success).toBe(false);
   });
+
+  it('should handle forgot password flow: generate token, verify reset, and allow login with new password', async () => {
+    // 1. Create verified user
+    await User.create({
+      username: 'resetme',
+      fullName: 'Reset Me',
+      email: 'resetme@hackdekh.com',
+      password: 'OldPassword123!',
+      isEmailVerified: true,
+    });
+
+    // 2. Request forgot password
+    const forgotRes = await request(app)
+      .post('/api/v1/users/forgot-password')
+      .send({ email: 'resetme@hackdekh.com' });
+
+    expect(forgotRes.status).toBe(200);
+    expect(forgotRes.body.success).toBe(true);
+
+    const userWithToken = await User.findOne({ email: 'resetme@hackdekh.com' });
+    expect(userWithToken!.passwordResetToken).toBeDefined();
+    expect(userWithToken!.passwordResetExpiry).toBeDefined();
+
+    // 3. Reset password with token
+    const rawToken = 'sample-reset-token-1234567890';
+    userWithToken!.passwordResetToken = createHash('sha256').update(rawToken).digest('hex');
+    userWithToken!.passwordResetExpiry = new Date(Date.now() + 3600000);
+    await userWithToken!.save();
+
+    const resetRes = await request(app)
+      .post('/api/v1/users/reset-password')
+      .send({
+        token: rawToken,
+        newPassword: 'NewPassword123!',
+      });
+
+    expect(resetRes.status).toBe(200);
+    expect(resetRes.body.success).toBe(true);
+
+    // 4. Old password should fail
+    const oldLogin = await request(app)
+      .post('/api/v1/users/login')
+      .send({
+        email: 'resetme@hackdekh.com',
+        password: 'OldPassword123!',
+      });
+    expect(oldLogin.status).toBe(401);
+
+    // 5. New password should succeed
+    const newLogin = await request(app)
+      .post('/api/v1/users/login')
+      .send({
+        email: 'resetme@hackdekh.com',
+        password: 'NewPassword123!',
+      });
+    expect(newLogin.status).toBe(200);
+    expect(newLogin.body.data.accessToken).toBeDefined();
+  });
 });
