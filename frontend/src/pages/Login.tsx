@@ -1,6 +1,6 @@
-﻿import { useEffect, useMemo, useState, useRef } from 'react';
+import { useEffect, useMemo, useState, useRef } from 'react';
 import { Link, useNavigate, useSearchParams, useLocation } from 'react-router-dom';
-import { ArrowLeft, Eye, EyeOff, Github, ExternalLink, RefreshCw, X, Loader2 } from 'lucide-react';
+import { ArrowLeft, Eye, EyeOff, Github, ExternalLink, RefreshCw, X, Loader2, Mail } from 'lucide-react';
 import { signInWithGooglePopup } from '../config/firebase';
 import { useAuth } from '../context/AuthContext';
 import axiosInstance from '../utils/axiosInstance';
@@ -47,6 +47,79 @@ const LoginPage = () => {
     }, 1000);
     return () => clearInterval(timer);
   }, [resendCooldown]);
+
+  // Forgot password modal states
+  const [showForgotModal, setShowForgotModal] = useState(false);
+  const [forgotEmail, setForgotEmail] = useState('');
+  const [forgotStage, setForgotStage] = useState<'input' | 'sent'>('input');
+  const [isSendingForgot, setIsSendingForgot] = useState(false);
+  const [forgotStatus, setForgotStatus] = useState<{ type: 'success' | 'error'; message: string } | null>(null);
+  const [forgotCooldown, setForgotCooldown] = useState(0);
+
+  // Cooldown countdown for forgot password resend
+  useEffect(() => {
+    if (forgotCooldown <= 0) return;
+    const timer = setInterval(() => {
+      setForgotCooldown((prev) => prev - 1);
+    }, 1000);
+    return () => clearInterval(timer);
+  }, [forgotCooldown]);
+
+  const forgotEmailProvider = useMemo(() => {
+    if (!forgotEmail) return null;
+    const domain = forgotEmail.split('@')[1]?.toLowerCase();
+    if (domain === 'gmail.com' || domain === 'googlemail.com') {
+      return { name: 'Open Gmail', url: 'https://mail.google.com' };
+    }
+    if (domain === 'outlook.com' || domain === 'hotmail.com' || domain === 'live.com') {
+      return { name: 'Open Outlook', url: 'https://outlook.live.com' };
+    }
+    if (domain === 'yahoo.com' || domain === 'ymail.com') {
+      return { name: 'Open Yahoo Mail', url: 'https://mail.yahoo.com' };
+    }
+    if (domain === 'icloud.com') {
+      return { name: 'Open iCloud Mail', url: 'https://www.icloud.com/mail' };
+    }
+    if (domain === 'proton.me' || domain === 'protonmail.com') {
+      return { name: 'Open ProtonMail', url: 'https://mail.proton.me' };
+    }
+    return null;
+  }, [forgotEmail]);
+
+  const handleOpenForgotPassword = () => {
+    setForgotEmail(email.trim());
+    setForgotStage('input');
+    setForgotStatus(null);
+    setShowForgotModal(true);
+  };
+
+  const handleSendForgotPassword = async (e?: React.FormEvent) => {
+    if (e) e.preventDefault();
+    const targetEmail = forgotEmail.trim();
+    if (!targetEmail) {
+      setForgotStatus({ type: 'error', message: 'Please enter your email address.' });
+      return;
+    }
+
+    setIsSendingForgot(true);
+    setForgotStatus(null);
+    try {
+      const res = await axiosInstance.post('/users/forgot-password', { email: targetEmail });
+      setForgotStage('sent');
+      setForgotCooldown(60);
+      setForgotStatus({
+        type: 'success',
+        message: res.data?.message || 'Password reset link sent! Check your inbox.',
+      });
+    } catch (err: any) {
+      setForgotStatus({
+        type: 'error',
+        message: err.response?.data?.message || 'Failed to send reset link. Please try again.',
+      });
+    } finally {
+      setIsSendingForgot(false);
+    }
+  };
 
   const emailProvider = useMemo(() => {
     if (!registeredEmail) return null;
@@ -231,9 +304,7 @@ const LoginPage = () => {
     navigate(targetLogin ? `/login?returnTo=${encodeURIComponent(returnTo)}` : `/signup?returnTo=${encodeURIComponent(returnTo)}`, { replace: true });
   };
 
-  const handleForgotPassword = () => {
-    setError('Password reset instructions will be sent if an account with that email exists.');
-  };
+
 
   return (
     <div className="relative min-h-screen w-screen overflow-hidden flex items-center justify-center p-4 bg-transparent">
@@ -419,7 +490,7 @@ const LoginPage = () => {
                       {isLogin && (
                         <button
                           type="button"
-                          onClick={handleForgotPassword}
+                          onClick={handleOpenForgotPassword}
                           className="text-[10px] font-semibold text-zinc-500 hover:text-zinc-950 dark:text-zinc-400 dark:hover:text-white transition cursor-pointer"
                         >
                           Forgot password?
@@ -662,6 +733,193 @@ const LoginPage = () => {
                   </button>
                 </div>
               </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* Clean Human-Grade Forgot Password Modal */}
+      <AnimatePresence>
+        {showForgotModal && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm"
+          >
+            <motion.div
+              initial={{ scale: 0.95, opacity: 0, y: 12 }}
+              animate={{ scale: 1, opacity: 1, y: 0 }}
+              exit={{ scale: 0.95, opacity: 0, y: 8 }}
+              transition={{ duration: 0.15 }}
+              className="w-full max-w-sm bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-xl p-6 shadow-xl relative text-center"
+            >
+              {/* Close Button */}
+              <button
+                onClick={() => setShowForgotModal(false)}
+                className="absolute top-4 right-4 p-1 text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-200 transition cursor-pointer"
+                title="Close"
+              >
+                <X className="w-4 h-4" />
+              </button>
+
+              {/* Official HackDekh Logo */}
+              <img
+                src="/BrandImages/HackDekh.png"
+                alt="HackDekh Logo"
+                className="w-14 h-14 mx-auto mb-4 object-contain rounded-full drop-shadow-sm"
+              />
+
+              {forgotStage === 'input' ? (
+                <>
+                  <h3 className="text-xl font-bold text-zinc-900 dark:text-white mb-1.5">
+                    Reset your password
+                  </h3>
+
+                  <p className="text-xs text-zinc-500 dark:text-zinc-400 mb-5 leading-relaxed">
+                    Enter the email associated with your account and we&apos;ll send you a secure link to reset your password.
+                  </p>
+
+                  {forgotStatus && (
+                    <div
+                      className={`py-2 px-3 rounded-lg text-xs mb-4 text-center ${
+                        forgotStatus.type === 'success'
+                          ? 'bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800/50'
+                          : 'bg-rose-50 dark:bg-rose-950/40 text-rose-700 dark:text-rose-300 border border-rose-200 dark:border-rose-800/50'
+                      }`}
+                    >
+                      {forgotStatus.message}
+                    </div>
+                  )}
+
+                  <form onSubmit={handleSendForgotPassword} className="space-y-3 text-left">
+                    <div>
+                      <label className="block text-[10px] font-bold uppercase tracking-wider text-zinc-500 dark:text-zinc-400 mb-1">
+                        Email Address
+                      </label>
+                      <input
+                        type="email"
+                        value={forgotEmail}
+                        onChange={(e) => setForgotEmail(e.target.value)}
+                        placeholder="you@domain.com"
+                        required
+                        disabled={isSendingForgot}
+                        className="w-full rounded-lg border border-zinc-200 bg-zinc-50/50 px-3.5 py-2 text-sm text-zinc-900 placeholder:text-zinc-400 shadow-xs transition duration-200 focus:border-blue-500 focus:bg-white focus:outline-none focus:ring-4 focus:ring-blue-500/10 dark:border-zinc-800 dark:bg-zinc-950 dark:text-zinc-100 dark:placeholder:text-zinc-500 dark:focus:border-blue-500 dark:focus:bg-zinc-900 dark:focus:ring-blue-500/20"
+                      />
+                    </div>
+
+                    <button
+                      type="submit"
+                      disabled={isSendingForgot}
+                      className="btn-brand-primary rounded-lg w-full py-2.5 px-4 text-sm font-semibold gap-2"
+                    >
+                      {isSendingForgot ? (
+                        <>
+                          <Loader2 className="w-4 h-4 animate-spin" />
+                          <span>Sending Link...</span>
+                        </>
+                      ) : (
+                        <>
+                          <Mail className="w-4 h-4" />
+                          <span>Send Password Reset Link</span>
+                        </>
+                      )}
+                    </button>
+                  </form>
+
+                  <div className="mt-4 pt-3 border-t border-zinc-100 dark:border-zinc-800/80 text-center">
+                    <button
+                      type="button"
+                      onClick={() => setShowForgotModal(false)}
+                      className="text-xs font-semibold text-zinc-500 hover:text-zinc-800 dark:text-zinc-400 dark:hover:text-zinc-200 transition cursor-pointer"
+                    >
+                      &larr; Back to Sign In
+                    </button>
+                  </div>
+                </>
+              ) : (
+                <>
+                  <h3 className="text-xl font-bold text-zinc-900 dark:text-white mb-2">
+                    Check your email
+                  </h3>
+
+                  <p className="text-sm text-zinc-600 dark:text-zinc-400 mb-4 leading-relaxed">
+                    We sent password reset instructions to<br />
+                    <span className="font-semibold text-zinc-900 dark:text-white break-all">
+                      {forgotEmail}
+                    </span>
+                  </p>
+
+                  <p className="text-xs text-zinc-500 dark:text-zinc-400 mb-5 leading-normal">
+                    Click the link in your email to choose a new password. The link is valid for 1 hour.
+                  </p>
+
+                  {forgotStatus && (
+                    <div
+                      className={`py-2 px-3 rounded-lg text-xs mb-4 text-center ${
+                        forgotStatus.type === 'success'
+                          ? 'bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800/50'
+                          : 'bg-rose-50 dark:bg-rose-950/40 text-rose-700 dark:text-rose-300 border border-rose-200 dark:border-rose-800/50'
+                      }`}
+                    >
+                      {forgotStatus.message}
+                    </div>
+                  )}
+
+                  <div className="space-y-2.5">
+                    {forgotEmailProvider && (
+                      <a
+                        href={forgotEmailProvider.url}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="btn-brand-primary rounded-lg w-full py-2.5 text-sm font-semibold gap-2"
+                      >
+                        <span>{forgotEmailProvider.name}</span>
+                        <ExternalLink className="w-4 h-4" />
+                      </a>
+                    )}
+
+                    <button
+                      type="button"
+                      onClick={() => handleSendForgotPassword()}
+                      disabled={isSendingForgot || forgotCooldown > 0}
+                      className="w-full inline-flex items-center justify-center gap-2 py-2 px-4 rounded-lg border border-zinc-200 dark:border-zinc-700 hover:bg-zinc-50 dark:hover:bg-zinc-800 text-zinc-700 dark:text-zinc-300 text-xs font-medium transition disabled:opacity-50 cursor-pointer disabled:cursor-not-allowed"
+                    >
+                      {isSendingForgot ? (
+                        <>
+                          <RefreshCw className="w-3.5 h-3.5 animate-spin" />
+                          <span>Sending...</span>
+                        </>
+                      ) : forgotCooldown > 0 ? (
+                        <span>Resend in {forgotCooldown}s</span>
+                      ) : (
+                        <span>Resend password reset email</span>
+                      )}
+                    </button>
+
+                    <div className="flex items-center justify-between pt-3 px-1 text-xs text-zinc-500 dark:text-zinc-400">
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setForgotStage('input');
+                          setForgotStatus(null);
+                        }}
+                        className="hover:text-zinc-800 dark:hover:text-zinc-200 underline underline-offset-2 transition cursor-pointer"
+                      >
+                        Wrong email?
+                      </button>
+
+                      <button
+                        type="button"
+                        onClick={() => setShowForgotModal(false)}
+                        className="hover:text-blue-600 dark:hover:text-blue-400 font-medium transition cursor-pointer"
+                      >
+                        Back to sign in &rarr;
+                      </button>
+                    </div>
+                  </div>
+                </>
+              )}
             </motion.div>
           </motion.div>
         )}

@@ -5,7 +5,7 @@ import User from '../models/user.model.ts';
 import PendingUser from '../models/pendingUser.model.ts';
 import { ApiError } from '../utils/apiError.ts';
 import { verifyFirebaseIdToken } from '../config/firebase.ts';
-import { sendEmailVerificationEmail } from '../utils/email.ts';
+import { sendEmailVerificationEmail, sendPasswordResetEmail } from '../utils/email.ts';
 
 export async function generateAccessAndRefreshTokens(userId: string) {
   const user = await User.findById(userId);
@@ -85,7 +85,7 @@ export async function registerUserService(payload: {
     fullName: fullName.trim(),
     verificationLink,
   }).catch((err: any) => {
-    console.error(`[Email] Failed to dispatch verification email to ${normalizedEmail}:`, err.message);
+    console.error('[Email] Failed to dispatch verification email to %s: %s', normalizedEmail, err.message);
   });
 
   return {
@@ -430,4 +430,82 @@ export async function searchUsersService(currentUserId: string, query: string) {
   })
     .select('username fullName email')
     .limit(10);
+}
+
+
+export async function forgotPasswordService(email: string) {
+  if (!email || !email.trim()) {
+    throw new ApiError(400, 'Email address is required');
+  }
+
+  const normalizedEmail = email.toLowerCase().trim();
+
+  // Find user by email
+  const user = await User.findOne({ email: normalizedEmail });
+
+  // For security best practices (preventing account enumeration), return success message
+  // even if user doesn't exist, but only send email if user exists
+  if (!user) {
+    return {
+      message: 'If an account with that email exists, password reset instructions have been sent.',
+    };
+  }
+
+  // Generate secure reset token
+  const rawResetToken = randomBytes(32).toString('hex');
+  const hashedResetToken = createHash('sha256').update(rawResetToken).digest('hex');
+  const tokenExpiry = new Date(Date.now() + 60 * 60 * 1000); // 1 hour validity
+
+  (user as any).passwordResetToken = hashedResetToken;
+  (user as any).passwordResetExpiry = tokenExpiry;
+  await user.save({ validateBeforeSave: false });
+
+  const frontendUrl = process.env.FRONTEND_URL || 'https://hackdekh.jdecodes.tech';
+  const resetLink = `${frontendUrl}/reset-password?token=${rawResetToken}`;
+
+  sendPasswordResetEmail({
+    to: normalizedEmail,
+    fullName: user.fullName || 'there',
+    resetLink,
+  }).catch((err: any) => {
+    console.error('[Email] Failed to dispatch password reset email to %s: %s', normalizedEmail, err.message);
+  });
+
+  return {
+    message: 'If an account with that email exists, password reset instructions have been sent.',
+  };
+}
+
+export async function resetPasswordService(rawToken: string, newPassword: string) {
+  if (!rawToken || !rawToken.trim()) {
+    throw new ApiError(400, 'Password reset token is required');
+  }
+
+  if (!newPassword || newPassword.length < 8) {
+    throw new ApiError(400, 'Password must be at least 8 characters long');
+  }
+
+  const hashedToken = createHash('sha256').update(rawToken.trim()).digest('hex');
+
+  const user = await User.findOne({
+    passwordResetToken: hashedToken,
+    passwordResetExpiry: { $gt: new Date() },
+  });
+
+  if (!user) {
+    throw new ApiError(400, 'Password reset link is invalid or has expired. Please request a new one.');
+  }
+
+  // Hash new password and clear reset token & active refresh sessions
+  const hashedPassword = await bcrypt.hash(newPassword, 10);
+  user.password = hashedPassword;
+  (user as any).passwordResetToken = undefined;
+  (user as any).passwordResetExpiry = undefined;
+  (user as any).refreshToken = undefined;
+
+  await user.save({ validateBeforeSave: false });
+
+  return {
+    message: 'Your password has been reset successfully. Please log in with your new credentials.',
+  };
 }

@@ -36,6 +36,18 @@ export const emailRateLimiter = rateLimit({
   },
 });
 
+export const passwordResetRateLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 5,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: {
+    statusCode: 429,
+    success: false,
+    message: 'Too many password reset requests. Please wait 15 minutes before trying again.',
+  },
+});
+
 export const joinCodeRateLimiter = rateLimit({
   windowMs: 15 * 60 * 1000,
   max: 10,
