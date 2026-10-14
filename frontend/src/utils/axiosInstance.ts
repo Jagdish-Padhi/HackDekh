@@ -14,7 +14,7 @@ const getBackendURL = (): string => {
 
 const axiosInstance = axios.create({
     baseURL: getBackendURL(),
-    timeout: 10000,
+    timeout: 30000,
     headers: {
         'Content-Type': 'application/json',
     },
@@ -37,10 +37,22 @@ axiosInstance.interceptors.response.use(
     (response) => response,
     (error) => {
         if (error.response?.status === 401) {
-            localStorage.removeItem('accessToken')
-            localStorage.removeItem('refreshToken')
-            const returnTo = `${window.location.pathname}${window.location.search}`
-            window.location.href = `/login?returnTo=${encodeURIComponent(returnTo)}`
+            const requestUrl = error.config?.url || '';
+            const isAuthEndpoint =
+                requestUrl.includes('/users/login') ||
+                requestUrl.includes('/users/register') ||
+                requestUrl.includes('/users/verify-email') ||
+                requestUrl.includes('/users/auth/');
+
+            if (!isAuthEndpoint) {
+                localStorage.removeItem('accessToken')
+                localStorage.removeItem('refreshToken')
+                const isAlreadyAuthPage = window.location.pathname === '/login' || window.location.pathname === '/signup';
+                if (!isAlreadyAuthPage) {
+                    const returnTo = `${window.location.pathname}${window.location.search}`
+                    window.location.href = `/login?returnTo=${encodeURIComponent(returnTo)}`
+                }
+            }
         }
         return Promise.reject(error)
     }
