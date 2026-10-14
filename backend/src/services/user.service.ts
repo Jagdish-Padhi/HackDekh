@@ -85,7 +85,7 @@ export async function registerUserService(payload: {
     fullName: fullName.trim(),
     verificationLink,
   }).catch((err: any) => {
-    console.error(`[Email] Failed to dispatch verification email to ${normalizedEmail}:`, err.message);
+    console.error('[Email] Failed to dispatch verification email to %s: %s', normalizedEmail, err.message);
   });
 
   return {
