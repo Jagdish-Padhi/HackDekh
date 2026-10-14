@@ -7,9 +7,11 @@ import {
   Copy,
   ExternalLink,
   Plus,
+  Loader2,
   Trash2,
   Users,
   CalendarRange,
+  Layers,
   Flag,
   Search,
   CheckCircle2,
@@ -29,8 +31,6 @@ import {
 import { useAuth, useCache, useToast } from "../context";
 import { usePageChrome } from "../context/pageChrome";
 import { teamApi, userApi } from "../services";
-import LogoTransition from "../components/LogoAnimation";
-import LoadingProgress from "../components/LoadingProgress";
 import AppDropdown from "../components/AppDropdown";
 import type { Team, TeamHackathon, Stage, TeamInvitation, UserLite } from "../types";
 import { motion, AnimatePresence } from "framer-motion";
@@ -479,7 +479,7 @@ export default function TeamsPage() {
 
   useEffect(() => {
     if (selectedTeamId && activeTab === "Members") {
-      loadTeamInvitations();
+      loadTeamInvitations(teamInvitations.length > 0);
     }
   }, [selectedTeamId, activeTab]);
 
@@ -675,14 +675,14 @@ export default function TeamsPage() {
           <div className="flex items-center gap-3 min-w-0">
             <button
               onClick={() => setSelectedTeamId("")}
-              className="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border border-zinc-200 bg-white text-zinc-500 shadow-xs transition hover:bg-zinc-50 dark:border-zinc-800 dark:bg-zinc-900 dark:text-zinc-400 dark:hover:bg-zinc-800 cursor-pointer"
+              className="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-lg border border-zinc-200 bg-white text-zinc-500 shadow-xs transition hover:bg-zinc-50 dark:border-zinc-800 dark:bg-zinc-900 dark:text-zinc-400 dark:hover:bg-zinc-800 cursor-pointer"
               title="Back to Teams"
             >
               <ArrowRight className="h-4 w-4 rotate-180" />
             </button>
 
             <div className="flex items-center gap-2.5 min-w-0">
-              <div className={`h-8.5 w-8.5 shrink-0 rounded-xl bg-gradient-to-tr ${getGradientClass(selectedTeam.name)} flex items-center justify-center font-logo font-black text-white text-xs shadow-xs`}>
+              <div className={`h-8.5 w-8.5 shrink-0 rounded-lg bg-gradient-to-tr ${getGradientClass(selectedTeam.name)} flex items-center justify-center font-logo font-black text-white text-xs shadow-xs`}>
                 {selectedTeam.name.slice(0, 2).toUpperCase()}
               </div>
               <div className="min-w-0">
@@ -697,7 +697,7 @@ export default function TeamsPage() {
             <div className="w-px h-6 bg-zinc-200 dark:bg-zinc-700 shrink-0" />
 
             {/* Tabs — left side, right after identity */}
-            <div className="flex gap-0.5 bg-zinc-100 dark:bg-zinc-800/60 p-0.5 rounded-xl border border-zinc-200/60 dark:border-zinc-700/60 shrink-0">
+            <div className="flex gap-0.5 bg-zinc-100 dark:bg-zinc-800/60 p-0.5 rounded-lg border border-zinc-200/60 dark:border-zinc-700/60 shrink-0">
               {teamTabs.map((tab) => (
                 <button
                   key={tab}
@@ -717,7 +717,7 @@ export default function TeamsPage() {
           {/* Center: Sort controls — flex-1 + justify-center keeps it truly centered */}
           <div className="flex-1 flex items-center justify-center">
             {activeTab === "Hackathons" && teamParticipations.length > 0 && (
-              <div className="flex items-center gap-0.5 bg-zinc-100 dark:bg-zinc-800/60 p-0.5 rounded-xl border border-zinc-200/60 dark:border-zinc-700/60">
+              <div className="flex items-center gap-0.5 bg-zinc-100 dark:bg-zinc-800/60 p-0.5 rounded-lg border border-zinc-200/60 dark:border-zinc-700/60">
                 {(['latest', 'oldest', 'most_qualified'] as const).map((opt) => (
                   <button
                     key={opt}
@@ -745,7 +745,7 @@ export default function TeamsPage() {
           <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-zinc-400 dark:text-zinc-500" />
           <input
             type="text"
-            className="h-10 w-full rounded-xl border border-zinc-200 bg-white pl-9 pr-8 py-2 text-sm text-zinc-900 placeholder:text-zinc-400 focus:border-blue-500/45 focus:outline-none focus:ring-3 focus:ring-blue-500/12 dark:border-zinc-800 dark:bg-zinc-900 dark:text-zinc-100 dark:placeholder:text-zinc-500 dark:focus:border-blue-400/50"
+            className="h-10 w-full rounded-lg border border-zinc-200 bg-white pl-9 pr-8 py-2 text-sm text-zinc-900 placeholder:text-zinc-400 focus:border-blue-500/45 focus:outline-none focus:ring-3 focus:ring-blue-500/12 dark:border-zinc-800 dark:bg-zinc-900 dark:text-zinc-100 dark:placeholder:text-zinc-500 dark:focus:border-blue-400/50"
             placeholder="Search teams..."
             value={searchQuery}
             onChange={e => setSearchQuery(e.target.value)}
@@ -896,9 +896,10 @@ export default function TeamsPage() {
   };
 
   // Load pending team invitations
-  const loadTeamInvitations = async () => {
+  const loadTeamInvitations = async (isSilent: boolean | React.SyntheticEvent = false) => {
     if (!selectedTeam) return;
-    setInvitationsLoading(true);
+    const silent = typeof isSilent === 'boolean' ? isSilent : false;
+    if (!silent) setInvitationsLoading(true);
     try {
       const invites = await teamApi.getTeamInvitations(selectedTeam._id);
       setTeamInvitations(invites);
@@ -1183,22 +1184,14 @@ export default function TeamsPage() {
 
   return (
     <div className={`mx-auto w-full px-4 py-6 md:px-6 space-y-6 ${selectedTeamId ? '' : 'max-w-7xl'} relative`}>
-      {loading && (
-        <div className="absolute inset-0 z-20 flex justify-center items-center bg-zinc-950/5 dark:bg-black/10 backdrop-blur-[2.5px] p-4 rounded-3xl min-h-[500px]">
-          <div className="w-full max-w-sm shrink-0">
-            <LoadingProgress simulate={true} label="Assembling Workspace" description="Synchronizing teams, roster data, and stage history..." />
-          </div>
-        </div>
-      )}
-
       {loading ? (
-        <div className="space-y-6 opacity-40 select-none pointer-events-none">
+        <div className="space-y-6 select-none pointer-events-none animate-pulse">
           {/* Mock filters and buttons */}
           <div className="flex flex-col lg:flex-row gap-4 items-center justify-between">
-            <div className="h-10 w-full lg:w-96 rounded-xl bg-zinc-200 dark:bg-zinc-800 animate-pulse" />
+            <div className="h-10 w-full lg:w-96 rounded-lg bg-zinc-200 dark:bg-zinc-800 animate-pulse" />
             <div className="flex gap-3 w-full lg:w-auto">
-              <div className="h-10 w-28 rounded-xl bg-zinc-200 dark:bg-zinc-800 animate-pulse" />
-              <div className="h-10 w-28 rounded-xl bg-zinc-200 dark:bg-zinc-800 animate-pulse" />
+              <div className="h-10 w-28 rounded-lg bg-zinc-200 dark:bg-zinc-800 animate-pulse" />
+              <div className="h-10 w-28 rounded-lg bg-zinc-200 dark:bg-zinc-800 animate-pulse" />
             </div>
           </div>
           {/* Mock Grid of cards */}
@@ -1206,9 +1199,9 @@ export default function TeamsPage() {
             {Array.from({ length: 6 }).map((_, index) => (
               <div
                 key={index}
-                className="h-48 rounded-2xl border border-zinc-200/90 bg-white p-5 shadow-sm dark:border-zinc-800 dark:bg-zinc-900/60"
+                className="h-48 rounded-xl border border-zinc-200/90 bg-white p-5 shadow-sm dark:border-zinc-800 dark:bg-zinc-900/60"
               >
-                <div className="h-full w-full rounded-xl bg-[linear-gradient(110deg,rgba(228,228,231,0.6),rgba(250,250,250,0.95),rgba(228,228,231,0.6))] bg-size-[200%_100%] animate-[shimmer_1.3s_linear_infinite] dark:bg-[linear-gradient(110deg,rgba(39,39,42,0.9),rgba(63,63,70,0.95),rgba(39,39,42,0.9))]" />
+                <div className="h-full w-full rounded-lg bg-[linear-gradient(110deg,rgba(228,228,231,0.6),rgba(250,250,250,0.95),rgba(228,228,231,0.6))] bg-size-[200%_100%] animate-[shimmer_1.3s_linear_infinite] dark:bg-[linear-gradient(110deg,rgba(39,39,42,0.9),rgba(63,63,70,0.95),rgba(39,39,42,0.9))]" />
               </div>
             ))}
           </div>
@@ -1219,13 +1212,13 @@ export default function TeamsPage() {
       {/* Mobile Filter / Action Panel (Consistent layout with Hackathons page, only when not viewing team workspace) */}
       {!selectedTeamId && (
         <div className="relative z-50 isolate space-y-3 lg:hidden">
-          <div className="relative z-50 isolate overflow-visible rounded-3xl border border-zinc-200/90 bg-white/90 p-4 shadow-sm backdrop-blur-md dark:border-zinc-800 dark:bg-zinc-900/78 dark:shadow-md flex items-end gap-3">
+          <div className="relative z-50 isolate overflow-visible rounded-xl border border-zinc-200/90 bg-white/90 p-4 shadow-sm backdrop-blur-md dark:border-zinc-800 dark:bg-zinc-900/78 dark:shadow-md flex items-end gap-3">
             {/* Search */}
             <div className="relative min-w-0 flex-1">
               <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-zinc-400 dark:text-zinc-500" />
               <input
                 type="text"
-                className="h-10 w-full rounded-xl border border-zinc-200 bg-white pl-9 pr-8 py-2 text-sm text-zinc-900 shadow-sm transition-all placeholder:text-zinc-400 focus:border-blue-500/45 focus:outline-none focus:ring-3 focus:ring-blue-500/12 dark:border-zinc-800 dark:bg-zinc-900 dark:text-zinc-100 dark:placeholder:text-zinc-500 dark:focus:border-blue-400/50"
+                className="h-10 w-full rounded-lg border border-zinc-200 bg-white pl-9 pr-8 py-2 text-sm text-zinc-900 shadow-sm transition-all placeholder:text-zinc-400 focus:border-blue-500/45 focus:outline-none focus:ring-3 focus:ring-blue-500/12 dark:border-zinc-800 dark:bg-zinc-900 dark:text-zinc-100 dark:placeholder:text-zinc-500 dark:focus:border-blue-400/50"
                 placeholder="Search teams or members..."
                 value={searchQuery}
                 onChange={e => setSearchQuery(e.target.value)}
@@ -1241,7 +1234,7 @@ export default function TeamsPage() {
             </div>
           </div>
 
-          <div className="relative z-50 isolate overflow-visible rounded-3xl border border-zinc-200/90 bg-white/90 p-4 shadow-sm backdrop-blur-md dark:border-zinc-800 dark:bg-zinc-900/78 dark:shadow-md flex flex-wrap gap-2.5">
+          <div className="relative z-50 isolate overflow-visible rounded-xl border border-zinc-200/90 bg-white/90 p-4 shadow-sm backdrop-blur-md dark:border-zinc-800 dark:bg-zinc-900/78 dark:shadow-md flex flex-wrap gap-2.5">
             {/* Platform Filter */}
             <AppDropdown
               value={platformFilter}
@@ -1295,7 +1288,7 @@ export default function TeamsPage() {
       )}
 
       {workspaceMessage && (
-        <div className="rounded-2xl border border-emerald-500/20 bg-emerald-500/5 px-4 py-3.5 text-sm text-emerald-600 dark:text-emerald-400 flex items-center justify-between">
+        <div className="rounded-lg border border-emerald-500/20 bg-emerald-500/5 px-4 py-3.5 text-sm text-emerald-600 dark:text-emerald-400 flex items-center justify-between">
           <div className="flex items-center gap-2">
             <CheckCircle2 className="h-4 w-4" />
             <span className="font-semibold">{workspaceMessage}</span>
@@ -1307,7 +1300,7 @@ export default function TeamsPage() {
       )}
 
       {workspaceError && (
-        <div className="rounded-2xl border border-red-500/20 bg-red-500/5 px-4 py-3.5 text-sm text-red-600 dark:text-red-400 flex items-center justify-between">
+        <div className="rounded-lg border border-red-500/20 bg-red-500/5 px-4 py-3.5 text-sm text-red-600 dark:text-red-400 flex items-center justify-between">
           <div className="flex items-center gap-2">
             <XCircle className="h-4 w-4" />
             <span className="font-semibold">{workspaceError}</span>
@@ -1323,7 +1316,7 @@ export default function TeamsPage() {
         /* Team Grid view */
         <div className="grid gap-6 grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
           {filteredTeams.length === 0 ? (
-            <div className="col-span-full rounded-2xl border border-dashed border-zinc-200 bg-white p-16 text-center dark:border-zinc-800 dark:bg-zinc-950/40">
+            <div className="col-span-full rounded-xl border border-dashed border-zinc-200 bg-white p-16 text-center dark:border-zinc-800 dark:bg-zinc-950/40">
               <Users className="mx-auto h-12 w-12 text-zinc-400 dark:text-zinc-500" />
               <h3 className="mt-4 text-base font-bold text-zinc-900 dark:text-zinc-100">No teams match</h3>
               <p className="mt-2 text-sm text-zinc-500 dark:text-zinc-400">Try adjusting your filters or search criteria.</p>
@@ -1362,14 +1355,14 @@ export default function TeamsPage() {
                 <div
                   key={t._id}
                   onClick={() => setSelectedTeamId(t._id)}
-                  className="group rounded-2xl border border-zinc-200 bg-white p-5 text-left cursor-pointer transition-all duration-300 hover:border-zinc-300 hover:shadow-lg hover:-translate-y-0.5 dark:border-zinc-800 dark:bg-zinc-900/60 dark:hover:border-zinc-700 flex flex-col justify-between"
+                  className="group rounded-xl border border-zinc-200 bg-white p-5 text-left cursor-pointer transition-all duration-300 hover:border-zinc-300 hover:shadow-lg hover:-translate-y-0.5 dark:border-zinc-800 dark:bg-zinc-900/60 dark:hover:border-zinc-700 flex flex-col justify-between"
                 >
                   <div className="space-y-4">
                     {/* Header info */}
                     <div className="flex items-start justify-between gap-3">
                       <div className="flex items-center gap-3 min-w-0">
                         {/* Avatar */}
-                        <div className={`h-10 w-10 shrink-0 rounded-xl bg-gradient-to-tr ${getGradientClass(t.name)} flex items-center justify-center font-logo font-black text-white text-sm shadow-xs`}>
+                        <div className={`h-10 w-10 shrink-0 rounded-lg bg-gradient-to-tr ${getGradientClass(t.name)} flex items-center justify-center font-logo font-black text-white text-sm shadow-xs`}>
                           {t.name.slice(0, 2).toUpperCase()}
                         </div>
                         <div className="min-w-0">
@@ -1465,16 +1458,16 @@ export default function TeamsPage() {
           
           {/* Mobile-only header panel */}
           {selectedTeam && (
-            <div className="lg:hidden flex flex-col gap-3 bg-white dark:bg-zinc-900/40 border border-zinc-200/90 dark:border-zinc-800 p-4 rounded-2xl shadow-xs">
+            <div className="lg:hidden flex flex-col gap-3 bg-white dark:bg-zinc-900/40 border border-zinc-200/90 dark:border-zinc-800 p-4 rounded-xl shadow-xs">
               <div className="flex items-center gap-3">
                 <button
                   onClick={() => setSelectedTeamId("")}
-                  className="inline-flex h-9 w-9 items-center justify-center rounded-xl border border-zinc-200 bg-white text-zinc-500 shadow-xs hover:bg-zinc-50 dark:border-zinc-800 dark:bg-zinc-900 dark:text-zinc-400 dark:hover:bg-zinc-800 cursor-pointer"
+                  className="inline-flex h-9 w-9 items-center justify-center rounded-lg border border-zinc-200 bg-white text-zinc-500 shadow-xs hover:bg-zinc-50 dark:border-zinc-800 dark:bg-zinc-900 dark:text-zinc-400 dark:hover:bg-zinc-800 cursor-pointer"
                 >
                   <ArrowRight className="h-4 w-4 rotate-180" />
                 </button>
                 <div className="flex items-center gap-2.5 min-w-0">
-                  <div className={`h-8.5 w-8.5 shrink-0 rounded-xl bg-gradient-to-tr ${getGradientClass(selectedTeam.name)} flex items-center justify-center font-logo font-black text-white text-xs shadow-xs`}>
+                  <div className={`h-8.5 w-8.5 shrink-0 rounded-lg bg-gradient-to-tr ${getGradientClass(selectedTeam.name)} flex items-center justify-center font-logo font-black text-white text-xs shadow-xs`}>
                     {selectedTeam.name.slice(0, 2).toUpperCase()}
                   </div>
                   <div className="min-w-0">
@@ -1497,12 +1490,15 @@ export default function TeamsPage() {
               {activeTab === "Hackathons" && (
                 <div className="space-y-4">
                   {loadingTeamData ? (
-                    <div className="flex flex-col items-center justify-center gap-3 rounded-2xl border border-zinc-200/60 bg-white px-4 py-8 text-sm text-zinc-500 dark:border-zinc-800 dark:bg-zinc-900/40 dark:text-zinc-400 shadow-xs">
-                      <LogoTransition width={330} height={225} loop={true} />
-                      <p className="font-semibold">Loading participations timeline...</p>
+                    <div className="space-y-4 select-none pointer-events-none animate-pulse">
+                      {Array.from({ length: 3 }).map((_, index) => (
+                        <div key={index} className="h-32 rounded-xl border border-zinc-200/80 bg-white p-5 dark:border-zinc-800 dark:bg-zinc-900/60 shadow-xs">
+                          <div className="h-full w-full rounded-lg bg-[linear-gradient(110deg,rgba(228,228,231,0.6),rgba(250,250,250,0.95),rgba(228,228,231,0.6))] bg-size-[200%_100%] animate-[shimmer_1.3s_linear_infinite] dark:bg-[linear-gradient(110deg,rgba(39,39,42,0.9),rgba(63,63,70,0.95),rgba(39,39,42,0.9))]" />
+                        </div>
+                      ))}
                     </div>
                   ) : teamParticipations.length === 0 ? (
-                    <div className="rounded-[1.5rem] border border-dashed border-zinc-300 bg-white/50 p-10 text-center dark:border-zinc-800 dark:bg-zinc-900/10">
+                    <div className="rounded-xl border border-dashed border-zinc-300 bg-white/50 p-10 text-center dark:border-zinc-800 dark:bg-zinc-900/10">
                       <Flag className="mx-auto h-10 w-10 text-zinc-400" />
                       <h3 className="mt-4 text-base font-bold text-zinc-900 dark:text-zinc-100">No active participations</h3>
                       <p className="mt-1.5 text-xs text-zinc-500 dark:text-zinc-400">
@@ -1518,7 +1514,7 @@ export default function TeamsPage() {
                         return (
                           <div
                             key={participation._id}
-                            className="relative flex flex-col lg:flex-row lg:items-start gap-6 lg:gap-8 py-5 px-5 lg:py-6 lg:px-6 rounded-2xl border border-zinc-200 bg-white hover:shadow-md hover:border-zinc-300 dark:border-zinc-800 dark:bg-zinc-900/60 dark:hover:border-zinc-700 transition-all duration-300 overflow-visible w-full"
+                            className="relative flex flex-col lg:flex-row lg:items-start gap-6 lg:gap-8 py-5 px-5 lg:py-6 lg:px-6 rounded-xl border border-zinc-200 bg-white hover:shadow-md hover:border-zinc-300 dark:border-zinc-800 dark:bg-zinc-900/60 dark:hover:border-zinc-700 transition-all duration-300 overflow-visible w-full"
                           >
                             {/* Sequence pill badge — muted zinc, inside top-left of card */}
                             <span className="absolute top-3 left-3.5 inline-flex items-center px-1.5 py-0.5 rounded-md bg-zinc-100 dark:bg-zinc-800 text-zinc-500 dark:text-zinc-400 border border-zinc-200 dark:border-zinc-700 text-[9px] font-semibold tabular-nums select-none leading-none tracking-wide">
@@ -1534,7 +1530,7 @@ export default function TeamsPage() {
                                   onError={(e) => {
                                     e.currentTarget.src = "/BrandImages/HackDekh.png";
                                   }}
-                                  className="h-12 w-12 rounded-xl object-cover border border-zinc-200 dark:border-zinc-800 shadow-xs shrink-0 animate-fade-in mt-0.5"
+                                  className="h-12 w-12 rounded-lg object-cover border border-zinc-200 dark:border-zinc-800 shadow-xs shrink-0 animate-fade-in mt-0.5"
                                   alt="Hackathon cover"
                                 />
 
@@ -1607,7 +1603,7 @@ export default function TeamsPage() {
                             <div className="flex-1 min-w-0 flex flex-col gap-4 overflow-visible w-full">
                               {/* Registration Tracker Block */}
                               {participation.status === 'tracking' && (
-                                <div className="w-full rounded-xl border p-3 flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs backdrop-blur-sm transition-all duration-350 border-amber-500/15 bg-amber-500/5 dark:bg-amber-500/3 text-amber-800 dark:text-amber-300 shadow-sm shadow-amber-500/5">
+                                <div className="w-full rounded-lg border p-3 flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs backdrop-blur-sm transition-all duration-350 border-amber-500/15 bg-amber-500/5 dark:bg-amber-500/3 text-amber-800 dark:text-amber-300 shadow-sm shadow-amber-500/5">
                                   <div className="flex items-center gap-2.5 min-w-0">
                                     <div className="h-7 w-7 rounded-lg flex items-center justify-center shrink-0 shadow-xs bg-gradient-to-tr from-amber-500 to-orange-500 text-white">
                                       <AlertTriangle className="h-4 w-4" />
@@ -1660,7 +1656,7 @@ export default function TeamsPage() {
                                 participation.status === 'tracking' ? 'opacity-40 select-none' : ''
                               }`}>
                                 {competitiveStages.length === 0 ? (
-                                  <div className="flex items-start gap-3 rounded-xl border border-zinc-200/60 dark:border-zinc-800/40 bg-zinc-50/40 dark:bg-zinc-900/5 px-4 py-3.5 text-zinc-500 dark:text-zinc-400 text-xs text-left max-w-md shadow-xs backdrop-blur-sm">
+                                  <div className="flex items-start gap-3 rounded-lg border border-zinc-200/60 dark:border-zinc-800/40 bg-zinc-50/40 dark:bg-zinc-900/5 px-4 py-3.5 text-zinc-500 dark:text-zinc-400 text-xs text-left max-w-md shadow-xs backdrop-blur-sm">
                                     <Info className="h-4 w-4 text-zinc-400 dark:text-zinc-500 shrink-0 mt-0.5" />
                                     <p className="leading-relaxed">
                                       No competitive stages defined yet. Go to the <span className="font-semibold text-blue-650 dark:text-blue-400 cursor-pointer hover:underline" onClick={() => setActiveTab("Stages")}>Stages tab</span> to add custom tracker milestones.
@@ -1889,7 +1885,7 @@ export default function TeamsPage() {
                 return (
                   <div className="space-y-8 animate-fade-in">
                     {/* Welcome / Header Section */}
-                    <div className="bg-gradient-to-r from-blue-600/10 via-indigo-600/5 to-transparent border border-blue-500/15 dark:border-blue-500/10 rounded-2xl p-6 flex flex-col md:flex-row md:items-center justify-between gap-6">
+                    <div className="bg-gradient-to-r from-blue-600/10 via-indigo-600/5 to-transparent border border-blue-500/15 dark:border-blue-500/10 rounded-xl p-6 flex flex-col md:flex-row md:items-center justify-between gap-6">
                       <div className="space-y-1">
                         <div className="flex items-center gap-2">
                           <span className="p-1.5 rounded-lg bg-blue-600/10 text-blue-600 dark:text-blue-400">
@@ -1923,7 +1919,7 @@ export default function TeamsPage() {
                       <div className="space-y-8 min-w-0">
                         
                         {/* Active Roster Box */}
-                        <div className="bg-white dark:bg-zinc-900/40 border border-zinc-200 dark:border-zinc-800 rounded-2xl p-5 shadow-xs space-y-5">
+                        <div className="bg-white dark:bg-zinc-900/40 border border-zinc-200 dark:border-zinc-800 rounded-xl p-5 shadow-xs space-y-5">
                           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-zinc-100 dark:border-zinc-800">
                             <div>
                               <h4 className="text-sm font-extrabold text-zinc-900 dark:text-zinc-100">Team Members</h4>
@@ -1940,7 +1936,7 @@ export default function TeamsPage() {
                                 value={rosterSearchQuery}
                                 onChange={(e) => setRosterSearchQuery(e.target.value)}
                                 placeholder="Filter by name or email..."
-                                className="w-full pl-9 pr-4 py-1.5 rounded-xl border border-zinc-200 bg-zinc-50/50 text-xs text-zinc-800 outline-none transition focus:border-blue-400 focus:bg-white dark:border-zinc-800 dark:bg-zinc-950 dark:text-zinc-200 dark:focus:bg-zinc-950"
+                                className="w-full pl-9 pr-4 py-1.5 rounded-lg border border-zinc-200 bg-zinc-50/50 text-xs text-zinc-800 outline-none transition focus:border-blue-400 focus:bg-white dark:border-zinc-800 dark:bg-zinc-950 dark:text-zinc-200 dark:focus:bg-zinc-950"
                               />
                               {rosterSearchQuery && (
                                 <button
@@ -1955,7 +1951,7 @@ export default function TeamsPage() {
 
                           {/* Member List Grid */}
                           {filteredRoster.length === 0 ? (
-                            <div className="text-center py-10 rounded-xl border border-dashed border-zinc-200 dark:border-zinc-800/80">
+                            <div className="text-center py-10 rounded-lg border border-dashed border-zinc-200 dark:border-zinc-800/80">
                               <Users className="mx-auto h-8 w-8 text-zinc-300 dark:text-zinc-700" />
                               <p className="mt-2 text-xs font-semibold text-zinc-500 dark:text-zinc-450">No team members found</p>
                               <p className="text-[10px] text-zinc-400 dark:text-zinc-555 mt-0.5">Try filtering with a different name or email address.</p>
@@ -1969,11 +1965,11 @@ export default function TeamsPage() {
                                 return (
                                   <div 
                                     key={member._id} 
-                                    className="group relative rounded-xl border border-zinc-200 bg-white p-3.5 dark:border-zinc-800 dark:bg-zinc-900/60 flex items-center justify-between gap-3 shadow-xs hover:border-zinc-300 dark:hover:border-zinc-750 hover:shadow-xs transition-all duration-200"
+                                    className="group relative rounded-lg border border-zinc-200 bg-white p-3.5 dark:border-zinc-800 dark:bg-zinc-900/60 flex items-center justify-between gap-3 shadow-xs hover:border-zinc-300 dark:hover:border-zinc-750 hover:shadow-xs transition-all duration-200"
                                   >
                                     <div className="flex items-center gap-3 min-w-0">
                                       {/* Avatar */}
-                                      <div className={`flex h-9.5 w-9.5 shrink-0 items-center justify-center rounded-xl font-bold uppercase text-xs text-white bg-gradient-to-br ${getGradientClass(member.fullName || member.username || member._id)}`}>
+                                      <div className={`flex h-9.5 w-9.5 shrink-0 items-center justify-center rounded-lg font-bold uppercase text-xs text-white bg-gradient-to-br ${getGradientClass(member.fullName || member.username || member._id)}`}>
                                         {(member.fullName || member.username || "?").slice(0, 2)}
                                       </div>
                                       <div className="min-w-0">
@@ -2019,7 +2015,7 @@ export default function TeamsPage() {
                         </div>
 
                         {/* Pending Invites Box */}
-                        <div className="bg-white dark:bg-zinc-900/40 border border-zinc-200 dark:border-zinc-800 rounded-2xl p-5 shadow-xs space-y-4">
+                        <div className="bg-white dark:bg-zinc-900/40 border border-zinc-200 dark:border-zinc-800 rounded-xl p-5 shadow-xs space-y-4">
                           <div className="flex items-center justify-between pb-3 border-b border-zinc-100 dark:border-zinc-800">
                             <div>
                               <h4 className="text-sm font-extrabold text-zinc-900 dark:text-zinc-100">Sent Invitations</h4>
@@ -2036,10 +2032,10 @@ export default function TeamsPage() {
 
                           {invitationsLoading ? (
                             <div className="flex justify-center py-6">
-                              <LogoTransition width={24} height={16} loop={true} />
+                              <Loader2 className="h-4 w-4 animate-spin text-zinc-400" />
                             </div>
                           ) : teamInvitations.length === 0 ? (
-                            <div className="text-center py-8 rounded-xl border border-dashed border-zinc-200 dark:border-zinc-800/80">
+                            <div className="text-center py-8 rounded-lg border border-dashed border-zinc-200 dark:border-zinc-800/80">
                               <Mail className="mx-auto h-8 w-8 text-zinc-300 dark:text-zinc-700" />
                               <p className="mt-2 text-xs font-semibold text-zinc-500 dark:text-zinc-450">No outgoing invites yet</p>
                               <p className="text-[10px] text-zinc-400 dark:text-zinc-555 mt-0.5">Use the Invite Hub on the right to send invitations.</p>
@@ -2084,7 +2080,7 @@ export default function TeamsPage() {
                       </div>
 
                       {/* RIGHT COLUMN: Invite Hub Card */}
-                      <div className="bg-white dark:bg-zinc-900/40 border border-zinc-200 dark:border-zinc-800 rounded-2xl p-5 shadow-xs space-y-5">
+                      <div className="bg-white dark:bg-zinc-900/40 border border-zinc-200 dark:border-zinc-800 rounded-xl p-5 shadow-xs space-y-5">
                         <div className="space-y-1">
                           <h4 className="text-xs font-extrabold text-zinc-550 dark:text-zinc-400 uppercase tracking-wider flex items-center gap-1.5">
                             <span className="h-2 w-2 rounded-full bg-blue-500 animate-pulse" />
@@ -2096,7 +2092,7 @@ export default function TeamsPage() {
                         </div>
 
                         {/* Interactive Invite Tabs */}
-                        <div className="flex rounded-xl bg-zinc-100 dark:bg-zinc-950 p-1">
+                        <div className="flex rounded-lg bg-zinc-100 dark:bg-zinc-950 p-1">
                           <button
                             type="button"
                             onClick={() => setInviteTab('direct')}
@@ -2162,18 +2158,18 @@ export default function TeamsPage() {
                                       value={directInviteSearchText}
                                       onChange={e => handleDirectInviteSearch(e.target.value)}
                                       placeholder="Type username or email address..."
-                                      className="w-full pl-9 pr-4 py-2.5 text-xs rounded-xl border border-zinc-200 bg-zinc-50/50 text-zinc-850 outline-none transition focus:border-blue-400 focus:bg-white dark:border-zinc-800 dark:bg-zinc-950 dark:text-zinc-200 dark:focus:bg-zinc-950"
+                                      className="w-full pl-9 pr-4 py-2.5 text-xs rounded-lg border border-zinc-200 bg-zinc-50/50 text-zinc-850 outline-none transition focus:border-blue-400 focus:bg-white dark:border-zinc-800 dark:bg-zinc-950 dark:text-zinc-200 dark:focus:bg-zinc-950"
                                     />
                                     {directInviteLoading && (
                                       <div className="absolute right-3 top-1/2 -translate-y-1/2">
-                                        <LogoTransition width={20} height={14} loop={true} />
+                                        <Loader2 className="h-3.5 w-3.5 animate-spin" />
                                       </div>
                                     )}
                                   </div>
 
                                   {/* Direct Invite Autocomplete Results */}
                                   {directInviteResults.length > 0 && (
-                                    <div className="absolute left-0 right-0 mt-2 z-50 rounded-xl border border-zinc-200 bg-white p-1.5 shadow-xl dark:border-zinc-800 dark:bg-zinc-950 max-h-52 overflow-y-auto space-y-0.5">
+                                    <div className="absolute left-0 right-0 mt-2 z-50 rounded-lg border border-zinc-200 bg-white p-1.5 shadow-xl dark:border-zinc-800 dark:bg-zinc-950 max-h-52 overflow-y-auto space-y-0.5">
                                       {directInviteResults.map(user => (
                                         <div
                                           key={user._id}
@@ -2206,7 +2202,7 @@ export default function TeamsPage() {
                                   )}
                                 </div>
                               ) : (
-                                <div className="rounded-xl bg-zinc-50 dark:bg-zinc-950 p-3 border border-zinc-150 dark:border-zinc-900 text-center">
+                                <div className="rounded-lg bg-zinc-50 dark:bg-zinc-950 p-3 border border-zinc-150 dark:border-zinc-900 text-center">
                                   <p className="text-[10px] text-zinc-455 dark:text-zinc-500 leading-normal">
                                     Only the owner ({selectedTeam.owner.fullName || selectedTeam.owner.username}) can search and invite other users.
                                   </p>
@@ -2272,7 +2268,7 @@ export default function TeamsPage() {
                                     title="Regenerate Join Code"
                                   >
                                     {regeneratingCode ? (
-                                      <LogoTransition width={20} height={14} loop={true} />
+                                      <Loader2 className="h-3.5 w-3.5 animate-spin" />
                                     ) : (
                                       <RotateCcw className="h-4 w-4 text-blue-600 dark:text-blue-400" />
                                     )}
@@ -2303,7 +2299,7 @@ export default function TeamsPage() {
                                       value={inviteEmail}
                                       onChange={e => { setInviteEmail(e.target.value); setInviteEmailSent(null); }}
                                       placeholder="teammate@example.com"
-                                      className="flex-1 px-3 py-2 text-xs rounded-xl border border-zinc-200 bg-zinc-50/50 text-zinc-800 outline-none transition focus:border-blue-400 focus:bg-white dark:border-zinc-800 dark:bg-zinc-950 dark:text-zinc-200"
+                                      className="flex-1 px-3 py-2 text-xs rounded-lg border border-zinc-200 bg-zinc-50/50 text-zinc-800 outline-none transition focus:border-blue-400 focus:bg-white dark:border-zinc-800 dark:bg-zinc-950 dark:text-zinc-200"
                                       onKeyDown={e => e.key === 'Enter' && handleInvite()}
                                     />
                                     <button
@@ -2311,13 +2307,13 @@ export default function TeamsPage() {
                                       disabled={savingTeam || !inviteEmail.trim()}
                                       className="btn btn-primary px-3 py-2 text-xs h-auto w-auto min-h-[36px] font-bold shadow-xs shrink-0 flex items-center gap-1"
                                     >
-                                      {savingTeam ? <LogoTransition width={20} height={14} loop={true} /> : <Mail className="h-3.5 w-3.5" />}
+                                      {savingTeam ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Mail className="h-3.5 w-3.5" />}
                                       Send
                                     </button>
                                   </div>
 
                                   {inviteEmailSent && (
-                                    <div className="rounded-xl border border-emerald-200 bg-emerald-50/50 dark:border-emerald-900/40 dark:bg-emerald-950/10 p-2.5 flex items-center gap-2.5 shadow-xs animate-scale-in">
+                                    <div className="rounded-lg border border-emerald-200 bg-emerald-50/50 dark:border-emerald-900/40 dark:bg-emerald-950/10 p-2.5 flex items-center gap-2.5 shadow-xs animate-scale-in">
                                       <CheckCircle2 className="h-4 w-4 text-emerald-500 shrink-0" />
                                       <div>
                                         <p className="text-[10px] font-bold text-emerald-700 dark:text-emerald-400">Invitation sent!</p>
@@ -2327,7 +2323,7 @@ export default function TeamsPage() {
                                   )}
                                 </div>
                               ) : (
-                                <div className="rounded-xl bg-zinc-50 dark:bg-zinc-950 p-3 border border-zinc-150 dark:border-zinc-900 text-center">
+                                <div className="rounded-lg bg-zinc-50 dark:bg-zinc-950 p-3 border border-zinc-150 dark:border-zinc-900 text-center">
                                   <p className="text-[10px] text-zinc-455 dark:text-zinc-500 leading-normal">
                                     Only the owner ({selectedTeam.owner.fullName || selectedTeam.owner.username}) can send email invitations.
                                   </p>
@@ -2348,9 +2344,12 @@ export default function TeamsPage() {
               {activeTab === "Stages" && (
                 <div className="space-y-6">
                   {loadingTeamData ? (
-                    <div className="flex flex-col items-center justify-center gap-3 rounded-2xl border border-zinc-200/60 bg-white px-4 py-8 text-sm text-zinc-500 dark:border-zinc-800 dark:bg-zinc-900/40 dark:text-zinc-400 shadow-xs">
-                      <LogoTransition width={330} height={225} loop={true} />
-                      <p className="font-semibold">Loading stages list...</p>
+                    <div className="space-y-3 select-none pointer-events-none animate-pulse">
+                      {Array.from({ length: 3 }).map((_, index) => (
+                        <div key={index} className="h-20 rounded-xl border border-zinc-200/80 bg-white p-4 dark:border-zinc-800 dark:bg-zinc-900/60 shadow-xs">
+                          <div className="h-full w-full rounded-lg bg-[linear-gradient(110deg,rgba(228,228,231,0.6),rgba(250,250,250,0.95),rgba(228,228,231,0.6))] bg-size-[200%_100%] animate-[shimmer_1.3s_linear_infinite] dark:bg-[linear-gradient(110deg,rgba(39,39,42,0.9),rgba(63,63,70,0.95),rgba(39,39,42,0.9))]" />
+                        </div>
+                      ))}
                     </div>
                   ) : selectedParticipation ? (() => {
                     const competitiveStages = selectedParticipation.stages.filter(s => !isRegistrationStage(s.name));
@@ -2359,168 +2358,224 @@ export default function TeamsPage() {
                     const isTerminated = hasRejections || ['won', 'eliminated'].includes(selectedParticipation.status);
 
                     return (
-                      <>
-                        {/* Dropdown to pick which participation to edit */}
-                        <div className="flex items-center justify-between gap-4 pb-3.5 border-b border-zinc-150 dark:border-zinc-800">
-                          <span className="text-xs font-bold uppercase tracking-wider text-zinc-450 dark:text-zinc-500">Select hackathon:</span>
-                          <AppDropdown
-                            value={selectedParticipationId}
-                            onChange={setSelectedParticipationId}
-                            options={teamParticipations.map(p => ({
-                              label: p.hackathon.title,
-                              value: p._id,
-                            }))}
-                            placeholder="Choose hackathon…"
-                            fullWidth={false}
-                          />
+                      <div className="space-y-6">
+                        {/* Top Bar: Clean Enterprise Section Header & Hackathon Selector */}
+                        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 p-4 rounded-xl border border-zinc-200/80 bg-white dark:border-zinc-800 dark:bg-zinc-900/50 shadow-xs">
+                          <div className="flex items-center gap-3 min-w-0">
+                            <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-blue-500/10 text-blue-600 dark:text-blue-400 border border-blue-500/20">
+                              <Layers className="h-4.5 w-4.5" />
+                            </div>
+                            <div className="min-w-0">
+                              <h3 className="text-sm font-bold text-zinc-900 dark:text-white leading-tight">Timeline Milestones</h3>
+                              <p className="text-xs text-zinc-500 dark:text-zinc-400 truncate leading-tight mt-0.5">
+                                Configure rounds, qualification deadlines, and stage progress
+                              </p>
+                            </div>
+                          </div>
+
+                          <div className="flex items-center gap-2.5 shrink-0 self-end sm:self-auto">
+                            <span className="text-xs font-semibold text-zinc-500 dark:text-zinc-400 whitespace-nowrap">
+                              Hackathon:
+                            </span>
+                            <AppDropdown
+                              value={selectedParticipationId}
+                              onChange={setSelectedParticipationId}
+                              options={teamParticipations.map(p => ({
+                                label: p.hackathon.title,
+                                value: p._id,
+                              }))}
+                              placeholder="Choose hackathon…"
+                              align="right"
+                              className="w-56 sm:w-72"
+                            />
+                          </div>
                         </div>
 
                         {/* Stages list editor */}
-                        <div className="space-y-4">
-                          {(() => {
-                            if (competitiveStages.length === 0) {
-                              return (
-                                <div className="rounded-xl border border-dashed border-zinc-200 bg-zinc-50/30 p-8 text-center dark:border-zinc-800 dark:bg-zinc-900/10">
-                                  <CalendarRange className="mx-auto h-10 w-10 text-zinc-400" />
-                                  <h4 className="mt-3 text-sm font-bold text-zinc-900 dark:text-white">No milestones defined</h4>
-                                  <p className="mt-1 text-xs text-zinc-500 dark:text-zinc-400">Create stages like "Ideation", "Prototype Submission", etc.</p>
-                                </div>
-                              );
-                            }
-                            return competitiveStages.map((stage, sIdx) => {
+                        <div className="space-y-3">
+                          {competitiveStages.length === 0 ? (
+                            <div className="rounded-xl border border-dashed border-zinc-300 dark:border-zinc-800 bg-zinc-50/50 dark:bg-zinc-950/20 p-10 text-center">
+                              <CalendarRange className="mx-auto h-9 w-9 text-zinc-400" />
+                              <h4 className="mt-3 text-sm font-bold text-zinc-900 dark:text-white">No milestones defined</h4>
+                              <p className="mt-1 text-xs text-zinc-500 dark:text-zinc-400">Create stages like "Ideation", "Prototype Submission", or "Final Pitch" below.</p>
+                            </div>
+                          ) : (
+                            competitiveStages.map((stage, sIdx) => {
                               const isDisqualified = failedStageIdx !== -1 && sIdx > failedStageIdx;
                               const isStageEditable = !isDisqualified && selectedParticipation.status !== 'won';
 
                               return (
-                                <div id={`stage-${stage._id}`} key={stage._id} className={`rounded-xl border p-4 transition-all duration-200 ${isDisqualified ? "border-dashed border-zinc-250 bg-zinc-50/50 dark:border-zinc-800/40 dark:bg-zinc-950/20 opacity-50" : "border-zinc-200 bg-white dark:border-zinc-800/60 dark:bg-zinc-900/60 shadow-xs hover:border-zinc-300 dark:hover:border-zinc-700"}`}>
-                                  <div className="flex items-center justify-between gap-4">
-                                    <div className="flex-1 flex items-center gap-2">
-                                      {isDisqualified && (
-                                        <span className="inline-flex items-center gap-1 rounded-md bg-zinc-200 px-2 py-0.5 text-[9px] font-black uppercase text-zinc-655 dark:bg-zinc-800 dark:text-zinc-400 shrink-0">
-                                          Disqualified
+                                <div
+                                  id={`stage-${stage._id}`}
+                                  key={stage._id}
+                                  className={`rounded-xl border p-4 transition-all duration-200 ${
+                                    isDisqualified
+                                      ? "border-dashed border-zinc-250 bg-zinc-50/40 dark:border-zinc-800/40 dark:bg-zinc-950/20 opacity-60"
+                                      : "border-zinc-200/90 bg-white dark:border-zinc-800 dark:bg-zinc-900/60 shadow-xs hover:border-zinc-300 dark:hover:border-zinc-700"
+                                  }`}
+                                >
+                                  <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-3.5">
+                                    {/* Left: Step Number Badge + Stage Name Input */}
+                                    <div className="flex items-center gap-3 flex-1 min-w-0">
+                                      <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-md bg-zinc-100 dark:bg-zinc-800 text-[11px] font-bold text-zinc-600 dark:text-zinc-300 border border-zinc-200/70 dark:border-zinc-700/60">
+                                        {String(sIdx + 1).padStart(2, '0')}
+                                      </span>
+
+                                      <div className="flex-1 min-w-0 flex items-center gap-2">
+                                        <input
+                                          disabled={!isStageEditable}
+                                          defaultValue={stage.name}
+                                          onBlur={(event) => {
+                                            if (event.target.value.trim() && event.target.value !== stage.name) {
+                                              handleUpdateStage(selectedParticipation._id, stage._id, { name: event.target.value.trim() });
+                                            }
+                                          }}
+                                          placeholder="Stage milestone name"
+                                          className="w-full rounded-md border border-transparent hover:border-zinc-200 dark:hover:border-zinc-700 focus:border-blue-500/50 focus:bg-zinc-50/60 dark:focus:bg-zinc-800/50 px-2 py-1 text-sm font-bold text-zinc-900 dark:text-white outline-none transition disabled:cursor-not-allowed disabled:hover:border-transparent truncate"
+                                        />
+                                        {isDisqualified && (
+                                          <span className="inline-flex items-center gap-1 rounded-md bg-zinc-200/80 px-2 py-0.5 text-[9px] font-black uppercase text-zinc-600 dark:bg-zinc-800 dark:text-zinc-400 shrink-0">
+                                            Disqualified
+                                          </span>
+                                        )}
+                                      </div>
+                                    </div>
+
+                                    {/* Right: Controls - ALL EXACTLY h-9 (36px) HEIGHT */}
+                                    <div className="flex flex-wrap sm:flex-nowrap items-center gap-2.5 pt-2.5 lg:pt-0 border-t border-zinc-150 dark:border-zinc-800/60 lg:border-t-0 shrink-0">
+                                      {/* Deadline */}
+                                      <div className="flex items-center gap-1.5">
+                                        <span className="text-[10px] font-bold uppercase tracking-wider text-zinc-400 dark:text-zinc-500 shrink-0">
+                                          Deadline:
+                                        </span>
+                                        <input
+                                          type="date"
+                                          disabled={!isStageEditable}
+                                          defaultValue={stage.deadline ? new Date(stage.deadline).toISOString().slice(0, 10) : ""}
+                                          onBlur={(event) => {
+                                            const nextDeadline = event.target.value || null;
+                                            const currentDeadline = stage.deadline ? new Date(stage.deadline).toISOString().slice(0, 10) : "";
+                                            if (nextDeadline !== currentDeadline) {
+                                              handleUpdateStage(selectedParticipation._id, stage._id, { deadline: nextDeadline });
+                                            }
+                                          }}
+                                          className="h-9 rounded-lg border border-zinc-250 dark:border-zinc-700 bg-white dark:bg-zinc-950 px-2.5 text-xs font-semibold text-zinc-800 dark:text-zinc-200 outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-500/10 cursor-pointer disabled:cursor-not-allowed disabled:opacity-50"
+                                        />
+                                      </div>
+
+                                      {/* Result */}
+                                      <div className="flex items-center gap-1.5">
+                                        <span className="text-[10px] font-bold uppercase tracking-wider text-zinc-400 dark:text-zinc-500 shrink-0">
+                                          Result:
+                                        </span>
+                                        <AppDropdown
+                                          value={isDisqualified ? "pending" : stage.result}
+                                          disabled={!isStageEditable}
+                                          size="sm"
+                                          onChange={(val) => {
+                                            if (val !== stage.result) {
+                                              handleUpdateStage(selectedParticipation._id, stage._id, { result: val as Stage["result"] });
+                                            }
+                                          }}
+                                          options={[
+                                            { label: "Pending", value: "pending", dotClass: "bg-amber-500" },
+                                            { label: "Qualified", value: "qualified", dotClass: "bg-emerald-500" },
+                                            { label: "Rejected", value: "rejected", dotClass: "bg-rose-500" },
+                                          ]}
+                                          placeholder="Result"
+                                          align="right"
+                                          className="w-32 sm:w-36"
+                                        />
+                                      </div>
+
+                                      {/* Status indicator */}
+                                      {stageSaving[stage._id] && (
+                                        <span className="text-[10px] font-medium text-zinc-400 shrink-0 min-w-[48px] text-right">
+                                          {stageSaving[stage._id] === "saving" ? "Saving..." : stageSaving[stage._id] === "saved" ? "Saved" : "Error"}
                                         </span>
                                       )}
-                                      <input
-                                        disabled={!isStageEditable}
-                                        defaultValue={stage.name}
-                                        onBlur={(event) => {
-                                          if (event.target.value !== stage.name) {
-                                            handleUpdateStage(selectedParticipation._id, stage._id, { name: event.target.value });
-                                          }
-                                        }}
-                                        className="w-full bg-transparent text-sm font-bold text-zinc-900 dark:text-white outline-none border-b border-transparent focus:border-blue-500 py-0.5 disabled:cursor-not-allowed"
-                                      />
-                                    </div>
-                                    <button
-                                      onClick={() => handleDeleteStage(selectedParticipation._id, stage._id, stage.name)}
-                                      disabled={!isStageEditable}
-                                      className="rounded-lg p-1.5 text-zinc-400 hover:bg-rose-500/10 hover:text-rose-500 transition cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed"
-                                      title="Delete stage"
-                                    >
-                                      <Trash2 className="h-4 w-4" />
-                                    </button>
-                                  </div>
 
-                                  <div className="flex flex-wrap items-center gap-3 pt-2.5 border-t border-zinc-100 dark:border-zinc-800/60 text-xs">
-                                    <div>
-                                      <label className="text-[9px] font-bold text-zinc-400 uppercase tracking-wider block mb-0.5">Deadline</label>
-                                      <input
-                                        type="date"
+                                      {/* Delete Button */}
+                                      <button
+                                        onClick={() => handleDeleteStage(selectedParticipation._id, stage._id, stage.name)}
                                         disabled={!isStageEditable}
-                                        defaultValue={stage.deadline ? new Date(stage.deadline).toISOString().slice(0, 10) : ""}
-                                        onBlur={(event) => {
-                                          const nextDeadline = event.target.value || null;
-                                          const currentDeadline = stage.deadline ? new Date(stage.deadline).toISOString().slice(0, 10) : "";
-                                          if (nextDeadline !== currentDeadline) {
-                                            handleUpdateStage(selectedParticipation._id, stage._id, { deadline: nextDeadline });
-                                          }
-                                        }}
-                                        className="rounded-lg border border-zinc-200 bg-zinc-50/50 px-2.5 py-1 text-xs text-zinc-700 outline-none dark:border-zinc-800 dark:bg-zinc-900 dark:text-zinc-300 disabled:cursor-not-allowed"
-                                      />
+                                        className="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-lg border border-transparent hover:border-zinc-200 text-zinc-400 hover:bg-rose-50 hover:text-rose-600 dark:hover:border-zinc-700 dark:hover:bg-rose-950/30 dark:hover:text-rose-400 transition cursor-pointer disabled:opacity-30 disabled:cursor-not-allowed"
+                                        title="Delete stage"
+                                        aria-label="Delete stage"
+                                      >
+                                        <Trash2 className="h-4 w-4" />
+                                      </button>
                                     </div>
-
-                                    <div>
-                                      <label className="text-[9px] font-bold text-zinc-400 uppercase tracking-wider block mb-0.5">Result</label>
-                                      <AppDropdown
-                                        value={isDisqualified ? "pending" : stage.result}
-                                        disabled={!isStageEditable}
-                                        onChange={(val) => {
-                                          if (val !== stage.result) {
-                                            handleUpdateStage(selectedParticipation._id, stage._id, { result: val as Stage["result"] });
-                                          }
-                                        }}
-                                        options={[
-                                          { label: "Pending", value: "pending", dotClass: "bg-amber-500" },
-                                          { label: "Qualified", value: "qualified", dotClass: "bg-emerald-500" },
-                                          { label: "Rejected", value: "rejected", dotClass: "bg-rose-500" },
-                                        ]}
-                                        placeholder="Result"
-                                        className="!w-36"
-                                      />
-                                    </div>
-
-                                    {stageSaving[stage._id] && (
-                                      <span className="text-[10px] text-zinc-400 ml-auto pt-4">
-                                        {stageSaving[stage._id] === "saving" ? "Saving..." : stageSaving[stage._id] === "saved" ? "Saved" : "Error"}
-                                      </span>
-                                    )}
                                   </div>
                                 </div>
                               );
-                            });
-                          })()}
+                            })
+                          )}
                         </div>
 
                         {/* Add stage form */}
-                        <div className="rounded-xl border border-zinc-200 bg-white p-5 dark:border-zinc-800/60 dark:bg-zinc-900/60 shadow-xs mt-6">
-                          <h4 className="text-xs font-bold uppercase tracking-wider text-zinc-700 dark:text-zinc-300">Add Stage Milestone</h4>
+                        <div className="rounded-xl border border-zinc-200/90 bg-white p-5 dark:border-zinc-800 dark:bg-zinc-900/60 shadow-xs mt-6">
+                          <div className="flex items-center gap-2">
+                            <Plus className="h-4 w-4 text-blue-600 dark:text-blue-400" />
+                            <h4 className="text-xs font-bold uppercase tracking-wider text-zinc-800 dark:text-zinc-200">
+                              Add Stage Milestone
+                            </h4>
+                          </div>
+
                           {isTerminated && (
-                            <p className="mt-1 text-[11px] text-amber-600 dark:text-amber-400 font-semibold leading-normal">
+                            <p className="mt-2 text-[11px] text-amber-600 dark:text-amber-400 font-semibold leading-normal">
                               Milestone tracking locked (this participation is marked as won or eliminated). You cannot add new stages.
                             </p>
                           )}
-                          <div className="mt-3 grid gap-3 sm:grid-cols-[1fr_160px]">
-                            <input
-                              value={newStageDraft[selectedParticipation._id]?.name || ""}
-                              disabled={isTerminated}
-                              onChange={(event) =>
-                                setNewStageDraft((current) => ({
-                                  ...current,
-                                  [selectedParticipation._id]: {
-                                    name: event.target.value,
-                                    deadline: current[selectedParticipation._id]?.deadline || "",
-                                  },
-                                }))
-                              }
-                              placeholder="e.g. Round 2: Video Pitch"
-                              className="rounded-xl border border-zinc-200 bg-white px-3.5 py-2 text-sm text-zinc-800 outline-none transition focus:border-blue-400 dark:border-zinc-800 dark:bg-zinc-950 dark:text-zinc-200 disabled:cursor-not-allowed disabled:bg-zinc-50 dark:disabled:bg-zinc-900/40 disabled:text-zinc-400"
-                            />
-                            <input
-                              type="date"
-                              value={newStageDraft[selectedParticipation._id]?.deadline || ""}
-                              disabled={isTerminated}
-                              onChange={(event) =>
-                                setNewStageDraft((current) => ({
-                                  ...current,
-                                  [selectedParticipation._id]: {
-                                    name: current[selectedParticipation._id]?.name || "",
-                                    deadline: event.target.value,
-                                  },
-                                }))
-                              }
-                              className="rounded-xl border border-zinc-200 bg-white px-3 py-2 text-sm text-zinc-800 outline-none transition focus:border-blue-400 dark:border-zinc-800 dark:bg-zinc-950 dark:text-zinc-200 disabled:cursor-not-allowed disabled:bg-zinc-50 dark:disabled:bg-zinc-900/40 disabled:text-zinc-400"
-                            />
+
+                          <div className="mt-3.5 flex flex-col sm:flex-row items-stretch sm:items-center gap-3">
+                            <div className="flex-1 min-w-0">
+                              <input
+                                value={newStageDraft[selectedParticipation._id]?.name || ""}
+                                disabled={isTerminated}
+                                onChange={(event) =>
+                                  setNewStageDraft((current) => ({
+                                    ...current,
+                                    [selectedParticipation._id]: {
+                                      name: event.target.value,
+                                      deadline: current[selectedParticipation._id]?.deadline || "",
+                                    },
+                                  }))
+                                }
+                                placeholder="e.g. Round 2: Video Pitch & Prototype"
+                                className="h-10 w-full rounded-lg border border-zinc-250 dark:border-zinc-700 bg-zinc-50/50 dark:bg-zinc-950 px-3.5 text-sm text-zinc-900 dark:text-zinc-100 placeholder:text-zinc-400 outline-none transition focus:border-blue-500 focus:bg-white dark:focus:bg-zinc-900 disabled:cursor-not-allowed disabled:opacity-50"
+                              />
+                            </div>
+
+                            <div className="sm:w-44 shrink-0">
+                              <input
+                                type="date"
+                                value={newStageDraft[selectedParticipation._id]?.deadline || ""}
+                                disabled={isTerminated}
+                                onChange={(event) =>
+                                  setNewStageDraft((current) => ({
+                                    ...current,
+                                    [selectedParticipation._id]: {
+                                      name: current[selectedParticipation._id]?.name || "",
+                                      deadline: event.target.value,
+                                    },
+                                  }))
+                                }
+                                className="h-10 w-full rounded-lg border border-zinc-250 dark:border-zinc-700 bg-zinc-50/50 dark:bg-zinc-950 px-3 text-xs font-semibold text-zinc-800 dark:text-zinc-200 outline-none transition focus:border-blue-500 focus:bg-white dark:focus:bg-zinc-900 disabled:cursor-not-allowed disabled:opacity-50 cursor-pointer"
+                              />
+                            </div>
+
+                            <button
+                              onClick={() => handleAddStage(selectedParticipation._id)}
+                              disabled={isTerminated || !newStageDraft[selectedParticipation._id]?.name?.trim()}
+                              className="btn-brand-primary h-10 px-4 rounded-lg text-xs font-bold gap-1.5 shrink-0 whitespace-nowrap cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+                            >
+                              <Plus className="h-4 w-4" />
+                              <span>Add Stage</span>
+                            </button>
                           </div>
-                          <button
-                            onClick={() => handleAddStage(selectedParticipation._id)}
-                            disabled={isTerminated}
-                            className="mt-3 inline-flex items-center gap-2 rounded-lg bg-blue-600 px-4 py-2 text-sm font-semibold text-white transition hover:bg-blue-500 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
-                          >
-                            <Plus className="h-4 w-4" />
-                            Add Stage
-                          </button>
                         </div>
-                      </>
+                      </div>
                     );
                   })() : (
                     <div className="rounded-xl border border-dashed border-zinc-250 bg-zinc-50/30 p-8 text-center dark:border-zinc-800 dark:bg-zinc-900/10">
@@ -2532,8 +2587,6 @@ export default function TeamsPage() {
                 </div>
               )}
 
-
-              {/* 4. SETTINGS TAB: GitHub-style settings with sub-navigation */}
               {activeTab === "Settings" && (() => {
                 const isOwner = selectedTeam.owner._id === user?._id;
 
@@ -2544,7 +2597,7 @@ export default function TeamsPage() {
                   { id: 'danger' as const, label: 'Danger Zone', danger: true },
                 ];
 
-                const settingsInputCls = "w-full rounded-xl border border-zinc-200 bg-zinc-50/50 px-3.5 py-2.5 text-sm text-zinc-800 outline-none transition focus:border-blue-400 focus:bg-white dark:border-zinc-800 dark:bg-zinc-900 dark:text-zinc-200 dark:focus:bg-zinc-950";
+                const settingsInputCls = "w-full rounded-lg border border-zinc-200 bg-zinc-50/50 px-3.5 py-2.5 text-sm text-zinc-800 outline-none transition focus:border-blue-400 focus:bg-white dark:border-zinc-800 dark:bg-zinc-900 dark:text-zinc-200 dark:focus:bg-zinc-950";
 
                 return (
                   <div>
@@ -2595,7 +2648,7 @@ export default function TeamsPage() {
                             <button
                               key={item.id}
                               onClick={() => { setSettingsSection(item.id); if (item.id === 'invitations') loadTeamInvitations(); }}
-                              className={`rounded-xl px-3 py-1.5 text-xs font-semibold transition ${isActive ? item.danger ? "bg-rose-600 text-white" : "bg-blue-600 text-white" : "bg-zinc-100 text-zinc-600 dark:bg-zinc-800 dark:text-zinc-300"}`}
+                              className={`rounded-lg px-3 py-1.5 text-xs font-semibold transition ${isActive ? item.danger ? "bg-rose-600 text-white" : "bg-blue-600 text-white" : "bg-zinc-100 text-zinc-600 dark:bg-zinc-800 dark:text-zinc-300"}`}
                             >
                               {item.label}
                             </button>
@@ -2704,7 +2757,7 @@ export default function TeamsPage() {
                               {isOwner && (
                                 <div className="flex justify-end pt-1">
                                   <button type="submit" disabled={savingTeam || !renameTeamName.trim()} className="btn btn-primary">
-                                    {savingTeam ? <LogoTransition width={28} height={18} loop={true} /> : null}
+                                    {savingTeam ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
                                     Save changes
                                   </button>
                                 </div>
@@ -2802,14 +2855,14 @@ export default function TeamsPage() {
                                      />
                                      {directInviteLoading && (
                                        <div className="absolute right-3 top-1/2 -translate-y-1/2">
-                                         <LogoTransition width={24} height={16} loop={true} />
+                                         <Loader2 className="h-4 w-4 animate-spin text-zinc-400" />
                                        </div>
                                      )}
                                    </div>
 
                                    {/* Direct Invite Autocomplete Results */}
                                    {directInviteResults.length > 0 && (
-                                     <div className="absolute left-0 right-0 mt-2 z-50 rounded-xl border border-zinc-200 bg-white p-2 shadow-xl dark:border-zinc-800 dark:bg-zinc-950 max-h-52 overflow-y-auto space-y-1">
+                                     <div className="absolute left-0 right-0 mt-2 z-50 rounded-lg border border-zinc-200 bg-white p-2 shadow-xl dark:border-zinc-800 dark:bg-zinc-950 max-h-52 overflow-y-auto space-y-1">
                                        {directInviteResults.map(user => (
                                          <div
                                            key={user._id}
@@ -2862,13 +2915,13 @@ export default function TeamsPage() {
                                       disabled={savingTeam || !inviteEmail.trim()}
                                       className="btn btn-primary shrink-0"
                                     >
-                                      {savingTeam ? <LogoTransition width={28} height={18} loop={true} /> : null}
+                                      {savingTeam ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
                                       Send Invite
                                     </button>
                                   </div>
 
                                   {inviteEmailSent && (
-                                    <div className="mt-3 rounded-xl border border-emerald-200 bg-emerald-50/50 dark:border-emerald-900/40 dark:bg-emerald-950/10 p-3 flex items-center gap-2.5">
+                                    <div className="mt-3 rounded-lg border border-emerald-200 bg-emerald-50/50 dark:border-emerald-900/40 dark:bg-emerald-950/10 p-3 flex items-center gap-2.5">
                                       <CheckCircle2 className="h-4 w-4 text-emerald-500 shrink-0" />
                                       <div>
                                         <p className="text-[10px] font-bold uppercase tracking-wider text-emerald-600 dark:text-emerald-400">Invitation sent!</p>
@@ -2884,16 +2937,16 @@ export default function TeamsPage() {
                               <div className="flex items-center justify-between mb-3">
                                 <p className="text-xs font-bold uppercase tracking-wider text-zinc-500 dark:text-zinc-400">Pending Invitations</p>
                                 <button onClick={loadTeamInvitations} disabled={invitationsLoading} className="btn btn-ghost btn-sm text-xs h-7 px-2 rounded-lg">
-                                  {invitationsLoading ? <LogoTransition width={20} height={14} loop={true} /> : "Refresh"}
+                                  {invitationsLoading ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : "Refresh"}
                                 </button>
                               </div>
 
                               {invitationsLoading ? (
                                 <div className="flex items-center justify-center py-8">
-                                  <LogoTransition width={36} height={24} loop={true} />
+                                  <Loader2 className="h-5 w-5 animate-spin text-zinc-400" />
                                 </div>
                               ) : teamInvitations.length === 0 ? (
-                                <div className="rounded-xl border border-dashed border-zinc-200 dark:border-zinc-800 py-8 text-center">
+                                <div className="rounded-lg border border-dashed border-zinc-200 dark:border-zinc-800 py-8 text-center">
                                   <p className="text-sm text-zinc-400 dark:text-zinc-500">No invitations yet.</p>
                                   <p className="text-xs text-zinc-400 dark:text-zinc-600 mt-1">Send an email invite above to get started.</p>
                                 </div>
@@ -2934,7 +2987,7 @@ export default function TeamsPage() {
                               Irreversible and destructive workspace actions.
                             </p>
 
-                            <div className="rounded-xl border border-rose-200 dark:border-rose-900/50 divide-y divide-rose-200/60 dark:divide-rose-900/40">
+                            <div className="rounded-lg border border-rose-200 dark:border-rose-900/50 divide-y divide-rose-200/60 dark:divide-rose-900/40">
                               {/* Delete team (owner) */}
                               {isOwner && (
                                 <div className="flex items-center justify-between gap-4 px-5 py-4">
@@ -2993,7 +3046,7 @@ export default function TeamsPage() {
               initial={{ scale: 0.95, opacity: 0 }}
               animate={{ scale: 1, opacity: 1 }}
               exit={{ scale: 0.95, opacity: 0 }}
-              className="w-full max-w-sm rounded-2xl border border-zinc-200 bg-white dark:border-zinc-800 dark:bg-zinc-950 p-6 shadow-2xl text-center"
+              className="w-full max-w-sm rounded-xl border border-zinc-200 bg-white dark:border-zinc-800 dark:bg-zinc-950 p-6 shadow-2xl text-center"
             >
               <div className="mx-auto h-12 w-12 rounded-full bg-rose-500/10 flex items-center justify-center text-rose-600 mb-4">
                 <AlertTriangle className="h-6 w-6" />
@@ -3005,7 +3058,7 @@ export default function TeamsPage() {
               <div className="flex gap-2.5">
                 <button onClick={() => setRemoveMemberModal(null)} className="btn btn-secondary flex-1">Cancel</button>
                 <button onClick={handleRemoveMember} disabled={removeMemberLoading} className="btn btn-danger flex-1">
-                  {removeMemberLoading ? <LogoTransition width={28} height={18} loop={true} /> : "Remove"}
+                  {removeMemberLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : "Remove"}
                 </button>
               </div>
             </motion.div>
@@ -3021,7 +3074,7 @@ export default function TeamsPage() {
               initial={{ scale: 0.95, opacity: 0 }}
               animate={{ scale: 1, opacity: 1 }}
               exit={{ scale: 0.95, opacity: 0 }}
-              className="w-full max-w-sm rounded-2xl border border-zinc-200 bg-white dark:border-zinc-800 dark:bg-zinc-950 p-6 shadow-2xl text-center"
+              className="w-full max-w-sm rounded-xl border border-zinc-200 bg-white dark:border-zinc-800 dark:bg-zinc-950 p-6 shadow-2xl text-center"
             >
               <div className="mx-auto h-12 w-12 rounded-full bg-amber-500/10 flex items-center justify-center text-amber-600 mb-4">
                 <AlertTriangle className="h-6 w-6" />
@@ -3033,7 +3086,7 @@ export default function TeamsPage() {
               <div className="flex gap-2.5">
                 <button onClick={() => setShowLeaveModal(false)} className="btn btn-secondary flex-1">Cancel</button>
                 <button onClick={handleLeaveTeam} disabled={leaveTeamLoading} className="btn btn-danger flex-1">
-                  {leaveTeamLoading ? <LogoTransition width={28} height={18} loop={true} /> : "Leave team"}
+                  {leaveTeamLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : "Leave team"}
                 </button>
               </div>
             </motion.div>
@@ -3052,12 +3105,12 @@ export default function TeamsPage() {
               initial={{ scale: 0.95, opacity: 0 }}
               animate={{ scale: 1, opacity: 1 }}
               exit={{ scale: 0.95, opacity: 0 }}
-              className="relative w-full max-w-lg rounded-2xl border border-zinc-200 bg-white p-6 shadow-2xl dark:border-zinc-800 dark:bg-zinc-950 max-h-[90vh] flex flex-col overflow-hidden"
+              className="relative w-full max-w-lg rounded-xl border border-zinc-200 bg-white p-6 shadow-2xl dark:border-zinc-800 dark:bg-zinc-950 max-h-[90vh] flex flex-col overflow-hidden"
             >
               {/* Close */}
               <button
                 onClick={() => setShowCreateModal(false)}
-                className="absolute right-4 top-4 rounded-xl p-1.5 text-zinc-400 hover:bg-zinc-100 dark:hover:bg-zinc-900 transition"
+                className="absolute right-4 top-4 rounded-lg p-1.5 text-zinc-400 hover:bg-zinc-100 dark:hover:bg-zinc-900 transition"
               >
                 <X className="h-4 w-4" />
               </button>
@@ -3072,7 +3125,7 @@ export default function TeamsPage() {
                     value={createTeamName}
                     onChange={(event) => setCreateTeamName(event.target.value)}
                     placeholder="Team Horizon"
-                    className="w-full rounded-xl border border-zinc-200 bg-zinc-50/50 px-3.5 py-2 text-sm text-zinc-800 outline-none transition focus:border-blue-400 dark:border-zinc-800 dark:bg-zinc-950 dark:text-zinc-200"
+                    className="w-full rounded-lg border border-zinc-200 bg-zinc-50/50 px-3.5 py-2 text-sm text-zinc-800 outline-none transition focus:border-blue-400 dark:border-zinc-800 dark:bg-zinc-950 dark:text-zinc-200"
                   />
                 </div>
 
@@ -3087,14 +3140,14 @@ export default function TeamsPage() {
                       onKeyDown={(e) => {
                         if (e.key === "Enter") handleGithubSearch();
                       }}
-                      className="flex-1 rounded-xl border border-zinc-200 bg-zinc-50/50 px-3.5 py-2 text-sm text-zinc-800 outline-none transition focus:border-blue-400 dark:border-zinc-800 dark:bg-zinc-950 dark:text-zinc-200"
+                      className="flex-1 rounded-lg border border-zinc-200 bg-zinc-50/50 px-3.5 py-2 text-sm text-zinc-800 outline-none transition focus:border-blue-400 dark:border-zinc-800 dark:bg-zinc-950 dark:text-zinc-200"
                     />
                     <button
                       onClick={handleGithubSearch}
                       disabled={githubSearchLoading || !githubSearchText.trim()}
-                      className="inline-flex h-9.5 items-center justify-center rounded-xl bg-zinc-900 text-white dark:bg-zinc-800 px-4 text-xs font-semibold hover:bg-zinc-800 transition cursor-pointer disabled:opacity-50"
+                      className="inline-flex h-9.5 items-center justify-center rounded-lg bg-zinc-900 text-white dark:bg-zinc-800 px-4 text-xs font-semibold hover:bg-zinc-800 transition cursor-pointer disabled:opacity-50"
                     >
-                      {githubSearchLoading ? <LogoTransition width={28} height={18} loop={true} /> : <Github className="h-4.5 w-4.5 mr-1" />}
+                      {githubSearchLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Github className="h-4.5 w-4.5 mr-1" />}
                       Search
                     </button>
                   </div>
@@ -3103,8 +3156,8 @@ export default function TeamsPage() {
 
                 {/* GitHub Search Result Container */}
                 {searchedGithubUser && (
-                  <div className="flex items-center gap-3 p-3 bg-zinc-50 dark:bg-zinc-900 rounded-2xl border border-zinc-100 dark:border-zinc-800 shadow-xs">
-                    <img src={searchedGithubUser.avatar_url} className="h-10 w-10 rounded-xl" alt="avatar" />
+                  <div className="flex items-center gap-3 p-3 bg-zinc-50 dark:bg-zinc-900 rounded-lg border border-zinc-100 dark:border-zinc-800 shadow-xs">
+                    <img src={searchedGithubUser.avatar_url} className="h-10 w-10 rounded-lg" alt="avatar" />
                     <div className="flex-1 min-w-0">
                       <p className="text-xs font-bold text-zinc-900 dark:text-zinc-100 truncate">{searchedGithubUser.name || searchedGithubUser.login}</p>
                       <p className="text-[10px] text-zinc-500 dark:text-zinc-400 truncate mt-0.5">@{searchedGithubUser.login} • {searchedGithubUser.public_repos} repos</p>
@@ -3168,7 +3221,7 @@ export default function TeamsPage() {
                   disabled={savingTeam || !createTeamName.trim()}
                   className="btn btn-primary"
                 >
-                  {savingTeam ? <LogoTransition width={28} height={18} loop={true} /> : "Create Team"}
+                  {savingTeam ? <Loader2 className="h-4 w-4 animate-spin" /> : "Create Team"}
                 </button>
               </div>
             </motion.div>
@@ -3184,7 +3237,7 @@ export default function TeamsPage() {
               initial={{ scale: 0.95, opacity: 0 }}
               animate={{ scale: 1, opacity: 1 }}
               exit={{ scale: 0.95, opacity: 0 }}
-              className="relative w-full max-w-md rounded-2xl border border-zinc-200 bg-white p-6 shadow-2xl dark:border-zinc-800 dark:bg-zinc-950 flex flex-col items-center text-center"
+              className="relative w-full max-w-md rounded-xl border border-zinc-200 bg-white p-6 shadow-2xl dark:border-zinc-800 dark:bg-zinc-950 flex flex-col items-center text-center"
             >
               <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-amber-100 dark:bg-amber-900/30 text-amber-600 dark:text-amber-400 mb-4">
                 <AlertTriangle className="h-6 w-6" />
@@ -3233,7 +3286,7 @@ export default function TeamsPage() {
               initial={{ scale: 0.95, opacity: 0 }}
               animate={{ scale: 1, opacity: 1 }}
               exit={{ scale: 0.95, opacity: 0 }}
-              className="relative w-full max-w-md rounded-2xl border border-zinc-200 bg-white p-6 shadow-2xl dark:border-zinc-800 dark:bg-zinc-950"
+              className="relative w-full max-w-md rounded-xl border border-zinc-200 bg-white p-6 shadow-2xl dark:border-zinc-800 dark:bg-zinc-950"
             >
               {/* Close */}
               <button
@@ -3281,7 +3334,7 @@ export default function TeamsPage() {
                     disabled={savingTeam || !joinTokenInput.trim()}
                     className="btn btn-primary"
                   >
-                    {savingTeam ? <LogoTransition width={28} height={18} loop={true} /> : "Join Team"}
+                    {savingTeam ? <Loader2 className="h-4 w-4 animate-spin" /> : "Join Team"}
                   </button>
                 </div>
               </div>
@@ -3299,7 +3352,7 @@ export default function TeamsPage() {
               initial={{ scale: 0.95, opacity: 0 }}
               animate={{ scale: 1, opacity: 1 }}
               exit={{ scale: 0.95, opacity: 0 }}
-              className="relative w-full max-w-md rounded-2xl border border-zinc-200 bg-white p-6 shadow-2xl dark:border-zinc-800 dark:bg-zinc-950"
+              className="relative w-full max-w-md rounded-xl border border-zinc-200 bg-white p-6 shadow-2xl dark:border-zinc-800 dark:bg-zinc-950"
             >
               {/* Close */}
               <button
@@ -3345,7 +3398,7 @@ export default function TeamsPage() {
                     disabled={savingTeam || deleteConfirmInput !== selectedTeam.name}
                     className="btn btn-danger"
                   >
-                    {savingTeam ? <LogoTransition width={28} height={18} loop={true} /> : "Delete this team"}
+                    {savingTeam ? <Loader2 className="h-4 w-4 animate-spin" /> : "Delete this team"}
                   </button>
                 </div>
               </div>
@@ -3363,7 +3416,7 @@ export default function TeamsPage() {
               initial={{ scale: 0.95, opacity: 0 }}
               animate={{ scale: 1, opacity: 1 }}
               exit={{ scale: 0.95, opacity: 0 }}
-              className="relative w-full max-w-sm rounded-[2rem] border border-zinc-200 bg-white p-6 shadow-2xl dark:border-zinc-800 dark:bg-zinc-950 text-center animate-fade-in"
+              className="relative w-full max-w-sm rounded-xl border border-zinc-200 bg-white p-6 shadow-2xl dark:border-zinc-800 dark:bg-zinc-950 text-center animate-fade-in"
             >
               <div className="mx-auto h-12 w-12 rounded-full bg-rose-500/10 flex items-center justify-center text-rose-600 dark:text-rose-455 mb-4 shrink-0">
                 <AlertTriangle className="h-6 w-6" />
@@ -3379,14 +3432,14 @@ export default function TeamsPage() {
                     setShowUntrackConfirmModal(false);
                     setParticipationToUntrack(null);
                   }}
-                  className="flex-1 rounded-xl border border-zinc-200 bg-white py-2.5 text-xs font-bold text-zinc-700 transition hover:bg-zinc-50 dark:border-zinc-800 dark:bg-zinc-950 dark:text-zinc-300 dark:hover:bg-zinc-900 cursor-pointer"
+                  className="flex-1 rounded-lg border border-zinc-200 bg-white py-2.5 text-xs font-bold text-zinc-700 transition hover:bg-zinc-50 dark:border-zinc-800 dark:bg-zinc-950 dark:text-zinc-300 dark:hover:bg-zinc-900 cursor-pointer"
                 >
                   Cancel
                 </button>
                 <button
                   onClick={handleConfirmUntrack}
                   disabled={isUntracking}
-                  className="flex-1 rounded-xl bg-rose-600 py-2.5 text-xs font-bold text-white shadow-sm transition hover:bg-rose-500 disabled:opacity-60 disabled:cursor-not-allowed cursor-pointer"
+                  className="flex-1 rounded-lg bg-rose-600 py-2.5 text-xs font-bold text-white shadow-sm transition hover:bg-rose-500 disabled:opacity-60 disabled:cursor-not-allowed cursor-pointer"
                 >
                   {isUntracking ? "Untracking..." : "Untrack"}
                 </button>
@@ -3404,7 +3457,7 @@ export default function TeamsPage() {
               initial={{ scale: 0.95, opacity: 0 }}
               animate={{ scale: 1, opacity: 1 }}
               exit={{ scale: 0.95, opacity: 0 }}
-              className="relative w-full max-w-sm rounded-[2rem] border border-zinc-200 bg-white p-6 shadow-2xl dark:border-zinc-800 dark:bg-zinc-950 text-center"
+              className="relative w-full max-w-sm rounded-xl border border-zinc-200 bg-white p-6 shadow-2xl dark:border-zinc-800 dark:bg-zinc-950 text-center"
             >
               <div className="mx-auto h-12 w-12 rounded-full bg-rose-500/10 flex items-center justify-center text-rose-600 dark:text-rose-455 mb-4 shrink-0">
                 <AlertTriangle className="h-6 w-6" />
@@ -3417,16 +3470,16 @@ export default function TeamsPage() {
               <div className="flex gap-2.5 pt-2 justify-end">
                 <button
                   onClick={() => setStageToDelete(null)}
-                  className="flex-1 rounded-xl border border-zinc-200 bg-white py-2.5 text-xs font-bold text-zinc-700 transition hover:bg-zinc-50 dark:border-zinc-800 dark:bg-zinc-950 dark:text-zinc-300 dark:hover:bg-zinc-900 cursor-pointer"
+                  className="flex-1 rounded-lg border border-zinc-200 bg-white py-2.5 text-xs font-bold text-zinc-700 transition hover:bg-zinc-50 dark:border-zinc-800 dark:bg-zinc-950 dark:text-zinc-300 dark:hover:bg-zinc-900 cursor-pointer"
                 >
                   Cancel
                 </button>
                 <button
                   onClick={handleConfirmDeleteStage}
                   disabled={isDeletingStage}
-                  className="flex-1 rounded-xl bg-rose-600 py-2.5 text-xs font-bold text-white shadow-sm transition hover:bg-rose-500 disabled:opacity-60 disabled:cursor-not-allowed cursor-pointer flex items-center justify-center min-h-[36px]"
+                  className="flex-1 rounded-lg bg-rose-600 py-2.5 text-xs font-bold text-white shadow-sm transition hover:bg-rose-500 disabled:opacity-60 disabled:cursor-not-allowed cursor-pointer flex items-center justify-center min-h-[36px]"
                 >
-                  {isDeletingStage ? <LogoTransition width={28} height={18} loop={true} /> : "Delete"}
+                  {isDeletingStage ? <Loader2 className="h-4 w-4 animate-spin" /> : "Delete"}
                 </button>
               </div>
             </motion.div>

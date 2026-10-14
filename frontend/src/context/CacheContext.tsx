@@ -28,6 +28,8 @@ type CacheContextType = {
   setDashboardData: (data: DashboardCache) => void;
   teamsData: TeamsCache | null;
   setTeamsData: (data: TeamsCache) => void;
+  trackerData: any[] | null;
+  setTrackerData: (data: any[]) => void;
   clearCache: () => void;
 };
 
@@ -47,6 +49,7 @@ export const CacheProvider = ({ children }: { children: ReactNode }) => {
   const [hackathonsFilters, setHackathonsFiltersState] = useState<HackathonsFilters>(defaultFilters);
   const [dashboardData, setDashboardDataState] = useState<DashboardCache | null>(null);
   const [teamsData, setTeamsDataState] = useState<TeamsCache | null>(null);
+  const [trackerData, setTrackerDataState] = useState<any[] | null>(null);
 
   const setHackathons = useCallback((data: any[]) => {
     setHackathonsState(data);
@@ -64,11 +67,16 @@ export const CacheProvider = ({ children }: { children: ReactNode }) => {
     setTeamsDataState(data);
   }, []);
 
+  const setTrackerData = useCallback((data: any[]) => {
+    setTrackerDataState(data);
+  }, []);
+
   const clearCache = useCallback(() => {
     setHackathonsState(null);
     setHackathonsFiltersState(defaultFilters);
     setDashboardDataState(null);
     setTeamsDataState(null);
+    setTrackerDataState(null);
   }, []);
 
   const value = useMemo(() => ({
@@ -80,8 +88,10 @@ export const CacheProvider = ({ children }: { children: ReactNode }) => {
     setDashboardData,
     teamsData,
     setTeamsData,
+    trackerData,
+    setTrackerData,
     clearCache,
-  }), [hackathons, hackathonsFilters, dashboardData, teamsData, setHackathons, setHackathonsFilters, setDashboardData, setTeamsData, clearCache]);
+  }), [hackathons, hackathonsFilters, dashboardData, teamsData, trackerData, setHackathons, setHackathonsFilters, setDashboardData, setTeamsData, setTrackerData, clearCache]);
 
   return (
     <CacheContext.Provider value={value}>
