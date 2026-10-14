@@ -468,7 +468,7 @@ export async function forgotPasswordService(email: string) {
     fullName: user.fullName || 'there',
     resetLink,
   }).catch((err: any) => {
-    console.error(`[Email] Failed to dispatch password reset email to ${normalizedEmail}:`, err.message);
+    console.error('[Email] Failed to dispatch password reset email to %s: %s', normalizedEmail, err.message);
   });
 
   return {
