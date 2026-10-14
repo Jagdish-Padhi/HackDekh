@@ -1,4 +1,4 @@
-import { useEffect, useState, useMemo, useCallback } from "react";
+import { useEffect, useState, useMemo, useCallback, useRef } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import {
   Calendar,
@@ -12,11 +12,10 @@ import {
   Flag,
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
-import { useAuth, useToast } from "../context";
+import { useAuth, useToast, useCache } from "../context";
 import { usePageChrome } from "../context/pageChrome";
 import { teamApi } from "../services";
 import type { Team, TeamHackathon } from "../types";
-import LoadingProgress from "../components/LoadingProgress";
 
 export const isRegistrationStage = (name: string): boolean => {
   return /register|registration|apply|application|prep|regn/i.test(name);
@@ -38,8 +37,9 @@ export default function TrackerPage() {
   const navigate = useNavigate();
   const { setPageActions } = usePageChrome();
 
-  const [participations, setParticipations] = useState<(TeamHackathon & { teamInfo: Team })[]>([]);
-  const [loading, setLoading] = useState(true);
+  const { trackerData, setTrackerData } = useCache();
+  const [participations, setParticipations] = useState<(TeamHackathon & { teamInfo: Team })[]>(trackerData || []);
+  const [loading, setLoading] = useState(!trackerData);
   const [activeSubTab, setActiveSubTab] = useState<"tracking" | "active" | "finished">("tracking");
 
   // Untrack Modal State
@@ -50,23 +50,35 @@ export default function TrackerPage() {
   // Status Change State
   const [updatingStatusId, setUpdatingStatusId] = useState<string | null>(null);
 
+  const isMountedRef = useRef(true);
+
+  useEffect(() => {
+    isMountedRef.current = true;
+    return () => {
+      isMountedRef.current = false;
+    };
+  }, []);
+
   // Load all tracking data from all teams in parallel
   const loadTrackerData = useCallback(async (isSilent = false) => {
     if (!isSilent) setLoading(true);
     try {
       const userTeams = await teamApi.getUserTeams();
+      const teams = Array.isArray(userTeams) ? userTeams : [];
 
       const allParts: (TeamHackathon & { teamInfo: Team })[] = [];
       await Promise.all(
-        userTeams.map(async (team) => {
+        teams.map(async (team) => {
           try {
             const ths = await teamApi.getTeamHackathons(team._id);
-            ths.forEach((th) => {
-              allParts.push({
-                ...th,
-                teamInfo: team,
+            if (Array.isArray(ths)) {
+              ths.forEach((th) => {
+                allParts.push({
+                  ...th,
+                  teamInfo: team,
+                });
               });
-            });
+            }
           } catch (err) {
             console.error(`Failed to load hackathons for team ${team._id}`, err);
           }
@@ -75,21 +87,26 @@ export default function TrackerPage() {
 
       // Sort by creation date descending
       allParts.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+      
+      if (!isMountedRef.current) return;
       setParticipations(allParts);
+      setTrackerData(allParts);
     } catch (error) {
       console.error("Failed to load universal tracker data", error);
-      showToast("Failed to load tracker data.", "error");
+      // Enterprise pattern: silent background resilience without abrupt error toasts
     } finally {
-      setLoading(false);
+      if (isMountedRef.current) {
+        setLoading(false);
+      }
     }
-  }, [showToast]);
+  }, [setTrackerData]);
 
   useEffect(() => {
     if (!isAuthenticated) {
       navigate("/login?returnTo=/tracker");
       return;
     }
-    loadTrackerData();
+    loadTrackerData(!!trackerData);
   }, [isAuthenticated, navigate, loadTrackerData]);
 
   // Filtered participations based on active tab
@@ -110,7 +127,7 @@ export default function TrackerPage() {
     const finishedCount = participations.filter((p) => ["won", "finalist", "eliminated"].includes(p.status)).length;
 
     return (
-      <div className="flex items-center gap-0.5 bg-zinc-100 dark:bg-zinc-800/60 p-0.5 rounded-xl border border-zinc-200/60 dark:border-zinc-700/60 shrink-0">
+      <div className="flex items-center gap-0.5 bg-zinc-100 dark:bg-zinc-800/60 p-0.5 rounded-lg border border-zinc-200/60 dark:border-zinc-700/60 shrink-0">
         {[
           { id: "tracking", label: `In Queue (${trackingCount})` },
           { id: "active", label: `Registered (${activeCount})` },
@@ -177,16 +194,8 @@ export default function TrackerPage() {
 
   return (
     <div className="w-full max-w-7xl mx-auto space-y-6 px-4 py-6 md:px-6 relative">
-      {loading && (
-        <div className="absolute inset-0 z-20 flex justify-center items-center bg-zinc-950/5 dark:bg-black/10 backdrop-blur-[2.5px] p-4 rounded-3xl min-h-[400px]">
-          <div className="w-full max-w-sm shrink-0">
-            <LoadingProgress simulate={true} label="Loading Trackers" description="Loading your universal trackers across all active workspaces..." />
-          </div>
-        </div>
-      )}
-
       {loading ? (
-        <div className="space-y-6 opacity-40 select-none pointer-events-none">
+        <div className="space-y-6 select-none pointer-events-none animate-pulse">
 
           {/* Filters Skeleton */}
           <div className="flex flex-wrap items-center gap-3">
@@ -198,9 +207,9 @@ export default function TrackerPage() {
             {Array.from({ length: 4 }).map((_, index) => (
               <div
                 key={index}
-                className="h-28 rounded-2xl border border-zinc-200 bg-white p-4 dark:border-zinc-800 dark:bg-zinc-900/60"
+                className="h-28 rounded-xl border border-zinc-200 bg-white p-4 dark:border-zinc-800 dark:bg-zinc-900/60"
               >
-                <div className="h-full w-full rounded-xl bg-[linear-gradient(110deg,rgba(228,228,231,0.6),rgba(250,250,250,0.95),rgba(228,228,231,0.6))] bg-size-[200%_100%] animate-[shimmer_1.3s_linear_infinite] dark:bg-[linear-gradient(110deg,rgba(39,39,42,0.9),rgba(63,63,70,0.95),rgba(39,39,42,0.9))]" />
+                <div className="h-full w-full rounded-lg bg-[linear-gradient(110deg,rgba(228,228,231,0.6),rgba(250,250,250,0.95),rgba(228,228,231,0.6))] bg-size-[200%_100%] animate-[shimmer_1.3s_linear_infinite] dark:bg-[linear-gradient(110deg,rgba(39,39,42,0.9),rgba(63,63,70,0.95),rgba(39,39,42,0.9))]" />
               </div>
             ))}
           </div>
@@ -212,7 +221,7 @@ export default function TrackerPage() {
       {/* Main List */}
       <div className="space-y-6">
         {filteredParticipations.length === 0 ? (
-          <div className="rounded-3xl border border-dashed border-zinc-300 bg-zinc-50/50 p-16 text-center dark:border-zinc-800 dark:bg-zinc-950/20 max-w-2xl mx-auto mt-6">
+          <div className="rounded-xl border border-dashed border-zinc-300 bg-zinc-50/50 p-16 text-center dark:border-zinc-800 dark:bg-zinc-950/20 max-w-2xl mx-auto mt-6">
             <Flag className="mx-auto h-12 w-12 text-zinc-400" />
             <h3 className="mt-4 text-lg font-bold text-zinc-900 dark:text-zinc-100">No tracked hackathons found</h3>
             <p className="mx-auto mt-2 max-w-sm text-xs text-zinc-600 dark:text-zinc-400 leading-normal">
@@ -220,7 +229,7 @@ export default function TrackerPage() {
             </p>
             <Link
               to="/hackathons"
-              className="mt-6 inline-flex items-center justify-center gap-2 rounded-xl bg-blue-600 px-5 py-2.5 text-xs font-bold text-white shadow-lg shadow-blue-500/10 transition hover:bg-blue-500 hover:-translate-y-0.5 cursor-pointer"
+              className="mt-6 inline-flex items-center justify-center gap-2 rounded-lg bg-blue-600 px-5 py-2.5 text-xs font-bold text-white shadow-lg shadow-blue-500/10 transition hover:bg-blue-500 hover:-translate-y-0.5 cursor-pointer"
             >
               Browse Hackathons to Track
             </Link>
@@ -235,7 +244,7 @@ export default function TrackerPage() {
               return (
                 <div
                   key={part._id}
-                  className="group rounded-2xl border border-zinc-200 bg-white p-5 text-left transition-all duration-300 hover:border-zinc-300 hover:shadow-md dark:border-zinc-800 dark:bg-zinc-900/40 flex flex-col lg:flex-row gap-6 relative"
+                  className="group rounded-xl border border-zinc-200 bg-white p-5 text-left transition-all duration-300 hover:border-zinc-300 hover:shadow-md dark:border-zinc-800 dark:bg-zinc-900/40 flex flex-col lg:flex-row gap-6 relative"
                 >
                   {/* Floating Team Badge */}
                   <div className="absolute top-4 right-4 z-20">
@@ -251,7 +260,7 @@ export default function TrackerPage() {
                   <div className="w-full lg:w-72 shrink-0 flex flex-col gap-4">
                     <div className="flex items-start gap-4">
                       {/* Cover Image */}
-                      <div className="h-16 w-16 shrink-0 overflow-hidden rounded-xl border border-zinc-200 bg-zinc-100 dark:border-zinc-800 dark:bg-zinc-900">
+                      <div className="h-16 w-16 shrink-0 overflow-hidden rounded-lg border border-zinc-200 bg-zinc-100 dark:border-zinc-800 dark:bg-zinc-900">
                         <img
                           src={part.hackathon.coverImage || "/BrandImages/HackDekh.png"}
                           alt={part.hackathon.title}
@@ -329,7 +338,7 @@ export default function TrackerPage() {
                   <div className="flex-1 min-w-0 flex flex-col gap-4 overflow-visible w-full justify-center">
                     {/* Registration Tracker Block */}
                     {isTracking && (
-                      <div className="w-full rounded-xl border p-3 flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs backdrop-blur-sm transition-all duration-350 border-amber-500/15 bg-amber-500/5 dark:bg-amber-500/3 text-amber-800 dark:text-amber-300 shadow-xs">
+                      <div className="w-full rounded-lg border p-3 flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs backdrop-blur-sm transition-all duration-350 border-amber-500/15 bg-amber-500/5 dark:bg-amber-500/3 text-amber-800 dark:text-amber-300 shadow-xs">
                         <div className="flex items-center gap-2.5 min-w-0">
                           <div className="h-7 w-7 rounded-lg flex items-center justify-center shrink-0 shadow-xs bg-gradient-to-tr from-amber-500 to-orange-500 text-white">
                             <AlertTriangle className="h-4 w-4" />
@@ -381,7 +390,7 @@ export default function TrackerPage() {
                     {/* Stages Timeline */}
                     <div className={`pt-1 pb-4 overflow-visible transition-all duration-300 ${isTracking ? "opacity-40 select-none" : ""}`}>
                       {competitiveStages.length === 0 ? (
-                        <div className="flex items-start gap-3 rounded-xl border border-zinc-200/60 dark:border-zinc-800/40 bg-zinc-50/40 dark:bg-zinc-900/5 px-4 py-3 text-zinc-500 dark:text-zinc-400 text-xs text-left max-w-md shadow-xs">
+                        <div className="flex items-start gap-3 rounded-lg border border-zinc-200/60 dark:border-zinc-800/40 bg-zinc-50/40 dark:bg-zinc-900/5 px-4 py-3 text-zinc-500 dark:text-zinc-400 text-xs text-left max-w-md shadow-xs">
                           <Info className="h-4 w-4 text-zinc-400 dark:text-zinc-500 shrink-0 mt-0.5" />
                           <p className="leading-relaxed">
                             No competitive stages defined yet. Go to the{" "}
@@ -493,7 +502,7 @@ export default function TrackerPage() {
               exit={{ y: 20, scale: 0.96, opacity: 0 }}
               transition={{ duration: 0.2, ease: "easeOut" }}
               onClick={(e) => e.stopPropagation()}
-              className="w-full max-w-sm rounded-[2.25rem] border border-zinc-200 bg-white p-6 shadow-2xl dark:border-zinc-800 dark:bg-zinc-950 text-center"
+              className="w-full max-w-sm rounded-xl border border-zinc-200 bg-white p-6 shadow-2xl dark:border-zinc-800 dark:bg-zinc-950 text-center"
             >
               <div className="mx-auto h-12 w-12 rounded-full bg-rose-500/10 flex items-center justify-center text-rose-600 dark:text-rose-455 mb-4 shrink-0">
                 <AlertTriangle className="h-6 w-6" />
