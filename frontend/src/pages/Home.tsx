@@ -65,14 +65,14 @@ const HomePage = () => {
                         <div className="mt-10 lg:mt-11 flex flex-col sm:flex-row items-center gap-4 w-full sm:w-auto">
                             <Link
                                 to="/hackathons"
-                                className="btn-brand-primary w-full sm:w-auto rounded-xl px-7 py-3.5 text-base gap-2"
+                                className="btn-brand-primary w-full sm:w-auto rounded-lg px-7 py-3.5 text-base gap-2"
                             >
                                 <span>Explore Hackathons</span>
                                 <ArrowRight className="h-4 w-4" />
                             </Link>
                             <Link
                                 to="/signup?returnTo=/teams"
-                                className="btn-brand-secondary w-full sm:w-auto rounded-xl px-7 py-3.5 text-base gap-2"
+                                className="btn-brand-secondary w-full sm:w-auto rounded-lg px-7 py-3.5 text-base gap-2"
                             >
                                 Create Your Team
                             </Link>
@@ -111,8 +111,8 @@ const HomePage = () => {
 
                 <div className="grid gap-6 sm:grid-cols-3 text-left">
                     {/* Highlight 1 */}
-                    <div className="group premium-border-card relative overflow-hidden rounded-2xl border border-zinc-200/90 bg-white/70 p-7 backdrop-blur-md transition-all duration-200 hover:-translate-y-1 hover:border-zinc-300 dark:border-zinc-800/90 dark:bg-zinc-900/70 dark:hover:border-zinc-700">
-                        <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-blue-500/10 text-blue-600 dark:text-blue-400">
+                    <div className="group premium-border-card relative overflow-hidden rounded-xl border border-zinc-200/90 bg-white/70 p-7 backdrop-blur-md transition-all duration-200 hover:-translate-y-1 hover:border-zinc-300 dark:border-zinc-800/90 dark:bg-zinc-900/70 dark:hover:border-zinc-700">
+                        <div className="flex h-11 w-11 items-center justify-center rounded-lg bg-blue-500/10 text-blue-600 dark:text-blue-400">
                             <Users className="h-5 w-5" />
                         </div>
                         <h3 className="mt-5 text-lg font-bold text-zinc-900 dark:text-zinc-100 tracking-tight">
@@ -124,8 +124,8 @@ const HomePage = () => {
                     </div>
 
                     {/* Highlight 2 */}
-                    <div className="group premium-border-card relative overflow-hidden rounded-2xl border border-zinc-200/90 bg-white/70 p-7 backdrop-blur-md transition-all duration-200 hover:-translate-y-1 hover:border-zinc-300 dark:border-zinc-800/90 dark:bg-zinc-900/70 dark:hover:border-zinc-700">
-                        <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-blue-500/10 text-blue-600 dark:text-blue-400">
+                    <div className="group premium-border-card relative overflow-hidden rounded-xl border border-zinc-200/90 bg-white/70 p-7 backdrop-blur-md transition-all duration-200 hover:-translate-y-1 hover:border-zinc-300 dark:border-zinc-800/90 dark:bg-zinc-900/70 dark:hover:border-zinc-700">
+                        <div className="flex h-11 w-11 items-center justify-center rounded-lg bg-blue-500/10 text-blue-600 dark:text-blue-400">
                             <Calendar className="h-5 w-5" />
                         </div>
                         <h3 className="mt-5 text-lg font-bold text-zinc-900 dark:text-zinc-100 tracking-tight">
@@ -137,8 +137,8 @@ const HomePage = () => {
                     </div>
 
                     {/* Highlight 3 */}
-                    <div className="group premium-border-card relative overflow-hidden rounded-2xl border border-zinc-200/90 bg-white/70 p-7 backdrop-blur-md transition-all duration-200 hover:-translate-y-1 hover:border-zinc-300 dark:border-zinc-800/90 dark:bg-zinc-900/70 dark:hover:border-zinc-700">
-                        <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-blue-500/10 text-blue-600 dark:text-blue-400">
+                    <div className="group premium-border-card relative overflow-hidden rounded-xl border border-zinc-200/90 bg-white/70 p-7 backdrop-blur-md transition-all duration-200 hover:-translate-y-1 hover:border-zinc-300 dark:border-zinc-800/90 dark:bg-zinc-900/70 dark:hover:border-zinc-700">
+                        <div className="flex h-11 w-11 items-center justify-center rounded-lg bg-blue-500/10 text-blue-600 dark:text-blue-400">
                             <ShieldCheck className="h-5 w-5" />
                         </div>
                         <h3 className="mt-5 text-lg font-bold text-zinc-900 dark:text-zinc-100 tracking-tight">
@@ -212,7 +212,7 @@ const HomePage = () => {
                 style={{ willChange: "transform, opacity" }}
                 className="w-full"
             >
-                <div className="group premium-border-card relative overflow-hidden rounded-2xl border border-zinc-200/90 bg-white/70 p-8 sm:p-12 text-center dark:border-zinc-800/90 dark:bg-zinc-900/70 backdrop-blur-md">
+                <div className="group premium-border-card relative overflow-hidden rounded-xl border border-zinc-200/90 bg-white/70 p-8 sm:p-12 text-center dark:border-zinc-800/90 dark:bg-zinc-900/70 backdrop-blur-md">
                     <div className="mx-auto max-w-2xl space-y-4">
                         <h2 className="text-3xl font-extrabold tracking-tight text-zinc-900 sm:text-4xl dark:text-zinc-50">
                             Ready to win your next hackathon?
@@ -223,14 +223,14 @@ const HomePage = () => {
                         <div className="pt-4 flex flex-col sm:flex-row items-center justify-center gap-4">
                             <Link
                                 to="/signup"
-                                className="btn-brand-primary w-full sm:w-auto rounded-xl px-7 py-3.5 text-base gap-2"
+                                className="btn-brand-primary w-full sm:w-auto rounded-lg px-7 py-3.5 text-base gap-2"
                             >
                                 <span>Get Started Free</span>
                                 <ArrowRight className="h-4 w-4" />
                             </Link>
                             <Link
                                 to="/hackathons"
-                                className="btn-brand-secondary w-full sm:w-auto rounded-xl px-7 py-3.5 text-base"
+                                className="btn-brand-secondary w-full sm:w-auto rounded-lg px-7 py-3.5 text-base"
                             >
                                 Browse Hackathons
                             </Link>

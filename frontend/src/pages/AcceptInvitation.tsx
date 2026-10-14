@@ -122,7 +122,7 @@ const AcceptInvitationPage = () => {
     <section className="relative flex min-h-[76vh] items-center justify-center overflow-hidden px-4 py-8">
       <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_20%_20%,rgba(59,130,246,0.18),transparent_45%),radial-gradient(circle_at_80%_10%,rgba(16,185,129,0.14),transparent_35%),radial-gradient(circle_at_50%_90%,rgba(234,88,12,0.12),transparent_40%)]" />
 
-      <div className="relative w-full max-w-lg rounded-3xl border border-zinc-200/90 bg-white/95 p-8 shadow-xl backdrop-blur-sm dark:border-zinc-800 dark:bg-zinc-900/90">
+      <div className="relative w-full max-w-lg rounded-xl border border-zinc-200/90 bg-white/95 p-8 shadow-xl backdrop-blur-sm dark:border-zinc-800 dark:bg-zinc-900/90">
         {showBusyState ? (
           <div className="flex flex-col items-center justify-center space-y-3 text-center">
             <div className="flex items-center justify-center overflow-visible py-1">
@@ -134,7 +134,7 @@ const AcceptInvitationPage = () => {
           </div>
         ) : error ? (
           <div className="space-y-4">
-            <div className="rounded-2xl border border-red-400/30 bg-red-500/10 px-4 py-3 text-sm text-red-700 dark:border-red-400/30 dark:bg-red-500/10 dark:text-red-300">
+            <div className="rounded-lg border border-red-400/30 bg-red-500/10 px-4 py-3 text-sm text-red-700 dark:border-red-400/30 dark:bg-red-500/10 dark:text-red-300">
               <p className="font-medium">Invitation Error</p>
               <p className="mt-1">{error}</p>
             </div>
@@ -193,14 +193,14 @@ const AcceptInvitationPage = () => {
               <p className="mt-2 text-sm text-zinc-600 dark:text-zinc-400">This invitation is no longer pending.</p>
             </div>
 
-            <div className="space-y-4 rounded-2xl border border-zinc-200/90 bg-zinc-50 p-5 dark:border-zinc-800 dark:bg-zinc-900/50">
+            <div className="space-y-4 rounded-lg border border-zinc-200/90 bg-zinc-50 p-5 dark:border-zinc-800 dark:bg-zinc-900/50">
               <div>
                 <p className="text-xs uppercase tracking-wide text-zinc-500 dark:text-zinc-400">Team</p>
                 <p className="mt-1 text-lg font-semibold text-zinc-900 dark:text-zinc-100">{preview.team.name}</p>
               </div>
 
               <div className="grid gap-3 sm:grid-cols-2">
-                <div className="rounded-xl border border-zinc-200 bg-white p-3 dark:border-zinc-700 dark:bg-zinc-900">
+                <div className="rounded-md border border-zinc-200 bg-white p-3 dark:border-zinc-700 dark:bg-zinc-900">
                   <p className="text-xs text-zinc-500 dark:text-zinc-400">Owner</p>
                   <div className="mt-2 flex items-center gap-2">
                     <ShieldCheck className="h-4 w-4 text-blue-600 dark:text-blue-400" />
@@ -210,7 +210,7 @@ const AcceptInvitationPage = () => {
                   </div>
                 </div>
 
-                <div className="rounded-xl border border-zinc-200 bg-white p-3 dark:border-zinc-700 dark:bg-zinc-900">
+                <div className="rounded-md border border-zinc-200 bg-white p-3 dark:border-zinc-700 dark:bg-zinc-900">
                   <p className="text-xs text-zinc-500 dark:text-zinc-400">Current Members</p>
                   <div className="mt-2 flex items-center gap-2">
                     <Users className="h-4 w-4 text-emerald-600 dark:text-emerald-400" />
@@ -219,7 +219,7 @@ const AcceptInvitationPage = () => {
                 </div>
               </div>
 
-              <div className="rounded-xl border border-amber-200 bg-amber-50 p-3 dark:border-amber-900/40 dark:bg-amber-900/20">
+              <div className="rounded-md border border-amber-200 bg-amber-50 p-3 dark:border-amber-900/40 dark:bg-amber-900/20">
                 <div className="flex items-center gap-2">
                   <Clock3 className="h-4 w-4 text-amber-700 dark:text-amber-300" />
                   <p className="text-xs font-medium text-amber-800 dark:text-amber-200">Expires on {formatExpiry(preview.expiresAt)}</p>

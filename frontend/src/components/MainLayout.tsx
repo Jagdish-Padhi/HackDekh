@@ -77,13 +77,13 @@ const Shell = ({ children }: MainLayoutProps) => {
                 <div className="flex items-center gap-3">
                     <Link
                         to="/login"
-                        className="btn-brand-secondary rounded-xl px-4 py-2 text-sm"
+                        className="btn-brand-secondary rounded-lg px-4 py-2 text-sm"
                     >
                         Login
                     </Link>
                     <Link
                         to="/signup"
-                        className="btn-brand-primary rounded-xl px-4 py-2 text-sm"
+                        className="btn-brand-primary rounded-lg px-4 py-2 text-sm"
                     >
                         Sign Up
                     </Link>

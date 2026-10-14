@@ -104,7 +104,7 @@ export default function ProductStoryAnimation() {
           transformStyle: "preserve-3d",
           willChange: "transform",
         }}
-        className="relative overflow-hidden rounded-2xl border border-zinc-200/90 bg-white
+        className="relative overflow-hidden rounded-xl border border-zinc-200/90 bg-white
           shadow-[0_16px_40px_-8px_rgba(0,0,0,0.12)]
           dark:border-zinc-800/90 dark:bg-zinc-950
           dark:shadow-[0_20px_48px_-8px_rgba(0,0,0,0.65)]"

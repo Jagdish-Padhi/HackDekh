@@ -218,18 +218,18 @@ const HackathonCard = ({ hackathon, displayIndex, extraActions = [], trackingSta
     return (
         <div
             ref={cardRef}
-            className={`group premium-border-card relative flex h-full flex-col overflow-hidden rounded-2xl border border-zinc-200/80 bg-white p-4 shadow-sm transition-all duration-500 ease-out hover:-translate-y-1 hover:border-zinc-300 hover:shadow-lg dark:border-zinc-800 dark:bg-zinc-900 dark:shadow-md dark:hover:border-zinc-700 dark:hover:shadow-lg ${isExpired ? "expired opacity-80" : ""} ${isVisible ? "translate-x-0 translate-y-0 opacity-100" : "-translate-x-3 translate-y-2 opacity-0"}`}
+            className={`group premium-border-card relative flex h-full flex-col overflow-hidden rounded-lg border border-zinc-200/80 bg-white p-4 shadow-sm transition-all duration-500 ease-out hover:-translate-y-1 hover:border-zinc-300 hover:shadow-lg dark:border-zinc-800 dark:bg-zinc-900 dark:shadow-md dark:hover:border-zinc-700 dark:hover:shadow-lg ${isExpired ? "expired opacity-80" : ""} ${isVisible ? "translate-x-0 translate-y-0 opacity-100" : "-translate-x-3 translate-y-2 opacity-0"}`}
             style={{ transitionDelay: isVisible ? `${revealDelay}ms` : "0ms" }}
         >
             {isExpired && (
                 <div className="absolute inset-0 pointer-events-none z-30 flex items-center justify-center overflow-hidden">
-                    <div className="border-[4px] border-double border-rose-500/40 dark:border-rose-450 rounded-2xl px-5 py-2 rotate-[-12deg] bg-white/95 dark:bg-zinc-950/95 shadow-[0_8px_30px_rgba(239,68,68,0.15)] select-none">
+                    <div className="border-[4px] border-double border-rose-500/40 dark:border-rose-450 rounded-lg px-5 py-2 rotate-[-12deg] bg-white/95 dark:bg-zinc-950/95 shadow-[0_8px_30px_rgba(239,68,68,0.15)] select-none">
                         <span className="block text-[8px] font-black uppercase tracking-[0.2em] text-rose-500/85 dark:text-rose-400/85 text-center leading-none">REGISTRATION</span>
                         <span className="block text-2xl font-black tracking-[0.15em] text-rose-600 dark:text-rose-500 text-center leading-none mt-1">EXPIRED</span>
                     </div>
                 </div>
             )}
-            <div className="relative mb-3.5 block h-28 w-full overflow-hidden rounded-xl border border-zinc-200 bg-zinc-100 dark:border-zinc-800 dark:bg-zinc-900/60">
+            <div className="relative mb-3.5 block h-28 w-full overflow-hidden rounded-lg border border-zinc-200 bg-zinc-100 dark:border-zinc-800 dark:bg-zinc-900/60">
                 {/* Floating Tags Overlay */}
                 <div className="absolute left-2.5 top-2.5 z-10 flex flex-wrap gap-1.5">
                     {isRegistered && (

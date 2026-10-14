@@ -109,7 +109,7 @@ export default function VerifyEmailPage() {
       </div> */}
 
       {/* Verification Card */}
-      <div className="relative w-full max-w-md rounded-3xl overflow-hidden shadow-2xl border border-zinc-200/80 dark:border-zinc-800 bg-white/80 dark:bg-zinc-900/80 backdrop-blur-xl p-8 sm:p-10 z-10 text-center">
+      <div className="relative w-full max-w-md rounded-xl overflow-hidden shadow-2xl border border-zinc-200/80 dark:border-zinc-800 bg-white/80 dark:bg-zinc-900/80 backdrop-blur-xl p-8 sm:p-10 z-10 text-center">
         
         {/* Brand Logo Header */}
         <div className="flex items-center justify-center gap-3 mb-6">
@@ -123,7 +123,7 @@ export default function VerifyEmailPage() {
         {/* Verifying State */}
         {status === 'verifying' && (
           <div className="py-4">
-            <div className="w-16 h-16 bg-blue-500/10 border border-blue-500/20 rounded-2xl flex items-center justify-center mx-auto mb-4 text-blue-600 dark:text-blue-400">
+            <div className="w-16 h-16 bg-blue-500/10 border border-blue-500/20 rounded-xl flex items-center justify-center mx-auto mb-4 text-blue-600 dark:text-blue-400">
               <RefreshCw className="w-8 h-8 animate-spin" />
             </div>
             <h2 className="text-xl font-bold text-zinc-900 dark:text-white mb-2">
@@ -138,7 +138,7 @@ export default function VerifyEmailPage() {
         {/* Success State */}
         {status === 'success' && (
           <div className="py-2">
-            <div className="w-16 h-16 bg-emerald-500/10 border border-emerald-500/20 rounded-2xl flex items-center justify-center mx-auto mb-4 text-emerald-600 dark:text-emerald-400">
+            <div className="w-16 h-16 bg-emerald-500/10 border border-emerald-500/20 rounded-xl flex items-center justify-center mx-auto mb-4 text-emerald-600 dark:text-emerald-400">
               <CheckCircle2 className="w-9 h-9" />
             </div>
             <h2 className="text-2xl font-black tracking-tight text-zinc-900 dark:text-white mb-2">
@@ -151,7 +151,7 @@ export default function VerifyEmailPage() {
             <button
               type="button"
               onClick={() => navigate('/dashboard', { replace: true })}
-              className="btn-brand-primary rounded-xl w-full py-3 text-sm gap-2"
+              className="btn-brand-primary rounded-lg w-full py-3 text-sm gap-2"
             >
               <span>Go to Dashboard ({countdown}s)</span>
               <ArrowRight className="w-4 h-4 animate-pulse" />
@@ -162,14 +162,14 @@ export default function VerifyEmailPage() {
         {/* Error State */}
         {status === 'error' && (
           <div className="py-2">
-            <div className="w-16 h-16 bg-rose-500/10 border border-rose-500/20 rounded-2xl flex items-center justify-center mx-auto mb-4 text-rose-600 dark:text-rose-400">
+            <div className="w-16 h-16 bg-rose-500/10 border border-rose-500/20 rounded-xl flex items-center justify-center mx-auto mb-4 text-rose-600 dark:text-rose-400">
               <XCircle className="w-9 h-9" />
             </div>
             <h2 className="text-xl font-bold text-zinc-900 dark:text-white mb-2">
               Verification Failed
             </h2>
             
-            <div className="p-3 mb-6 rounded-xl bg-rose-50 dark:bg-rose-950/40 border border-rose-200 dark:border-rose-900/50 text-rose-700 dark:text-rose-300 text-xs">
+            <div className="p-3 mb-6 rounded-lg bg-rose-50 dark:bg-rose-950/40 border border-rose-200 dark:border-rose-900/50 text-rose-700 dark:text-rose-300 text-xs">
               {message}
             </div>
 
@@ -177,7 +177,7 @@ export default function VerifyEmailPage() {
               <button
                 type="button"
                 onClick={() => setStatus('resend')}
-                className="btn-brand-primary rounded-xl w-full py-2.5 px-4 text-sm font-semibold"
+                className="btn-brand-primary rounded-lg w-full py-2.5 px-4 text-sm font-semibold"
               >
                 Request a New Link
               </button>
@@ -195,7 +195,7 @@ export default function VerifyEmailPage() {
         {/* Resend Form State */}
         {status === 'resend' && (
           <div className="py-2">
-            <div className="w-16 h-16 bg-blue-500/10 border border-blue-500/20 rounded-2xl flex items-center justify-center mx-auto mb-4 text-blue-600 dark:text-blue-400">
+            <div className="w-16 h-16 bg-blue-500/10 border border-blue-500/20 rounded-xl flex items-center justify-center mx-auto mb-4 text-blue-600 dark:text-blue-400">
               <Mail className="w-8 h-8" />
             </div>
             <h2 className="text-xl font-bold text-zinc-900 dark:text-white mb-1">
@@ -206,13 +206,13 @@ export default function VerifyEmailPage() {
             </p>
 
             {resendSuccess && (
-              <div className="p-3 mb-4 rounded-xl bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200 dark:border-emerald-800/50 text-emerald-700 dark:text-emerald-300 text-xs">
+              <div className="p-3 mb-4 rounded-lg bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200 dark:border-emerald-800/50 text-emerald-700 dark:text-emerald-300 text-xs">
                 {resendSuccess}
               </div>
             )}
 
             {message && (
-              <div className="p-3 mb-4 rounded-xl bg-rose-50 dark:bg-rose-950/40 border border-rose-200 dark:border-rose-800/50 text-rose-700 dark:text-rose-300 text-xs">
+              <div className="p-3 mb-4 rounded-lg bg-rose-50 dark:bg-rose-950/40 border border-rose-200 dark:border-rose-800/50 text-rose-700 dark:text-rose-300 text-xs">
                 {message}
               </div>
             )}
@@ -224,13 +224,13 @@ export default function VerifyEmailPage() {
                 onChange={(e) => setResendEmail(e.target.value)}
                 placeholder="you@domain.com"
                 required
-                className="w-full rounded-xl border border-zinc-200 bg-zinc-50/50 px-3.5 py-2.5 text-sm text-zinc-900 placeholder:text-zinc-400 focus:border-blue-500 focus:bg-white focus:outline-none focus:ring-4 focus:ring-blue-500/10 dark:border-zinc-800 dark:bg-zinc-950 dark:text-zinc-100 dark:placeholder:text-zinc-500 dark:focus:border-blue-500 dark:focus:bg-zinc-900 dark:focus:ring-blue-500/20 transition"
+                className="w-full rounded-lg border border-zinc-200 bg-zinc-50/50 px-3.5 py-2.5 text-sm text-zinc-900 placeholder:text-zinc-400 focus:border-blue-500 focus:bg-white focus:outline-none focus:ring-4 focus:ring-blue-500/10 dark:border-zinc-800 dark:bg-zinc-950 dark:text-zinc-100 dark:placeholder:text-zinc-500 dark:focus:border-blue-500 dark:focus:bg-zinc-900 dark:focus:ring-blue-500/20 transition"
               />
 
               <button
                 type="submit"
                 disabled={resending}
-                className="btn-brand-primary rounded-xl w-full py-2.5 px-4 text-sm font-semibold"
+                className="btn-brand-primary rounded-lg w-full py-2.5 px-4 text-sm font-semibold"
               >
                 {resending ? (
                   <>

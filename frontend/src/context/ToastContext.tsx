@@ -86,7 +86,7 @@ const ToastBanner: React.FC<{ toast: Toast; onClose: () => void }> = ({ toast, o
       animate={{ x: 0, opacity: 1, scale: 1 }}
       exit={{ x: 300, opacity: 0, scale: 0.95 }}
       transition={{ type: 'spring', damping: 25, stiffness: 220 }}
-      className="pointer-events-auto w-full bg-white/95 dark:bg-zinc-950/95 backdrop-blur-md border border-zinc-200 dark:border-zinc-800/80 shadow-lg rounded-xl overflow-hidden relative flex flex-col"
+      className="pointer-events-auto w-full bg-white/95 dark:bg-zinc-950/95 backdrop-blur-md border border-zinc-200 dark:border-zinc-800/80 shadow-lg rounded-lg overflow-hidden relative flex flex-col"
     >
       <div className="p-4 flex items-start gap-3">
         {/* Status Icon */}
