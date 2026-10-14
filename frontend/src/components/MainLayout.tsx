@@ -47,7 +47,7 @@ const Shell = ({ children }: MainLayoutProps) => {
         window.scrollTo({ top: 0, behavior: 'smooth' })
     }
 
-    const isAuthPage = location.pathname === '/login' || location.pathname === '/signup' || location.pathname === '/verify-email';
+    const isAuthPage = location.pathname === '/login' || location.pathname === '/signup' || location.pathname === '/verify-email' || location.pathname === '/reset-password';
 
     if (isAuthPage) {
         return (

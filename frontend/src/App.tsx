@@ -9,6 +9,7 @@ import { AuthProvider, CacheProvider, ToastProvider } from './context';
 const HackathonsPage = lazy(() => import('./pages/Hackathons'));
 const LoginPage = lazy(() => import('./pages/Login'));
 const VerificationPage = lazy(() => import('./pages/VerifyEmail'));
+const ResetPasswordPage = lazy(() => import('./pages/ResetPassword'));
 const TeamsPage = lazy(() => import('./pages/Teams'));
 const AcceptInvitationPage = lazy(() => import('./pages/AcceptInvitation'));
 const DashboardPage = lazy(() => import('./pages/Dashboard'));
@@ -32,6 +33,7 @@ function AppContent() {
             <Route path="/login" element={<LoginPage />} />
             <Route path="/signup" element={<LoginPage />} />
             <Route path="/verify-email" element={<VerificationPage />} />
+            <Route path="/reset-password" element={<ResetPasswordPage />} />
             <Route path="/hackathons" element={<HackathonsPage />} />
             <Route path="/accept-invitation" element={<AcceptInvitationPage />} />
             <Route path="/auth/github/callback" element={<GithubCallbackPage />} />
