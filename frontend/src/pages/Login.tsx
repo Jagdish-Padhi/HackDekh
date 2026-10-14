@@ -1,4 +1,4 @@
-﻿import { useEffect, useMemo, useState, useRef } from 'react';
+import { useEffect, useMemo, useState, useRef } from 'react';
 import { Link, useNavigate, useSearchParams, useLocation } from 'react-router-dom';
 import { ArrowLeft, Eye, EyeOff, Github, ExternalLink, RefreshCw, X, Loader2, Mail } from 'lucide-react';
 import { signInWithGooglePopup } from '../config/firebase';
