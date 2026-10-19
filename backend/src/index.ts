@@ -1,8 +1,6 @@
 import "dotenv/config";
-import connectDB from "./db/connection.ts";
-import {connectRedis} from "./cache/redis.ts";
+import { connectDB, connectRedis, isEmailDeliveryConfigured } from "./infrastructure/index.ts";
 import { app } from "./app.ts";
-import { isEmailDeliveryConfigured } from "./utils/email.ts";
 
 const logEmailDeliveryStatus = () => {
   const configured = isEmailDeliveryConfigured();
@@ -14,26 +12,23 @@ const logEmailDeliveryStatus = () => {
   }
 };
 
-// Start the Express server listening immediately to avoid cold start port binding timeout issues
 const serverPort = process.env.PORT || 8000;
 app.listen(serverPort, () => {
   console.log(`Server is running at PORT: ${serverPort}`);
 });
 
-// Caching service connection
 connectRedis()
-.then(() => {
-  console.log("[Startup] Redis connected successfully!")
-})
-.catch((err) => {
-  console.error("[Startup] Redis connection failed:", err.message);
-})
+  .then(() => {
+    console.log("[Startup] Redis connected successfully!");
+  })
+  .catch((err: any) => {
+    console.error("[Startup] Redis connection failed:", err.message);
+  });
 
-// Initialize database connection asynchronously in the background
 connectDB()
   .then(() => {
     logEmailDeliveryStatus();
   })
-  .catch((err) => {
+  .catch((err: any) => {
     console.error("[Startup] Background DB connection failed:", err.message);
   });
