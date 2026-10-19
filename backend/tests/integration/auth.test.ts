@@ -2,8 +2,7 @@ import { describe, it, expect, beforeEach } from 'vitest';
 import request from 'supertest';
 import { createHash } from 'crypto';
 import { app } from '../../src/app.ts';
-import User from '../../src/models/user.model.ts';
-import PendingUser from '../../src/models/pendingUser.model.ts';
+import { User, PendingUser } from '../../src/modules/identity/index.ts';
 
 beforeEach(async () => {
   await User.deleteMany({});
