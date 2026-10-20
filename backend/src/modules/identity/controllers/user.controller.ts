@@ -14,7 +14,7 @@ import {
   forgotPasswordService,
   resetPasswordService,
 } from "../services/user.service.ts";
-import { getPendingReflections as fetchPendingReflections } from "../../tracking/services/stage.service.ts";
+import { stageService } from "../../tracking/index.ts";
 import jwt from "jsonwebtoken";
 
 const cookieOptions = {
@@ -172,7 +172,7 @@ export const updateAccountDetails = asyncHandler(async (req: any, res: any) => {
 
 
 export const getPendingReflections = asyncHandler(async (req: any, res: any) => {
-  const stages = await fetchPendingReflections(req.user._id);
+  const stages = await stageService.getPendingReflections(req.user._id);
   return res
     .status(200)
     .json(new ApiResponse(200, stages, "Pending reflections fetched successfully"));

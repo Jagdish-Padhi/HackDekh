@@ -1,10 +1,26 @@
 import rateLimit from 'express-rate-limit';
+import RedisStore from 'rate-limit-redis';
+import redisClient from '../../infrastructure/cache/redis.ts';
+
+// Fallback to in-memory store when Redis is not connected (e.g. in ci or unit tests)
+const createRedisStore = (prefix: string) => {
+  if (process.env.NODE_ENV === 'test' || !redisClient.isOpen) {
+    return undefined;
+  }
+
+  return new RedisStore({
+    prefix:k `ratelimit:${prefix}:`,
+    // @ts-ignore
+    sendCommand: (...args: any[]) => redisClient.sendCommand(args),
+  });
+};
 
 export const authRateLimiter = rateLimit({
   windowMs: 15 * 60 * 1000,
   max: 15,
   standardHeaders: true,
   legacyHeaders: false,
+  store: createRedisStore('auth'),
   message: {
     statusCode: 429,
     success: false,
@@ -17,6 +33,7 @@ export const searchRateLimiter = rateLimit({
   max: 30,
   standardHeaders: true,
   legacyHeaders: false,
+  store: createRedisStore('search'),
   message: {
     statusCode: 429,
     success: false,
@@ -29,6 +46,7 @@ export const emailRateLimiter = rateLimit({
   max: 3,
   standardHeaders: true,
   legacyHeaders: false,
+  store: createRedisStore('email'),
   message: {
     statusCode: 429,
     success: false,
@@ -41,6 +59,7 @@ export const passwordResetRateLimiter = rateLimit({
   max: 5,
   standardHeaders: true,
   legacyHeaders: false,
+  store: createRedisStore('pwdreset'),
   message: {
     statusCode: 429,
     success: false,
@@ -53,6 +72,7 @@ export const joinCodeRateLimiter = rateLimit({
   max: 10,
   standardHeaders: true,
   legacyHeaders: false,
+  store: createRedisStore('joincode'),
   message: {
     statusCode: 429,
     success: false,
@@ -65,6 +85,7 @@ export const scraperRateLimiter = rateLimit({
   max: 2,
   standardHeaders: true,
   legacyHeaders: false,
+  store: createRedisStore('scraper'),
   message: {
     statusCode: 429,
     success: false,
@@ -77,6 +98,7 @@ export const apiRateLimiter = rateLimit({
   max: 200,
   standardHeaders: true,
   legacyHeaders: false,
+  store: createRedisStore('api'),
   message: {
     statusCode: 429,
     success: false,

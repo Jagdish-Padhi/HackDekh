@@ -4,6 +4,7 @@ import { app } from "../../src/app.ts";
 import { Hackathon } from "../../src/modules/catalog/index.ts";
 import { User } from "../../src/modules/identity/index.ts";
 import { Team } from "../../src/modules/team/index.ts";
+import { userInfo } from "node:os";
 
 beforeEach(async () => {
   await Hackathon.deleteMany({});

@@ -1,9 +1,9 @@
-import { scrapeDevfolioData } from "../adapters/devfolio.adapter.ts";
-import { scrapeUnstopData } from "../adapters/unstop.adapter.ts";
-import { scrapeDevpostData } from "../adapters/devpost.adapter.ts";
-import { scrapeMLHData } from "../adapters/mlh.adapter.ts";
-import { scrapeHack2SkillData } from "../adapters/hack2skill.adapter.ts";
-import { invalidateHackathonCache } from "../../../infrastructure/cache/redis.ts";
+import { scrapeDevfolioData } from "../providers/devfolio.provider.ts";
+import { scrapeUnstopData } from "../providers/unstop.provider.ts";
+import { scrapeDevpostData } from "../providers/devpost.provider.ts";
+import { scrapeMLHData } from "../providers/mlh.provider.ts";
+import { scrapeHack2SkillData } from "../providers/hack2skill.provider.ts";
+import { InvalidateHackathonCache } from "../../../infrastructure/cache/redis.ts";
 
 export interface IngestionRunSummary {
   total: number;
@@ -20,7 +20,7 @@ export async function runAllScrapers(): Promise<IngestionRunSummary> {
     { name: "Unstop", run: scrapeUnstopData },
     { name: "Devpost", run: scrapeDevpostData },
     { name: "MLH", run: scrapeMLHData },
-    { name: "Hack2Skill", run: scrapeHack2SkillData },
+    { name: "Hack2skill", run: scrapeHack2skillData },
   ];
 
   const results: IngestionRunSummary["results"] = [];
@@ -34,7 +34,7 @@ export async function runAllScrapers(): Promise<IngestionRunSummary> {
       results.push({ name: scraper.name, status: "success" });
       console.log(`[CRON] ${scraper.name} scraper completed successfully.`);
     } catch (err: any) {
-      console.error(`[CRON] ${scraper.name} scraper failed:`, err?.message || err);
+      console.error('[CRON] ${scraper.name} scraper failed:', err?.message || err);
       results.push({ name: scraper.name, status: "failed", error: err?.message || String(err) });
     }
   }

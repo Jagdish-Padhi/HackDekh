@@ -1,7 +1,7 @@
 import { Types } from 'mongoose';
 import Team from '../models/team.model.ts';
 import TeamHackathon from '../models/teamHackathon.model.ts';
-import Stage from '../../tracking/models/stage.model.ts';
+import Stage from '../../tracking/index.ts';
 import Hackathon from '../../catalog/models/hackathon.model.ts';
 
 // ─── Link Team to Hackathon ────────────────────────────────────────────────

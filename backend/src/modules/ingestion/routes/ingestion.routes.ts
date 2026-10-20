@@ -1,10 +1,13 @@
 import { Router } from "express";
-import { scrapeDevfolio } from "../adapters/devfolio.adapter.ts";
-import { scrapeUnstop } from "../adapters/unstop.adapter.ts";
-import { scrapeDevpost } from "../adapters/devpost.adapter.ts";
-import { scrapeMLH } from "../adapters/mlh.adapter.ts";
-import { scrapeHack2Skill } from "../adapters/hack2skill.adapter.ts";
-import { refreshHackathons, triggerScraperCron } from "../controllers/ingestion.controller.ts";
+import {
+  scrapeDevfolio,
+  scrapeUnstop,
+  scrapeDevpost,
+  scrapeMLH,
+  scrapeHack2Skill,
+  refreshHackathons,
+  triggerScraperCron,
+} from "../controllers/ingestion.controller.ts";
 import { scraperRateLimiter } from "../../../shared/middlewares/rateLimiter.ts";
 
 const router = Router();

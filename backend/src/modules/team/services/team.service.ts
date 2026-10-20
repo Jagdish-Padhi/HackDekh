@@ -3,7 +3,7 @@ import Team from '../models/team.model.ts';
 import User from '../../identity/models/user.model.ts';
 import TeamInvitation from '../models/teamInvitation.model.ts';
 import TeamHackathon from '../models/teamHackathon.model.ts';
-import Stage from '../../tracking/models/stage.model.ts';
+import Stage from '../../tracking/index.ts';
 import crypto from 'crypto';
 import { ApiError } from '../../../shared/errors/apiError.ts';
 

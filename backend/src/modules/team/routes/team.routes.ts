@@ -29,7 +29,7 @@ import {
     deleteStage,
     addReflection,
     removeReflection,
-} from "../../tracking/controllers/stage.controller.ts";
+} from "../../tracking/index.ts";
 import { verifyJWT } from "../../identity/middlewares/auth.middleware.ts";
 import { joinCodeRateLimiter } from "../../../shared/middlewares/rateLimiter.ts";
 
