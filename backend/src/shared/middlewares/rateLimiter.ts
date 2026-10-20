@@ -1,26 +1,24 @@
-import rateLimit from 'express-rate-limit';
+import rateLimit, { Options } from 'express-rate-limit';
 import RedisStore from 'rate-limit-redis';
 import redisClient from '../../infrastructure/cache/redis.ts';
 
-// Fallback to in-memory store when Redis is not connected (e.g. in ci or unit tests)
-const createRedisStore = (prefix: string) => {
-  if (process.env.NODE_ENV === 'test' || !redisClient.isOpen) {
-    return undefined;
+const createRateLimiter = (prefix: string, opts: Partial<Options>) => {
+  const config: Partial<Options> = { ...opts };
+  if (process.env.NODE_ENV !== 'test' && redisClient.isOpen) {
+    config.store = new RedisStore({
+      prefix: `ratelimit:${prefix}:`,
+      // @ts-ignore
+      sendCommand: (...args: any[]) => redisClient.sendCommand(args),
+    });
   }
-
-  return new RedisStore({
-    prefix:k `ratelimit:${prefix}:`,
-    // @ts-ignore
-    sendCommand: (...args: any[]) => redisClient.sendCommand(args),
-  });
+  return rateLimit(config);
 };
 
-export const authRateLimiter = rateLimit({
+export const authRateLimiter = createRateLimiter('auth', {
   windowMs: 15 * 60 * 1000,
   max: 15,
   standardHeaders: true,
   legacyHeaders: false,
-  store: createRedisStore('auth'),
   message: {
     statusCode: 429,
     success: false,
@@ -28,12 +26,11 @@ export const authRateLimiter = rateLimit({
   },
 });
 
-export const searchRateLimiter = rateLimit({
+export const searchRateLimiter = createRateLimiter('search', {
   windowMs: 1 * 60 * 1000,
   max: 30,
   standardHeaders: true,
   legacyHeaders: false,
-  store: createRedisStore('search'),
   message: {
     statusCode: 429,
     success: false,
@@ -41,12 +38,11 @@ export const searchRateLimiter = rateLimit({
   },
 });
 
-export const emailRateLimiter = rateLimit({
+export const emailRateLimiter = createRateLimiter('email', {
   windowMs: 15 * 60 * 1000,
   max: 3,
   standardHeaders: true,
   legacyHeaders: false,
-  store: createRedisStore('email'),
   message: {
     statusCode: 429,
     success: false,
@@ -54,12 +50,11 @@ export const emailRateLimiter = rateLimit({
   },
 });
 
-export const passwordResetRateLimiter = rateLimit({
+export const passwordResetRateLimiter = createRateLimiter('pwdreset', {
   windowMs: 15 * 60 * 1000,
   max: 5,
   standardHeaders: true,
   legacyHeaders: false,
-  store: createRedisStore('pwdreset'),
   message: {
     statusCode: 429,
     success: false,
@@ -67,12 +62,11 @@ export const passwordResetRateLimiter = rateLimit({
   },
 });
 
-export const joinCodeRateLimiter = rateLimit({
+export const joinCodeRateLimiter = createRateLimiter('joincode', {
   windowMs: 15 * 60 * 1000,
   max: 10,
   standardHeaders: true,
   legacyHeaders: false,
-  store: createRedisStore('joincode'),
   message: {
     statusCode: 429,
     success: false,
@@ -80,12 +74,11 @@ export const joinCodeRateLimiter = rateLimit({
   },
 });
 
-export const scraperRateLimiter = rateLimit({
+export const scraperRateLimiter = createRateLimiter('scraper', {
   windowMs: 15 * 60 * 1000,
   max: 2,
   standardHeaders: true,
   legacyHeaders: false,
-  store: createRedisStore('scraper'),
   message: {
     statusCode: 429,
     success: false,
@@ -93,12 +86,11 @@ export const scraperRateLimiter = rateLimit({
   },
 });
 
-export const apiRateLimiter = rateLimit({
+export const apiRateLimiter = createRateLimiter('api', {
   windowMs: 15 * 60 * 1000,
   max: 200,
   standardHeaders: true,
   legacyHeaders: false,
-  store: createRedisStore('api'),
   message: {
     statusCode: 429,
     success: false,

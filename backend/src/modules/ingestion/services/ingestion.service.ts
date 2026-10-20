@@ -3,7 +3,7 @@ import { scrapeUnstopData } from "../providers/unstop.provider.ts";
 import { scrapeDevpostData } from "../providers/devpost.provider.ts";
 import { scrapeMLHData } from "../providers/mlh.provider.ts";
 import { scrapeHack2SkillData } from "../providers/hack2skill.provider.ts";
-import { InvalidateHackathonCache } from "../../../infrastructure/cache/redis.ts";
+import { invalidateHackathonCache } from "../../../infrastructure/cache/redis.ts";
 
 export interface IngestionRunSummary {
   total: number;
@@ -20,7 +20,7 @@ export async function runAllScrapers(): Promise<IngestionRunSummary> {
     { name: "Unstop", run: scrapeUnstopData },
     { name: "Devpost", run: scrapeDevpostData },
     { name: "MLH", run: scrapeMLHData },
-    { name: "Hack2skill", run: scrapeHack2skillData },
+    { name: "Hack2skill", run: scrapeHack2SkillData },
   ];
 
   const results: IngestionRunSummary["results"] = [];

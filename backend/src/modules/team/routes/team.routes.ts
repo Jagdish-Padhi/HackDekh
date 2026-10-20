@@ -30,7 +30,7 @@ import {
     addReflection,
     removeReflection,
 } from "../../tracking/index.ts";
-import { verifyJWT } from "../../identity/middlewares/auth.middleware.ts";
+import { verifyJWT } from "../../identity/index.ts";
 import { joinCodeRateLimiter } from "../../../shared/middlewares/rateLimiter.ts";
 
 const router = Router();
