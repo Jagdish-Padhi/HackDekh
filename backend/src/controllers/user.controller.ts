@@ -1,3 +1,5 @@
+import path from "path";
+import { uploadFileToS3 } from "../db/s3.ts";
 import { asyncHandler } from "../utils/asyncHandler.ts";
 import { ApiError } from "../utils/apiError.ts";
 import User, { UserMethods } from "../models/user.model.ts";
@@ -551,7 +553,40 @@ const searchUsers = asyncHandler(async (req: any, res: any) => {
   return res.status(200).json(new ApiResponse(200, users, "Users fetched successfully!"));
 });
 
+
+const updateUserAvatar = asyncHandler(async (req: any, res: any) => {
+  if (!req.file) {
+    throw new ApiError(400, "No image file provided. Form field must be 'avatar'.");
+  }
+
+  const ext = path.extname(req.file.originalname) || ".png";
+  const key = `avatars/${req.user._id}-${Date.now()}${ext}`;
+
+  const result = await uploadFileToS3({
+    fileBuffer: req.file.buffer,
+    key,
+    contentType: req.file.mimetype,
+    originalName: req.file.originalname,
+  });
+
+  const updatedUser = await User.findOneAndUpdate(req.user._id, {
+    avatar: result.url,
+  });
+
+  return res.status(200).json(
+    new ApiResponse(
+      200,
+      {
+        avatarUrl: result.url,
+        user: sanitizeUserDoc(updatedUser),
+      },
+      "User avatar uploaded to AWS S3 successfully"
+    )
+  );
+});
+
 export {
+  updateUserAvatar,
   registerUser,
   loginUser,
   logoutUser,

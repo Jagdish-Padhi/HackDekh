@@ -187,9 +187,17 @@ const Sidebar = () => {
                 <div className="space-y-2 border-t border-zinc-200 p-3 sm:p-2.5 dark:border-zinc-800">
                     {isAuthenticated && user && (
                         <div className="flex items-center gap-3 px-3 py-2 mb-2 rounded-lg bg-zinc-50 dark:bg-zinc-900/50">
-                            <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-blue-600 font-bold text-white text-xs dark:bg-blue-500 uppercase font-logo">
-                                {user.fullName.slice(0, 2)}
-                            </div>
+                            {user.avatar ? (
+                                <img
+                                    src={user.avatar}
+                                    alt={user.fullName}
+                                    className="h-8 w-8 shrink-0 rounded-lg object-cover"
+                                />
+                            ) : (
+                                <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-blue-600 font-bold text-white text-xs dark:bg-blue-500 uppercase font-logo">
+                                    {user.fullName.slice(0, 2)}
+                                </div>
+                            )}
                             {sidebarExpanded && (
                                 <div className="min-w-0 flex-1">
                                     <p className="text-xs font-bold text-zinc-900 dark:text-zinc-100 truncate">{user.fullName}</p>

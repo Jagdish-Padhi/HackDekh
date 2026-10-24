@@ -7,6 +7,7 @@ import {
 	getCurrentUser,
 	changeCurrentPassword,
 	updateAccountDetails,
+	updateUserAvatar,
 	toggleSaveHackathon,
 	getSavedHackathons,
 	addApplication,
@@ -17,6 +18,7 @@ import {
 	githubAuth,
 	searchUsers,
 } from "../controllers/user.controller.ts";
+import { uploadMiddleware } from "../controllers/upload.controller.ts";
 import { verifyJWT } from "../middlewares/auth.middleware.ts";
 
 const router = Router();
@@ -30,6 +32,7 @@ router.get("/me", verifyJWT, getCurrentUser);
 router.get("/search", verifyJWT, searchUsers);
 router.post("/change-password", verifyJWT, changeCurrentPassword);
 router.put("/update", verifyJWT, updateAccountDetails);
+router.post("/avatar", verifyJWT, uploadMiddleware.single("avatar"), updateUserAvatar);
 
 // Bookmarks / Saved Hackathons
 router.post("/saved/:hackathonId", verifyJWT, toggleSaveHackathon);

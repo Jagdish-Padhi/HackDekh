@@ -6,6 +6,7 @@ export type User = {
   username: string;
   email: string;
   fullName: string;
+  avatar?: string;
   savedHackathons: string[];
   applications: Array<{
     _id: string;

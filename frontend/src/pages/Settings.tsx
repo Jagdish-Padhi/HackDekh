@@ -9,6 +9,7 @@ import {
   Lock,
   Trash2,
   User,
+  Upload,
 } from "lucide-react";
 import { useAuth } from "../context/AuthContext";
 import { useToast } from "../context";
@@ -58,6 +59,41 @@ const SettingsPage = () => {
   const [fullName, setFullName] = useState(user?.fullName || "");
   const [email, setEmail] = useState(user?.email || "");
   const [profileSaving, setProfileSaving] = useState(false);
+  const [avatarUploading, setAvatarUploading] = useState(false);
+
+  const handleAvatarUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    if (!file.type.startsWith("image/")) {
+      showToast("Please select a valid image file (PNG, JPG, or WebP).", "error");
+      return;
+    }
+    if (file.size > 5 * 1024 * 1024) {
+      showToast("Image must be smaller than 5MB.", "error");
+      return;
+    }
+
+    const formData = new FormData();
+    formData.append("avatar", file);
+
+    setAvatarUploading(true);
+    try {
+      const res = await axiosInstance.post("/users/avatar", formData, {
+        headers: { "Content-Type": "multipart/form-data" },
+      });
+      if (res.data?.success && res.data?.data) {
+        const newAvatarUrl = res.data.data.avatarUrl;
+        updateUser({ ...user!, avatar: newAvatarUrl });
+        showToast("Avatar uploaded to AWS S3 successfully!", "success");
+      }
+    } catch (err: any) {
+      showToast(err.response?.data?.message || "Failed to upload avatar to AWS S3.", "error");
+    } finally {
+      setAvatarUploading(false);
+      e.target.value = "";
+    }
+  };
 
   useEffect(() => {
     if (user) {
@@ -247,16 +283,45 @@ const SettingsPage = () => {
 
               {/* Avatar row */}
               <div className="flex items-center gap-4 mb-8 pb-6 border-b border-zinc-100 dark:border-zinc-800">
-                <div className="flex h-16 w-16 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-blue-500 to-indigo-600 text-xl font-extrabold text-white shadow-md select-none">
-                  {initials}
+                <div className="relative flex h-16 w-16 shrink-0 items-center justify-center rounded-full overflow-hidden bg-gradient-to-br from-blue-500 to-indigo-600 text-xl font-extrabold text-white shadow-md select-none border border-zinc-200 dark:border-zinc-700">
+                  {user?.avatar ? (
+                    <img
+                      src={user.avatar}
+                      alt={user.fullName}
+                      className="h-full w-full object-cover"
+                    />
+                  ) : (
+                    <span>{initials}</span>
+                  )}
+                  {avatarUploading && (
+                    <div className="absolute inset-0 flex items-center justify-center bg-black/50 text-white">
+                      <div className="h-5 w-5 animate-spin rounded-full border-2 border-white border-t-transparent" />
+                    </div>
+                  )}
                 </div>
                 <div>
                   <p className="text-sm font-semibold text-zinc-800 dark:text-zinc-200">
                     {user?.fullName || "Your Name"}
                   </p>
                   <p className="text-xs text-zinc-500 dark:text-zinc-400">@{user?.username || "username"}</p>
+                  <div className="mt-2.5 flex flex-wrap items-center gap-2.5">
+                    <label className="cursor-pointer inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold bg-blue-50 text-blue-600 hover:bg-blue-100 dark:bg-blue-950/60 dark:text-blue-400 dark:hover:bg-blue-900/60 transition border border-blue-200 dark:border-blue-800/80">
+                      <Upload className="h-3.5 w-3.5" />
+                      {avatarUploading ? "Uploading to AWS S3..." : "Upload New Avatar"}
+                      <input
+                        type="file"
+                        accept="image/png, image/jpeg, image/jpg, image/webp"
+                        className="hidden"
+                        onChange={handleAvatarUpload}
+                        disabled={avatarUploading}
+                      />
+                    </label>
+                    <span className="inline-flex items-center text-[10px] font-semibold text-emerald-600 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-950/50 px-2 py-0.5 rounded border border-emerald-200/60 dark:border-emerald-800/60">
+                      AWS S3
+                    </span>
+                  </div>
                   <p className="text-[11px] text-zinc-400 dark:text-zinc-500 mt-1">
-                    Avatar is auto-generated from your initials.
+                    Uploaded to Amazon S3 bucket. PNG, JPG or WebP up to 5MB.
                   </p>
                 </div>
               </div>

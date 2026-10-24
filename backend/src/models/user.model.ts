@@ -22,6 +22,7 @@ export interface UserDocument {
     refreshToken?: string;
     savedHackathons?: string[];
     applications?: Application[];
+    avatar?: string;
     createdAt?: string;
     updatedAt?: string;
 }

@@ -36,8 +36,12 @@ const Navbar = () => {
                   sidebarExpanded ? 'px-2.5 py-1.5' : 'p-1.5'
                 }`}
               >
-                <span className="flex h-7 w-7 items-center justify-center rounded-full border border-zinc-200 bg-zinc-100 dark:border-zinc-700 dark:bg-zinc-800">
-                  <UserCircle2 className="h-5 w-5 text-zinc-600 dark:text-zinc-300" />
+                <span className="flex h-7 w-7 items-center justify-center rounded-full overflow-hidden border border-zinc-200 bg-zinc-100 dark:border-zinc-700 dark:bg-zinc-800">
+                  {user?.avatar ? (
+                    <img src={user.avatar} alt="Avatar" className="h-full w-full object-cover" />
+                  ) : (
+                    <UserCircle2 className="h-5 w-5 text-zinc-600 dark:text-zinc-300" />
+                  )}
                 </span>
                 {sidebarExpanded && (
                   <>
