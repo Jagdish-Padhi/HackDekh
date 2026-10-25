@@ -270,6 +270,15 @@ Open a terminal on your laptop (PowerShell or WSL). Navigate to wherever your `h
   ssh -i hackdekh-key.pem ubuntu@<YOUR-EC2-PUBLIC-IP>
   ```
 
+  > [!TIP]
+  > **Windows "UNPROTECTED PRIVATE KEY FILE" / Bad permissions fix:**
+  > If OpenSSH rejects your key with `Load key "hackdekh-key.pem": bad permissions`, run these 3 lines in PowerShell and try `ssh` again:
+  > ```powershell
+  > icacls.exe hackdekh-key.pem /reset
+  > icacls.exe hackdekh-key.pem /inheritance:r
+  > icacls.exe hackdekh-key.pem /grant:r "$($env:USERNAME):(R)"
+  > ```
+
 - **If using WSL (Ubuntu on Windows):**
   ```bash
   # Go to Windows Downloads from WSL:
