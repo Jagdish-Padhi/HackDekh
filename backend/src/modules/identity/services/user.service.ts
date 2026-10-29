@@ -85,7 +85,7 @@ export async function registerUserService(payload: {
     fullName: fullName.trim(),
     verificationLink,
   }).catch((err: any) => {
-    console.error('[Email] Failed to dispatch verification email to %s: %s', normalizedEmail, err.message);
+    console.error(`[Email] Failed to dispatch verification email to ${normalizedEmail}:`, err.message);
   });
 
   return {
@@ -468,7 +468,7 @@ export async function forgotPasswordService(email: string) {
     fullName: user.fullName || 'there',
     resetLink,
   }).catch((err: any) => {
-    console.error('[Email] Failed to dispatch password reset email to %s: %s', normalizedEmail, err.message);
+    console.error(`[Email] Failed to dispatch password reset email to ${normalizedEmail}:`, err.message);
   });
 
   return {
