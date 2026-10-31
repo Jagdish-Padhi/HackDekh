@@ -70,6 +70,7 @@ const getPrizeDisplay = (value?: string) => {
     const cleanedPrize = value
         .replace(/^\s*(?:total\s+)?prize\s*pool\s*[:\-–]?\s*/i, "")
         .replace(/^\s*prizes?\s*[:\-–]?\s*/i, "")
+        .replace(/^\?+(\s*[\d₹])/, "₹$1")
         .trim();
 
     if (!cleanedPrize || isUnavailablePrize(cleanedPrize)) {
