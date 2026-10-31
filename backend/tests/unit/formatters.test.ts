@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { universalFormatter } from "../../src/formatters/universalFormatter.ts";
+import { universalFormatter } from "../../src/modules/ingestion/index.ts";
 
 describe("Scraper Universal Formatter Unit Tests", () => {
   it("should correctly format Devfolio raw data batch", () => {
