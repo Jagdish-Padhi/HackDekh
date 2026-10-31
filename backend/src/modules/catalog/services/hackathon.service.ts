@@ -166,19 +166,19 @@ const convertAndFormatPrizeToINR = (prize: string | null | undefined, platform: 
   if (amountInINR >= 10000000) {
     const crValue = amountInINR / 10000000;
     const formatted = parseFloat(crValue.toFixed(2));
-    return `?${formatted} Cr+`;
+    return `₹${formatted} Cr+`;
   }
   if (amountInINR >= 100000) {
     const lakhValue = amountInINR / 100000;
     const formatted = parseFloat(lakhValue.toFixed(2));
-    return `?${formatted} Lakh+`;
+    return `₹${formatted} Lakh+`;
   }
   if (amountInINR >= 1000) {
     const kValue = amountInINR / 1000;
     const formatted = parseFloat(kValue.toFixed(1));
-    return `?${formatted}k+`;
+    return `₹${formatted}k+`;
   }
-  return `?${amountInINR}+`;
+  return `₹${amountInINR}+`;
 };
 
 const compareNullableNumbers = (a: number | null, b: number | null, direction: "asc" | "desc") => {
