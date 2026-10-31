@@ -1,4 +1,4 @@
-﻿import { useEffect, useMemo, useState, useRef } from 'react';
+import { useEffect, useMemo, useState, useRef } from 'react';
 import { Link, useNavigate, useSearchParams, useLocation } from 'react-router-dom';
 import { ArrowLeft, Eye, EyeOff, Github, ExternalLink, RefreshCw, X, Loader2, Mail } from 'lucide-react';
 import { signInWithGooglePopup } from '../config/firebase';
@@ -213,7 +213,7 @@ const LoginPage = () => {
 
     sessionStorage.setItem('oauth_return_to', returnTo);
 
-    const redirectUri = `${window.location.origin}/auth/callback`;
+    const redirectUri = `${window.location.origin}/auth/github/callback`;
     const scope = 'read:user user:email';
     const state = Math.random().toString(36).substring(7);
     sessionStorage.setItem('oauth_state', state);
