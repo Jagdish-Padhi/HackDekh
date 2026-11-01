@@ -326,10 +326,14 @@ Still inside the EC2 terminal:
 # 1. Clone your repository into the home directory (~):
 git clone https://github.com/<your-username>/HackDekh.git
 
-# 2. Change directory into the backend folder:
-cd HackDekh/backend
+# 2. Switch to the AWS infrastructure branch:
+cd HackDekh
+git checkout infra/AWS
 
-# 3. Install packages and compile TypeScript:
+# 3. Change directory into the backend folder:
+cd backend
+
+# 4. Install packages and compile TypeScript:
 npm install
 npm run build
 ```
