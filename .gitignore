@@ -46,6 +46,8 @@ Thumbs.db
 # ======================
 # React / Frontend
 # ======================
+frontend/package-lock.json
+backend/package-lock.json
 *.lock
 .cache/
 .vite/
@@ -72,3 +74,8 @@ dump/
 # Secret Docs
 # ======================
 /docs/plan.md
+
+# ======================
+# Private Keys
+# ======================
+*.pem
