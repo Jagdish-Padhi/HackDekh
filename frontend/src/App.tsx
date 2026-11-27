@@ -1,4 +1,4 @@
-﻿import { lazy, Suspense } from 'react';
+import { lazy, Suspense } from 'react';
 import { BrowserRouter as Router, Routes, Route, useLocation } from 'react-router-dom';
 import MainLayout from './components/MainLayout';
 import HomePage from './pages/Home';
@@ -16,6 +16,7 @@ const DashboardPage = lazy(() => import('./pages/Dashboard'));
 const TrackerPage = lazy(() => import('./pages/Tracker'));
 const SettingsPage = lazy(() => import('./pages/Settings'));
 const GithubCallbackPage = lazy(() => import('./pages/GithubCallback'));
+const PublicSquadPage = lazy(() => import('./pages/PublicSquad'));
 
 function AppContent() {
   const location = useLocation();
@@ -37,6 +38,7 @@ function AppContent() {
             <Route path="/hackathons" element={<HackathonsPage />} />
             <Route path="/accept-invitation" element={<AcceptInvitationPage />} />
             <Route path="/auth/github/callback" element={<GithubCallbackPage />} />
+            <Route path="/squad/:code" element={<PublicSquadPage />} />
             
             {/* Protected Routes */}
             <Route 

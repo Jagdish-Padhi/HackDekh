@@ -16,6 +16,7 @@ import {
     inviteUserByUsernameOrId,
     getUserInvitations,
     respondToInvitation,
+    getPublicSquadByCode,
 } from "../controllers/team.controller.ts";
 import {
     linkTeamToHackathon,
@@ -36,6 +37,7 @@ import { joinCodeRateLimiter } from "../../../shared/middlewares/rateLimiter.ts"
 const router = Router();
 
 // ─── Public ──────────────────────────────────────────────────────────────────
+router.route("/public/:code").get(getPublicSquadByCode);
 router.route("/invitations/accept").post(verifyJWT, acceptInvitationLink);
 router.route("/invitations/preview").get(getInvitationPreview);
 

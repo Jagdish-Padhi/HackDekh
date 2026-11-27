@@ -18,7 +18,6 @@ import {
   XCircle,
   Info,
   X,
-  Github,
   Star,
   AlertTriangle,
   RotateCcw,
@@ -34,27 +33,6 @@ import { teamApi, userApi } from "../services";
 import AppDropdown from "../components/AppDropdown";
 import type { Team, TeamHackathon, Stage, TeamInvitation, UserLite } from "../types";
 import { motion, AnimatePresence } from "framer-motion";
-
-// ─── Filter option definitions ────────────────────────────────────────────────
-const TEAM_PLATFORM_OPTIONS = [
-  { label: 'All Platforms', value: '' },
-  { label: 'Devpost', value: 'devpost' },
-  { label: 'Devfolio', value: 'devfolio' },
-  { label: 'Unstop', value: 'unstop' },
-  { label: 'MLH', value: 'mlh' },
-]
-
-const TEAM_STATUS_OPTIONS = [
-  { label: 'All Teams', value: '' },
-  { label: 'Active Competing', value: 'active' },
-  { label: 'Winner Teams', value: 'winners' },
-]
-
-const TEAM_SORT_OPTIONS = [
-  { label: 'Default Order', value: '' },
-  { label: 'Highest Win Rate', value: 'winrate' },
-  { label: 'Most Participations', value: 'participations' },
-]
 
 const teamTabs = ["Hackathons", "Members", "Stages", "Settings"] as const;
 
@@ -195,11 +173,8 @@ export default function TeamsPage() {
   const [loading, setLoading] = useState(!teamsData);
   const [loadingTeamData, setLoadingTeamData] = useState(false);
 
-  // Filters & Search
+  // Search
   const [searchQuery, setSearchQuery] = useState("");
-  const [platformFilter, setPlatformFilter] = useState("");
-  const [statusFilter, setStatusFilter] = useState("");
-  const [sortBy, setSortBy] = useState<"" | "winrate" | "participations">("");
 
   // Modals visibility
   const [showCreateModal, setShowCreateModal] = useState(false);
@@ -210,11 +185,6 @@ export default function TeamsPage() {
 
   // Create Team Modal Form State
   const [createTeamName, setCreateTeamName] = useState("");
-  const [githubSearchText, setGithubSearchText] = useState("");
-  const [githubSearchLoading, setGithubSearchLoading] = useState(false);
-  const [githubSearchError, setGithubSearchError] = useState("");
-  const [searchedGithubUser, setSearchedGithubUser] = useState<any | null>(null);
-  const [addedTeammates, setAddedTeammates] = useState<Array<{ login: string; avatar_url: string; email?: string }>>([]);
 
   // Join Team Modal Form State
   const [joinTokenInput, setJoinTokenInput] = useState("");
@@ -262,7 +232,7 @@ export default function TeamsPage() {
   const [isDeletingStage, setIsDeletingStage] = useState(false);
 
   // Settings sub-navigation
-  const [settingsSection, setSettingsSection] = useState<'general' | 'members' | 'invitations' | 'danger'>('general');
+  const [settingsSection, setSettingsSection] = useState<'general' | 'danger'>('general');
 
   // Remove member modal
   const [removeMemberModal, setRemoveMemberModal] = useState<{ id: string; name: string } | null>(null);
@@ -483,42 +453,7 @@ export default function TeamsPage() {
     }
   }, [selectedTeamId, activeTab]);
 
-  // GitHub User Lookup
-  const handleGithubSearch = async () => {
-    const query = githubSearchText.trim();
-    if (!query) return;
-    setGithubSearchLoading(true);
-    setGithubSearchError("");
-    setSearchedGithubUser(null);
-    try {
-      const res = await fetch(`https://api.github.com/users/${encodeURIComponent(query)}`);
-      if (res.ok) {
-        const data = await res.json();
-        setSearchedGithubUser(data);
-      } else if (res.status === 404) {
-        setGithubSearchError(`GitHub user "${query}" was not found.`);
-      } else {
-        setGithubSearchError("GitHub lookup is temporarily unavailable. Please try again.");
-      }
-    } catch {
-      setGithubSearchError("Unable to reach GitHub. Check your connection and try again.");
-    } finally {
-      setGithubSearchLoading(false);
-    }
-  };
-
-  const handleAddGithubMember = () => {
-    if (!searchedGithubUser) return;
-    if (addedTeammates.some(item => item.login.toLowerCase() === searchedGithubUser.login.toLowerCase())) {
-      setGithubSearchError("Teammate already added to roster.");
-      return;
-    }
-    setAddedTeammates(prev => [...prev, { login: searchedGithubUser.login, avatar_url: searchedGithubUser.avatar_url }]);
-    setSearchedGithubUser(null);
-    setGithubSearchText("");
-  };
-
-  // Create Team with Optional Invites
+  // Create Team
   const handleCreateTeam = async () => {
     if (!createTeamName.trim()) return;
     setSavingTeam(true);
@@ -526,27 +461,11 @@ export default function TeamsPage() {
     try {
       const created = await teamApi.createTeam({ name: createTeamName.trim() });
 
-      // Process email invites for added teammates
-      await Promise.all(
-        addedTeammates.map(async (member) => {
-          if (member.email?.trim()) {
-            try {
-              await teamApi.generateInvitationLink(created._id, member.email.trim());
-            } catch (err) {
-              console.error(`Failed to send invite link to ${member.email}`, err);
-            }
-          }
-        })
-      );
-
       setTeams((current) => [created, ...current]);
       setSelectedTeamId(created._id);
 
-      // Reset form states
       setCreateTeamName("");
-      setAddedTeammates([]);
-      setSearchedGithubUser(null);
-      setWorkspaceMessage(`Successfully created team "${created.name}" and sent invites.`);
+      setWorkspaceMessage(`Created team "${created.name}". Share the join code or invite teammates from the Members tab.`);
       setShowCreateModal(false);
     } catch (error: any) {
       console.error("Failed to create team", error);
@@ -720,6 +639,27 @@ export default function TeamsPage() {
               </div>
             )}
           </div>
+
+          {/* Right: Share public read-only squad link */}
+          {selectedTeam.code && (
+            <button
+              type="button"
+              onClick={async () => {
+                const shareUrl = `${window.location.origin}/squad/${selectedTeam.code}`;
+                try {
+                  await navigator.clipboard.writeText(shareUrl);
+                  showToast("Squad link copied. Share it on WhatsApp or Discord.", "success");
+                } catch {
+                  showToast("Could not copy squad link.", "error");
+                }
+              }}
+              title="Copy public read-only squad link for teammates"
+              className="inline-flex items-center gap-1.5 rounded-lg border border-zinc-200 bg-white px-3 py-1.5 text-xs font-semibold text-zinc-700 transition hover:bg-zinc-50 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-200 dark:hover:bg-zinc-800 cursor-pointer shrink-0"
+            >
+              <Copy className="h-3.5 w-3.5" />
+              Share Squad
+            </button>
+          )}
         </div>
       );
     }
@@ -746,30 +686,6 @@ export default function TeamsPage() {
           )}
         </div>
 
-        {/* Platform Filter */}
-        <AppDropdown
-          value={platformFilter}
-          onChange={setPlatformFilter}
-          options={TEAM_PLATFORM_OPTIONS}
-          placeholder="All Platforms"
-        />
-
-        {/* Track Status Filter */}
-        <AppDropdown
-          value={statusFilter}
-          onChange={setStatusFilter}
-          options={TEAM_STATUS_OPTIONS}
-          placeholder="All Teams"
-        />
-
-        {/* Sort Filter */}
-        <AppDropdown
-          value={sortBy}
-          onChange={v => setSortBy(v as any)}
-          options={TEAM_SORT_OPTIONS}
-          placeholder="Default Order"
-        />
-
         {/* Join Team Button */}
         <button
           onClick={() => setShowJoinModal(true)}
@@ -781,9 +697,6 @@ export default function TeamsPage() {
         {/* Create Team Button */}
         <button
           onClick={() => {
-            setAddedTeammates([]);
-            setSearchedGithubUser(null);
-            setGithubSearchText("");
             setCreateTeamName("");
             setShowCreateModal(true);
           }}
@@ -794,7 +707,7 @@ export default function TeamsPage() {
         </button>
       </div>
     );
-  }, [searchQuery, platformFilter, statusFilter, sortBy, selectedTeamId, selectedTeam, activeTab, stripSort, teamParticipations.length]);
+  }, [searchQuery, selectedTeamId, selectedTeam, activeTab, stripSort, teamParticipations.length]);
 
   useEffect(() => {
     setPageActions(pageActions);
@@ -1098,68 +1011,19 @@ export default function TeamsPage() {
     }
   };
 
-  // Filtered and Sorted Teams
+  // Filtered Teams
   const filteredTeams = useMemo(() => {
-    let result = [...teams];
-
-    // 1. Platform Filter
-    if (platformFilter) {
-      result = result.filter(t => {
-        const teamParts = allParticipations[t._id] || [];
-        return teamParts.some(p => p.hackathon.platform?.toLowerCase() === platformFilter.toLowerCase());
-      });
-    }
-
-    // 2. Status Filter
-    if (statusFilter === "active") {
-      result = result.filter(t => {
-        const teamParts = allParticipations[t._id] || [];
-        return teamParts.length > 0;
-      });
-    } else if (statusFilter === "winners") {
-      result = result.filter(t => {
-        const teamParts = allParticipations[t._id] || [];
-        return teamParts.some(p => p.status === "won");
-      });
-    }
-
-    // 3. Search Query
-    if (searchQuery.trim()) {
-      const q = searchQuery.toLowerCase().trim();
-      result = result.filter(t => {
-        const teamNameMatch = t.name.toLowerCase().includes(q);
-        const ownerMatch = (t.owner.fullName || "").toLowerCase().includes(q) || (t.owner.username || "").toLowerCase().includes(q);
-        const membersMatch = t.members.some(m =>
-          (m.fullName || "").toLowerCase().includes(q) || (m.username || "").toLowerCase().includes(q)
-        );
-        return teamNameMatch || ownerMatch || membersMatch;
-      });
-    }
-
-    // 4. Sorting
-    if (sortBy === "winrate") {
-      result.sort((a, b) => {
-        const aParts = allParticipations[a._id] || [];
-        const bParts = allParticipations[b._id] || [];
-        const aWins = aParts.filter(p => p.status === "won").length;
-        const bWins = bParts.filter(p => p.status === "won").length;
-        const aCompleted = aParts.filter(p => p.status === "won" || p.status === "eliminated").length;
-        const bCompleted = bParts.filter(p => p.status === "won" || p.status === "eliminated").length;
-        const aRate = aCompleted > 0 ? aWins / aCompleted : 0;
-        const bRate = bCompleted > 0 ? bWins / bCompleted : 0;
-        if (bRate !== aRate) return bRate - aRate;
-        return bParts.length - aParts.length;
-      });
-    } else if (sortBy === "participations") {
-      result.sort((a, b) => {
-        const aParts = (allParticipations[a._id] || []).length;
-        const bParts = (allParticipations[b._id] || []).length;
-        return bParts - aParts;
-      });
-    }
-
-    return result;
-  }, [teams, platformFilter, statusFilter, searchQuery, sortBy, allParticipations]);
+    if (!searchQuery.trim()) return teams;
+    const q = searchQuery.toLowerCase().trim();
+    return teams.filter(t => {
+      const teamNameMatch = t.name.toLowerCase().includes(q);
+      const ownerMatch = (t.owner.fullName || "").toLowerCase().includes(q) || (t.owner.username || "").toLowerCase().includes(q);
+      const membersMatch = t.members.some(m =>
+        (m.fullName || "").toLowerCase().includes(q) || (m.username || "").toLowerCase().includes(q)
+      );
+      return teamNameMatch || ownerMatch || membersMatch;
+    });
+  }, [teams, searchQuery]);
 
 
 
@@ -1215,35 +1079,6 @@ export default function TeamsPage() {
                 </div>
               </div>
 
-              <div className="relative z-50 isolate overflow-visible rounded-xl border border-zinc-200/90 bg-white/90 p-4 shadow-sm backdrop-blur-md dark:border-zinc-800 dark:bg-zinc-900/78 dark:shadow-md flex flex-wrap gap-2.5">
-                {/* Platform Filter */}
-                <AppDropdown
-                  value={platformFilter}
-                  onChange={setPlatformFilter}
-                  options={TEAM_PLATFORM_OPTIONS}
-                  placeholder="All Platforms"
-                  className="flex-1 min-w-[120px]"
-                />
-
-                {/* Status Filter */}
-                <AppDropdown
-                  value={statusFilter}
-                  onChange={setStatusFilter}
-                  options={TEAM_STATUS_OPTIONS}
-                  placeholder="All Teams"
-                  className="flex-1 min-w-[120px]"
-                />
-
-                {/* Sort Filter */}
-                <AppDropdown
-                  value={sortBy}
-                  onChange={v => setSortBy(v as any)}
-                  options={TEAM_SORT_OPTIONS}
-                  placeholder="Default Order"
-                  className="flex-1 min-w-[120px]"
-                />
-              </div>
-
               <div className="flex gap-2 w-full">
                 <button
                   onClick={() => setShowJoinModal(true)}
@@ -1253,9 +1088,6 @@ export default function TeamsPage() {
                 </button>
                 <button
                   onClick={() => {
-                    setAddedTeammates([]);
-                    setSearchedGithubUser(null);
-                    setGithubSearchText("");
                     setCreateTeamName("");
                     setShowCreateModal(true);
                   }}
@@ -2562,8 +2394,6 @@ export default function TeamsPage() {
 
                     const settingsNavItems = [
                       { id: 'general' as const, label: 'General' },
-                      { id: 'members' as const, label: 'Members' },
-                      { id: 'invitations' as const, label: 'Invitations' },
                       { id: 'danger' as const, label: 'Danger Zone', danger: true },
                     ];
 
@@ -2575,7 +2405,7 @@ export default function TeamsPage() {
                         <div className="mb-7 pb-5 border-b border-zinc-200 dark:border-zinc-800">
                           <h2 className="text-lg font-extrabold text-zinc-900 dark:text-zinc-50 tracking-tight">Team Settings</h2>
                           <p className="mt-0.5 text-sm text-zinc-500 dark:text-zinc-400">
-                            Manage workspace configuration, members, and invitations for <strong className="text-zinc-700 dark:text-zinc-300">{selectedTeam.name}</strong>.
+                            Manage workspace configuration for <strong className="text-zinc-700 dark:text-zinc-300">{selectedTeam.name}</strong>.
                           </p>
                         </div>
 
@@ -2587,10 +2417,7 @@ export default function TeamsPage() {
                               return (
                                 <button
                                   key={item.id}
-                                  onClick={() => {
-                                    setSettingsSection(item.id);
-                                    if (item.id === 'invitations') loadTeamInvitations();
-                                  }}
+                                  onClick={() => setSettingsSection(item.id)}
                                   className={`relative flex items-center gap-2 w-full rounded-lg px-3 py-2 text-sm font-medium text-left transition-colors ${isActive
                                     ? item.danger
                                       ? "bg-rose-50 text-rose-600 dark:bg-rose-950/30 dark:text-rose-400"
@@ -2616,7 +2443,7 @@ export default function TeamsPage() {
                               return (
                                 <button
                                   key={item.id}
-                                  onClick={() => { setSettingsSection(item.id); if (item.id === 'invitations') loadTeamInvitations(); }}
+                                  onClick={() => setSettingsSection(item.id)}
                                   className={`rounded-lg px-3 py-1.5 text-xs font-semibold transition ${isActive ? item.danger ? "bg-rose-600 text-white" : "bg-blue-600 text-white" : "bg-zinc-100 text-zinc-600 dark:bg-zinc-800 dark:text-zinc-300"}`}
                                 >
                                   {item.label}
@@ -2732,218 +2559,6 @@ export default function TeamsPage() {
                                     </div>
                                   )}
                                 </form>
-                              </div>
-                            )}
-
-                            {/* MEMBERS */}
-                            {settingsSection === 'members' && (
-                              <div>
-                                <h3 className="text-sm font-bold text-zinc-900 dark:text-zinc-100 mb-1">Members</h3>
-                                <p className="text-xs text-zinc-500 dark:text-zinc-400 mb-5">
-                                  {isOwner ? "Manage who has access to this workspace." : "People who are part of this workspace."}
-                                </p>
-
-                                {/* Owner row */}
-                                <div className="space-y-1">
-                                  {[selectedTeam.owner, ...selectedTeam.members].map((member, idx) => {
-                                    const isOwnerRow = idx === 0;
-                                    const isCurrentUser = member._id === user?._id;
-                                    const canRemove = isOwner && !isOwnerRow && !isCurrentUser;
-
-                                    return (
-                                      <div
-                                        key={member._id}
-                                        className="flex items-center justify-between gap-3 py-3 border-b border-zinc-100 dark:border-zinc-800 last:border-0"
-                                      >
-                                        <div className="flex items-center gap-3 min-w-0">
-                                          {/* Avatar */}
-                                          <div className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-xs font-bold text-white bg-gradient-to-br ${getGradientClass(member.fullName || member.username || member._id)}`}>
-                                            {(member.fullName || member.username || "?").slice(0, 2).toUpperCase()}
-                                          </div>
-                                          <div className="min-w-0">
-                                            <p className="text-sm font-semibold text-zinc-800 dark:text-zinc-200 truncate">
-                                              {member.fullName || member.username}
-                                              {isCurrentUser && <span className="ml-1.5 text-[10px] font-bold text-zinc-400">(you)</span>}
-                                            </p>
-                                            {member.username && (
-                                              <p className="text-xs text-zinc-400 dark:text-zinc-500 truncate">@{member.username}</p>
-                                            )}
-                                          </div>
-                                        </div>
-                                        <div className="flex items-center gap-2 shrink-0">
-                                          {isOwnerRow ? (
-                                            <span className="rounded-full border border-blue-500/25 bg-blue-500/10 px-2.5 py-0.5 text-[10px] font-bold text-blue-600 dark:text-blue-400">Owner</span>
-                                          ) : (
-                                            <span className="rounded-full border border-zinc-200 bg-zinc-100 px-2.5 py-0.5 text-[10px] font-semibold text-zinc-500 dark:border-zinc-800 dark:bg-zinc-800/60 dark:text-zinc-400">Member</span>
-                                          )}
-                                          {canRemove && (
-                                            <button
-                                              onClick={() => setRemoveMemberModal({ id: member._id, name: member.fullName || member.username || member._id })}
-                                              className="btn btn-ghost btn-sm text-rose-500 hover:bg-rose-50 hover:text-rose-600 dark:hover:bg-rose-950/30 h-7 px-2 rounded-lg"
-                                            >
-                                              Remove
-                                            </button>
-                                          )}
-                                        </div>
-                                      </div>
-                                    );
-                                  })}
-                                </div>
-
-                                {!isOwner && (
-                                  <p className="mt-4 text-xs text-zinc-400 dark:text-zinc-500 bg-zinc-50 dark:bg-zinc-900/40 rounded-xl px-4 py-3 border border-zinc-100 dark:border-zinc-800">
-                                    Only the team owner can remove members. Contact <strong className="text-zinc-600 dark:text-zinc-400">{selectedTeam.owner.fullName || selectedTeam.owner.username}</strong> to make changes.
-                                  </p>
-                                )}
-                              </div>
-                            )}
-
-                            {/* INVITATIONS */}
-                            {settingsSection === 'invitations' && (
-                              <div>
-                                <h3 className="text-sm font-bold text-zinc-900 dark:text-zinc-100 mb-1">Invitations</h3>
-                                <p className="text-xs text-zinc-500 dark:text-zinc-400 mb-5">
-                                  {isOwner ? "Generate invite links and view pending invitations." : "View pending invitations for this team."}
-                                </p>
-
-                                {/* In-App Direct Invite (owner only) */}
-                                {isOwner && (
-                                  <div className="pb-6 mb-6 border-b border-zinc-100 dark:border-zinc-800 space-y-4">
-                                    <div>
-                                      <p className="text-xs font-bold uppercase tracking-wider text-zinc-500 dark:text-zinc-400 mb-1">Direct Team Invite</p>
-                                      <p className="text-[11px] text-zinc-400 dark:text-zinc-500">Search and invite active HackDekh developers directly.</p>
-                                    </div>
-                                    <div className="relative">
-                                      <div className="flex gap-2">
-                                        <input
-                                          type="text"
-                                          value={directInviteSearchText}
-                                          onChange={e => handleDirectInviteSearch(e.target.value)}
-                                          placeholder="Search by username or email..."
-                                          className={`${settingsInputCls} flex-1`}
-                                        />
-                                        {directInviteLoading && (
-                                          <div className="absolute right-3 top-1/2 -translate-y-1/2">
-                                            <Loader2 className="h-4 w-4 animate-spin text-zinc-400" />
-                                          </div>
-                                        )}
-                                      </div>
-
-                                      {/* Direct Invite Autocomplete Results */}
-                                      {directInviteResults.length > 0 && (
-                                        <div className="absolute left-0 right-0 mt-2 z-50 rounded-lg border border-zinc-200 bg-white p-2 shadow-xl dark:border-zinc-800 dark:bg-zinc-950 max-h-52 overflow-y-auto space-y-1">
-                                          {directInviteResults.map(user => (
-                                            <div
-                                              key={user._id}
-                                              className="flex items-center justify-between p-2 hover:bg-zinc-50 dark:hover:bg-zinc-900/60 rounded-lg transition"
-                                            >
-                                              <div className="min-w-0">
-                                                <p className="text-xs font-bold text-zinc-900 dark:text-zinc-100 truncate">
-                                                  {user.fullName || user.username}
-                                                </p>
-                                                <p className="text-[10px] text-zinc-500 dark:text-zinc-400 truncate">
-                                                  @{user.username} · {user.email}
-                                                </p>
-                                              </div>
-                                              <button
-                                                type="button"
-                                                onClick={() => handleSendDirectInvite(user._id)}
-                                                disabled={savingTeam}
-                                                className="px-2.5 py-1 bg-blue-600 hover:bg-blue-500 text-white rounded-lg text-[10px] font-bold transition cursor-pointer"
-                                              >
-                                                Invite
-                                              </button>
-                                            </div>
-                                          ))}
-                                        </div>
-                                      )}
-
-                                      {directInviteSearchText.trim() && !directInviteLoading && directInviteResults.length === 0 && (
-                                        <p className="text-[11px] text-rose-500 font-medium mt-1">No users found matching query.</p>
-                                      )}
-                                    </div>
-                                  </div>
-                                )}
-
-                                {/* Send invitation email (owner only) */}
-                                {isOwner && (
-                                  <div className="pb-6 mb-6 border-b border-zinc-100 dark:border-zinc-800">
-                                    <p className="text-xs font-bold uppercase tracking-wider text-zinc-500 dark:text-zinc-400 mb-1">Send Email Invitation</p>
-                                    <p className="text-[11px] text-zinc-400 dark:text-zinc-500 mb-3">Enter a teammate's email and we'll send them an invitation directly.</p>
-                                    <div className="flex gap-2">
-                                      <input
-                                        type="email"
-                                        value={inviteEmail}
-                                        onChange={e => { setInviteEmail(e.target.value); setInviteEmailSent(null); }}
-                                        placeholder="teammate@example.com"
-                                        className={`${settingsInputCls} flex-1`}
-                                        onKeyDown={e => e.key === 'Enter' && handleInvite()}
-                                      />
-                                      <button
-                                        onClick={handleInvite}
-                                        disabled={savingTeam || !inviteEmail.trim()}
-                                        className="btn btn-primary shrink-0"
-                                      >
-                                        {savingTeam ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
-                                        Send Invite
-                                      </button>
-                                    </div>
-
-                                    {inviteEmailSent && (
-                                      <div className="mt-3 rounded-lg border border-emerald-200 bg-emerald-50/50 dark:border-emerald-900/40 dark:bg-emerald-950/10 p-3 flex items-center gap-2.5">
-                                        <CheckCircle2 className="h-4 w-4 text-emerald-500 shrink-0" />
-                                        <div>
-                                          <p className="text-[10px] font-bold uppercase tracking-wider text-emerald-600 dark:text-emerald-400">Invitation sent!</p>
-                                          <p className="text-xs text-zinc-500 dark:text-zinc-400 mt-0.5">Email delivered to <span className="font-semibold">{inviteEmailSent}</span>.</p>
-                                        </div>
-                                      </div>
-                                    )}
-                                  </div>
-                                )}
-
-                                {/* Invitations list */}
-                                <div>
-                                  <div className="flex items-center justify-between mb-3">
-                                    <p className="text-xs font-bold uppercase tracking-wider text-zinc-500 dark:text-zinc-400">Pending Invitations</p>
-                                    <button onClick={loadTeamInvitations} disabled={invitationsLoading} className="btn btn-ghost btn-sm text-xs h-7 px-2 rounded-lg">
-                                      {invitationsLoading ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : "Refresh"}
-                                    </button>
-                                  </div>
-
-                                  {invitationsLoading ? (
-                                    <div className="flex items-center justify-center py-8">
-                                      <Loader2 className="h-5 w-5 animate-spin text-zinc-400" />
-                                    </div>
-                                  ) : teamInvitations.length === 0 ? (
-                                    <div className="rounded-lg border border-dashed border-zinc-200 dark:border-zinc-800 py-8 text-center">
-                                      <p className="text-sm text-zinc-400 dark:text-zinc-500">No invitations yet.</p>
-                                      <p className="text-xs text-zinc-400 dark:text-zinc-600 mt-1">Send an email invite above to get started.</p>
-                                    </div>
-                                  ) : (
-                                    <div className="space-y-2">
-                                      {teamInvitations.map(invite => (
-                                        <div key={invite._id} className="flex items-center justify-between gap-3 py-2.5 px-3 rounded-xl border border-zinc-100 dark:border-zinc-800 bg-white dark:bg-zinc-900/40">
-                                          <div className="min-w-0">
-                                            <p className="text-sm font-medium text-zinc-800 dark:text-zinc-200 truncate">{invite.invitedEmail}</p>
-                                            <p className="text-xs text-zinc-400 dark:text-zinc-500">
-                                              Expires {formatDate(invite.expiresAt)}
-                                            </p>
-                                          </div>
-                                          <span className={`shrink-0 rounded-full px-2.5 py-0.5 text-[10px] font-bold border ${invite.status === 'accepted'
-                                            ? "border-emerald-500/25 bg-emerald-500/10 text-emerald-600 dark:text-emerald-400"
-                                            : invite.status === 'expired'
-                                              ? "border-zinc-200 bg-zinc-100 text-zinc-500 dark:border-zinc-800 dark:bg-zinc-800 dark:text-zinc-400"
-                                              : invite.status === 'declined'
-                                                ? "border-rose-500/25 bg-rose-500/10 text-rose-600 dark:text-rose-400"
-                                                : "border-amber-500/25 bg-amber-500/10 text-amber-600 dark:text-amber-400"
-                                            }`}>
-                                            {invite.status.charAt(0).toUpperCase() + invite.status.slice(1)}
-                                          </span>
-                                        </div>
-                                      ))}
-                                    </div>
-                                  )}
-                                </div>
                               </div>
                             )}
 
@@ -3097,84 +2712,6 @@ export default function TeamsPage() {
                       />
                     </div>
 
-                    {/* Teammates GitHub Search */}
-                    <div className="space-y-1.5">
-                      <label className="text-xs font-bold uppercase tracking-wider text-zinc-500 dark:text-zinc-400">Teammate Search (GitHub ID)</label>
-                      <div className="flex gap-2">
-                        <input
-                          value={githubSearchText}
-                          onChange={(event) => setGithubSearchText(event.target.value)}
-                          placeholder="e.g. octocat"
-                          onKeyDown={(e) => {
-                            if (e.key === "Enter") handleGithubSearch();
-                          }}
-                          className="flex-1 rounded-lg border border-zinc-200 bg-zinc-50/50 px-3.5 py-2 text-sm text-zinc-800 outline-none transition focus:border-blue-400 dark:border-zinc-800 dark:bg-zinc-950 dark:text-zinc-200"
-                        />
-                        <button
-                          onClick={handleGithubSearch}
-                          disabled={githubSearchLoading || !githubSearchText.trim()}
-                          className="inline-flex h-9.5 items-center justify-center rounded-lg bg-zinc-900 text-white dark:bg-zinc-800 px-4 text-xs font-semibold hover:bg-zinc-800 transition cursor-pointer disabled:opacity-50"
-                        >
-                          {githubSearchLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Github className="h-4.5 w-4.5 mr-1" />}
-                          Search
-                        </button>
-                      </div>
-                      {githubSearchError && <p className="text-xs text-rose-500 font-bold mt-1">{githubSearchError}</p>}
-                    </div>
-
-                    {/* GitHub Search Result Container */}
-                    {searchedGithubUser && (
-                      <div className="flex items-center gap-3 p-3 bg-zinc-50 dark:bg-zinc-900 rounded-lg border border-zinc-100 dark:border-zinc-800 shadow-xs">
-                        <img src={searchedGithubUser.avatar_url} className="h-10 w-10 rounded-lg" alt="avatar" />
-                        <div className="flex-1 min-w-0">
-                          <p className="text-xs font-bold text-zinc-900 dark:text-zinc-100 truncate">{searchedGithubUser.name || searchedGithubUser.login}</p>
-                          <p className="text-[10px] text-zinc-500 dark:text-zinc-400 truncate mt-0.5">@{searchedGithubUser.login} • {searchedGithubUser.public_repos} repos</p>
-                        </div>
-                        <button
-                          onClick={handleAddGithubMember}
-                          className="px-3.5 py-1.5 bg-blue-600 hover:bg-blue-500 text-white rounded-lg text-xs font-semibold cursor-pointer"
-                        >
-                          + Add
-                        </button>
-                      </div>
-                    )}
-
-                    {/* Added Roster Invite list */}
-                    {addedTeammates.length > 0 && (
-                      <div className="space-y-2.5 mt-4">
-                        <label className="text-xs font-bold uppercase tracking-wider text-zinc-500 dark:text-zinc-400">Added Roster ({addedTeammates.length})</label>
-                        <div className="space-y-2 max-h-40 overflow-y-auto pr-1">
-                          {addedTeammates.map((member, idx) => (
-                            <div key={idx} className="flex items-center gap-3 p-2.5 bg-white dark:bg-zinc-950 border border-zinc-200 dark:border-zinc-800 rounded-xl">
-                              <img src={member.avatar_url} className="h-7 w-7 rounded-lg" alt="avatar" />
-                              <div className="flex-1 min-w-0">
-                                <p className="text-xs font-bold text-zinc-900 dark:text-zinc-100 truncate">@{member.login}</p>
-                              </div>
-                              <input
-                                type="email"
-                                placeholder="Teammate's Email"
-                                value={member.email || ""}
-                                onChange={(e) => {
-                                  const next = [...addedTeammates];
-                                  next[idx].email = e.target.value;
-                                  setAddedTeammates(next);
-                                }}
-                                className="px-2 py-1 text-xs border border-zinc-200 dark:border-zinc-800 rounded-lg w-40 bg-zinc-50 dark:bg-zinc-900 text-zinc-800 dark:text-zinc-100 outline-none"
-                                required
-                              />
-                              <button
-                                onClick={() => {
-                                  setAddedTeammates(addedTeammates.filter((_, i) => i !== idx));
-                                }}
-                                className="text-zinc-400 hover:text-red-500 p-1"
-                              >
-                                <X className="h-4 w-4" />
-                              </button>
-                            </div>
-                          ))}
-                        </div>
-                      </div>
-                    )}
                   </div>
 
                   <div className="pt-4 border-t border-zinc-100 dark:border-zinc-800 flex gap-2 justify-end mt-4">

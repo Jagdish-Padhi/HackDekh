@@ -169,6 +169,11 @@ export const teamApi = {
     return unwrap(response);
   },
 
+  getPublicSquad: async (code: string) => {
+    const response = await axiosInstance.get<ApiResponse<any>>(`/teams/public/${encodeURIComponent(code)}`);
+    return unwrap(response);
+  },
+
   inviteUserDirect: async (teamId: string, userIdOrUsername: string): Promise<TeamInvitation> => {
     const response = await axiosInstance.post<ApiResponse<TeamInvitation>>(`/teams/${teamId}/invitations/user`, {
       userIdOrUsername,
