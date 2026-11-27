@@ -5,6 +5,7 @@ import { signInWithGooglePopup } from '../config/firebase';
 import { useAuth } from '../context/AuthContext';
 import axiosInstance from '../utils/axiosInstance';
 import { motion, AnimatePresence } from 'framer-motion';
+import posthog, { isPostHogEnabled, posthogLog } from '../posthog';
 
 const LoginPage = () => {
   const [searchParams] = useSearchParams();
@@ -192,7 +193,11 @@ const LoginPage = () => {
 
       localStorage.setItem('accessToken', accessToken);
       localStorage.setItem('refreshToken', refreshToken);
-      updateUser(user);
+      updateUser(user, true);
+      if (isPostHogEnabled) {
+        posthog.capture('login_completed', { authentication_method: 'google' });
+        posthogLog.info('authentication completed', { authentication_method: 'google' });
+      }
 
       navigate(returnTo, { replace: true });
     } catch (err: any) {
@@ -234,6 +239,10 @@ const LoginPage = () => {
 
       try {
         await login(email, password);
+        if (isPostHogEnabled) {
+          posthog.capture('login_completed', { authentication_method: 'password' });
+          posthogLog.info('authentication completed', { authentication_method: 'password' });
+        }
         navigate(returnTo, { replace: true });
       } catch (err: any) {
         setError(err.response?.data?.message || 'Login failed');

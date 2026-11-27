@@ -11,6 +11,7 @@ import AppDropdown from './AppDropdown'
 import { usePageChrome } from '../context/pageChrome'
 import { useAuth, useCache, useToast } from '../context'
 import { teamApi } from '../services'
+import posthog, { isPostHogEnabled, posthogLog } from '../posthog'
 
 type Hackathon = {
     _id: string
@@ -172,6 +173,7 @@ const HackathonList = () => {
         
         const hackathonId = selectedHackathonToTrack;
         const teamId = selectedTeamIdToTrack;
+        const hackathon = hackathons.find((item) => item._id === hackathonId);
         
         // 1. Optimistic Update: Add tracking status instantly to the UI
         const tempId = `optimistic_${Date.now()}`;
@@ -207,6 +209,14 @@ const HackathonList = () => {
                 }
                 return prev;
             });
+            if (isPostHogEnabled) {
+                const trackingAttributes = {
+                    platform: hackathon?.platform || 'unknown',
+                    mode: hackathon?.mode || 'unknown',
+                };
+                posthog.capture('hackathon_tracked', trackingAttributes);
+                posthogLog.info('hackathon tracking started', trackingAttributes);
+            }
             showToast("Hackathon tracked successfully", "success");
         } catch (error: any) {
             console.error("Failed to track hackathon in background", error);
@@ -253,6 +263,9 @@ const HackathonList = () => {
         try {
             // 4. Fire API in background
             await teamApi.unlinkHackathon(trackingInfo.teamId, hackathonId);
+            if (isPostHogEnabled) {
+                posthog.capture('hackathon_untracked');
+            }
             showToast("Hackathon untracked successfully", "success");
         } catch (error: any) {
             console.error("Failed to untrack in background", error);

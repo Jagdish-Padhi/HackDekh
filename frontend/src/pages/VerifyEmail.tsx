@@ -3,6 +3,7 @@ import { useSearchParams, useNavigate, Link } from 'react-router-dom';
 import { CheckCircle2, XCircle, Mail, ArrowRight, RefreshCw, ArrowLeft, ShieldCheck } from 'lucide-react';
 import axiosInstance from '../utils/axiosInstance';
 import { useAuth } from '../context/AuthContext';
+import posthog, { isPostHogEnabled } from '../posthog';
 
 export default function VerifyEmailPage() {
   const [searchParams] = useSearchParams();
@@ -34,7 +35,10 @@ export default function VerifyEmailPage() {
           const { accessToken, refreshToken, user } = res.data.data;
           if (accessToken) localStorage.setItem('accessToken', accessToken);
           if (refreshToken) localStorage.setItem('refreshToken', refreshToken);
-          if (user) updateUser(user);
+          if (user) updateUser(user, true);
+          if (isPostHogEnabled) {
+            posthog.capture('account_verified');
+          }
 
           setStatus('success');
           setMessage('Your email address has been verified successfully!');

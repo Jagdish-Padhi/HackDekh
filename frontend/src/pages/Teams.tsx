@@ -34,6 +34,7 @@ import { teamApi, userApi } from "../services";
 import AppDropdown from "../components/AppDropdown";
 import type { Team, TeamHackathon, Stage, TeamInvitation, UserLite } from "../types";
 import { motion, AnimatePresence } from "framer-motion";
+import posthog, { isPostHogEnabled } from "../posthog";
 
 // ─── Filter option definitions ────────────────────────────────────────────────
 const TEAM_PLATFORM_OPTIONS = [
@@ -551,6 +552,9 @@ export default function TeamsPage() {
         })
       );
 
+      if (isPostHogEnabled) {
+        posthog.capture('team_created', { initial_invitee_count: addedTeammates.length });
+      }
       setTeams((current) => [created, ...current]);
       setSelectedTeamId(created._id);
       
@@ -616,6 +620,9 @@ export default function TeamsPage() {
     setSavingTeam(true);
     try {
       await teamApi.inviteUserDirect(selectedTeam._id, targetUserId);
+      if (isPostHogEnabled) {
+        posthog.capture('team_invitation_sent', { invitation_method: 'in_app' });
+      }
       showToast("In-app invitation sent successfully!", "success");
       setDirectInviteSearchText("");
       setDirectInviteResults([]);
@@ -645,11 +652,12 @@ export default function TeamsPage() {
     }
 
     try {
-      let joinedTeam;
-      if (inputToken.length === 6 && /^[a-zA-Z0-9]+$/.test(inputToken)) {
-        joinedTeam = await teamApi.joinTeamByCode(inputToken.toUpperCase());
-      } else {
-        joinedTeam = await teamApi.acceptInvitationLink(inputToken);
+      const joinMethod = inputToken.length === 6 && /^[a-zA-Z0-9]+$/.test(inputToken) ? 'join_code' : 'invitation_link';
+      const joinedTeam = joinMethod === 'join_code'
+        ? await teamApi.joinTeamByCode(inputToken.toUpperCase())
+        : await teamApi.acceptInvitationLink(inputToken);
+      if (isPostHogEnabled) {
+        posthog.capture('team_joined', { join_method: joinMethod });
       }
       setWorkspaceMessage(`Successfully joined team: "${joinedTeam.name}"!`);
       
@@ -842,6 +850,9 @@ export default function TeamsPage() {
     const emailTarget = inviteEmail.trim();
     try {
       await teamApi.generateInvitationLink(selectedTeam._id, emailTarget);
+      if (isPostHogEnabled) {
+        posthog.capture('team_invitation_sent', { invitation_method: 'email' });
+      }
       setInviteEmailSent(emailTarget);
       setInviteEmail("");
       showToast(`Invitation email sent to ${emailTarget}!`, "success");
@@ -885,6 +896,9 @@ export default function TeamsPage() {
     setRemoveMemberLoading(true);
     try {
       const updated = await teamApi.removeMember(selectedTeam._id, removeMemberModal.id);
+      if (isPostHogEnabled) {
+        posthog.capture('team_member_removed');
+      }
       setTeams((current) => current.map((t) => t._id === updated._id ? updated : t));
       showToast(`${removeMemberModal.name} has been removed from the team.`, "success");
       setRemoveMemberModal(null);
@@ -916,6 +930,9 @@ export default function TeamsPage() {
     setLeaveTeamLoading(true);
     try {
       await teamApi.removeMember(selectedTeam._id, user._id);
+      if (isPostHogEnabled) {
+        posthog.capture('team_left');
+      }
       showToast(`You've left "${selectedTeam.name}".`, "success");
       setShowLeaveModal(false);
       setSelectedTeamId("");
@@ -939,6 +956,9 @@ export default function TeamsPage() {
             : item
         )
       );
+      if (nextStatus === 'active' && isPostHogEnabled) {
+        posthog.capture('hackathon_registration_confirmed');
+      }
       showToast(`Workspace status updated to "${nextStatus}" successfully!`, "success");
     } catch (error: any) {
       console.error("Failed to update participation status", error);
@@ -959,6 +979,9 @@ export default function TeamsPage() {
     setIsUntracking(true);
     try {
       await teamApi.unlinkHackathon(selectedTeam._id, part.hackathon._id);
+      if (isPostHogEnabled) {
+        posthog.capture('hackathon_untracked');
+      }
       
       // Update local states
       setTeamParticipations(current => current.filter(p => p._id !== part._id));
@@ -1010,6 +1033,9 @@ export default function TeamsPage() {
         current.map((item) => (item._id === participationId ? { ...item, stages: [...item.stages, createdStage] } : item))
       );
       setNewStageDraft((current) => ({ ...current, [participationId]: { name: "", deadline: "" } }));
+      if (isPostHogEnabled) {
+        posthog.capture('stage_created', { has_deadline: Boolean(draft.deadline) });
+      }
       
       // Update local participations map
       setAllParticipations(prev => ({
@@ -1066,6 +1092,9 @@ export default function TeamsPage() {
       }));
 
       setStageSaving((current) => ({ ...current, [stageId]: "saved" }));
+      if (payload.result !== undefined && isPostHogEnabled) {
+        posthog.capture('stage_result_updated', { result: payload.result });
+      }
 
       // If a result was changed, silently re-fetch to sync backend-driven resets
       if (payload.result !== undefined) {
