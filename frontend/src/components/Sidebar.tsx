@@ -28,7 +28,6 @@ const Sidebar = () => {
     const logoDestination = isAuthenticated ? '/dashboard' : '/hackathons'
     const { clearCache } = useCache()
     const [isGuideOpen, setIsGuideOpen] = useState(false)
-    // const [isDark, setIsDark] = useState(false)
 
     useEffect(() => {
         if (typeof window === 'undefined') {
@@ -42,29 +41,6 @@ const Sidebar = () => {
 
         return () => window.removeEventListener('resize', updateViewportMode)
     }, [])
-
-    // useEffect(() => {
-    //     if (typeof window === 'undefined') {
-    //         return
-    //     }
-    //     const initialDark = window.localStorage.getItem('theme') === 'dark'
-    //     setIsDark(initialDark)
-    //     document.documentElement.classList.toggle('dark', initialDark)
-    //     const onThemeSync = (event: Event) => {
-    //         const detail = (event as CustomEvent<'light' | 'dark'>).detail
-    //         setIsDark(detail === 'dark')
-    //     }
-    //     window.addEventListener('hackdekh-theme-change', onThemeSync)
-    //     return () => window.removeEventListener('hackdekh-theme-change', onThemeSync)
-    // }, [])
-
-    // const toggleTheme = () => {
-    //     const nextIsDark = !isDark
-    //     setIsDark(nextIsDark)
-    //     document.documentElement.classList.toggle('dark', nextIsDark)
-    //     window.localStorage.setItem('theme', nextIsDark ? 'dark' : 'light')
-    //     window.dispatchEvent(new CustomEvent('hackdekh-theme-change', { detail: nextIsDark ? 'dark' : 'light' }))
-    // }
 
     const handleLogout = async () => {
         try {
@@ -103,15 +79,6 @@ const Sidebar = () => {
                     >
                         <Info className="h-4 w-4" />
                     </button>
-                    {/* Theme button commented out */}
-                    {/* <button
-                        type="button"
-                        onClick={toggleTheme}
-                        className="inline-flex h-9 w-9 items-center justify-center rounded-full border border-zinc-200 bg-white text-zinc-700 shadow-sm transition hover:border-blue-400 hover:text-blue-700 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-200 dark:hover:border-blue-400 dark:hover:text-blue-300"
-                        aria-label={isDark ? 'Switch to light mode' : 'Switch to dark mode'}
-                    >
-                        {isDark ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
-                    </button> */}
                     <button
                         type="button"
                         onClick={toggleSidebar}
@@ -137,15 +104,6 @@ const Sidebar = () => {
                 </Link>
 
                 <div className="flex shrink-0 items-center gap-2">
-                    {/* Theme button commented out */}
-                    {/* <button
-                        type="button"
-                        onClick={toggleTheme}
-                        className="inline-flex h-9 w-9 items-center justify-center rounded-full border border-zinc-200 bg-white text-zinc-700 shadow-sm transition hover:border-blue-400 hover:text-blue-700 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-200 dark:hover:border-blue-400 dark:hover:text-blue-300"
-                        aria-label={isDark ? 'Switch to light mode' : 'Switch to dark mode'}
-                    >
-                        {isDark ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
-                    </button> */}
                     <button
                         type="button"
                         onClick={toggleSidebar}

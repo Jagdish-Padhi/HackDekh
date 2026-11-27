@@ -3,7 +3,6 @@ import {
   Check,
   Shield,
   Moon,
-  Sun,
   AlertTriangle,
   Eye,
   EyeOff,
@@ -123,7 +122,10 @@ const SettingsPage = () => {
   // ── Appearance ──
   const [isDark, setIsDark] = useState(() => {
     if (typeof window === "undefined") return false;
-    return localStorage.getItem("theme") === "dark";
+    return (
+      document.documentElement.classList.contains("dark") ||
+      localStorage.getItem("theme") === "dark"
+    );
   });
 
   useEffect(() => {
@@ -478,34 +480,11 @@ const SettingsPage = () => {
               </p>
 
               {/* Theme row */}
-              <div className="flex items-center justify-between gap-6 py-5 border-b border-zinc-100 dark:border-zinc-800">
-                <div>
-                  <p className="text-sm font-semibold text-zinc-800 dark:text-zinc-200">Interface Theme</p>
-                  <p className="text-xs text-zinc-500 dark:text-zinc-400 mt-0.5">
-                    Choose between light and dark mode. Your preference is saved locally.
-                  </p>
-                </div>
-                <button
-                  type="button"
-                  onClick={toggleTheme}
-                  className={`relative inline-flex h-9 w-[112px] shrink-0 items-center gap-2 rounded-lg border px-3 py-2 text-xs font-semibold transition-all duration-200 cursor-pointer ${
-                    isDark
-                      ? "border-blue-500/30 bg-zinc-900 text-blue-300 hover:bg-zinc-800"
-                      : "border-amber-300/60 bg-amber-50 text-amber-800 hover:bg-amber-100"
-                  }`}
-                >
-                  {isDark ? (
-                    <>
-                      <Moon className="h-4 w-4 shrink-0" />
-                      Dark Mode
-                    </>
-                  ) : (
-                    <>
-                      <Sun className="h-4 w-4 shrink-0" />
-                      Light Mode
-                    </>
-                  )}
-                </button>
+              <div className="py-4 border-b border-zinc-100 dark:border-zinc-800">
+                <p className="text-sm font-semibold text-zinc-800 dark:text-zinc-200">Interface Theme</p>
+                <p className="text-xs text-zinc-500 dark:text-zinc-400 mt-0.5">
+                  Choose between light and dark mode. Your preference is saved locally.
+                </p>
               </div>
 
               {/* Theme cards preview */}
