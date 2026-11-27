@@ -78,6 +78,29 @@ export const updateParticipationStatus = asyncHandler(async (req: AuthRequest, r
     }
 });
 
+// PATCH /teams/:id/hackathons/:thId/alert
+export const toggleParticipationAlert = asyncHandler(async (req: AuthRequest, res: Response) => {
+    const { enabled } = req.body || {};
+
+    if (typeof enabled !== 'boolean') {
+        throw new ApiError(400, 'enabled (boolean) is required');
+    }
+
+    const updated = await thService.toggleParticipationAlert(
+        String(req.params.thId),
+        req.user._id,
+        enabled
+    );
+
+    if (!updated) {
+        throw new ApiError(404, 'Participation not found or you are not a team member');
+    }
+
+    return res
+        .status(200)
+        .json(new ApiResponse(200, updated, enabled ? '24h deadline alert enabled' : '24h deadline alert disabled'));
+});
+
 // DELETE /teams/:id/hackathons/:hackathonId
 export const unlinkTeamFromHackathon = asyncHandler(async (req: AuthRequest, res: Response) => {
     const { hackathonId } = req.params;

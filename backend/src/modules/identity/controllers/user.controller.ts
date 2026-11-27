@@ -183,6 +183,9 @@ export const updateUserPreferences = asyncHandler(async (req: any, res: any) => 
     preferredPlatforms,
     preferredTeamSize,
     skills,
+    emailAlertsEnabled,
+    discordWebhookUrl,
+    telegramChatId,
   } = req.body || {};
 
   const preferencesUpdate: Record<string, any> = {};
@@ -220,6 +223,23 @@ export const updateUserPreferences = asyncHandler(async (req: any, res: any) => 
       .map((s) => String(s).trim())
       .filter(Boolean)
       .slice(0, 15);
+  }
+  if (typeof emailAlertsEnabled === "boolean") {
+    preferencesUpdate["preferences.emailAlertsEnabled"] = emailAlertsEnabled;
+  }
+  if (typeof discordWebhookUrl === "string") {
+    const trimmed = discordWebhookUrl.trim();
+    if (trimmed && !/^https:\/\/(discord\.com|discordapp\.com)\/api\/webhooks\/\S+$/i.test(trimmed)) {
+      throw new ApiError(400, "Invalid Discord webhook URL. Must start with https://discord.com/api/webhooks/");
+    }
+    preferencesUpdate["preferences.discordWebhookUrl"] = trimmed.slice(0, 300);
+  }
+  if (typeof telegramChatId === "string") {
+    const trimmed = telegramChatId.trim();
+    if (trimmed && !/^-?\d{4,20}$/.test(trimmed)) {
+      throw new ApiError(400, "Invalid Telegram Chat ID. Must be a numeric chat ID.");
+    }
+    preferencesUpdate["preferences.telegramChatId"] = trimmed;
   }
 
   if (Object.keys(preferencesUpdate).length === 0) {

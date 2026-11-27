@@ -46,6 +46,8 @@ export interface TeamHackathon {
   status: 'active' | 'eliminated' | 'finalist' | 'won' | string;
   currentStage?: string | Stage | null;
   stages: Stage[];
+  alertEnabled?: boolean;
+  alertSentAt?: string | null;
   createdAt: string;
   updatedAt: string;
 }

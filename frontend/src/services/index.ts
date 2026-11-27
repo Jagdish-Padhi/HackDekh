@@ -68,6 +68,13 @@ export const teamApi = {
     return unwrap(response);
   },
 
+  toggleAlert: async (teamId: string, thId: string, enabled: boolean): Promise<TeamHackathon> => {
+    const response = await axiosInstance.patch<ApiResponse<TeamHackathon>>(`/teams/${teamId}/hackathons/${thId}/alert`, {
+      enabled,
+    });
+    return unwrap(response);
+  },
+
   addStage: async (
     teamId: string,
     thId: string,
@@ -213,6 +220,9 @@ export const userApi = {
     preferredPlatforms?: string[];
     preferredTeamSize?: number;
     skills?: string[];
+    emailAlertsEnabled?: boolean;
+    discordWebhookUrl?: string;
+    telegramChatId?: string;
   }) => {
     const response = await axiosInstance.put<ApiResponse<any>>('/users/preferences', preferences);
     return unwrap(response);

@@ -89,6 +89,15 @@ const SettingsPage = () => {
     user?.preferences?.preferredTeamSize ?? DEFAULT_PREFERENCES.preferredTeamSize
   );
   const [skillsInput, setSkillsInput] = useState((user?.preferences?.skills || []).join(", "));
+  const [emailAlertsEnabled, setEmailAlertsEnabled] = useState<boolean>(
+    (user?.preferences as any)?.emailAlertsEnabled ?? true
+  );
+  const [discordWebhookUrl, setDiscordWebhookUrl] = useState<string>(
+    (user?.preferences as any)?.discordWebhookUrl || ""
+  );
+  const [telegramChatId, setTelegramChatId] = useState<string>(
+    (user?.preferences as any)?.telegramChatId || ""
+  );
   const [prefsSaving, setPrefsSaving] = useState(false);
 
   useEffect(() => {
@@ -105,6 +114,9 @@ const SettingsPage = () => {
         setPreferredPlatforms(user.preferences.preferredPlatforms || []);
         setPreferredTeamSize(user.preferences.preferredTeamSize ?? DEFAULT_PREFERENCES.preferredTeamSize);
         setSkillsInput((user.preferences.skills || []).join(", "));
+        setEmailAlertsEnabled((user.preferences as any).emailAlertsEnabled ?? true);
+        setDiscordWebhookUrl((user.preferences as any).discordWebhookUrl || "");
+        setTelegramChatId((user.preferences as any).telegramChatId || "");
       }
     }
   }, [user]);
@@ -131,7 +143,12 @@ const SettingsPage = () => {
         .filter(Boolean),
     };
     try {
-      const updatedUser = await userApi.updatePreferences(prefs);
+      const updatedUser = await userApi.updatePreferences({
+        ...prefs,
+        emailAlertsEnabled,
+        discordWebhookUrl: discordWebhookUrl.trim(),
+        telegramChatId: telegramChatId.trim(),
+      });
       saveLocalPreferences(prefs);
       updateUser({ ...user!, ...updatedUser, preferences: updatedUser?.preferences || prefs });
       showToast("Fit preferences updated.", "success");
@@ -572,6 +589,56 @@ const SettingsPage = () => {
                     placeholder="e.g. React, Node.js, AI, Python"
                     className={inputCls}
                   />
+                </div>
+
+                {/* Deadline Alert Channels */}
+                <div className="pt-4 border-t border-zinc-200/80 dark:border-zinc-800/80 space-y-4">
+                  <div>
+                    <h3 className="text-sm font-bold text-zinc-900 dark:text-zinc-100">24h Deadline Alert Channels</h3>
+                    <p className="text-xs text-zinc-500 dark:text-zinc-400 mt-0.5">
+                      Choose where HackDekh notifies you 24 hours before a tracked hackathon deadline.
+                    </p>
+                  </div>
+
+                  <label className="flex items-center justify-between gap-3 rounded-lg border border-zinc-200 bg-zinc-50/50 px-3.5 py-2.5 dark:border-zinc-800 dark:bg-zinc-900/50 cursor-pointer">
+                    <div>
+                      <span className="text-xs font-semibold text-zinc-800 dark:text-zinc-200 block">Email Reminders</span>
+                      <span className="text-[11px] text-zinc-500 dark:text-zinc-400">Sent to {user?.email || "your account email"}</span>
+                    </div>
+                    <input
+                      type="checkbox"
+                      checked={emailAlertsEnabled}
+                      onChange={(e) => setEmailAlertsEnabled(e.target.checked)}
+                      className="h-4 w-4 rounded border-zinc-300 text-blue-600 focus:ring-blue-500"
+                    />
+                  </label>
+
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div>
+                      <label className="block text-xs font-semibold text-zinc-700 dark:text-zinc-300 mb-1.5">
+                        Discord Webhook URL (optional)
+                      </label>
+                      <input
+                        type="url"
+                        value={discordWebhookUrl}
+                        onChange={(e) => setDiscordWebhookUrl(e.target.value)}
+                        placeholder="https://discord.com/api/webhooks/..."
+                        className={inputCls}
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-xs font-semibold text-zinc-700 dark:text-zinc-300 mb-1.5">
+                        Telegram Chat ID (optional)
+                      </label>
+                      <input
+                        type="text"
+                        value={telegramChatId}
+                        onChange={(e) => setTelegramChatId(e.target.value)}
+                        placeholder="e.g. 123456789"
+                        className={inputCls}
+                      />
+                    </div>
+                  </div>
                 </div>
 
                 <div className="pt-2">

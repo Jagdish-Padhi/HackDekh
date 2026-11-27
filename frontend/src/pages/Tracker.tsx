@@ -10,6 +10,8 @@ import {
   Info,
   Check,
   Flag,
+  Bell,
+  BellRing,
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useAuth, useToast, useCache } from "../context";
@@ -131,6 +133,26 @@ export default function TrackerPage() {
     });
     return Array.from(map.values());
   }, [userTeamsList, participations]);
+
+  const handleToggleAlert = async (thId: string, teamId: string, currentEnabled: boolean) => {
+    const nextEnabled = !currentEnabled;
+    // Optimistic update
+    const updatedList = participations.map((p) =>
+      p._id === thId ? { ...p, alertEnabled: nextEnabled } : p
+    );
+    setParticipations(updatedList);
+    setTrackerData(updatedList);
+
+    try {
+      await teamApi.toggleAlert(teamId, thId, nextEnabled);
+      showToast(nextEnabled ? "24h deadline alert enabled." : "24h deadline alert disabled.", "success");
+    } catch (err: any) {
+      // Revert on failure
+      setParticipations(participations);
+      setTrackerData(participations);
+      showToast(err?.response?.data?.message || "Failed to update deadline alert.", "error");
+    }
+  };
 
   // Filtered participations based on active tab & team filter
   const filteredParticipations = useMemo(() => {
@@ -374,6 +396,28 @@ export default function TrackerPage() {
                         >
                           <CheckCircle2 className="h-3.5 w-3.5" /> Squad
                         </Link>
+                      )}
+                      {(part.status === "tracking" || part.status === "active") && (
+                        <button
+                          type="button"
+                          onClick={() => handleToggleAlert(part._id, part.teamInfo._id, !!part.alertEnabled)}
+                          title={part.alertEnabled ? "24h deadline alert is ON (click to turn off)" : "Get a 24h deadline reminder via Email, Discord, or Telegram"}
+                          className={`inline-flex items-center justify-center gap-1.5 h-8 px-3 rounded-lg border text-[10.5px] font-bold transition duration-150 cursor-pointer leading-none shrink-0 ${
+                            part.alertEnabled
+                              ? "border-amber-500/40 bg-amber-500/10 text-amber-700 hover:bg-amber-500/15 dark:border-amber-500/40 dark:bg-amber-500/15 dark:text-amber-300"
+                              : "border-zinc-200 bg-white text-zinc-600 hover:border-zinc-300 hover:bg-zinc-50 hover:text-zinc-900 dark:border-zinc-800 dark:bg-zinc-950 dark:text-zinc-300 dark:hover:border-zinc-700 dark:hover:bg-zinc-900"
+                          }`}
+                        >
+                          {part.alertEnabled ? (
+                            <>
+                              <BellRing className="h-3.5 w-3.5" /> Alert On
+                            </>
+                          ) : (
+                            <>
+                              <Bell className="h-3.5 w-3.5" /> 24h Alert
+                            </>
+                          )}
+                        </button>
                       )}
                       <button
                         onClick={() => handleInitiateUntrack(part._id, part.teamInfo._id, part.hackathon._id, part.hackathon.title)}

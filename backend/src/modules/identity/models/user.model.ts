@@ -102,6 +102,9 @@ const userSchema = new mongoose.Schema({
         preferredPlatforms: { type: [String], default: [] },
         preferredTeamSize: { type: Number, min: 1, max: 10, default: 3 },
         skills: { type: [String], default: [] },
+        emailAlertsEnabled: { type: Boolean, default: true },
+        discordWebhookUrl: { type: String, trim: true, default: '' },
+        telegramChatId: { type: String, trim: true, default: '' },
     },
 }, { timestamps: true });
 

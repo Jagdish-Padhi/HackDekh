@@ -4,12 +4,13 @@ import { scrapeDevpostData } from "../adapters/devpost.adapter.ts";
 import { scrapeMLHData } from "../adapters/mlh.adapter.ts";
 import { scrapeHack2SkillData } from "../adapters/hack2skill.adapter.ts";
 import { invalidateHackathonCache } from "../../../infrastructure/cache/redis.ts";
+import { sendScraperHealthAlert } from "../../../infrastructure/notifications/alert.service.ts";
 
 export interface IngestionRunSummary {
   total: number;
   successful: number;
   failed: number;
-  results: Array<{ name: string; status: "success" | "failed"; error?: string }>;
+  results: Array<{ name: string; status: "success" | "failed"; count: number; error?: string }>;
 }
 
 export async function runAllScrapers(): Promise<IngestionRunSummary> {
@@ -29,13 +30,14 @@ export async function runAllScrapers(): Promise<IngestionRunSummary> {
   for (const scraper of scrapers) {
     try {
       console.log(`[CRON] Starting ${scraper.name} scraper...`);
-      await scraper.run();
+      const items = await scraper.run();
+      const count = Array.isArray(items) ? items.length : 0;
       successfulScrapers++;
-      results.push({ name: scraper.name, status: "success" });
-      console.log(`[CRON] ${scraper.name} scraper completed successfully.`);
+      results.push({ name: scraper.name, status: "success", count });
+      console.log(`[CRON] ${scraper.name} scraper completed (${count} items).`);
     } catch (err: any) {
       console.error(`[CRON] ${scraper.name} scraper failed:`, err?.message || err);
-      results.push({ name: scraper.name, status: "failed", error: err?.message || String(err) });
+      results.push({ name: scraper.name, status: "failed", count: 0, error: err?.message || String(err) });
     }
   }
 
@@ -45,10 +47,14 @@ export async function runAllScrapers(): Promise<IngestionRunSummary> {
     await invalidateHackathonCache();
   }
 
-  return {
+  const summary: IngestionRunSummary = {
     total: scrapers.length,
     successful: successfulScrapers,
     failed: scrapers.length - successfulScrapers,
     results,
   };
+
+  await sendScraperHealthAlert(summary);
+
+  return summary;
 }
