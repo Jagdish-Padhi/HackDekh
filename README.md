@@ -31,7 +31,7 @@
 
 ---
 
-## 🧭 Overview
+## Overview
 
 Hackathon teams rarely lose because of bad ideas. They lose because the process around the build is messy — listings scattered across Devfolio and Devpost, deadlines slipping on Unstop, team coordination lost in chaotic WhatsApp groups, and judge feedback forgotten minutes after demo day.
 
@@ -43,54 +43,34 @@ Hackathon teams rarely lose because of bad ideas. They lose because the process 
 
 ---
 
-## 🧩 Core Features
+## Core Features
 
-### 🔍 Unified Hackathon Feed
+### Unified Hackathon Feed
 - Automatically pulls from Devfolio, Devpost, Unstop, MLH, and Hack2Skill.
 - Background cron aggregation runs on an independent cadence without blocking incoming traffic.
 - Real-time search, filters for online/in-person modes, upcoming deadlines, and prize pools.
 
-### 👥 Team Workspaces
+### Team Workspaces
 - Build distinct teams for different hackathons or collaborate with recurring teammates.
 - Invite members instantly via shareable 6-character team codes, direct username lookup, or email magic links.
 - Dedicated roster roles and team directories with zero chat clutter.
 
-### 📊 Stage-by-Stage Milestone Tracker
+### Stage-by-Stage Milestone Tracker
 - Break each hackathon campaign into structured stages: *Idea Phase*, *Shortlisted*, *Prototype Build*, *Demo Day*, and *Winner*.
 - Transition statuses with real-time feedback and never miss a submission window again.
 
-### 🪞 Judge Reflections & Team Knowledge
+### Judge Reflections & Team Knowledge
 - Document judge queries, pitch feedback, and retrospective notes right after presentations.
 - Turn every hackathon into compounding insights so future hackathons are easier to win.
 
-### 🔐 Multi-Provider Authentication & Security
+### Multi-Provider Authentication & Security
 - Email and password sign-in with Brevo SMTP email verification.
 - One-click Google Authentication (via Firebase Admin SDK) and GitHub OAuth.
 - Strict rate limiting on authentication, join codes, verification emails, and scraper routes.
 
 ---
 
-## 🖼️ Product Preview
-
-<div align="center">
-
-**Dashboard & Performance Analytics**
-![Dashboard](docs/screenshots/dashboard.png)
-
-**Unified Hackathon Catalog & Filtering**
-![Hackathon Listing](docs/screenshots/hackathon-listing.png)
-
-**Team Hub & Roster Management**
-![Team Workspace](docs/screenshots/teams.png)
-
-**Stage Milestones & Retrospectives**
-![Stage Tracking](docs/screenshots/track.png)
-
-</div>
-
----
-
-## 🛠️ Technology Stack
+## Technology Stack
 
 | Domain | Technologies |
 |:---|:---|
@@ -103,7 +83,7 @@ Hackathon teams rarely lose because of bad ideas. They lose because the process 
 
 ---
 
-## 🚀 Quick Start
+## Quick Start
 
 ### 1. Clone Repository
 
@@ -134,7 +114,7 @@ Visit `http://localhost:5173` to explore HackDekh locally.
 
 ---
 
-## ⚙️ Environment Variables
+## Environment Variables
 
 ### Backend — `backend/.env`
 
@@ -161,7 +141,7 @@ Visit `http://localhost:5173` to explore HackDekh locally.
 
 ---
 
-## 📜 Available Scripts
+## Available Scripts
 
 ### Backend (`/backend`)
 - `npm run dev`: Launch API with nodemon hot-reloading
@@ -175,12 +155,12 @@ Visit `http://localhost:5173` to explore HackDekh locally.
 
 ---
 
-## 📄 License
+## License
 
 Distributed under the **MIT License**. See [`LICENSE`](LICENSE) for complete terms.
 
 ---
 
 <div align="center">
-  <sub>Built with ❤️ by <a href="https://github.com/Jagdish-Padhi">Jagdish Padhi</a> for builders everywhere.</sub>
+  <sub>Built by <a href="https://jdecodes.tech">Jagdish Padhi</a> for me and you.</sub>
 </div>
