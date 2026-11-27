@@ -2,7 +2,6 @@ import { useEffect, useState, useMemo, useCallback, useRef } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import {
   Calendar,
-  CalendarPlus,
   AlertTriangle,
   Users,
   CheckCircle2,
@@ -17,7 +16,6 @@ import { useAuth, useToast, useCache } from "../context";
 import { USER_CACHE_TTL_MS } from "../context/CacheContext";
 import { usePageChrome } from "../context/pageChrome";
 import { teamApi } from "../services";
-import { downloadDeadlineICS } from "../utils/calendar";
 import type { Team, TeamHackathon } from "../types";
 
 export const isRegistrationStage = (name: string): boolean => {
@@ -331,25 +329,6 @@ export default function TrackerPage() {
                         >
                           <CheckCircle2 className="h-3.5 w-3.5" /> Manage Workspace
                         </Link>
-                      )}
-
-                      {part.hackathon.deadline && (
-                        <button
-                          type="button"
-                          onClick={() => {
-                            const ok = downloadDeadlineICS({
-                              title: part.hackathon.title,
-                              deadline: part.hackathon.deadline,
-                              platform: part.hackathon.platform,
-                              location: part.hackathon.location,
-                              applyLink: part.hackathon.applyLink,
-                            });
-                            if (ok) showToast("Calendar event downloaded.", "success");
-                          }}
-                          className="inline-flex items-center justify-center gap-1 h-8 px-3 rounded-lg border border-zinc-200 dark:border-zinc-800 hover:bg-zinc-50 dark:hover:bg-zinc-900 text-zinc-600 dark:text-zinc-300 text-[10px] font-bold transition duration-150 cursor-pointer leading-none shrink-0"
-                        >
-                          <CalendarPlus className="h-3.5 w-3.5" /> Calendar
-                        </button>
                       )}
 
                       <button

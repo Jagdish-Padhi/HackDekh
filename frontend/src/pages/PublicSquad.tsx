@@ -1,9 +1,8 @@
 import { useEffect, useState } from "react";
 import { Link, useParams } from "react-router-dom";
-import { Calendar, CalendarPlus, Copy, ExternalLink, MapPin, Trophy, Users, ArrowRight } from "lucide-react";
+import { Calendar, Copy, ExternalLink, MapPin, Trophy, Users, ArrowRight } from "lucide-react";
 import { teamApi } from "../services";
 import { useAuth, useToast } from "../context";
-import { downloadDeadlineICS } from "../utils/calendar";
 import type { HackathonLite } from "../types";
 
 type PublicSquadData = {
@@ -231,25 +230,6 @@ export default function PublicSquadPage() {
                   </div>
 
                   <div className="flex items-center gap-2 shrink-0">
-                    {hackathon.deadline && (
-                      <button
-                        type="button"
-                        onClick={() => {
-                          const ok = downloadDeadlineICS({
-                            title: hackathon.title,
-                            deadline: hackathon.deadline,
-                            platform: hackathon.platform,
-                            location: hackathon.location,
-                            applyLink: hackathon.applyLink,
-                          });
-                          if (ok) showToast("Calendar event downloaded.", "success");
-                        }}
-                        className="inline-flex items-center gap-1.5 rounded-lg border border-zinc-200 bg-zinc-50 px-3 py-1.5 text-xs font-bold text-zinc-700 transition hover:bg-zinc-100 dark:border-zinc-800 dark:bg-zinc-950 dark:text-zinc-300 dark:hover:bg-zinc-900 cursor-pointer"
-                      >
-                        <CalendarPlus className="h-3.5 w-3.5" />
-                        Add to Calendar
-                      </button>
-                    )}
                     {hackathon.applyLink && (
                       <a
                         href={hackathon.applyLink}
