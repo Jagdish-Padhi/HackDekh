@@ -143,11 +143,10 @@ export async function dispatchDeadlineAlert(
               <a href="${detailUrl}" style="display: inline-block; background: #2563eb; color: #ffffff; text-decoration: none; padding: 10px 16px; border-radius: 6px; font-size: 13px; font-weight: 600;">
                 Open Tracker
               </a>
-              ${
-                hackathon.applyLink
-                  ? `<a href="${hackathon.applyLink}" style="display: inline-block; margin-left: 8px; border: 1px solid #d4d4d8; color: #18181b; text-decoration: none; padding: 9px 14px; border-radius: 6px; font-size: 13px; font-weight: 600;">Official Site</a>`
-                  : ""
-              }
+              ${hackathon.applyLink
+              ? `<a href="${hackathon.applyLink}" style="display: inline-block; margin-left: 8px; border: 1px solid #d4d4d8; color: #18181b; text-decoration: none; padding: 9px 14px; border-radius: 6px; font-size: 13px; font-weight: 600;">Official Site</a>`
+              : ""
+            }
             </div>
           `,
           text: `HackDekh 24h Deadline Alert\n\n${hackathon.title} (${hackathon.platform}) for ${teamName} closes within 24 hours.\nDeadline: ${deadlineStr}\nView: ${detailUrl}`,

@@ -27,7 +27,7 @@ const HomePage = () => {
             {/* 1. Hero Section */}
             <section className="relative w-full min-h-[calc(100vh-4.25rem)] lg:h-[calc(100vh-4.25rem)] flex items-center justify-center">
                 <div className="grid w-full items-center gap-12 lg:grid-cols-[minmax(0,1fr)_minmax(0,1.2fr)] lg:gap-10">
-                    <motion.div 
+                    <motion.div
                         initial={{ opacity: 0, y: 16 }}
                         animate={{ opacity: 1, y: 0 }}
                         transition={{ duration: 0.5, ease: "easeOut" }}
@@ -79,7 +79,7 @@ const HomePage = () => {
                         </div>
                     </motion.div>
 
-                    <motion.div 
+                    <motion.div
                         initial={{ opacity: 0, scale: 0.96 }}
                         animate={{ opacity: 1, scale: 1 }}
                         transition={{ duration: 0.6, delay: 0.1, ease: "easeOut" }}
@@ -92,7 +92,7 @@ const HomePage = () => {
             </section>
 
             {/* 2. Team Collaboration Highlights (Scroll Reveal) */}
-            <motion.section 
+            <motion.section
                 initial={{ opacity: 0, y: 24 }}
                 whileInView={{ opacity: 1, y: 0 }}
                 viewport={{ once: true, margin: "-40px" }}
@@ -152,7 +152,7 @@ const HomePage = () => {
             </motion.section>
 
             {/* 3. Core Capabilities Grid (Scroll Reveal) */}
-            <motion.section 
+            <motion.section
                 initial={{ opacity: 0, y: 24 }}
                 whileInView={{ opacity: 1, y: 0 }}
                 viewport={{ once: true, margin: "-40px" }}
@@ -204,7 +204,7 @@ const HomePage = () => {
             </motion.section>
 
             {/* 4. Bottom CTA Section */}
-            <motion.section 
+            <motion.section
                 initial={{ opacity: 0, y: 24 }}
                 whileInView={{ opacity: 1, y: 0 }}
                 viewport={{ once: true, margin: "-40px" }}
