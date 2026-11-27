@@ -162,10 +162,10 @@ const HomePage = () => {
             >
                 <div className="mx-auto max-w-3xl text-center space-y-3">
                     <h2 className="text-3xl font-bold tracking-tight text-zinc-900 sm:text-4xl dark:text-zinc-100">
-                        Built for builders who want to win
+                        Built for builders who want to ship
                     </h2>
                     <p className="text-base text-zinc-600 dark:text-zinc-400 max-w-2xl mx-auto">
-                        Simple, practical tools designed to turn frantic 48-hour sprints into repeatable victories.
+                        Practical tools that keep your team organized from registration to demo day.
                     </p>
                 </div>
 
@@ -173,32 +173,32 @@ const HomePage = () => {
                     <FeatureCard
                         icon={Search}
                         title="All Hackathons in One Feed"
-                        desc="Automatically aggregated from Devfolio, Unstop, Devpost, and more. Filter by online, in-person, prize pools, and upcoming deadlines."
+                        desc="Automatically aggregated from Devfolio, Unstop, Devpost, MLH, and Hack2Skill. Filter by mode, prize pool, and deadline."
                     />
                     <FeatureCard
                         icon={Users}
                         title="Multi-Team Management"
-                        desc="Create different teams with friends, classmates, or online builders. Track members and past builds in one place."
+                        desc="Create teams with friends, classmates, or online builders. Keep everyone aligned on shared hackathons."
                     />
                     <FeatureCard
                         icon={Workflow}
                         title="Stage-by-Stage Tracker"
-                        desc="Always know your standing: Applied, Shortlisted, Finalist, or Winner. Transition stages cleanly as results roll in."
+                        desc="Always know your standing: Saved, Registered, Shortlisted, or Winner. Update rounds cleanly as results roll in."
                     />
                     <FeatureCard
                         icon={Lightbulb}
-                        title="Judge Reflections & Notes"
-                        desc="Log judge questions, feedback, and learnings right after pitching. Build your team's institutional knowledge."
+                        title="Deadline Protection"
+                        desc="See every registration cutoff and round submission date in one timeline so your team never submits late."
                     />
                     <FeatureCard
                         icon={BarChart3}
-                        title="Team Performance Record"
-                        desc="Track participations, podium finishes, and finalist badges across all your hackathons in a clear portfolio."
+                        title="Track Record & History"
+                        desc="Keep a clean record of every hackathon your team has joined, active rounds, and completed finishes."
                     />
                     <FeatureCard
                         icon={Compass}
                         title="Fast Search & Filters"
-                        desc="Quickly search by hackathon title, tags, technologies, and deadlines without clicking through dozens of websites."
+                        desc="Search by title, platform, mode, and upcoming deadlines without jumping across dozens of tabs."
                     />
                 </div>
             </motion.section>
@@ -218,7 +218,7 @@ const HomePage = () => {
                             Ready to win your next hackathon?
                         </h2>
                         <p className="text-base text-zinc-600 dark:text-zinc-400">
-                            Join hackathon builders who organize their teams, track milestones, and compound learnings with HackDekh.
+                            Organize your team, track every deadline, and never miss a hackathon submission again.
                         </p>
                         <div className="pt-4 flex flex-col sm:flex-row items-center justify-center gap-4">
                             <Link

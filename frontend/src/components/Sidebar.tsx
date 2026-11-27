@@ -1,7 +1,6 @@
 import { useEffect, useState } from 'react'
-import { NavLink, useLocation, useNavigate, Link } from 'react-router-dom'
-import { BarChart3, LogOut, Menu, PanelLeftClose, PanelLeftOpen, Trophy, Users, X, Settings, Crosshair, Info } from 'lucide-react'
-import TabGuideModal, { getTabGuideKeyFromPath } from './TabGuideModal'
+import { NavLink, useNavigate, Link } from 'react-router-dom'
+import { BarChart3, LogOut, Menu, PanelLeftClose, PanelLeftOpen, Trophy, Users, X, Settings, Crosshair } from 'lucide-react'
 import { usePageChrome } from '../context/pageChrome'
 import { useAuth, useCache } from '../context'
 
@@ -15,7 +14,6 @@ const navItems = [
 
 const Sidebar = () => {
     const navigate = useNavigate()
-    const location = useLocation()
     const { sidebarExpanded, closeSidebar, toggleSidebar, pageActions } = usePageChrome()
     const [isMobile, setIsMobile] = useState(() => {
         if (typeof window === 'undefined') {
@@ -27,7 +25,6 @@ const Sidebar = () => {
     const { user, isAuthenticated, logout } = useAuth()
     const logoDestination = isAuthenticated ? '/dashboard' : '/hackathons'
     const { clearCache } = useCache()
-    const [isGuideOpen, setIsGuideOpen] = useState(false)
 
     useEffect(() => {
         if (typeof window === 'undefined') {
@@ -72,15 +69,6 @@ const Sidebar = () => {
                 <div className="flex items-center gap-2">
                     <button
                         type="button"
-                        onClick={() => setIsGuideOpen(true)}
-                        className="inline-flex h-9 w-9 items-center justify-center rounded-full border border-zinc-200 bg-white text-zinc-600 shadow-xs transition hover:border-blue-400 hover:text-blue-600 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-300 cursor-pointer"
-                        aria-label="User Guide"
-                        title="User Guide"
-                    >
-                        <Info className="h-4 w-4" />
-                    </button>
-                    <button
-                        type="button"
                         onClick={toggleSidebar}
                         className="inline-flex h-9 w-9 items-center justify-center rounded-full border border-zinc-200 bg-white text-zinc-600 shadow-sm transition hover:border-blue-400 hover:text-blue-700 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-300 dark:hover:border-blue-400 dark:hover:text-blue-300"
                         aria-label={sidebarExpanded ? 'Close sidebar' : 'Open sidebar'}
@@ -116,15 +104,6 @@ const Sidebar = () => {
 
                 <div className="ml-auto flex min-w-0 flex-1 items-center justify-end gap-2.5 overflow-visible">
                     {pageActions}
-                    <button
-                        type="button"
-                        onClick={() => setIsGuideOpen(true)}
-                        className="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-full border border-zinc-200 bg-white text-zinc-600 shadow-xs transition hover:border-blue-400 hover:text-blue-600 dark:border-zinc-800 dark:bg-zinc-900 dark:text-zinc-300 dark:hover:border-blue-400 dark:hover:text-blue-300 cursor-pointer"
-                        aria-label="User Guide"
-                        title="User Guide"
-                    >
-                        <Info className="h-4 w-4" />
-                    </button>
                 </div>
             </div>
 
@@ -215,12 +194,6 @@ const Sidebar = () => {
             {isMobile && sidebarExpanded && (
                 <div className="fixed inset-0 z-70 bg-black/20 backdrop-blur-[1px] lg:hidden" onClick={closeSidebar} aria-hidden="true" />
             )}
-
-            <TabGuideModal
-                isOpen={isGuideOpen}
-                onClose={() => setIsGuideOpen(false)}
-                tabKey={getTabGuideKeyFromPath(location.pathname)}
-            />
         </>
     )
 }

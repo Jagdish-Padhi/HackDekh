@@ -512,7 +512,7 @@ export default function TrackerPage() {
                 Are you sure you want to stop tracking <span className="font-bold text-zinc-800 dark:text-zinc-200">"{participationToUntrack.title}"</span>?
               </p>
               <p className="mt-2 text-[11px] text-zinc-450 dark:text-zinc-500 leading-normal">
-                This will permanently delete all timeline stages, logs, and reflections associated with this participation.
+                This will permanently delete all timeline stages and logs associated with this participation.
               </p>
 
               <div className="flex gap-2.5 pt-4">

@@ -2977,7 +2977,7 @@ export default function TeamsPage() {
                                   <div>
                                     <p className="text-sm font-semibold text-zinc-800 dark:text-zinc-200">Delete this team</p>
                                     <p className="text-xs text-zinc-500 dark:text-zinc-400 mt-0.5 max-w-xs">
-                                      Permanently deletes the workspace, all hackathon tracking data, stage logs, and reflections. Cannot be undone.
+                                      Permanently deletes the workspace, all hackathon tracking data, and stage logs. Cannot be undone.
                                     </p>
                                   </div>
                                   <button
@@ -3406,7 +3406,7 @@ export default function TeamsPage() {
               </div>
               <h3 className="text-base font-extrabold text-zinc-900 dark:text-white mb-2">Untrack Hackathon?</h3>
               <p className="text-xs text-zinc-550 dark:text-zinc-400 mb-6 leading-normal">
-                Are you sure you want to stop tracking <strong className="text-zinc-800 dark:text-zinc-100 font-bold">"{participationToUntrack.title}"</strong>? This will permanently delete your timeline, stages, and reflections for this team's participation.
+                Are you sure you want to stop tracking <strong className="text-zinc-800 dark:text-zinc-100 font-bold">"{participationToUntrack.title}"</strong>? This will permanently delete your timeline and stages for this team's participation.
               </p>
 
               <div className="flex gap-2.5 pt-2 justify-end">
@@ -3447,7 +3447,7 @@ export default function TeamsPage() {
               </div>
               <h3 className="text-base font-extrabold text-zinc-900 dark:text-white mb-2">Delete Milestone Stage?</h3>
               <p className="text-xs text-zinc-550 dark:text-zinc-400 mb-6 leading-normal">
-                Are you sure you want to delete stage <strong className="text-zinc-800 dark:text-zinc-100 font-bold">"{stageToDelete.stageName}"</strong>? This will permanently erase this stage milestone and all associated reflection logs.
+                Are you sure you want to delete stage <strong className="text-zinc-800 dark:text-zinc-100 font-bold">"{stageToDelete.stageName}"</strong>? This will permanently erase this stage milestone.
               </p>
 
               <div className="flex gap-2.5 pt-2 justify-end">

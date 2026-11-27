@@ -2,16 +2,16 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Link } from "react-router-dom";
 import {
   Calendar,
-  AlertTriangle,
   Trophy,
   Users,
   Check,
   Clock3,
   ChevronRight,
+  Crosshair,
 } from "lucide-react";
 import { useCache, useToast } from "../context";
 import { usePageChrome } from "../context/pageChrome";
-import { teamApi, userApi } from "../services";
+import { teamApi } from "../services";
 import type { Stage, Team, TeamHackathon, TeamInvitation } from "../types";
 
 type Participation = TeamHackathon & { teamInfo: Team };
@@ -40,18 +40,11 @@ export default function DashboardPage() {
   const isInitialMountRef = useRef(true);
 
   const [participations, setParticipations] = useState<Participation[]>(dashboardData?.participations || []);
-  const [pendingReflections, setPendingReflections] = useState<Stage[]>(dashboardData?.pendingReflections || []);
   const [incomingInvites, setIncomingInvites] = useState<TeamInvitation[]>([]);
   const [loadingData, setLoadingData] = useState<boolean>(!dashboardData);
 
   // Overview status filter for registered hackathons
   const [overviewFilter, setOverviewFilter] = useState<"all" | "won" | "finalist" | "eliminated">("all");
-
-  // Inline Reflection State
-  const [activeReflectionStageId, setActiveReflectionStageId] = useState<string>("");
-  const [selectedParticipationId, setSelectedParticipationId] = useState<string>("");
-  const [reflectionDraft, setReflectionDraft] = useState("");
-  const [isSavingReflection, setIsSavingReflection] = useState(false);
 
   // Clear pageActions so upper bar only has the circular (i) info guide button
   useEffect(() => {
@@ -59,24 +52,12 @@ export default function DashboardPage() {
     return () => setPageActions(null);
   }, [setPageActions]);
 
-  const patchParticipation = (participationId: string, updater: (participation: Participation) => Participation) => {
-    setParticipations((previous) => previous.map((item) => (item._id === participationId ? updater(item) : item)));
-  };
-
-  const selectedParticipation = useMemo(
-    () => participations.find((p) => p._id === selectedParticipationId) || null,
-    [participations, selectedParticipationId]
-  );
-
   const loadDashboardData = useCallback(async (isSilent = false) => {
     if (!isSilent) {
       setLoadingData(true);
     }
     try {
-      const [teamsRes, pendingRes] = await Promise.all([
-        teamApi.getUserTeams(),
-        userApi.getPendingReflections(),
-      ]);
+      const teamsRes = await teamApi.getUserTeams();
 
       const teamParticipations = await Promise.all(
         teamsRes.map(async (team) => {
@@ -92,11 +73,9 @@ export default function DashboardPage() {
 
       const fetchedParticipations = teamParticipations.flat();
 
-      setPendingReflections(pendingRes);
       setParticipations(fetchedParticipations);
 
       setDashboardData({
-        pendingReflections: pendingRes,
         participations: fetchedParticipations,
       });
     } catch (error) {
@@ -124,35 +103,6 @@ export default function DashboardPage() {
     } catch (err: any) {
       console.error(err);
       showToast(err.response?.data?.message || `Failed to ${action} invitation.`, "error");
-    }
-  };
-
-  const handleAddReflection = async () => {
-    if (!selectedParticipation || !activeReflectionStageId || !reflectionDraft.trim() || isSavingReflection) return;
-    const targetStage = selectedParticipation.stages.find((stage) => stage._id === activeReflectionStageId);
-    if (!targetStage) return;
-
-    setIsSavingReflection(true);
-    try {
-      const updatedStage = await teamApi.addReflection(
-        selectedParticipation.teamInfo._id,
-        selectedParticipation._id,
-        activeReflectionStageId,
-        reflectionDraft.trim()
-      );
-      patchParticipation(selectedParticipation._id, (current) => ({
-        ...current,
-        stages: current.stages.map((stage) => (stage._id === activeReflectionStageId ? { ...stage, ...updatedStage } : stage)),
-      }));
-      setPendingReflections((prev) => prev.filter((s) => s._id !== activeReflectionStageId));
-      setReflectionDraft("");
-      setActiveReflectionStageId("");
-      showToast("Reflection note saved!", "success");
-    } catch (error) {
-      console.error("Failed to add reflection", error);
-      showToast("Failed to save reflection note.", "error");
-    } finally {
-      setIsSavingReflection(false);
     }
   };
 
@@ -231,8 +181,8 @@ export default function DashboardPage() {
       {loadingData ? (
         <div className="space-y-6 select-none pointer-events-none animate-pulse">
           {/* Metric Cards Skeleton */}
-          <div className="grid gap-4 grid-cols-2 lg:grid-cols-4">
-            {Array.from({ length: 4 }).map((_, index) => (
+          <div className="grid gap-4 grid-cols-1 sm:grid-cols-3">
+            {Array.from({ length: 3 }).map((_, index) => (
               <div key={index} className="flex items-center gap-3.5 bg-white dark:bg-zinc-900/60 p-4 rounded-xl border border-zinc-200 dark:border-zinc-800 shadow-xs h-18 animate-pulse" />
             ))}
           </div>
@@ -254,7 +204,7 @@ export default function DashboardPage() {
       ) : (
         <div className="min-h-[40vh] space-y-6">
           {/* Analytics Metric Row */}
-          <div className="grid gap-4 grid-cols-2 lg:grid-cols-4">
+          <div className="grid gap-4 grid-cols-1 sm:grid-cols-3">
             {/* Metric Card 1: Queue */}
             <div className="flex items-center gap-3.5 rounded-xl border border-zinc-200/80 bg-white p-4 shadow-xs dark:border-zinc-800 dark:bg-zinc-900/60">
               <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-lg bg-blue-50 text-blue-600 dark:bg-blue-950/40 dark:text-blue-400 border border-blue-200/50 dark:border-blue-900/40">
@@ -277,30 +227,7 @@ export default function DashboardPage() {
               </div>
             </div>
 
-            {/* Metric Card 3: Reflections */}
-            <div 
-              onClick={() => {
-                const el = document.getElementById('pending-reflections-panel');
-                if (el) {
-                  el.scrollIntoView({ behavior: 'smooth', block: 'center' });
-                  el.classList.add('ring-4', 'ring-amber-500/40', 'dark:ring-amber-400/40');
-                  setTimeout(() => {
-                    el.classList.remove('ring-4', 'ring-amber-500/40', 'dark:ring-amber-400/40');
-                  }, 3000);
-                }
-              }}
-              className="flex items-center gap-3.5 rounded-xl border border-zinc-200/80 bg-white p-4 shadow-xs transition hover:border-amber-400/80 dark:border-zinc-800 dark:bg-zinc-900/60 dark:hover:border-amber-500/60 cursor-pointer"
-            >
-              <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-lg bg-amber-50 text-amber-600 dark:bg-amber-950/40 dark:text-amber-400 border border-amber-200/50 dark:border-amber-900/40">
-                <AlertTriangle className="h-5 w-5" />
-              </div>
-              <div className="min-w-0">
-                <p className="text-xs font-medium text-zinc-500 dark:text-zinc-400 truncate">Pending Reflections</p>
-                <p className="text-xl font-bold tracking-tight text-zinc-900 dark:text-zinc-50 truncate">{pendingReflections.length}</p>
-              </div>
-            </div>
-
-            {/* Metric Card 4: Finished */}
+            {/* Metric Card 3: Finished */}
             <div className="flex items-center gap-3.5 rounded-xl border border-zinc-200/80 bg-white p-4 shadow-xs dark:border-zinc-800 dark:bg-zinc-900/60">
               <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-lg bg-emerald-50 text-emerald-600 dark:bg-emerald-950/40 dark:text-emerald-400 border border-emerald-200/50 dark:border-emerald-900/40">
                 <Check className="h-5 w-5" />
@@ -455,7 +382,7 @@ export default function DashboardPage() {
               </div>
             </div>
 
-            {/* Right Column: Invitations & Reflections */}
+            {/* Right Column: Invitations & Quick Actions */}
             <div className="space-y-6">
               {/* Incoming Team Invitations */}
               {incomingInvites.length > 0 && (
@@ -507,82 +434,41 @@ export default function DashboardPage() {
                 </div>
               )}
 
-              {/* Reflection Warnings Panel */}
-              <div id="pending-reflections-panel" className="rounded-xl border border-amber-500/20 bg-amber-500/5 p-6 dark:bg-amber-500/10">
-                <div className="flex items-center gap-2 mb-3">
-                  <AlertTriangle className="h-5 w-5 text-amber-600 dark:text-amber-400" />
-                  <h3 className="text-sm font-extrabold text-zinc-900 dark:text-zinc-100 uppercase tracking-wider">Milestone Review Notes</h3>
+              {/* Quick Actions */}
+              <div className="rounded-xl border border-zinc-200/90 bg-white p-6 shadow-xs dark:border-zinc-800 dark:bg-zinc-950/40 space-y-3">
+                <h3 className="text-sm font-extrabold text-zinc-900 dark:text-zinc-100 uppercase tracking-wider">Quick Actions</h3>
+                <div className="space-y-2">
+                  <Link
+                    to="/hackathons"
+                    className="flex items-center justify-between rounded-lg border border-zinc-200/80 bg-zinc-50/70 px-3.5 py-2.5 text-xs font-semibold text-zinc-800 transition hover:border-blue-400/60 hover:bg-white dark:border-zinc-800 dark:bg-zinc-900/60 dark:text-zinc-200 dark:hover:border-blue-500/50 dark:hover:bg-zinc-900"
+                  >
+                    <span className="flex items-center gap-2.5">
+                      <Trophy className="h-4 w-4 text-blue-600 dark:text-blue-400" />
+                      Browse Open Hackathons
+                    </span>
+                    <ChevronRight className="h-4 w-4 text-zinc-400" />
+                  </Link>
+                  <Link
+                    to="/tracker"
+                    className="flex items-center justify-between rounded-lg border border-zinc-200/80 bg-zinc-50/70 px-3.5 py-2.5 text-xs font-semibold text-zinc-800 transition hover:border-blue-400/60 hover:bg-white dark:border-zinc-800 dark:bg-zinc-900/60 dark:text-zinc-200 dark:hover:border-blue-500/50 dark:hover:bg-zinc-900"
+                  >
+                    <span className="flex items-center gap-2.5">
+                      <Crosshair className="h-4 w-4 text-indigo-600 dark:text-indigo-400" />
+                      Open Deadline Tracker
+                    </span>
+                    <ChevronRight className="h-4 w-4 text-zinc-400" />
+                  </Link>
+                  <Link
+                    to="/teams"
+                    className="flex items-center justify-between rounded-lg border border-zinc-200/80 bg-zinc-50/70 px-3.5 py-2.5 text-xs font-semibold text-zinc-800 transition hover:border-blue-400/60 hover:bg-white dark:border-zinc-800 dark:bg-zinc-900/60 dark:text-zinc-200 dark:hover:border-blue-500/50 dark:hover:bg-zinc-900"
+                  >
+                    <span className="flex items-center gap-2.5">
+                      <Users className="h-4 w-4 text-emerald-600 dark:text-emerald-400" />
+                      Manage Teams
+                    </span>
+                    <ChevronRight className="h-4 w-4 text-zinc-400" />
+                  </Link>
                 </div>
-
-                {pendingReflections.length === 0 ? (
-                  <p className="text-xs text-zinc-600 dark:text-zinc-400 leading-normal">
-                    Excellent! You have written progress notes for all milestones.
-                  </p>
-                ) : (
-                  <div className="space-y-4">
-                    <p className="text-xs text-zinc-600 dark:text-zinc-400 leading-normal">
-                      Log your lessons, challenges, and progress notes for completed milestones to keep your workspace updated.
-                    </p>
-                    
-                    {pendingReflections.map((stage) => {
-                      const isReflecting = activeReflectionStageId === stage._id;
-                      return (
-                        <div key={stage._id} className="p-3 bg-white dark:bg-zinc-900/60 rounded-lg border border-amber-500/20 shadow-xs">
-                          <Link 
-                            to={
-                              stage.teamHackathon && typeof stage.teamHackathon === "object" && stage.teamHackathon.team
-                                ? `/teams?teamId=${(stage.teamHackathon.team as any)._id || stage.teamHackathon.team}&participationId=${stage.teamHackathon._id}&tab=Stages&stageId=${stage._id}`
-                                : `/teams`
-                            }
-                            className="text-xs font-bold text-zinc-900 dark:text-zinc-100 hover:text-blue-600 dark:hover:text-blue-400 transition-colors block cursor-pointer"
-                          >
-                            {stage.name}
-                          </Link>
-                          <p className="text-[10px] text-zinc-500 dark:text-zinc-400 mt-0.5">Stage Result: {stage.result}</p>
-                          
-                          {!isReflecting ? (
-                            <button
-                              onClick={() => {
-                                setActiveReflectionStageId(stage._id);
-                                setSelectedParticipationId(typeof stage.teamHackathon === "object" ? stage.teamHackathon._id : "");
-                                setReflectionDraft("");
-                              }}
-                              className="mt-2.5 text-[10px] font-bold text-blue-600 dark:text-blue-400 hover:underline inline-flex items-center gap-0.5 cursor-pointer"
-                            >
-                              Write Notes <ChevronRight className="h-3 w-3" />
-                            </button>
-                          ) : (
-                            <div className="mt-2 space-y-2">
-                              <textarea
-                                value={reflectionDraft}
-                                onChange={(e) => setReflectionDraft(e.target.value)}
-                                placeholder="What went well? What obstacles did you encounter? What is the team status?"
-                                className="w-full min-h-[60px] p-2 text-[11px] rounded-lg border border-zinc-200 dark:border-zinc-800 bg-zinc-50 dark:bg-zinc-900 text-zinc-800 dark:text-zinc-200 outline-none"
-                              />
-                              <div className="flex justify-end gap-1.5">
-                                <button
-                                  type="button"
-                                  onClick={() => setActiveReflectionStageId("")}
-                                  className="px-2 py-1 text-[10px] font-semibold border border-zinc-200 dark:border-zinc-800 rounded-md hover:bg-zinc-50 dark:hover:bg-zinc-900 cursor-pointer"
-                                >
-                                  Cancel
-                                </button>
-                                <button
-                                  type="button"
-                                  onClick={handleAddReflection}
-                                  disabled={isSavingReflection}
-                                  className="px-2 py-1 text-[10px] font-semibold bg-blue-600 hover:bg-blue-500 text-white rounded-md cursor-pointer disabled:opacity-50"
-                                >
-                                  {isSavingReflection ? "Saving..." : "Save"}
-                                </button>
-                              </div>
-                            </div>
-                          )}
-                        </div>
-                      );
-                    })}
-                  </div>
-                )}
               </div>
             </div>
           </div>

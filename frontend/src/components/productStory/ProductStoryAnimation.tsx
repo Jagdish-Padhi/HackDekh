@@ -12,7 +12,6 @@ import {
   Compass,
   Flag,
   Lock,
-  MessageSquareText,
   type LucideIcon,
   Users,
 } from "lucide-react";
@@ -20,7 +19,6 @@ import type { ComponentType } from "react";
 import { useEffect, useRef, useState } from "react";
 import BrowseScene from "./scenes/BrowseScene";
 import DashboardScene from "./scenes/DashboardScene";
-import ReflectionScene from "./scenes/ReflectionScene";
 import StageTrackingScene from "./scenes/StageTrackingScene";
 import TeamsScene from "./scenes/TeamsScene";
 
@@ -35,11 +33,10 @@ type StoryScene = {
 const SCENE_DURATION_MS = 6500;
 
 const storyScenes: StoryScene[] = [
-  { id: 0, shortLabel: "Discovery",   icon: Compass,           component: BrowseScene,        sceneTitle: "Live Hackathons • Devfolio & Unstop" },
-  { id: 1, shortLabel: "Teams",       icon: Users,             component: TeamsScene,         sceneTitle: "Team Workspace & Roles" },
-  { id: 2, shortLabel: "Stages",      icon: Flag,              component: StageTrackingScene, sceneTitle: "Stage-by-Stage Milestone Tracker" },
-  { id: 3, shortLabel: "Reflections", icon: MessageSquareText, component: ReflectionScene,    sceneTitle: "Judge Feedback & Learnings" },
-  { id: 4, shortLabel: "Analytics",   icon: BarChart3,         component: DashboardScene,     sceneTitle: "Performance & Analytics" },
+  { id: 0, shortLabel: "Discovery",   icon: Compass,   component: BrowseScene,        sceneTitle: "Live Hackathons • Devfolio & Unstop" },
+  { id: 1, shortLabel: "Teams",       icon: Users,     component: TeamsScene,         sceneTitle: "Team Workspace & Roles" },
+  { id: 2, shortLabel: "Stages",      icon: Flag,      component: StageTrackingScene, sceneTitle: "Stage-by-Stage Milestone Tracker" },
+  { id: 3, shortLabel: "Overview",    icon: BarChart3, component: DashboardScene,     sceneTitle: "Deadlines & Active Overview" },
 ];
 
 export default function ProductStoryAnimation() {
