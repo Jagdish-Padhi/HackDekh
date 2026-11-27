@@ -20,6 +20,7 @@ import { usePageChrome } from "../context/pageChrome";
 import { teamApi } from "../services";
 import AppDropdown from "../components/AppDropdown";
 import type { Team, TeamHackathon } from "../types";
+import posthog, { isPostHogEnabled } from "../posthog";
 
 export const isRegistrationStage = (name: string): boolean => {
   return /register|registration|apply|application|prep|regn/i.test(name);
@@ -232,6 +233,9 @@ export default function TrackerPage() {
     try {
       await teamApi.updateStatus(teamId, participationId, nextStatus as any);
       invalidateUserCaches();
+      if (nextStatus === 'active' && isPostHogEnabled) {
+        posthog.capture('hackathon_registration_confirmed');
+      }
       showToast(`Status updated to "${nextStatus}" successfully!`, "success");
       await loadTrackerData(true);
     } catch (error: any) {

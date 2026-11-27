@@ -19,6 +19,7 @@ import {
     loadLocalPreferences,
     saveLocalPreferences,
 } from '../utils/fitEngine'
+import posthog, { isPostHogEnabled, posthogLog } from '../posthog'
 
 type Hackathon = {
     _id: string
@@ -224,6 +225,7 @@ const HackathonList = () => {
     }, [loadTrackedHackathons]);
 
     const trackOnTeam = async (hackathonId: string, teamId: string, teamName?: string) => {
+        const hackathon = hackathons.find((item) => item._id === hackathonId);
         const tempId = `optimistic_${Date.now()}`;
         setTrackedHackathons(prev => ({
             ...prev,
@@ -250,6 +252,14 @@ const HackathonList = () => {
                 return prev;
             });
             invalidateUserCaches();
+            if (isPostHogEnabled) {
+                const trackingAttributes = {
+                    platform: hackathon?.platform || 'unknown',
+                    mode: hackathon?.mode || 'unknown',
+                };
+                posthog.capture('hackathon_tracked', trackingAttributes);
+                posthogLog.info('hackathon tracking started', trackingAttributes);
+            }
             showToast(teamName ? `Tracked under "${teamName}".` : "Hackathon tracked successfully.", "success");
         } catch (error: any) {
             console.error("Failed to track hackathon in background", error);
@@ -331,6 +341,9 @@ const HackathonList = () => {
         try {
             // 4. Fire API in background
             await teamApi.unlinkHackathon(trackingInfo.teamId, hackathonId);
+            if (isPostHogEnabled) {
+                posthog.capture('hackathon_untracked');
+            }
             showToast("Hackathon untracked successfully", "success");
         } catch (error: any) {
             console.error("Failed to untrack in background", error);

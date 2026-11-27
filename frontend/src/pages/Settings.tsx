@@ -24,6 +24,7 @@ import {
 } from "../utils/fitEngine";
 import axiosInstance from "../utils/axiosInstance";
 import { AnimatePresence, motion } from "framer-motion";
+import posthog, { isPostHogEnabled } from "../posthog";
 
 /* ─── helpers ──────────────────────────────────────────────────────────────── */
 
@@ -166,6 +167,9 @@ const SettingsPage = () => {
       const res = await axiosInstance.put("/users/update", { fullName, email });
       if (res.data?.success && res.data?.data) {
         updateUser({ ...user!, fullName: res.data.data.fullName, email: res.data.data.email });
+        if (isPostHogEnabled) {
+          posthog.capture('profile_updated');
+        }
         showToast("Profile updated successfully.", "success");
       }
     } catch (err: any) {
@@ -202,6 +206,9 @@ const SettingsPage = () => {
         newPassword: newPw,
       });
       if (res.data?.success) {
+        if (isPostHogEnabled) {
+          posthog.capture('password_changed');
+        }
         showToast("Password updated successfully.", "success");
         setOldPw(""); setNewPw(""); setConfirmPw("");
       }
@@ -248,6 +255,9 @@ const SettingsPage = () => {
     setDeleting(true);
     try {
       await axiosInstance.delete("/users/me");
+      if (isPostHogEnabled) {
+        posthog.capture('account_deleted');
+      }
       showToast("Your account has been deleted.", "success");
       // logout handled by server expiring cookies / auth context
     } catch (err: any) {
