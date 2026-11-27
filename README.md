@@ -11,11 +11,10 @@
 
   <p>
     <a href="https://hackdekh.jdecodes.tech/">Live App</a> •
-    <a href="#-overview">Overview</a> •
-    <a href="#-core-features">Features</a> •
-    <a href="#-product-preview">Preview</a> •
-    <a href="#-quick-start">Quick Start</a> •
-    <a href="#-environment-variables">Configuration</a>
+    <a href="#overview">Overview</a> •
+    <a href="#core-features">Features</a> •
+    <a href="#quick-start">Quick Start</a> •
+    <a href="#environment-variables">Configuration</a>
   </p>
 
   <p>

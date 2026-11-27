@@ -491,29 +491,17 @@ export default function TeamsPage() {
     setGithubSearchError("");
     setSearchedGithubUser(null);
     try {
-      const res = await fetch(`https://api.github.com/users/${query}`);
+      const res = await fetch(`https://api.github.com/users/${encodeURIComponent(query)}`);
       if (res.ok) {
         const data = await res.json();
         setSearchedGithubUser(data);
+      } else if (res.status === 404) {
+        setGithubSearchError(`GitHub user "${query}" was not found.`);
       } else {
-        // Fallback user if rate limited or not found
-        setSearchedGithubUser({
-          login: query,
-          name: query.replace(/-/g, " "),
-          avatar_url: `https://api.dicebear.com/7.x/identicon/svg?seed=${query}`,
-          bio: "GitHub Developer",
-          public_repos: 5,
-        });
+        setGithubSearchError("GitHub lookup is temporarily unavailable. Please try again.");
       }
     } catch {
-      // Offline fallback
-      setSearchedGithubUser({
-        login: query,
-        name: query.replace(/-/g, " "),
-        avatar_url: `https://api.dicebear.com/7.x/identicon/svg?seed=${query}`,
-        bio: "Mock developer profile",
-        public_repos: 3,
-      });
+      setGithubSearchError("Unable to reach GitHub. Check your connection and try again.");
     } finally {
       setGithubSearchLoading(false);
     }
@@ -1093,11 +1081,6 @@ export default function TeamsPage() {
 
     setIsDeletingStage(true);
     try {
-      console.log("[DEBUG] handleDeleteStage inputs in Teams:", {
-        teamId: participation.teamInfo._id,
-        participationId,
-        stageId
-      });
       await teamApi.deleteStage(participation.teamInfo._id, participationId, stageId);
       const updater = (current: TeamHackathon[]) =>
         current.map((item) => (item._id === participationId ? { ...item, stages: item.stages.filter((stage) => stage._id !== stageId) } : item));

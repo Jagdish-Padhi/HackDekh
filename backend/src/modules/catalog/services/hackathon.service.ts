@@ -214,14 +214,12 @@ export const getHackathonsService = async (filters: HackathonQueryFilters): Prom
     try {
       const cachedData = await redisClient.get(cacheKey);
       if (cachedData) {
-        console.log(`[Redis] CACHE HIT: ${cacheKey}`);
         return {
           data: JSON.parse(cachedData),
           message: "Hackathons fetched from Redis cache",
           fromCache: true,
         };
       }
-      console.log(`[Redis] CACHE MISS: ${cacheKey}`);
     } catch (redisErr) {
       console.warn("[Redis] Failed to read from cache:", redisErr);
     }
@@ -327,7 +325,6 @@ export const getHackathonsService = async (filters: HackathonQueryFilters): Prom
       await redisClient.set(cacheKey, JSON.stringify(plainList), {
         EX: HACKATHON_CACHE_TTL,
       });
-      console.log(`[Redis] cache set: ${cacheKey}`);
     } catch (redisErr) {
       console.warn("[Redis] Failed to save to cache:", redisErr);
     }
