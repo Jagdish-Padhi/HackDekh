@@ -109,7 +109,7 @@ export default function BrowseScene() {
           <button
             type="button"
             onClick={() => setActiveIdx((prev) => (prev - 1 + hackathons.length) % hackathons.length)}
-            className="flex h-5 w-5 items-center justify-center rounded border border-zinc-200 bg-white text-zinc-600 hover:bg-zinc-50 dark:border-zinc-800 dark:bg-zinc-900 dark:text-zinc-300"
+            className="flex h-5 w-5 items-center justify-center rounded border border-zinc-200 bg-white text-zinc-600 hover:bg-zinc-50 dark:border-zinc-800 dark:bg-zinc-900 dark:text-zinc-300 dark:hover:bg-zinc-800"
             aria-label="Previous card"
           >
             <ChevronLeft className="h-3 w-3" />
@@ -117,7 +117,7 @@ export default function BrowseScene() {
           <button
             type="button"
             onClick={() => setActiveIdx((prev) => (prev + 1) % hackathons.length)}
-            className="flex h-5 w-5 items-center justify-center rounded border border-zinc-200 bg-white text-zinc-600 hover:bg-zinc-50 dark:border-zinc-800 dark:bg-zinc-900 dark:text-zinc-300"
+            className="flex h-5 w-5 items-center justify-center rounded border border-zinc-200 bg-white text-zinc-600 hover:bg-zinc-50 dark:border-zinc-800 dark:bg-zinc-900 dark:text-zinc-300 dark:hover:bg-zinc-800"
             aria-label="Next card"
           >
             <ChevronRight className="h-3 w-3" />
