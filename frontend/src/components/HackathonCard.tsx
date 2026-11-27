@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { ExternalLink, CheckCircle2, Share2 } from "lucide-react";
+import { ExternalLink, CheckCircle2, Share2, Users } from "lucide-react";
 
 type Hackathon = {
     _id: string
@@ -222,8 +222,8 @@ const HackathonCard = ({ hackathon, displayIndex, extraActions = [], trackingSta
     const locationLabel = hackathon.location?.trim() || "TBD";
     const prizeDisplay = getPrizeDisplay(hackathon.prize);
     const prizeChipClass = prizeDisplay.isTbd
-        ? "inline-flex items-center gap-1.5 rounded-lg border border-zinc-200 bg-zinc-50 px-2 py-0.5 text-[0.7rem] font-semibold text-zinc-500 dark:border-zinc-850 dark:bg-zinc-800/40 dark:text-zinc-400"
-        : "inline-flex items-center gap-1.5 rounded-lg border border-emerald-200/80 bg-emerald-50/60 px-2 py-0.5 text-[0.72rem] font-bold text-emerald-700 dark:border-emerald-500/20 dark:bg-emerald-500/10 dark:text-emerald-400";
+        ? "inline-flex max-w-full items-center gap-1 rounded-md border border-zinc-200 bg-zinc-50 px-2 py-0.5 h-6 text-[10px] font-semibold text-zinc-500 dark:border-zinc-850 dark:bg-zinc-800/40 dark:text-zinc-400"
+        : "inline-flex max-w-full items-center gap-1 rounded-md border border-emerald-200/80 bg-emerald-50/60 px-2 py-0.5 h-6 text-[10.5px] font-bold text-emerald-700 dark:border-emerald-500/20 dark:bg-emerald-500/10 dark:text-emerald-400";
     const revealDelay = (displayIndex % 4) * 65;
 
     // Read tracked state
@@ -318,7 +318,7 @@ const HackathonCard = ({ hackathon, displayIndex, extraActions = [], trackingSta
                         </span>
                     </span>
                 </div>
-                <div className="flex items-start gap-2 text-[0.72rem] text-zinc-500 min-h-[28px] dark:text-zinc-400">
+                <div className="flex items-start gap-2 text-[0.72rem] text-zinc-500 min-h-[32px] dark:text-zinc-400">
                     <svg className="mt-[2px] h-3.5 w-3.5 shrink-0 text-zinc-400 dark:text-zinc-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
                         <path strokeLinecap="round" strokeLinejoin="round" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
                         <path strokeLinecap="round" strokeLinejoin="round" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
@@ -337,35 +337,34 @@ const HackathonCard = ({ hackathon, displayIndex, extraActions = [], trackingSta
                         }</span>
                     </span>
                 </div>
-                {formatTeamSizeShort(hackathon.teamSize) && (
-                    <div className="flex items-center gap-2 text-[0.72rem] text-zinc-500 dark:text-zinc-400">
-                        <svg className="h-3.5 w-3.5 shrink-0 text-zinc-400 dark:text-zinc-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
-                            <path strokeLinecap="round" strokeLinejoin="round" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z" />
-                        </svg>
-                        <span className="font-medium whitespace-nowrap">
-                            Team: <span className="text-zinc-700 dark:text-zinc-300 font-semibold">{formatTeamSizeShort(hackathon.teamSize)}</span>
-                        </span>
-                    </div>
-                )}
             </div>
 
             {/* Footer with Prize & Button */}
             <div className="mt-auto pt-4 flex flex-col gap-3">
-                <div className="flex items-center justify-between gap-2">
-                    <div className="flex items-center min-w-0">
+                <div className="flex items-center justify-between gap-2 min-w-0">
+                    <div className="flex items-center min-w-0 flex-1 overflow-hidden">
                         <span className={prizeChipClass}>
                             <img
                                 src="/prizeSvg.svg"
                                 alt=""
                                 aria-hidden="true"
-                                className={`h-3.5 w-3.5 shrink-0 ${prizeDisplay.isTbd ? "opacity-80" : ""}`}
+                                className={`h-3 w-3 shrink-0 ${prizeDisplay.isTbd ? "opacity-80" : ""}`}
                             />
-                            <span className="truncate max-w-[125px]" title={prizeDisplay.label}>
+                            <span className="truncate min-w-0" title={prizeDisplay.label}>
                                 {prizeDisplay.label}
                             </span>
                         </span>
                     </div>
                     <div className="flex items-center gap-1.5 shrink-0">
+                        {formatTeamSizeShort(hackathon.teamSize) && (
+                            <span
+                                title={`Team size: ${hackathon.teamSize}`}
+                                className="inline-flex h-6 items-center gap-1 rounded-md border border-zinc-200 bg-zinc-50 px-1.5 text-[10px] font-semibold text-zinc-600 dark:border-zinc-800 dark:bg-zinc-900 dark:text-zinc-400 whitespace-nowrap"
+                            >
+                                <Users className="h-2.5 w-2.5 shrink-0 text-zinc-400 dark:text-zinc-500" />
+                                {formatTeamSizeShort(hackathon.teamSize)}
+                            </span>
+                        )}
                         {onShare && (
                             <button
                                 type="button"
@@ -390,7 +389,7 @@ const HackathonCard = ({ hackathon, displayIndex, extraActions = [], trackingSta
                                     onWorthIt();
                                 }}
                                 title="Check if this hackathon fits your team and travel context"
-                                className={`inline-flex shrink-0 items-center gap-1 rounded-md border px-2 py-0.5 text-[10px] font-bold transition cursor-pointer ${
+                                className={`inline-flex h-6 shrink-0 items-center gap-1 rounded-md border px-2 !text-[10px] leading-none font-bold transition cursor-pointer whitespace-nowrap ${
                                     fitBadge
                                         ? fitBadge.verdict === "strong"
                                             ? "border-emerald-200 bg-emerald-50 text-emerald-700 hover:bg-emerald-100 dark:border-emerald-800/60 dark:bg-emerald-950/40 dark:text-emerald-300 dark:hover:bg-emerald-950/60"
@@ -413,7 +412,7 @@ const HackathonCard = ({ hackathon, displayIndex, extraActions = [], trackingSta
                             href={hackathon.applyLink}
                             target="_blank"
                             rel="noopener noreferrer"
-                            className="flex-1 h-7.5 inline-flex items-center justify-center rounded-lg border border-zinc-200 bg-white px-2 text-[10.5px] font-bold text-zinc-700 shadow-xs transition hover:bg-zinc-50 hover:border-zinc-300 dark:border-zinc-850 dark:bg-zinc-950 dark:text-zinc-300 dark:hover:bg-zinc-900 whitespace-nowrap"
+                            className="flex-1 h-8 inline-flex items-center justify-center rounded-lg border border-zinc-200 bg-white px-2.5 !text-[11px] leading-none font-bold text-zinc-700 shadow-xs transition hover:bg-zinc-50 hover:border-zinc-300 dark:border-zinc-850 dark:bg-zinc-950 dark:text-zinc-300 dark:hover:bg-zinc-900 whitespace-nowrap"
                         >
                             Official Site
                             <ExternalLink className="ml-1 h-3 w-3 shrink-0" />
@@ -428,7 +427,7 @@ const HackathonCard = ({ hackathon, displayIndex, extraActions = [], trackingSta
                                 e.stopPropagation();
                                 onUntrack?.();
                             }}
-                            className={`flex-1 h-7.5 inline-flex items-center justify-center rounded-lg px-2 text-[10.5px] font-bold transition-all duration-200 cursor-pointer border whitespace-nowrap ${
+                            className={`flex-1 h-8 inline-flex items-center justify-center rounded-lg px-2.5 !text-[11px] leading-none font-bold transition-all duration-200 cursor-pointer border whitespace-nowrap ${
                                 isHovered
                                     ? "bg-rose-500 border-rose-500 text-white shadow-sm shadow-rose-500/20"
                                     : "bg-zinc-100 border-zinc-200 text-zinc-505 dark:bg-zinc-800/40 dark:border-zinc-700/50 dark:text-zinc-400"
@@ -439,7 +438,7 @@ const HackathonCard = ({ hackathon, displayIndex, extraActions = [], trackingSta
                     ) : (
                         <button
                             onClick={trackHandler}
-                            className="flex-1 h-7.5 inline-flex items-center justify-center rounded-lg bg-blue-600 px-2 text-[10.5px] font-bold text-white shadow-xs transition hover:bg-blue-500 cursor-pointer whitespace-nowrap"
+                            className="flex-1 h-8 inline-flex items-center justify-center rounded-lg bg-blue-600 px-2.5 !text-[11px] leading-none font-bold text-white shadow-xs transition hover:bg-blue-500 cursor-pointer whitespace-nowrap"
                         >
                             Track
                         </button>
