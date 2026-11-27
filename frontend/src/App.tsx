@@ -1,4 +1,4 @@
-﻿import { lazy, Suspense } from 'react';
+import { lazy, Suspense } from 'react';
 import { BrowserRouter as Router, Routes, Route, useLocation } from 'react-router-dom';
 import MainLayout from './components/MainLayout';
 import HomePage from './pages/Home';
@@ -7,6 +7,7 @@ import { AuthProvider, CacheProvider, ToastProvider } from './context';
 
 // Code-split non-landing routes so the initial landing page bundle is lightweight
 const HackathonsPage = lazy(() => import('./pages/Hackathons'));
+const HackathonDetailPage = lazy(() => import('./pages/HackathonDetail'));
 const LoginPage = lazy(() => import('./pages/Login'));
 const VerificationPage = lazy(() => import('./pages/VerifyEmail'));
 const ResetPasswordPage = lazy(() => import('./pages/ResetPassword'));
@@ -16,6 +17,7 @@ const DashboardPage = lazy(() => import('./pages/Dashboard'));
 const TrackerPage = lazy(() => import('./pages/Tracker'));
 const SettingsPage = lazy(() => import('./pages/Settings'));
 const GithubCallbackPage = lazy(() => import('./pages/GithubCallback'));
+const PublicSquadPage = lazy(() => import('./pages/PublicSquad'));
 
 function AppContent() {
   const location = useLocation();
@@ -35,8 +37,10 @@ function AppContent() {
             <Route path="/verify-email" element={<VerificationPage />} />
             <Route path="/reset-password" element={<ResetPasswordPage />} />
             <Route path="/hackathons" element={<HackathonsPage />} />
+            <Route path="/hackathons/:slug" element={<HackathonDetailPage />} />
             <Route path="/accept-invitation" element={<AcceptInvitationPage />} />
             <Route path="/auth/github/callback" element={<GithubCallbackPage />} />
+            <Route path="/squad/:code" element={<PublicSquadPage />} />
             
             {/* Protected Routes */}
             <Route 

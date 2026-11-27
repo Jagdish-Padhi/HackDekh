@@ -68,6 +68,13 @@ export const teamApi = {
     return unwrap(response);
   },
 
+  toggleAlert: async (teamId: string, thId: string, enabled: boolean): Promise<TeamHackathon> => {
+    const response = await axiosInstance.patch<ApiResponse<TeamHackathon>>(`/teams/${teamId}/hackathons/${thId}/alert`, {
+      enabled,
+    });
+    return unwrap(response);
+  },
+
   addStage: async (
     teamId: string,
     thId: string,
@@ -169,6 +176,11 @@ export const teamApi = {
     return unwrap(response);
   },
 
+  getPublicSquad: async (code: string) => {
+    const response = await axiosInstance.get<ApiResponse<any>>(`/teams/public/${encodeURIComponent(code)}`);
+    return unwrap(response);
+  },
+
   inviteUserDirect: async (teamId: string, userIdOrUsername: string): Promise<TeamInvitation> => {
     const response = await axiosInstance.post<ApiResponse<TeamInvitation>>(`/teams/${teamId}/invitations/user`, {
       userIdOrUsername,
@@ -191,15 +203,28 @@ export const teamApi = {
 };
 
 export const userApi = {
-  getPendingReflections: async (): Promise<Stage[]> => {
-    const response = await axiosInstance.get<ApiResponse<Stage[]>>('/users/pending-reflections');
-    return unwrap(response);
-  },
-
   searchUsers: async (query: string): Promise<UserLite[]> => {
     const response = await axiosInstance.get<ApiResponse<UserLite[]>>('/users/search', {
       params: { query },
     });
+    return unwrap(response);
+  },
+
+  updatePreferences: async (preferences: {
+    homeCity?: string;
+    travelPreference?: string;
+    maxTravelBudgetINR?: number;
+    minPrizeINR?: number;
+    minDaysToPrepare?: number;
+    preferredModes?: string[];
+    preferredPlatforms?: string[];
+    preferredTeamSize?: number;
+    skills?: string[];
+    emailAlertsEnabled?: boolean;
+    discordWebhookUrl?: string;
+    telegramChatId?: string;
+  }) => {
+    const response = await axiosInstance.put<ApiResponse<any>>('/users/preferences', preferences);
     return unwrap(response);
   },
 };

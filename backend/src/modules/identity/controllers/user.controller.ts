@@ -169,6 +169,94 @@ export const updateAccountDetails = asyncHandler(async (req: any, res: any) => {
     .json(new ApiResponse(200, user, "Account details updated successfully!"));
 });
 
+const ALLOWED_TRAVEL_PREFS = ['online_only', 'same_city', 'anywhere_reimbursed', 'anywhere'] as const;
+const ALLOWED_MODES = ['online', 'in-person', 'hybrid'] as const;
+
+export const updateUserPreferences = asyncHandler(async (req: any, res: any) => {
+  const {
+    homeCity,
+    travelPreference,
+    maxTravelBudgetINR,
+    minPrizeINR,
+    minDaysToPrepare,
+    preferredModes,
+    preferredPlatforms,
+    preferredTeamSize,
+    skills,
+    emailAlertsEnabled,
+    discordWebhookUrl,
+    telegramChatId,
+  } = req.body || {};
+
+  const preferencesUpdate: Record<string, any> = {};
+  if (typeof homeCity === "string") {
+    preferencesUpdate["preferences.homeCity"] = homeCity.trim().slice(0, 100);
+  }
+  if (typeof travelPreference === "string" && ALLOWED_TRAVEL_PREFS.includes(travelPreference as any)) {
+    preferencesUpdate["preferences.travelPreference"] = travelPreference;
+  }
+  if (maxTravelBudgetINR !== undefined && !Number.isNaN(Number(maxTravelBudgetINR))) {
+    preferencesUpdate["preferences.maxTravelBudgetINR"] = Math.max(0, Math.min(1000000, Number(maxTravelBudgetINR)));
+  }
+  if (minPrizeINR !== undefined && !Number.isNaN(Number(minPrizeINR))) {
+    preferencesUpdate["preferences.minPrizeINR"] = Math.max(0, Math.min(100000000, Number(minPrizeINR)));
+  }
+  if (minDaysToPrepare !== undefined && !Number.isNaN(Number(minDaysToPrepare))) {
+    preferencesUpdate["preferences.minDaysToPrepare"] = Math.max(0, Math.min(90, Math.round(Number(minDaysToPrepare))));
+  }
+  if (Array.isArray(preferredModes)) {
+    preferencesUpdate["preferences.preferredModes"] = preferredModes
+      .map((m) => String(m).trim().toLowerCase())
+      .filter((m) => ALLOWED_MODES.includes(m as any));
+  }
+  if (Array.isArray(preferredPlatforms)) {
+    preferencesUpdate["preferences.preferredPlatforms"] = preferredPlatforms
+      .map((p) => String(p).trim())
+      .filter(Boolean)
+      .slice(0, 10);
+  }
+  if (preferredTeamSize !== undefined && !Number.isNaN(Number(preferredTeamSize))) {
+    preferencesUpdate["preferences.preferredTeamSize"] = Math.max(1, Math.min(10, Math.round(Number(preferredTeamSize))));
+  }
+  if (Array.isArray(skills)) {
+    preferencesUpdate["preferences.skills"] = skills
+      .map((s) => String(s).trim())
+      .filter(Boolean)
+      .slice(0, 15);
+  }
+  if (typeof emailAlertsEnabled === "boolean") {
+    preferencesUpdate["preferences.emailAlertsEnabled"] = emailAlertsEnabled;
+  }
+  if (typeof discordWebhookUrl === "string") {
+    const trimmed = discordWebhookUrl.trim();
+    if (trimmed && !/^https:\/\/(discord\.com|discordapp\.com)\/api\/webhooks\/\S+$/i.test(trimmed)) {
+      throw new ApiError(400, "Invalid Discord webhook URL. Must start with https://discord.com/api/webhooks/");
+    }
+    preferencesUpdate["preferences.discordWebhookUrl"] = trimmed.slice(0, 300);
+  }
+  if (typeof telegramChatId === "string") {
+    const trimmed = telegramChatId.trim();
+    if (trimmed && !/^-?\d{4,20}$/.test(trimmed)) {
+      throw new ApiError(400, "Invalid Telegram Chat ID. Must be a numeric chat ID.");
+    }
+    preferencesUpdate["preferences.telegramChatId"] = trimmed;
+  }
+
+  if (Object.keys(preferencesUpdate).length === 0) {
+    throw new ApiError(400, "No valid preference fields provided.");
+  }
+
+  const user = await User.findByIdAndUpdate(
+    req.user?._id,
+    { $set: preferencesUpdate },
+    { returnDocument: 'after' }
+  ).select("-password -refreshToken");
+
+  return res
+    .status(200)
+    .json(new ApiResponse(200, user, "Preferences updated successfully!"));
+});
+
 
 
 export const getPendingReflections = asyncHandler(async (req: any, res: any) => {

@@ -3,7 +3,6 @@ import {
   Check,
   Shield,
   Moon,
-  Sun,
   AlertTriangle,
   Eye,
   EyeOff,
@@ -11,9 +10,18 @@ import {
   Trash2,
   Loader2,
   User,
+  SlidersHorizontal,
 } from "lucide-react";
-import { useAuth } from "../context/AuthContext";
+import { useAuth, type TravelPreference, type UserPreferences } from "../context/AuthContext";
 import { useToast } from "../context";
+import { userApi } from "../services";
+import {
+  AVAILABLE_MODES,
+  AVAILABLE_PLATFORMS,
+  DEFAULT_PREFERENCES,
+  saveLocalPreferences,
+  TRAVEL_PREFERENCE_LABELS,
+} from "../utils/fitEngine";
 import axiosInstance from "../utils/axiosInstance";
 import { AnimatePresence, motion } from "framer-motion";
 import posthog, { isPostHogEnabled } from "../posthog";
@@ -36,14 +44,15 @@ function getPasswordStrength(pw: string) {
 }
 
 const inputCls =
-  "w-full rounded-lg border border-zinc-200 bg-zinc-50/50 px-4 py-2.5 text-sm text-zinc-800 outline-none transition focus:border-blue-400 focus:bg-white dark:border-zinc-800 dark:bg-zinc-900 dark:text-zinc-100 dark:focus:bg-zinc-950 dark:focus:border-blue-400 dark:placeholder-zinc-600";
+  "w-full rounded-lg border border-zinc-200 bg-zinc-50/50 px-4 py-2.5 text-sm text-zinc-800 outline-none transition hover:border-zinc-300 focus:border-blue-500/70 focus:bg-white focus:ring-3 focus:ring-blue-500/12 dark:border-zinc-800 dark:bg-zinc-900 dark:text-zinc-100 dark:hover:border-zinc-700 dark:focus:bg-zinc-950 dark:focus:border-blue-500/60 dark:focus:ring-blue-500/15 dark:placeholder-zinc-600";
 
 /* ─── sub-components ────────────────────────────────────────────────────────── */
 
-type NavSection = "profile" | "security" | "appearance" | "danger";
+type NavSection = "profile" | "preferences" | "security" | "appearance" | "danger";
 
 const NAV_ITEMS: { id: NavSection; label: string; icon: React.ElementType; danger?: boolean }[] = [
   { id: "profile", label: "Profile", icon: User },
+  { id: "preferences", label: "Fit Preferences", icon: SlidersHorizontal },
   { id: "security", label: "Security", icon: Shield },
   { id: "appearance", label: "Appearance", icon: Moon },
   { id: "danger", label: "Danger Zone", icon: AlertTriangle, danger: true },
@@ -61,12 +70,95 @@ const SettingsPage = () => {
   const [email, setEmail] = useState(user?.email || "");
   const [profileSaving, setProfileSaving] = useState(false);
 
+  // ── Fit Preferences ──
+  const [homeCity, setHomeCity] = useState(user?.preferences?.homeCity || "");
+  const [travelPreference, setTravelPreference] = useState<TravelPreference>(
+    user?.preferences?.travelPreference || DEFAULT_PREFERENCES.travelPreference
+  );
+  const [maxTravelBudgetINR, setMaxTravelBudgetINR] = useState<number>(
+    user?.preferences?.maxTravelBudgetINR ?? DEFAULT_PREFERENCES.maxTravelBudgetINR
+  );
+  const [minPrizeINR, setMinPrizeINR] = useState<number>(
+    user?.preferences?.minPrizeINR ?? DEFAULT_PREFERENCES.minPrizeINR
+  );
+  const [minDaysToPrepare, setMinDaysToPrepare] = useState<number>(
+    user?.preferences?.minDaysToPrepare ?? DEFAULT_PREFERENCES.minDaysToPrepare
+  );
+  const [preferredModes, setPreferredModes] = useState<string[]>(user?.preferences?.preferredModes || []);
+  const [preferredPlatforms, setPreferredPlatforms] = useState<string[]>(user?.preferences?.preferredPlatforms || []);
+  const [preferredTeamSize, setPreferredTeamSize] = useState<number>(
+    user?.preferences?.preferredTeamSize ?? DEFAULT_PREFERENCES.preferredTeamSize
+  );
+  const [skillsInput, setSkillsInput] = useState((user?.preferences?.skills || []).join(", "));
+  const [emailAlertsEnabled, setEmailAlertsEnabled] = useState<boolean>(
+    (user?.preferences as any)?.emailAlertsEnabled ?? true
+  );
+  const [discordWebhookUrl, setDiscordWebhookUrl] = useState<string>(
+    (user?.preferences as any)?.discordWebhookUrl || ""
+  );
+  const [telegramChatId, setTelegramChatId] = useState<string>(
+    (user?.preferences as any)?.telegramChatId || ""
+  );
+  const [prefsSaving, setPrefsSaving] = useState(false);
+
   useEffect(() => {
     if (user) {
       setFullName(user.fullName);
       setEmail(user.email);
+      if (user.preferences) {
+        setHomeCity(user.preferences.homeCity || "");
+        setTravelPreference(user.preferences.travelPreference || DEFAULT_PREFERENCES.travelPreference);
+        setMaxTravelBudgetINR(user.preferences.maxTravelBudgetINR ?? DEFAULT_PREFERENCES.maxTravelBudgetINR);
+        setMinPrizeINR(user.preferences.minPrizeINR ?? DEFAULT_PREFERENCES.minPrizeINR);
+        setMinDaysToPrepare(user.preferences.minDaysToPrepare ?? DEFAULT_PREFERENCES.minDaysToPrepare);
+        setPreferredModes(user.preferences.preferredModes || []);
+        setPreferredPlatforms(user.preferences.preferredPlatforms || []);
+        setPreferredTeamSize(user.preferences.preferredTeamSize ?? DEFAULT_PREFERENCES.preferredTeamSize);
+        setSkillsInput((user.preferences.skills || []).join(", "));
+        setEmailAlertsEnabled((user.preferences as any).emailAlertsEnabled ?? true);
+        setDiscordWebhookUrl((user.preferences as any).discordWebhookUrl || "");
+        setTelegramChatId((user.preferences as any).telegramChatId || "");
+      }
     }
   }, [user]);
+
+  const togglePrefItem = (list: string[], value: string, setter: (next: string[]) => void) => {
+    setter(list.includes(value) ? list.filter((item) => item !== value) : [...list, value]);
+  };
+
+  const handleSavePreferences = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setPrefsSaving(true);
+    const prefs: UserPreferences = {
+      homeCity: homeCity.trim(),
+      travelPreference,
+      maxTravelBudgetINR,
+      minPrizeINR,
+      minDaysToPrepare,
+      preferredModes,
+      preferredPlatforms,
+      preferredTeamSize,
+      skills: skillsInput
+        .split(",")
+        .map((s) => s.trim())
+        .filter(Boolean),
+    };
+    try {
+      const updatedUser = await userApi.updatePreferences({
+        ...prefs,
+        emailAlertsEnabled,
+        discordWebhookUrl: discordWebhookUrl.trim(),
+        telegramChatId: telegramChatId.trim(),
+      });
+      saveLocalPreferences(prefs);
+      updateUser({ ...user!, ...updatedUser, preferences: updatedUser?.preferences || prefs });
+      showToast("Fit preferences updated.", "success");
+    } catch (err: any) {
+      showToast(err.response?.data?.message || "Failed to update preferences.", "error");
+    } finally {
+      setPrefsSaving(false);
+    }
+  };
 
   const handleSaveProfile = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -130,7 +222,10 @@ const SettingsPage = () => {
   // ── Appearance ──
   const [isDark, setIsDark] = useState(() => {
     if (typeof window === "undefined") return false;
-    return localStorage.getItem("theme") === "dark";
+    return (
+      document.documentElement.classList.contains("dark") ||
+      localStorage.getItem("theme") === "dark"
+    );
   });
 
   useEffect(() => {
@@ -341,6 +436,231 @@ const SettingsPage = () => {
             </div>
           )}
 
+          {/* FIT PREFERENCES */}
+          {active === "preferences" && (
+            <div>
+              <h2 className="text-base font-bold text-zinc-900 dark:text-zinc-100 mb-1">Fit Preferences</h2>
+              <p className="text-sm text-zinc-500 dark:text-zinc-400 mb-6">
+                Used by the "Worth It?" check to evaluate travel, team size, and skill fit for every hackathon.
+              </p>
+
+              <form onSubmit={handleSavePreferences} className="space-y-5 max-w-lg">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-xs font-semibold text-zinc-700 dark:text-zinc-300 mb-1.5">
+                      Home City
+                    </label>
+                    <input
+                      type="text"
+                      value={homeCity}
+                      onChange={(e) => setHomeCity(e.target.value)}
+                      placeholder="e.g. Bengaluru, Delhi"
+                      className={inputCls}
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-semibold text-zinc-700 dark:text-zinc-300 mb-1.5">
+                      Preferred Team Size
+                    </label>
+                    <select
+                      value={preferredTeamSize}
+                      onChange={(e) => setPreferredTeamSize(Number(e.target.value))}
+                      className={inputCls}
+                    >
+                      {[1, 2, 3, 4, 5].map((n) => (
+                        <option key={n} value={n} className="bg-white text-zinc-900 dark:bg-zinc-900 dark:text-zinc-100">
+                          {n} {n === 1 ? "member (Solo)" : "members"}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                </div>
+
+                <div>
+                  <label className="block text-xs font-semibold text-zinc-700 dark:text-zinc-300 mb-1.5">
+                    Travel Willingness
+                  </label>
+                  <div className="grid grid-cols-2 gap-2.5">
+                    {(Object.keys(TRAVEL_PREFERENCE_LABELS) as TravelPreference[]).map((key) => (
+                      <button
+                        key={key}
+                        type="button"
+                        onClick={() => setTravelPreference(key)}
+                        className={`rounded-lg border px-3.5 py-2.5 text-left text-xs font-semibold transition cursor-pointer ${
+                          travelPreference === key
+                            ? "border-blue-500 bg-blue-50 text-blue-700 dark:bg-blue-950/40 dark:text-blue-300"
+                            : "border-zinc-200 bg-white text-zinc-600 hover:bg-zinc-50 dark:border-zinc-800 dark:bg-zinc-900 dark:text-zinc-400 dark:hover:bg-zinc-800 dark:hover:text-zinc-200"
+                        }`}
+                      >
+                        {TRAVEL_PREFERENCE_LABELS[key]}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                {travelPreference !== "online_only" && travelPreference !== "same_city" && (
+                  <div>
+                    <label className="block text-xs font-semibold text-zinc-700 dark:text-zinc-300 mb-1.5">
+                      Max Travel Budget (₹)
+                    </label>
+                    <input
+                      type="number"
+                      min={0}
+                      step={500}
+                      value={maxTravelBudgetINR}
+                      onChange={(e) => setMaxTravelBudgetINR(Number(e.target.value))}
+                      className={inputCls}
+                    />
+                  </div>
+                )}
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-xs font-semibold text-zinc-700 dark:text-zinc-300 mb-1.5">
+                      Minimum Prize Pool (₹)
+                    </label>
+                    <input
+                      type="number"
+                      min={0}
+                      step={5000}
+                      value={minPrizeINR}
+                      onChange={(e) => setMinPrizeINR(Number(e.target.value))}
+                      placeholder="0 for any"
+                      className={inputCls}
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-semibold text-zinc-700 dark:text-zinc-300 mb-1.5">
+                      Min Days to Prepare
+                    </label>
+                    <input
+                      type="number"
+                      min={0}
+                      max={60}
+                      value={minDaysToPrepare}
+                      onChange={(e) => setMinDaysToPrepare(Number(e.target.value))}
+                      className={inputCls}
+                    />
+                  </div>
+                </div>
+
+                <div>
+                  <label className="block text-xs font-semibold text-zinc-700 dark:text-zinc-300 mb-1.5">
+                    Preferred Event Modes <span className="font-normal text-zinc-400">(optional)</span>
+                  </label>
+                  <div className="flex flex-wrap gap-2">
+                    {AVAILABLE_MODES.map((m) => (
+                      <button
+                        key={m}
+                        type="button"
+                        onClick={() => togglePrefItem(preferredModes, m, setPreferredModes)}
+                        className={`rounded-lg border px-3 py-1.5 text-xs font-semibold capitalize transition cursor-pointer ${
+                          preferredModes.includes(m)
+                            ? "border-blue-500 bg-blue-50 text-blue-700 dark:bg-blue-950/40 dark:text-blue-300"
+                            : "border-zinc-200 bg-white text-zinc-600 hover:bg-zinc-50 dark:border-zinc-800 dark:bg-zinc-900 dark:text-zinc-400 dark:hover:bg-zinc-800 dark:hover:text-zinc-200"
+                        }`}
+                      >
+                        {m}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                <div>
+                  <label className="block text-xs font-semibold text-zinc-700 dark:text-zinc-300 mb-1.5">
+                    Preferred Platforms <span className="font-normal text-zinc-400">(optional)</span>
+                  </label>
+                  <div className="flex flex-wrap gap-2">
+                    {AVAILABLE_PLATFORMS.map((p) => (
+                      <button
+                        key={p}
+                        type="button"
+                        onClick={() => togglePrefItem(preferredPlatforms, p, setPreferredPlatforms)}
+                        className={`rounded-lg border px-3 py-1.5 text-xs font-semibold transition cursor-pointer ${
+                          preferredPlatforms.includes(p)
+                            ? "border-blue-500 bg-blue-50 text-blue-700 dark:bg-blue-950/40 dark:text-blue-300"
+                            : "border-zinc-200 bg-white text-zinc-600 hover:bg-zinc-50 dark:border-zinc-800 dark:bg-zinc-900 dark:text-zinc-400 dark:hover:bg-zinc-800 dark:hover:text-zinc-200"
+                        }`}
+                      >
+                        {p}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                <div>
+                  <label className="block text-xs font-semibold text-zinc-700 dark:text-zinc-300 mb-1.5">
+                    Primary Skills / Stack (comma-separated)
+                  </label>
+                  <input
+                    type="text"
+                    value={skillsInput}
+                    onChange={(e) => setSkillsInput(e.target.value)}
+                    placeholder="e.g. React, Node.js, AI, Python"
+                    className={inputCls}
+                  />
+                </div>
+
+                {/* Deadline Alert Channels */}
+                <div className="pt-4 border-t border-zinc-200/80 dark:border-zinc-800/80 space-y-4">
+                  <div>
+                    <h3 className="text-sm font-bold text-zinc-900 dark:text-zinc-100">24h Deadline Alert Channels</h3>
+                    <p className="text-xs text-zinc-500 dark:text-zinc-400 mt-0.5">
+                      Choose where HackDekh notifies you 24 hours before a tracked hackathon deadline.
+                    </p>
+                  </div>
+
+                  <label className="flex items-center justify-between gap-3 rounded-lg border border-zinc-200 bg-zinc-50/50 px-3.5 py-2.5 dark:border-zinc-800 dark:bg-zinc-900/50 cursor-pointer">
+                    <div>
+                      <span className="text-xs font-semibold text-zinc-800 dark:text-zinc-200 block">Email Reminders</span>
+                      <span className="text-[11px] text-zinc-500 dark:text-zinc-400">Sent to {user?.email || "your account email"}</span>
+                    </div>
+                    <input
+                      type="checkbox"
+                      checked={emailAlertsEnabled}
+                      onChange={(e) => setEmailAlertsEnabled(e.target.checked)}
+                      className="h-4 w-4 rounded border-zinc-300 text-blue-600 focus:ring-blue-500"
+                    />
+                  </label>
+
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div>
+                      <label className="block text-xs font-semibold text-zinc-700 dark:text-zinc-300 mb-1.5">
+                        Discord Webhook URL (optional)
+                      </label>
+                      <input
+                        type="url"
+                        value={discordWebhookUrl}
+                        onChange={(e) => setDiscordWebhookUrl(e.target.value)}
+                        placeholder="https://discord.com/api/webhooks/..."
+                        className={inputCls}
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-xs font-semibold text-zinc-700 dark:text-zinc-300 mb-1.5">
+                        Telegram Chat ID (optional)
+                      </label>
+                      <input
+                        type="text"
+                        value={telegramChatId}
+                        onChange={(e) => setTelegramChatId(e.target.value)}
+                        placeholder="e.g. 123456789"
+                        className={inputCls}
+                      />
+                    </div>
+                  </div>
+                </div>
+
+                <div className="pt-2">
+                  <button type="submit" disabled={prefsSaving} className="btn btn-primary">
+                    {prefsSaving ? <Loader2 className="h-4 w-4 animate-spin text-zinc-400" /> : null}
+                    Save preferences
+                  </button>
+                </div>
+              </form>
+            </div>
+          )}
+
           {/* SECURITY */}
           {active === "security" && (
             <div>
@@ -488,34 +808,11 @@ const SettingsPage = () => {
               </p>
 
               {/* Theme row */}
-              <div className="flex items-center justify-between gap-6 py-5 border-b border-zinc-100 dark:border-zinc-800">
-                <div>
-                  <p className="text-sm font-semibold text-zinc-800 dark:text-zinc-200">Interface Theme</p>
-                  <p className="text-xs text-zinc-500 dark:text-zinc-400 mt-0.5">
-                    Choose between light and dark mode. Your preference is saved locally.
-                  </p>
-                </div>
-                <button
-                  type="button"
-                  onClick={toggleTheme}
-                  className={`relative inline-flex h-9 w-[112px] shrink-0 items-center gap-2 rounded-lg border px-3 py-2 text-xs font-semibold transition-all duration-200 cursor-pointer ${
-                    isDark
-                      ? "border-blue-500/30 bg-zinc-900 text-blue-300 hover:bg-zinc-800"
-                      : "border-amber-300/60 bg-amber-50 text-amber-800 hover:bg-amber-100"
-                  }`}
-                >
-                  {isDark ? (
-                    <>
-                      <Moon className="h-4 w-4 shrink-0" />
-                      Dark Mode
-                    </>
-                  ) : (
-                    <>
-                      <Sun className="h-4 w-4 shrink-0" />
-                      Light Mode
-                    </>
-                  )}
-                </button>
+              <div className="py-4 border-b border-zinc-200/80 dark:border-zinc-800/80">
+                <p className="text-sm font-semibold text-zinc-800 dark:text-zinc-200">Interface Theme</p>
+                <p className="text-xs text-zinc-500 dark:text-zinc-400 mt-0.5">
+                  Choose between light and dark mode. Your preference is saved locally.
+                </p>
               </div>
 
               {/* Theme cards preview */}
@@ -524,8 +821,8 @@ const SettingsPage = () => {
                   onClick={() => { if (isDark) toggleTheme(); }}
                   className={`rounded-lg border-2 p-3 text-left transition cursor-pointer ${
                     !isDark
-                      ? "border-blue-500 shadow-md"
-                      : "border-zinc-200 dark:border-zinc-700 opacity-60 hover:opacity-80"
+                      ? "border-blue-500/80 shadow-md"
+                      : "border-zinc-200 dark:border-zinc-800 hover:border-zinc-300 dark:hover:border-zinc-700 opacity-60 hover:opacity-85"
                   }`}
                 >
                   <div className="h-16 rounded-lg bg-white border border-zinc-200 mb-2 flex flex-col gap-1 p-2">
@@ -543,8 +840,8 @@ const SettingsPage = () => {
                   onClick={() => { if (!isDark) toggleTheme(); }}
                   className={`rounded-lg border-2 p-3 text-left transition cursor-pointer ${
                     isDark
-                      ? "border-blue-500 shadow-md"
-                      : "border-zinc-200 dark:border-zinc-700 opacity-60 hover:opacity-80"
+                      ? "border-blue-500/80 shadow-md"
+                      : "border-zinc-200 dark:border-zinc-800 hover:border-zinc-300 dark:hover:border-zinc-700 opacity-60 hover:opacity-85"
                   }`}
                 >
                   <div className="h-16 rounded-lg bg-zinc-900 border border-zinc-700 mb-2 flex flex-col gap-1 p-2">

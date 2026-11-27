@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { ExternalLink } from "lucide-react";
+import { ExternalLink, CheckCircle2, Share2, Users } from "lucide-react";
 
 type Hackathon = {
     _id: string
@@ -12,8 +12,18 @@ type Hackathon = {
     prize?: string
     location?: string
     applyLink?: string
-
+    teamSize?: string
 }
+
+const formatTeamSizeShort = (teamSize?: string): string | null => {
+    if (!teamSize?.trim()) return null;
+    const raw = teamSize.trim();
+    if (/solo|individual/i.test(raw)) return "Solo";
+    const nums = raw.match(/\d+/g);
+    if (!nums || nums.length === 0) return raw.slice(0, 12);
+    if (nums.length === 1) return nums[0] === "1" ? "Solo" : `${nums[0]} members`;
+    return `${nums[0]}–${nums[nums.length - 1]}`;
+};
 
 type CardAction = {
     label: string
@@ -27,6 +37,12 @@ type HackathonCardProps = {
     extraActions?: CardAction[];
     trackingStatus?: 'tracking' | 'active' | 'eliminated' | 'finalist' | 'won';
     onUntrack?: () => void;
+    onWorthIt?: () => void;
+    onShare?: () => void;
+    fitBadge?: {
+        label: string;
+        verdict: 'strong' | 'consider' | 'poor';
+    } | null;
 };
 
 const defaultImages = [
@@ -36,7 +52,7 @@ const defaultImages = [
     "/images/hackathons/hackathon-default-4.svg",
 ];
 
-const IMAGE_LOAD_TIMEOUT_MS = 7000;
+const IMAGE_LOAD_TIMEOUT_MS = 4500;
 const CARD_REVEAL_ROOT_MARGIN = "0px 0px -8% 0px";
 const loadedImageSourceCache = new Set<string>();
 const revealedCardCache = new Set<string>();
@@ -130,16 +146,15 @@ const getDeadlineDisplay = (deadline?: string): DeadlineDisplay => {
     };
 };
 
-const HackathonCard = ({ hackathon, displayIndex, extraActions = [], trackingStatus, onUntrack }: HackathonCardProps) => {
+const HackathonCard = ({ hackathon, displayIndex, extraActions = [], trackingStatus, onUntrack, onWorthIt, onShare, fitBadge }: HackathonCardProps) => {
     const cardRef = useRef<HTMLDivElement | null>(null);
+    const imgRef = useRef<HTMLImageElement | null>(null);
     const hasBeenRevealed = revealedCardCache.has(hackathon._id);
     const fallbackImageRef = useRef<string>(getStableDefaultImage(`${hackathon._id}:${hackathon.title}`));
     const fallbackImage = fallbackImageRef.current;
     const primaryImage = hackathon.coverImage?.trim() || "";
     
-    // Industry technique: Use a free global Image CDN to proxy external images.
-    // This resizes huge raw images, converts them to WebP, and completely bypasses 
-    // hotlinking/CORS 403 blocks from platforms like Devpost/Unstop/MLH.
+    // Use Image CDN to optimize external images, with direct URL fallback before local SVG
     const optimizedPrimaryImage = primaryImage && !primaryImage.startsWith("/") 
         ? `https://wsrv.nl/?url=${encodeURIComponent(primaryImage)}&w=500&h=250&fit=cover&output=webp&we`
         : primaryImage;
@@ -155,6 +170,14 @@ const HackathonCard = ({ hackathon, displayIndex, extraActions = [], trackingSta
         setImageSource(nextSource);
         setImageLoaded(loadedImageSourceCache.has(nextSource));
     }, [optimizedPrimaryImage, fallbackImage]);
+
+    useEffect(() => {
+        const el = imgRef.current;
+        if (el && el.complete && el.naturalWidth > 0) {
+            loadedImageSourceCache.add(imageSource);
+            setImageLoaded(true);
+        }
+    }, [imageSource]);
 
     useEffect(() => {
         if (isVisible || !cardRef.current) {
@@ -187,14 +210,16 @@ const HackathonCard = ({ hackathon, displayIndex, extraActions = [], trackingSta
             return;
         }
 
-        // Some third-party image URLs never resolve nor error; force fallback after timeout.
+        // If wsrv.nl stalls, fall back to direct primaryImage first, then local SVG
         const timeoutId = window.setTimeout(() => {
             setImageSource(currentSource => {
                 if (currentSource === fallbackImage) {
                     setImageLoaded(true);
                     return currentSource;
                 }
-
+                if (currentSource !== primaryImage && primaryImage) {
+                    return primaryImage;
+                }
                 return fallbackImage;
             });
         }, IMAGE_LOAD_TIMEOUT_MS);
@@ -206,8 +231,8 @@ const HackathonCard = ({ hackathon, displayIndex, extraActions = [], trackingSta
     const locationLabel = hackathon.location?.trim() || "TBD";
     const prizeDisplay = getPrizeDisplay(hackathon.prize);
     const prizeChipClass = prizeDisplay.isTbd
-        ? "inline-flex items-center gap-1.5 rounded-lg border border-zinc-200 bg-zinc-50 px-2 py-0.5 text-[0.7rem] font-semibold text-zinc-500 dark:border-zinc-850 dark:bg-zinc-800/40 dark:text-zinc-400"
-        : "inline-flex items-center gap-1.5 rounded-lg border border-emerald-200/80 bg-emerald-50/60 px-2 py-0.5 text-[0.72rem] font-bold text-emerald-700 dark:border-emerald-500/20 dark:bg-emerald-500/10 dark:text-emerald-400";
+        ? "inline-flex max-w-full items-center gap-1 rounded-md border border-zinc-200 bg-zinc-50 px-2 py-0.5 h-6 text-[10px] font-semibold text-zinc-500 dark:border-zinc-800 dark:bg-zinc-800/50 dark:text-zinc-400"
+        : "inline-flex max-w-full items-center gap-1 rounded-md border border-emerald-200/80 bg-emerald-50/60 px-2 py-0.5 h-6 text-[10.5px] font-bold text-emerald-700 dark:border-emerald-500/25 dark:bg-emerald-500/10 dark:text-emerald-400";
     const revealDelay = (displayIndex % 4) * 65;
 
     // Read tracked state
@@ -219,7 +244,7 @@ const HackathonCard = ({ hackathon, displayIndex, extraActions = [], trackingSta
     return (
         <div
             ref={cardRef}
-            className={`group premium-border-card relative flex h-full flex-col overflow-hidden rounded-lg border border-zinc-200/80 bg-white p-4 shadow-sm transition-all duration-500 ease-out hover:-translate-y-1 hover:border-zinc-300 hover:shadow-lg dark:border-zinc-800 dark:bg-zinc-900 dark:shadow-md dark:hover:border-zinc-700 dark:hover:shadow-lg ${isExpired ? "expired opacity-80" : ""} ${isVisible ? "translate-x-0 translate-y-0 opacity-100" : "-translate-x-3 translate-y-2 opacity-0"}`}
+            className={`group premium-border-card relative flex h-full flex-col overflow-hidden rounded-xl border border-zinc-200 bg-white p-4 shadow-xs transition-all duration-300 ease-out hover:-translate-y-0.5 hover:border-zinc-300 hover:shadow-md dark:border-zinc-800 dark:bg-zinc-900 dark:hover:border-zinc-700 ${isExpired ? "expired opacity-80" : ""} ${isVisible ? "translate-x-0 translate-y-0 opacity-100" : "-translate-x-3 translate-y-2 opacity-0"}`}
             style={{ transitionDelay: isVisible ? `${revealDelay}ms` : "0ms" }}
         >
             {isExpired && (
@@ -259,6 +284,7 @@ const HackathonCard = ({ hackathon, displayIndex, extraActions = [], trackingSta
                     />
                 )}
                 <img
+                    ref={imgRef}
                     src={imageSource}
                     alt={hackathon.title}
                     loading="lazy"
@@ -272,6 +298,12 @@ const HackathonCard = ({ hackathon, displayIndex, extraActions = [], trackingSta
                         const imageElement = event.currentTarget;
                         if (imageElement.src.includes("/images/hackathons/")) {
                             setImageLoaded(true);
+                            return;
+                        }
+
+                        // Tier 1 (wsrv.nl) failed -> try direct primaryImage before local SVG
+                        if (primaryImage && imageSource !== primaryImage) {
+                            setImageSource(primaryImage);
                             return;
                         }
 
@@ -290,7 +322,7 @@ const HackathonCard = ({ hackathon, displayIndex, extraActions = [], trackingSta
             </div>
 
             {/* Vertical structured metadata list */}
-            <div className="mt-3.5 space-y-2 border-t border-zinc-100 pt-3 dark:border-zinc-800/80">
+            <div className="mt-3.5 space-y-2 border-t border-zinc-200/80 pt-3 dark:border-zinc-800/80">
                 <div className="flex items-center gap-2 text-[0.72rem] text-zinc-500 dark:text-zinc-400">
                     <svg className="h-3.5 w-3.5 shrink-0 text-zinc-400 dark:text-zinc-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
                         <path strokeLinecap="round" strokeLinejoin="round" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
@@ -325,32 +357,81 @@ const HackathonCard = ({ hackathon, displayIndex, extraActions = [], trackingSta
 
             {/* Footer with Prize & Button */}
             <div className="mt-auto pt-4 flex flex-col gap-3">
-                <div className="flex items-center justify-between">
-                    <div className="flex items-center">
+                <div className="flex items-center justify-between gap-2 min-w-0">
+                    <div className="flex items-center min-w-0 flex-1 overflow-hidden">
                         <span className={prizeChipClass}>
                             <img
                                 src="/prizeSvg.svg"
                                 alt=""
                                 aria-hidden="true"
-                                className={`h-3.5 w-3.5 shrink-0 ${prizeDisplay.isTbd ? "opacity-80" : ""}`}
+                                className={`h-3 w-3 shrink-0 ${prizeDisplay.isTbd ? "opacity-80" : ""}`}
                             />
-                            <span className="truncate max-w-[140px]" title={prizeDisplay.label}>
+                            <span className="truncate min-w-0" title={prizeDisplay.label}>
                                 {prizeDisplay.label}
                             </span>
                         </span>
                     </div>
+                    <div className="flex items-center gap-1.5 shrink-0">
+                        {formatTeamSizeShort(hackathon.teamSize) && (
+                            <span
+                                title={`Team size: ${hackathon.teamSize}`}
+                                className="inline-flex h-6 items-center gap-1 rounded-md border border-zinc-200 bg-zinc-50 px-1.5 text-[10px] font-semibold text-zinc-600 dark:border-zinc-800 dark:bg-zinc-900 dark:text-zinc-400 whitespace-nowrap"
+                            >
+                                <Users className="h-2.5 w-2.5 shrink-0 text-zinc-400 dark:text-zinc-500" />
+                                {formatTeamSizeShort(hackathon.teamSize)}
+                            </span>
+                        )}
+                        {onShare && (
+                            <button
+                                type="button"
+                                onClick={(e) => {
+                                    e.preventDefault();
+                                    e.stopPropagation();
+                                    onShare();
+                                }}
+                                title="Copy hackathon details to share"
+                                aria-label="Share hackathon"
+                                className="inline-flex h-6 w-6 items-center justify-center rounded-md border border-zinc-200 bg-zinc-50 text-zinc-500 transition hover:border-zinc-300 hover:bg-zinc-100 hover:text-zinc-800 dark:border-zinc-800 dark:bg-zinc-900 dark:text-zinc-400 dark:hover:bg-zinc-800 dark:hover:text-zinc-200 cursor-pointer"
+                            >
+                                <Share2 className="h-3 w-3" />
+                            </button>
+                        )}
+                        {onWorthIt && !isExpired && (
+                            <button
+                                type="button"
+                                onClick={(e) => {
+                                    e.preventDefault();
+                                    e.stopPropagation();
+                                    onWorthIt();
+                                }}
+                                title="Check if this hackathon fits your team and travel context"
+                                className={`inline-flex h-6 shrink-0 items-center gap-1 rounded-md border px-2 !text-[10px] leading-none font-bold transition cursor-pointer whitespace-nowrap ${
+                                    fitBadge
+                                        ? fitBadge.verdict === "strong"
+                                            ? "border-emerald-200 bg-emerald-50 text-emerald-700 hover:bg-emerald-100 dark:border-emerald-800/60 dark:bg-emerald-950/40 dark:text-emerald-300 dark:hover:bg-emerald-950/60"
+                                            : fitBadge.verdict === "consider"
+                                            ? "border-amber-200 bg-amber-50 text-amber-700 hover:bg-amber-100 dark:border-amber-800/60 dark:bg-amber-950/40 dark:text-amber-300 dark:hover:bg-amber-950/60"
+                                            : "border-rose-200 bg-rose-50 text-rose-700 hover:bg-rose-100 dark:border-rose-800/60 dark:bg-rose-950/40 dark:text-rose-300 dark:hover:bg-rose-950/60"
+                                        : "border-zinc-200 bg-zinc-50 text-zinc-600 hover:border-zinc-300 hover:bg-zinc-100 hover:text-zinc-900 dark:border-zinc-800 dark:bg-zinc-900 dark:text-zinc-300 dark:hover:border-zinc-700 dark:hover:bg-zinc-800 dark:hover:text-zinc-100"
+                                }`}
+                            >
+                                <CheckCircle2 className="h-3 w-3 shrink-0" />
+                                <span>{fitBadge ? fitBadge.label : "Worth It?"}</span>
+                            </button>
+                        )}
+                    </div>
                 </div>
 
-                <div className="flex gap-2 w-full mt-1">
+                <div className="flex gap-2 w-full mt-0.5">
                     {hackathon.applyLink && (
                         <a
                             href={hackathon.applyLink}
                             target="_blank"
                             rel="noopener noreferrer"
-                            className="flex-1 inline-flex items-center justify-center rounded-lg border border-zinc-200 bg-white px-2.5 py-1.5 text-[11px] font-bold text-zinc-700 shadow-sm transition hover:bg-zinc-50 hover:border-zinc-300 dark:border-zinc-850 dark:bg-zinc-950 dark:text-zinc-300 dark:hover:bg-zinc-900"
+                            className="flex-1 h-8 inline-flex items-center justify-center rounded-lg border border-zinc-200 bg-white px-2.5 !text-[11px] leading-none font-bold text-zinc-700 shadow-xs transition hover:bg-zinc-50 hover:border-zinc-300 dark:border-zinc-800 dark:bg-zinc-950 dark:text-zinc-300 dark:hover:border-zinc-700 dark:hover:bg-zinc-900 whitespace-nowrap"
                         >
                             Official Site
-                            <ExternalLink className="ml-1 h-3 w-3" />
+                            <ExternalLink className="ml-1 h-3 w-3 shrink-0" />
                         </a>
                     )}
                     {trackingStatus ? (
@@ -362,10 +443,10 @@ const HackathonCard = ({ hackathon, displayIndex, extraActions = [], trackingSta
                                 e.stopPropagation();
                                 onUntrack?.();
                             }}
-                            className={`flex-1 inline-flex items-center justify-center rounded-lg px-2.5 py-1.5 text-[11px] font-bold transition-all duration-200 cursor-pointer border ${
+                            className={`flex-1 h-8 inline-flex items-center justify-center rounded-lg px-2.5 !text-[11px] leading-none font-bold transition-all duration-200 cursor-pointer border whitespace-nowrap ${
                                 isHovered
-                                    ? "bg-rose-500 border-rose-500 text-white shadow-md shadow-rose-500/20"
-                                    : "bg-zinc-100 border-zinc-200 text-zinc-505 dark:bg-zinc-800/40 dark:border-zinc-700/50 dark:text-zinc-400"
+                                    ? "bg-rose-500 border-rose-500 text-white shadow-sm shadow-rose-500/20"
+                                    : "bg-zinc-100 border-zinc-200 text-zinc-600 dark:bg-zinc-800/60 dark:border-zinc-800 dark:text-zinc-300"
                             }`}
                         >
                             {isHovered ? "Untrack" : "Tracked ✓"}
@@ -373,7 +454,7 @@ const HackathonCard = ({ hackathon, displayIndex, extraActions = [], trackingSta
                     ) : (
                         <button
                             onClick={trackHandler}
-                            className="flex-1 inline-flex items-center justify-center rounded-lg bg-blue-600 px-2.5 py-1.5 text-[11px] font-bold text-white shadow-sm transition hover:bg-blue-500 cursor-pointer"
+                            className="flex-1 h-8 inline-flex items-center justify-center rounded-lg bg-blue-600 px-2.5 !text-[11px] leading-none font-bold text-white shadow-xs transition hover:bg-blue-500 cursor-pointer whitespace-nowrap"
                         >
                             Track
                         </button>

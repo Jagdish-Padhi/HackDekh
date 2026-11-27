@@ -1,21 +1,19 @@
 import { useEffect, useState } from 'react'
-import { NavLink, useLocation, useNavigate, Link } from 'react-router-dom'
-import { BarChart3, LogOut, Menu, PanelLeftClose, PanelLeftOpen, Trophy, Users, X, Settings, Crosshair, Info } from 'lucide-react'
-import TabGuideModal, { getTabGuideKeyFromPath } from './TabGuideModal'
+import { NavLink, useNavigate, Link } from 'react-router-dom'
+import { BarChart3, LogOut, Menu, PanelLeftClose, PanelLeftOpen, Trophy, Users, X, Settings, Crosshair } from 'lucide-react'
 import { usePageChrome } from '../context/pageChrome'
 import { useAuth, useCache } from '../context'
 
 const navItems = [
-    { name: 'Hackathons', path: '/hackathons', icon: Trophy },
-    { name: 'Teams', path: '/teams', icon: Users },
-    { name: 'Tracker', path: '/tracker', icon: Crosshair },
     { name: 'Dashboard', path: '/dashboard', icon: BarChart3 },
+    { name: 'Hackathons', path: '/hackathons', icon: Trophy },
+    { name: 'Tracker', path: '/tracker', icon: Crosshair },
+    { name: 'Teams', path: '/teams', icon: Users },
     { name: 'Settings', path: '/settings', icon: Settings },
 ]
 
 const Sidebar = () => {
     const navigate = useNavigate()
-    const location = useLocation()
     const { sidebarExpanded, closeSidebar, toggleSidebar, pageActions } = usePageChrome()
     const [isMobile, setIsMobile] = useState(() => {
         if (typeof window === 'undefined') {
@@ -27,8 +25,6 @@ const Sidebar = () => {
     const { user, isAuthenticated, logout } = useAuth()
     const logoDestination = isAuthenticated ? '/dashboard' : '/hackathons'
     const { clearCache } = useCache()
-    const [isGuideOpen, setIsGuideOpen] = useState(false)
-    // const [isDark, setIsDark] = useState(false)
 
     useEffect(() => {
         if (typeof window === 'undefined') {
@@ -42,29 +38,6 @@ const Sidebar = () => {
 
         return () => window.removeEventListener('resize', updateViewportMode)
     }, [])
-
-    // useEffect(() => {
-    //     if (typeof window === 'undefined') {
-    //         return
-    //     }
-    //     const initialDark = window.localStorage.getItem('theme') === 'dark'
-    //     setIsDark(initialDark)
-    //     document.documentElement.classList.toggle('dark', initialDark)
-    //     const onThemeSync = (event: Event) => {
-    //         const detail = (event as CustomEvent<'light' | 'dark'>).detail
-    //         setIsDark(detail === 'dark')
-    //     }
-    //     window.addEventListener('hackdekh-theme-change', onThemeSync)
-    //     return () => window.removeEventListener('hackdekh-theme-change', onThemeSync)
-    // }, [])
-
-    // const toggleTheme = () => {
-    //     const nextIsDark = !isDark
-    //     setIsDark(nextIsDark)
-    //     document.documentElement.classList.toggle('dark', nextIsDark)
-    //     window.localStorage.setItem('theme', nextIsDark ? 'dark' : 'light')
-    //     window.dispatchEvent(new CustomEvent('hackdekh-theme-change', { detail: nextIsDark ? 'dark' : 'light' }))
-    // }
 
     const handleLogout = async () => {
         try {
@@ -96,26 +69,8 @@ const Sidebar = () => {
                 <div className="flex items-center gap-2">
                     <button
                         type="button"
-                        onClick={() => setIsGuideOpen(true)}
-                        className="inline-flex h-9 w-9 items-center justify-center rounded-full border border-zinc-200 bg-white text-zinc-600 shadow-xs transition hover:border-blue-400 hover:text-blue-600 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-300 cursor-pointer"
-                        aria-label="User Guide"
-                        title="User Guide"
-                    >
-                        <Info className="h-4 w-4" />
-                    </button>
-                    {/* Theme button commented out */}
-                    {/* <button
-                        type="button"
-                        onClick={toggleTheme}
-                        className="inline-flex h-9 w-9 items-center justify-center rounded-full border border-zinc-200 bg-white text-zinc-700 shadow-sm transition hover:border-blue-400 hover:text-blue-700 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-200 dark:hover:border-blue-400 dark:hover:text-blue-300"
-                        aria-label={isDark ? 'Switch to light mode' : 'Switch to dark mode'}
-                    >
-                        {isDark ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
-                    </button> */}
-                    <button
-                        type="button"
                         onClick={toggleSidebar}
-                        className="inline-flex h-9 w-9 items-center justify-center rounded-full border border-zinc-200 bg-white text-zinc-600 shadow-sm transition hover:border-blue-400 hover:text-blue-700 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-300 dark:hover:border-blue-400 dark:hover:text-blue-300"
+                        className="inline-flex h-9 w-9 items-center justify-center rounded-full border border-zinc-200 bg-white text-zinc-600 shadow-xs transition hover:border-zinc-300 hover:bg-zinc-50 hover:text-zinc-900 dark:border-zinc-800 dark:bg-zinc-900 dark:text-zinc-300 dark:hover:border-zinc-700 dark:hover:bg-zinc-800 dark:hover:text-zinc-100"
                         aria-label={sidebarExpanded ? 'Close sidebar' : 'Open sidebar'}
                     >
                         {sidebarExpanded ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
@@ -132,24 +87,14 @@ const Sidebar = () => {
                             <span className="text-zinc-900 dark:text-white">Hack</span>
                             <span className="bg-gradient-to-r from-blue-500 to-indigo-500 dark:from-blue-400 dark:via-sky-400 dark:to-indigo-400 bg-clip-text text-transparent">Dekh</span>
                         </div>
-                        <p className="text-[11px] text-zinc-500 dark:text-zinc-400 font-medium">Hackathon OS</p>
                     </div>
                 </Link>
 
                 <div className="flex shrink-0 items-center gap-2">
-                    {/* Theme button commented out */}
-                    {/* <button
-                        type="button"
-                        onClick={toggleTheme}
-                        className="inline-flex h-9 w-9 items-center justify-center rounded-full border border-zinc-200 bg-white text-zinc-700 shadow-sm transition hover:border-blue-400 hover:text-blue-700 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-200 dark:hover:border-blue-400 dark:hover:text-blue-300"
-                        aria-label={isDark ? 'Switch to light mode' : 'Switch to dark mode'}
-                    >
-                        {isDark ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
-                    </button> */}
                     <button
                         type="button"
                         onClick={toggleSidebar}
-                        className="inline-flex h-9 w-9 items-center justify-center rounded-lg border border-zinc-200 bg-white text-zinc-700 shadow-sm transition hover:-translate-y-0.5 hover:border-blue-400 hover:text-blue-700 hover:shadow-md dark:border-zinc-800 dark:bg-zinc-900 dark:text-zinc-200 dark:hover:border-blue-400 dark:hover:text-blue-300"
+                        className="inline-flex h-9 w-9 items-center justify-center rounded-lg border border-zinc-200 bg-white text-zinc-700 shadow-xs transition hover:border-zinc-300 hover:bg-zinc-50 hover:text-zinc-900 dark:border-zinc-800 dark:bg-zinc-900 dark:text-zinc-200 dark:hover:border-zinc-700 dark:hover:bg-zinc-800 dark:hover:text-zinc-100 cursor-pointer"
                         aria-label={sidebarExpanded ? 'Collapse sidebar' : 'Expand sidebar'}
                     >
                         {sidebarExpanded ? <PanelLeftClose className="h-4.5 w-4.5" /> : <PanelLeftOpen className="h-4.5 w-4.5" />}
@@ -158,15 +103,6 @@ const Sidebar = () => {
 
                 <div className="ml-auto flex min-w-0 flex-1 items-center justify-end gap-2.5 overflow-visible">
                     {pageActions}
-                    <button
-                        type="button"
-                        onClick={() => setIsGuideOpen(true)}
-                        className="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-full border border-zinc-200 bg-white text-zinc-600 shadow-xs transition hover:border-blue-400 hover:text-blue-600 dark:border-zinc-800 dark:bg-zinc-900 dark:text-zinc-300 dark:hover:border-blue-400 dark:hover:text-blue-300 cursor-pointer"
-                        aria-label="User Guide"
-                        title="User Guide"
-                    >
-                        <Info className="h-4 w-4" />
-                    </button>
                 </div>
             </div>
 
@@ -185,10 +121,9 @@ const Sidebar = () => {
                                 key={item.name}
                                 to={item.path}
                                 className={() =>
-                                    `flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-all duration-200 ${
-                                        active
-                                            ? 'bg-blue-600 text-white shadow-sm dark:bg-blue-500'
-                                            : 'text-zinc-600 hover:bg-zinc-100 hover:text-zinc-900 dark:text-zinc-300 dark:hover:bg-zinc-900 dark:hover:text-white'
+                                    `flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-all duration-200 ${active
+                                        ? 'bg-blue-600 text-white shadow-sm dark:bg-blue-500'
+                                        : 'text-zinc-600 hover:bg-zinc-100 hover:text-zinc-900 dark:text-zinc-300 dark:hover:bg-zinc-900 dark:hover:text-white'
                                     }`
                                 }
                                 onClick={() => {
@@ -257,12 +192,6 @@ const Sidebar = () => {
             {isMobile && sidebarExpanded && (
                 <div className="fixed inset-0 z-70 bg-black/20 backdrop-blur-[1px] lg:hidden" onClick={closeSidebar} aria-hidden="true" />
             )}
-
-            <TabGuideModal
-                isOpen={isGuideOpen}
-                onClose={() => setIsGuideOpen(false)}
-                tabKey={getTabGuideKeyFromPath(location.pathname)}
-            />
         </>
     )
 }

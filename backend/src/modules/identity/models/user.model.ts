@@ -87,6 +87,25 @@ const userSchema = new mongoose.Schema({
     refreshToken: {
         type: String,
     },
+
+    preferences: {
+        homeCity: { type: String, trim: true, default: '' },
+        travelPreference: {
+            type: String,
+            enum: ['online_only', 'same_city', 'anywhere_reimbursed', 'anywhere'],
+            default: 'anywhere_reimbursed',
+        },
+        maxTravelBudgetINR: { type: Number, min: 0, default: 2000 },
+        minPrizeINR: { type: Number, min: 0, default: 0 },
+        minDaysToPrepare: { type: Number, min: 0, default: 3 },
+        preferredModes: { type: [String], default: [] },
+        preferredPlatforms: { type: [String], default: [] },
+        preferredTeamSize: { type: Number, min: 1, max: 10, default: 3 },
+        skills: { type: [String], default: [] },
+        emailAlertsEnabled: { type: Boolean, default: true },
+        discordWebhookUrl: { type: String, trim: true, default: '' },
+        telegramChatId: { type: String, trim: true, default: '' },
+    },
 }, { timestamps: true });
 
 userSchema.pre("save", async function () {

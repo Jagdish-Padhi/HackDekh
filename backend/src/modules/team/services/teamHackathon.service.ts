@@ -136,6 +136,32 @@ export async function updateParticipationStatus(
     return getPopulatedParticipation(thId);
 }
 
+// ─── Toggle 24h Deadline Alert ──────────────────────────────────────────────
+export async function toggleParticipationAlert(
+    thId: string,
+    userId: Types.ObjectId,
+    enabled: boolean
+) {
+    if (!Types.ObjectId.isValid(thId)) return null;
+
+    const participation = await TeamHackathon.findById(thId).populate('team');
+    if (!participation) return null;
+
+    const team = participation.team as any;
+    const isMember =
+        String(team.owner) === String(userId) ||
+        (Array.isArray(team.members) && team.members.some((m: any) => String(m) === String(userId)));
+    if (!isMember) return null;
+
+    participation.alertEnabled = enabled;
+    if (!enabled) {
+        participation.alertSentAt = null;
+    }
+    await participation.save();
+
+    return getPopulatedParticipation(thId);
+}
+
 // ─── Unlink Team from Hackathon (Untrack) ──────────────────────────────────
 export async function unlinkTeamFromHackathon(
     teamId: string,

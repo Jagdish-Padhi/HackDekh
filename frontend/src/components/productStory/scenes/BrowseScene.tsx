@@ -1,67 +1,158 @@
 import { motion, useReducedMotion, AnimatePresence } from "framer-motion";
 import { Clock, MapPin, Trophy, ChevronLeft, ChevronRight } from "lucide-react";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
+import axiosInstance from "../../../utils/axiosInstance";
+import { useCache } from "../../../context/CacheContext";
 
-const hackathons = [
+type StoryHackathon = {
+  id: string;
+  title: string;
+  platform: string;
+  img: string;
+  fallbackImg: string;
+  prize: string;
+  mode: string;
+  deadline: string;
+  location: string;
+  highlight?: string;
+  team: string;
+};
+
+const FALLBACK_HACKATHONS: StoryHackathon[] = [
   {
-    id: 1,
+    id: "fallback-1",
     title: "Odoo Hackathon 2026",
     platform: "Odoo",
     img: "/images/hackathons/hackathon-default-1.svg",
+    fallbackImg: "/images/hackathons/hackathon-default-1.svg",
     prize: "₹10,00,000",
     mode: "In-Person",
-    deadline: "Winner 🏆",
-    isUrgent: false,
+    deadline: "Winner",
     location: "Gandhinagar, India",
-    highlight: "Winner 🏆",
+    highlight: "Winner",
     team: "Jagdish & Saman",
   },
   {
-    id: 2,
+    id: "fallback-2",
     title: "Far Away Hackathon",
     platform: "Devfolio",
     img: "/images/hackathons/hackathon-default-2.svg",
+    fallbackImg: "/images/hackathons/hackathon-default-2.svg",
     prize: "¥3,000,000",
     mode: "In-Person",
-    deadline: "Finalist 🇯🇵",
-    isUrgent: false,
+    deadline: "Finalist",
     location: "Tokyo, Japan",
-    highlight: "Finalist 🇯🇵",
+    highlight: "Finalist",
     team: "Jagdish & Twinkle",
   },
   {
-    id: 3,
+    id: "fallback-3",
     title: "Google Solution Challenge",
     platform: "Google",
     img: "/images/hackathons/hackathon-default-3.svg",
+    fallbackImg: "/images/hackathons/hackathon-default-3.svg",
     prize: "₹20,00,000",
     mode: "Online",
     deadline: "Top 100",
-    isUrgent: false,
     location: "Online",
-    highlight: "Top 100 🏆",
-    team: "Esc(Reality) • Jagdish",
+    highlight: "Top 100",
+    team: "Esc(Reality)",
   },
   {
-    id: 4,
+    id: "fallback-4",
     title: "HackHazards 2026",
     platform: "Devfolio",
     img: "/images/hackathons/hackathon-default-4.svg",
+    fallbackImg: "/images/hackathons/hackathon-default-4.svg",
     prize: "₹3,00,000",
     mode: "Online",
     deadline: "Top 50",
-    isUrgent: false,
     location: "Online",
-    highlight: "Top 50 🏆",
+    highlight: "Top 50",
     team: "Twinkle & Team",
   },
 ];
 
+function formatShortDeadline(deadline?: string): string {
+  if (!deadline) return "Open";
+  const dt = new Date(deadline);
+  if (Number.isNaN(dt.getTime())) return "Open";
+  const diffDays = Math.ceil((dt.getTime() - Date.now()) / (1000 * 60 * 60 * 24));
+  if (diffDays <= 0) return "Closes Today";
+  if (diffDays === 1) return "1 day left";
+  return `${diffDays} days left`;
+}
+
+function mapLiveHackathons(raw: any[]): StoryHackathon[] {
+  const withImages = raw.filter(
+    (h) =>
+      h &&
+      typeof h.coverImage === "string" &&
+      /^https?:\/\//i.test(h.coverImage.trim()) &&
+      typeof h.title === "string" &&
+      h.title.trim().length > 0
+  );
+
+  return withImages.slice(0, 6).map((h, idx) => ({
+    id: String(h._id || h.slug || idx),
+    title: h.title.trim(),
+    platform: h.platform || "HackDekh",
+    img: h.coverImage.trim(),
+    fallbackImg: `/images/hackathons/hackathon-default-${(idx % 4) + 1}.svg`,
+    prize: h.prize?.trim() || "TBD",
+    mode: h.mode?.trim() || "Online",
+    deadline: formatShortDeadline(h.deadline),
+    location: h.location?.trim() || (/online/i.test(h.mode || "") ? "Online" : "TBA"),
+    team: h.organization?.trim() || h.platform || "Community Event",
+  }));
+}
+
 export default function BrowseScene() {
   const shouldReduceMotion = useReducedMotion();
+  const { hackathons: cachedHackathons } = useCache();
+  const [liveHackathons, setLiveHackathons] = useState<StoryHackathon[]>(() => {
+    if (Array.isArray(cachedHackathons) && cachedHackathons.length > 0) {
+      const mapped = mapLiveHackathons(cachedHackathons);
+      if (mapped.length >= 2) return mapped;
+    }
+    return [];
+  });
   const [activeIdx, setActiveIdx] = useState(0);
   const [isPaused, setIsPaused] = useState(false);
-  const [tracked, setTracked] = useState<Set<number>>(new Set([1, 2]));
+  const [tracked, setTracked] = useState<Set<string>>(new Set());
+
+  useEffect(() => {
+    if (liveHackathons.length >= 2) return;
+    let cancelled = false;
+
+    axiosInstance
+      .get("/hackathons", { params: { showExpired: "false" } })
+      .then((res) => {
+        if (cancelled) return;
+        const rows = Array.isArray(res.data?.data)
+          ? res.data.data
+          : Array.isArray(res.data)
+          ? res.data
+          : [];
+        const mapped = mapLiveHackathons(rows);
+        if (mapped.length >= 2) {
+          setLiveHackathons(mapped);
+          setActiveIdx(0);
+        }
+      })
+      .catch(() => {
+        // Keep fallback cards silently if API is unreachable
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [liveHackathons.length]);
+
+  const hackathons = useMemo(
+    () => (liveHackathons.length >= 2 ? liveHackathons : FALLBACK_HACKATHONS),
+    [liveHackathons]
+  );
 
   useEffect(() => {
     if (shouldReduceMotion || isPaused) return;
@@ -69,9 +160,9 @@ export default function BrowseScene() {
       setActiveIdx((prev) => (prev + 1) % hackathons.length);
     }, 2400);
     return () => clearInterval(interval);
-  }, [shouldReduceMotion, isPaused]);
+  }, [shouldReduceMotion, isPaused, hackathons.length]);
 
-  const toggleTrack = (id: number) => {
+  const toggleTrack = (id: string) => {
     setTracked((prev) => {
       const next = new Set(prev);
       next.has(id) ? next.delete(id) : next.add(id);
@@ -79,7 +170,7 @@ export default function BrowseScene() {
     });
   };
 
-  const cardA = hackathons[activeIdx];
+  const cardA = hackathons[activeIdx % hackathons.length];
   const cardB = hackathons[(activeIdx + 1) % hackathons.length];
   const visibleCards = [cardA, cardB];
 
@@ -92,13 +183,13 @@ export default function BrowseScene() {
       {/* Top Filter & Search Bar */}
       <div className="flex items-center justify-between gap-2 shrink-0">
         <div className="flex items-center gap-1.5 overflow-x-auto no-scrollbar">
-          {["All", "Odoo", "Devfolio", "Google"].map((f, i) => (
+          {["All", "Devfolio", "Unstop", "Devpost"].map((f, i) => (
             <span
               key={f}
               className={`rounded-md px-2 py-0.5 text-[9.5px] font-semibold transition-colors ${
                 i === 0
                   ? "bg-zinc-900 text-white dark:bg-white dark:text-zinc-900"
-                  : "border border-zinc-200/90 text-zinc-500 hover:text-zinc-800 dark:border-zinc-800 dark:text-zinc-400"
+                  : "border border-zinc-200 text-zinc-500 hover:text-zinc-800 dark:border-zinc-800 dark:text-zinc-400"
               }`}
             >
               {f}
@@ -109,7 +200,7 @@ export default function BrowseScene() {
           <button
             type="button"
             onClick={() => setActiveIdx((prev) => (prev - 1 + hackathons.length) % hackathons.length)}
-            className="flex h-5 w-5 items-center justify-center rounded border border-zinc-200 bg-white text-zinc-600 hover:bg-zinc-50 dark:border-zinc-800 dark:bg-zinc-900 dark:text-zinc-300"
+            className="flex h-5 w-5 items-center justify-center rounded border border-zinc-200 bg-white text-zinc-600 hover:bg-zinc-50 dark:border-zinc-800 dark:bg-zinc-900 dark:text-zinc-300 dark:hover:bg-zinc-800"
             aria-label="Previous card"
           >
             <ChevronLeft className="h-3 w-3" />
@@ -117,7 +208,7 @@ export default function BrowseScene() {
           <button
             type="button"
             onClick={() => setActiveIdx((prev) => (prev + 1) % hackathons.length)}
-            className="flex h-5 w-5 items-center justify-center rounded border border-zinc-200 bg-white text-zinc-600 hover:bg-zinc-50 dark:border-zinc-800 dark:bg-zinc-900 dark:text-zinc-300"
+            className="flex h-5 w-5 items-center justify-center rounded border border-zinc-200 bg-white text-zinc-600 hover:bg-zinc-50 dark:border-zinc-800 dark:bg-zinc-900 dark:text-zinc-300 dark:hover:bg-zinc-800"
             aria-label="Next card"
           >
             <ChevronRight className="h-3 w-3" />
@@ -147,6 +238,11 @@ export default function BrowseScene() {
                     alt={h.title}
                     loading="lazy"
                     decoding="async"
+                    onError={(e) => {
+                      if (e.currentTarget.src !== window.location.origin + h.fallbackImg) {
+                        e.currentTarget.src = h.fallbackImg;
+                      }
+                    }}
                     className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-105"
                   />
                   {/* Badges */}

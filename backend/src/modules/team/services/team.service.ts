@@ -566,3 +566,58 @@ export async function respondToInvitation(invitationId: string, userId: Types.Ob
         return { status: 'declined' };
     }
 }
+
+export async function getPublicSquadByCode(code: string) {
+    const normalizedCode = code.trim().toUpperCase();
+    if (!normalizedCode) {
+        return null;
+    }
+
+    const team = await Team.findOne({ code: normalizedCode })
+        .select('name code members owner')
+        .populate('owner', 'username fullName')
+        .populate('members', 'username fullName')
+        .lean();
+
+    if (!team) {
+        return null;
+    }
+
+    const participations = await TeamHackathon.find({ team: team._id })
+        .populate('hackathon', 'title platform coverImage deadline startDate mode prize location applyLink')
+        .populate({
+            path: 'stages',
+            select: 'name deadline result',
+            options: { sort: { deadline: 1, createdAt: 1 } },
+        })
+        .sort({ createdAt: -1 })
+        .lean();
+
+    const membersMap = new Map<string, { username?: string; fullName?: string }>();
+    if (team.owner && typeof team.owner === 'object') {
+        const ownerObj = team.owner as any;
+        membersMap.set(String(ownerObj._id), { username: ownerObj.username, fullName: ownerObj.fullName });
+    }
+    for (const member of (team.members || []) as any[]) {
+        if (member && typeof member === 'object') {
+            membersMap.set(String(member._id), { username: member.username, fullName: member.fullName });
+        }
+    }
+
+    return {
+        team: {
+            name: team.name,
+            code: team.code,
+            memberCount: membersMap.size,
+            members: Array.from(membersMap.values()),
+        },
+        hackathons: participations
+            .filter((p: any) => p.hackathon)
+            .map((p: any) => ({
+                _id: p._id,
+                status: p.status,
+                hackathon: p.hackathon,
+                stages: p.stages || [],
+            })),
+    };
+}

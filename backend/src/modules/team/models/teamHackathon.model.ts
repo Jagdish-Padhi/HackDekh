@@ -31,7 +31,18 @@ const teamHackathonSchema = new mongoose.Schema({
         required: true,
         index: true,
 
-    }
+    },
+
+    alertEnabled: {
+        type: Boolean,
+        default: false,
+        index: true,
+    },
+
+    alertSentAt: {
+        type: Date,
+        default: null,
+    },
 
 }, { timestamps: true });
 

@@ -45,8 +45,8 @@ describe("Modular Monolith API End-to-End Tests", () => {
     expect(res.body.success).toBe(false);
   });
 
-  it("should allow previewing team invitation without login", async () => {
-    const res = await request(app).get("/api/v1/teams/invitations/preview?token=invalidtoken");
+  it("should allow querying public squad schedule without login", async () => {
+    const res = await request(app).get("/api/v1/teams/public/INVALID99");
     expect(res.status).toBe(404);
   });
 });

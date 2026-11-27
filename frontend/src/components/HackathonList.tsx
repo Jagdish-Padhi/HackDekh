@@ -10,11 +10,20 @@ import LoadingProgress from './LoadingProgress'
 import AppDropdown from './AppDropdown'
 import { usePageChrome } from '../context/pageChrome'
 import { useAuth, useCache, useToast } from '../context'
-import { teamApi } from '../services'
+import type { UserPreferences } from '../context/AuthContext'
+import { teamApi, userApi } from '../services'
+import FitCheckModal from './FitCheckModal'
+import {
+    evaluateHackathonFit,
+    hasConfiguredPreferences,
+    loadLocalPreferences,
+    saveLocalPreferences,
+} from '../utils/fitEngine'
 import posthog, { isPostHogEnabled, posthogLog } from '../posthog'
 
 type Hackathon = {
     _id: string
+    slug?: string
     title: string
     platform: string
     coverImage?: string
@@ -23,17 +32,52 @@ type Hackathon = {
     mode?: string
     prize?: string
     location?: string
+    teamSize?: string
 }
 
-type SortBy = '' | 'deadline-asc' | 'deadline-desc' | 'prize-desc' | 'prize-asc'
+function matchesTeamSizeFilter(teamSize?: string, filter?: string): boolean {
+    if (!filter) return true
+    if (!teamSize?.trim()) return false
+
+    const raw = teamSize.trim().toLowerCase()
+    let min = 0
+    let max = 0
+
+    if (/solo|individual/i.test(raw)) {
+        min = 1
+        max = 1
+    } else {
+        const nums = raw.match(/\d+/g)?.map(Number).filter((n) => !Number.isNaN(n)) || []
+        if (nums.length === 0) return false
+        min = Math.min(...nums)
+        max = Math.max(...nums)
+    }
+
+    if (filter === '1') return min <= 1 && max >= 1
+    if (filter === '2-3') return min <= 3 && max >= 2
+    if (filter === '4-5') return min <= 5 && max >= 4
+    if (filter === '6+') return max >= 6
+    return true
+}
+
+type SortBy = '' | 'best-fit' | 'deadline-asc' | 'deadline-desc' | 'prize-desc' | 'prize-asc'
 
 
 
 const DESKTOP_MEDIA_QUERY = '(min-width: 1024px)'
+const FRONTEND_CACHE_TTL_MS = 5 * 60 * 1000 // 5 minutes
 
 const HackathonList = () => {
     const navigate = useNavigate()
-    const { hackathons: cachedHackathons, setHackathons: setCachedHackathons, hackathonsFilters, setHackathonsFilters } = useCache()
+    const {
+        hackathons: cachedHackathons,
+        setHackathons: setCachedHackathons,
+        hackathonsCacheMeta,
+        setHackathonsCacheMeta,
+        hackathonsFilters,
+        setHackathonsFilters,
+        invalidateUserCaches,
+    } = useCache()
     const isInitialMountRef = useRef(true)
     const initialCacheRef = useRef(cachedHackathons)
 
@@ -49,9 +93,33 @@ const HackathonList = () => {
     const [mode, setMode] = useState(hackathonsFilters.mode)
     const [sortBy, setSortBy] = useState<SortBy>(hackathonsFilters.sortBy as SortBy)
     const [locationFilter, setLocationFilter] = useState(hackathonsFilters.locationFilter)
-    const [showExpired, setShowExpired] = useState(hackathonsFilters.showExpired)
-    const { isAuthenticated } = useAuth()
+    const [teamSizeFilter, setTeamSizeFilter] = useState(hackathonsFilters.teamSizeFilter)
+    const { isAuthenticated, user, updateUser } = useAuth()
     const { showToast } = useToast()
+    const [fitModalHackathon, setFitModalHackathon] = useState<Hackathon | null>(null)
+    const [localPreferences, setLocalPreferences] = useState<UserPreferences | null>(() => loadLocalPreferences())
+    const activePreferences = useMemo(() => {
+        if (user?.preferences && hasConfiguredPreferences(user.preferences)) {
+            return user.preferences
+        }
+        return localPreferences
+    }, [user?.preferences, localPreferences])
+
+    const handleSavePreferences = useCallback(async (prefs: UserPreferences) => {
+        setLocalPreferences(prefs)
+        saveLocalPreferences(prefs)
+        if (isAuthenticated && user) {
+            try {
+                const updatedUser = await userApi.updatePreferences(prefs)
+                updateUser({ ...user, ...updatedUser, preferences: updatedUser?.preferences || prefs })
+                showToast('Participation preferences saved.', 'success')
+            } catch {
+                showToast('Saved locally. Could not sync to profile.', 'error')
+            }
+        } else {
+            showToast('Preferences saved for this browser.', 'success')
+        }
+    }, [isAuthenticated, user, updateUser, showToast])
     const [isDesktopView, setIsDesktopView] = useState<boolean>(() => {
         if (typeof window === 'undefined') {
             return false
@@ -127,7 +195,7 @@ const HackathonList = () => {
                 participationId: string;
                 status: 'tracking' | 'active' | 'eliminated' | 'finalist' | 'won';
             }> = {};
-            
+
             // Fetch all team hackathons in parallel
             await Promise.all(
                 userTeams.map(async (t) => {
@@ -145,7 +213,7 @@ const HackathonList = () => {
                     }
                 })
             );
-            
+
             setTrackedHackathons(mapping);
         } catch (error) {
             console.error('Failed to load tracking data', error);
@@ -156,26 +224,8 @@ const HackathonList = () => {
         loadTrackedHackathons();
     }, [loadTrackedHackathons]);
 
-    const handleInitiateTrack = (hackathonId: string) => {
-        if (!isAuthenticated) {
-            setShowFunnelModal(true);
-            return;
-        }
-        setSelectedHackathonToTrack(hackathonId);
-        if (teams.length > 0) {
-            setSelectedTeamIdToTrack(teams[0]._id);
-        }
-        setShowTrackModal(true);
-    };
-
-    const handleConfirmTrack = async () => {
-        if (!selectedHackathonToTrack || !selectedTeamIdToTrack) return;
-        
-        const hackathonId = selectedHackathonToTrack;
-        const teamId = selectedTeamIdToTrack;
+    const trackOnTeam = async (hackathonId: string, teamId: string, teamName?: string) => {
         const hackathon = hackathons.find((item) => item._id === hackathonId);
-        
-        // 1. Optimistic Update: Add tracking status instantly to the UI
         const tempId = `optimistic_${Date.now()}`;
         setTrackedHackathons(prev => ({
             ...prev,
@@ -185,17 +235,9 @@ const HackathonList = () => {
                 status: 'tracking'
             }
         }));
-        
-        // 2. Close modal instantly for seamless UX
-        setShowTrackModal(false);
-        setSelectedHackathonToTrack(null);
-        setIsTrackingSubmitting(false);
-        
+
         try {
-            // 3. Fire API in background
             const response = await teamApi.linkHackathon(teamId, hackathonId);
-            
-            // 4. Update with actual participation ID from server
             setTrackedHackathons(prev => {
                 if (prev[hackathonId]?.participationId === tempId) {
                     return {
@@ -209,6 +251,7 @@ const HackathonList = () => {
                 }
                 return prev;
             });
+            invalidateUserCaches();
             if (isPostHogEnabled) {
                 const trackingAttributes = {
                     platform: hackathon?.platform || 'unknown',
@@ -217,11 +260,9 @@ const HackathonList = () => {
                 posthog.capture('hackathon_tracked', trackingAttributes);
                 posthogLog.info('hackathon tracking started', trackingAttributes);
             }
-            showToast("Hackathon tracked successfully", "success");
+            showToast(teamName ? `Tracked under "${teamName}".` : "Hackathon tracked successfully.", "success");
         } catch (error: any) {
             console.error("Failed to track hackathon in background", error);
-            
-            // 5. Revert optimistic update on failure
             setTrackedHackathons(prev => {
                 if (prev[hackathonId]?.participationId === tempId) {
                     const next = { ...prev };
@@ -232,6 +273,43 @@ const HackathonList = () => {
             });
             showToast(error.response?.data?.message || error.message || "Failed to start tracking", "error");
         }
+    };
+
+    const handleInitiateTrack = async (hackathonId: string) => {
+        if (!isAuthenticated) {
+            setShowFunnelModal(true);
+            return;
+        }
+        if (teams.length === 0) {
+            try {
+                const personalTeam = await teamApi.createTeam({ name: "Personal" });
+                setTeams([personalTeam]);
+                invalidateUserCaches();
+                await trackOnTeam(hackathonId, personalTeam._id, personalTeam.name);
+            } catch (error: any) {
+                showToast(error.response?.data?.message || "Failed to track hackathon", "error");
+            }
+            return;
+        }
+        if (teams.length === 1) {
+            await trackOnTeam(hackathonId, teams[0]._id, teams[0].name);
+            return;
+        }
+        setSelectedHackathonToTrack(hackathonId);
+        setSelectedTeamIdToTrack(teams[0]._id);
+        setShowTrackModal(true);
+    };
+
+    const handleConfirmTrack = async () => {
+        if (!selectedHackathonToTrack || !selectedTeamIdToTrack) return;
+        const hackathonId = selectedHackathonToTrack;
+        const teamId = selectedTeamIdToTrack;
+
+        setShowTrackModal(false);
+        setSelectedHackathonToTrack(null);
+        setIsTrackingSubmitting(false);
+
+        await trackOnTeam(hackathonId, teamId);
     };
 
     const handleInitiateUntrack = (hackathonId: string) => {
@@ -269,7 +347,7 @@ const HackathonList = () => {
             showToast("Hackathon untracked successfully", "success");
         } catch (error: any) {
             console.error("Failed to untrack in background", error);
-            
+
             // 5. Revert optimistic removal on failure
             setTrackedHackathons(prev => ({
                 ...prev,
@@ -315,9 +393,9 @@ const HackathonList = () => {
             mode,
             locationFilter,
             sortBy,
-            showExpired,
+            teamSizeFilter,
         });
-    }, [deferredSearch, platform, mode, locationFilter, sortBy, showExpired, setHackathonsFilters]);
+    }, [deferredSearch, platform, mode, locationFilter, sortBy, teamSizeFilter, setHackathonsFilters]);
 
     useEffect(() => {
         let isMounted = true
@@ -329,7 +407,32 @@ const HackathonList = () => {
 
         const hadCachedData = initialCacheRef.current;
         initialCacheRef.current = null;
-        const isSilentRevalidation = isInitialMount && !!hadCachedData;
+        const serverSortBy = sortBy === 'best-fit' ? '' : sortBy;
+        const requestCacheKey = JSON.stringify({
+            search: deferredSearch,
+            platform,
+            mode,
+            locationFilter,
+            sortBy: serverSortBy,
+        });
+
+        const isCacheFresh =
+            refreshNonce === 0 &&
+            !!cachedHackathons &&
+            hackathonsCacheMeta?.key === requestCacheKey &&
+            Date.now() - hackathonsCacheMeta.fetchedAt < FRONTEND_CACHE_TTL_MS;
+
+        if (isCacheFresh) {
+            setHackathons(cachedHackathons);
+            setHasLoadedFromServer(true);
+            setLoading(false);
+            setIsRefreshing(false);
+            return;
+        }
+
+        const isSilentRevalidation =
+            refreshNonce === 0 &&
+            ((isInitialMount && !!hadCachedData) || (!!cachedHackathons && hackathonsCacheMeta?.key === requestCacheKey));
 
         if (!isSilentRevalidation) {
             setLoading(true)
@@ -346,8 +449,8 @@ const HackathonList = () => {
                     platform,
                     mode,
                     location: locationFilter,
-                    sortBy,
-                    showExpired: showExpired ? "true" : "false"
+                    sortBy: serverSortBy,
+                    showExpired: "false"
                 },
             })
                 .then(res => {
@@ -362,6 +465,7 @@ const HackathonList = () => {
                             : []
                     setHackathons(responseData)
                     setCachedHackathons(responseData)
+                    setHackathonsCacheMeta({ key: requestCacheKey, fetchedAt: Date.now() })
                     setHasLoadedFromServer(true)
                     finishTimeout = window.setTimeout(() => {
                         if (!isMounted) {
@@ -396,8 +500,8 @@ const HackathonList = () => {
                 window.clearTimeout(finishTimeout)
             }
         }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [refreshNonce, deferredSearch, platform, mode, locationFilter, sortBy, showExpired, setCachedHackathons])
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [refreshNonce, deferredSearch, platform, mode, locationFilter, sortBy, setCachedHackathons])
 
     // isStillLoading is declared at top
 
@@ -417,7 +521,35 @@ const HackathonList = () => {
         ? 'Loading hackathons'
         : 'Scraping from server for you...'
 
-    const visibleHackathons = hackathons
+    const visibleHackathons = useMemo(() => {
+        const filtered = teamSizeFilter
+            ? hackathons.filter((h) => matchesTeamSizeFilter(h.teamSize, teamSizeFilter))
+            : hackathons
+
+        if (sortBy !== 'best-fit') return filtered
+        return [...filtered].sort((a, b) => {
+            const scoreA = evaluateHackathonFit(a, activePreferences).score
+            const scoreB = evaluateHackathonFit(b, activePreferences).score
+            return scoreB - scoreA
+        })
+    }, [hackathons, teamSizeFilter, sortBy, activePreferences])
+
+    const handleShareHackathon = useCallback(async (hack: Hackathon) => {
+        const shareUrl = `${window.location.origin}/hackathons/${hack.slug || hack._id}`
+        const parts = [
+            `${hack.title} (${hack.platform})`,
+            hack.prize ? `Prize: ${hack.prize}` : null,
+            hack.deadline ? `Deadline: ${new Date(hack.deadline).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}` : null,
+            shareUrl,
+        ].filter(Boolean)
+
+        try {
+            await navigator.clipboard.writeText(parts.join(' • '))
+            showToast('Hackathon link copied for sharing.', 'success')
+        } catch {
+            showToast('Could not copy hackathon link.', 'error')
+        }
+    }, [showToast])
 
     const emptyStateMessage = hackathons.length === 0
         ? 'No hackathons found...'
@@ -430,7 +562,7 @@ const HackathonList = () => {
                     type="button"
                     onClick={handleRefresh}
                     disabled={isStillLoading}
-                    className="inline-flex h-10 w-10 items-center justify-center rounded-xl border border-zinc-200 bg-white text-zinc-600 shadow-sm transition-all duration-200 hover:-translate-y-0.5 hover:border-blue-400 hover:text-blue-700 hover:shadow-md disabled:cursor-not-allowed disabled:opacity-60 dark:border-zinc-800 dark:bg-zinc-900 dark:text-zinc-300 dark:hover:border-blue-400 dark:hover:text-blue-300"
+                    className="inline-flex h-10 w-10 items-center justify-center rounded-xl border border-zinc-200 bg-white text-zinc-600 shadow-xs transition-all duration-200 hover:border-zinc-300 hover:bg-zinc-50 hover:text-zinc-900 disabled:cursor-not-allowed disabled:opacity-60 dark:border-zinc-800 dark:bg-zinc-900 dark:text-zinc-300 dark:hover:border-zinc-700 dark:hover:bg-zinc-800 dark:hover:text-zinc-100 cursor-pointer"
                     aria-label="Refresh hackathons"
                     title="Refresh hackathons"
                 >
@@ -448,8 +580,8 @@ const HackathonList = () => {
                     setSortBy={value => setSortBy(value as SortBy)}
                     locationFilter={locationFilter}
                     setLocationFilter={setLocationFilter}
-                    showExpired={showExpired}
-                    setShowExpired={setShowExpired}
+                    teamSizeFilter={teamSizeFilter}
+                    setTeamSizeFilter={setTeamSizeFilter}
                 />
             </div>
         )
@@ -459,7 +591,7 @@ const HackathonList = () => {
         mode,
         sortBy,
         locationFilter,
-        showExpired,
+        teamSizeFilter,
         handleRefresh,
         isStillLoading,
         isRefreshing,
@@ -475,7 +607,7 @@ const HackathonList = () => {
     return (
         <div className="space-y-4">
             <div className="relative z-50 isolate space-y-3 lg:hidden">
-                <div className="relative z-50 isolate overflow-visible rounded-xl border border-zinc-200/90 bg-white/90 p-4 shadow-sm backdrop-blur-md dark:border-zinc-800 dark:bg-zinc-900/78 dark:shadow-md">
+                <div className="relative z-50 isolate overflow-visible rounded-xl border border-zinc-200 bg-white/90 p-4 shadow-xs backdrop-blur-md dark:border-zinc-800 dark:bg-zinc-900/78">
                     <div className="flex items-end gap-3">
                         <div className="min-w-0 flex-1">
                             <SearchBar value={search} onChange={setSearch} />
@@ -484,7 +616,7 @@ const HackathonList = () => {
                             type="button"
                             onClick={handleRefresh}
                             disabled={isStillLoading}
-                            className="inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-zinc-200 bg-white text-zinc-600 shadow-sm transition-all duration-200 hover:-translate-y-0.5 hover:border-blue-400 hover:text-blue-700 hover:shadow-md disabled:cursor-not-allowed disabled:opacity-60 dark:border-zinc-800 dark:bg-zinc-900 dark:text-zinc-300 dark:hover:border-blue-400 dark:hover:text-blue-300"
+                            className="inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-zinc-200 bg-white text-zinc-600 shadow-xs transition-all duration-200 hover:border-zinc-300 hover:bg-zinc-50 hover:text-zinc-900 disabled:cursor-not-allowed disabled:opacity-60 dark:border-zinc-800 dark:bg-zinc-900 dark:text-zinc-300 dark:hover:border-zinc-700 dark:hover:bg-zinc-800 dark:hover:text-zinc-100 cursor-pointer"
                             aria-label="Refresh hackathons"
                             title="Refresh hackathons"
                         >
@@ -493,7 +625,7 @@ const HackathonList = () => {
                     </div>
                 </div>
 
-                <div className="relative z-50 isolate overflow-visible rounded-xl border border-zinc-200/90 bg-white/90 p-4 shadow-sm backdrop-blur-md dark:border-zinc-800 dark:bg-zinc-900/78 dark:shadow-md">
+                <div className="relative z-50 isolate overflow-visible rounded-xl border border-zinc-200 bg-white/90 p-4 shadow-xs backdrop-blur-md dark:border-zinc-800 dark:bg-zinc-900/78">
                     <FilterPanel
                         platform={platform}
                         setPlatform={setPlatform}
@@ -503,8 +635,8 @@ const HackathonList = () => {
                         setSortBy={value => setSortBy(value as SortBy)}
                         locationFilter={locationFilter}
                         setLocationFilter={setLocationFilter}
-                        showExpired={showExpired}
-                        setShowExpired={setShowExpired}
+                        teamSizeFilter={teamSizeFilter}
+                        setTeamSizeFilter={setTeamSizeFilter}
                     />
                 </div>
             </div>
@@ -523,7 +655,7 @@ const HackathonList = () => {
                         {Array.from({ length: isDesktopView ? 8 : 6 }).map((_, index) => (
                             <div
                                 key={index}
-                                className="h-84 rounded-xl border border-zinc-200/90 bg-white p-4 shadow-sm dark:border-zinc-800 dark:bg-zinc-900"
+                                className="h-84 rounded-xl border border-zinc-200 bg-white p-4 shadow-xs dark:border-zinc-800 dark:bg-zinc-900"
                             >
                                 <div className="h-full w-full rounded-lg bg-[linear-gradient(110deg,rgba(228,228,231,0.6),rgba(250,250,250,0.95),rgba(228,228,231,0.6))] bg-size-[200%_100%] animate-[shimmer_1.3s_linear_infinite] dark:bg-[linear-gradient(110deg,rgba(39,39,42,0.9),rgba(63,63,70,0.95),rgba(39,39,42,0.9))]" />
                             </div>
@@ -534,6 +666,9 @@ const HackathonList = () => {
                         {visibleHackathons.map((hack, index) => {
                             const trackingInfo = trackedHackathons[hack._id];
                             const isTracked = !!trackingInfo;
+                            const fitResult = hasConfiguredPreferences(activePreferences)
+                                ? evaluateHackathonFit(hack, activePreferences)
+                                : null;
                             return (
                                 <HackathonCard
                                     key={hack._id}
@@ -541,8 +676,11 @@ const HackathonList = () => {
                                     displayIndex={index}
                                     trackingStatus={trackingInfo?.status}
                                     onUntrack={() => handleInitiateUntrack(hack._id)}
+                                    onWorthIt={() => setFitModalHackathon(hack)}
+                                    onShare={() => handleShareHackathon(hack)}
+                                    fitBadge={fitResult ? { label: fitResult.label, verdict: fitResult.verdict } : null}
                                     extraActions={[
-                                        { label: isTracked ? "TRACKED_TRUE" : "TRACKED_FALSE", onClick: () => {} },
+                                        { label: isTracked ? "TRACKED_TRUE" : "TRACKED_FALSE", onClick: () => { } },
                                         { label: "TRACK_HANDLER", onClick: () => handleInitiateTrack(hack._id) }
                                     ]}
                                 />
@@ -550,7 +688,7 @@ const HackathonList = () => {
                         })}
                     </div>
                 ) : (
-                    <div className={`rounded-xl border border-zinc-200/90 bg-white/90 px-6 py-16 text-center text-base text-zinc-600 shadow-sm backdrop-blur-md transition-all duration-300 dark:border-zinc-800 dark:bg-zinc-900/78 dark:text-zinc-400 dark:shadow-md ${showResults ? 'translate-y-0 opacity-100' : 'translate-y-1 opacity-0'}`}>
+                    <div className={`rounded-xl border border-zinc-200 bg-white/90 px-6 py-16 text-center text-base text-zinc-600 shadow-xs backdrop-blur-md transition-all duration-300 dark:border-zinc-800 dark:bg-zinc-900/78 dark:text-zinc-400 ${showResults ? 'translate-y-0 opacity-100' : 'translate-y-1 opacity-0'}`}>
                         {emptyStateMessage}
                     </div>
                 )}
@@ -590,7 +728,7 @@ const HackathonList = () => {
                                     <h3 className="text-xl font-extrabold text-zinc-900 dark:text-zinc-50 tracking-tight leading-snug">
                                         Ready to Win Your Next Hackathon?
                                     </h3>
-                                    
+
                                     <div className="space-y-3.5 text-left bg-zinc-50 dark:bg-zinc-900/60 p-4 rounded-lg border border-zinc-100 dark:border-zinc-800/80">
                                         <p className="text-[10px] font-bold text-zinc-400 dark:text-zinc-500 uppercase tracking-widest mb-1">What you get instantly:</p>
                                         {[
@@ -705,7 +843,7 @@ const HackathonList = () => {
                     const hackToUntrack = hackathons.find(h => h._id === hackathonIdToUntrack);
                     const trackingInfo = hackathonIdToUntrack ? trackedHackathons[hackathonIdToUntrack] : null;
                     const teamToUntrack = trackingInfo ? teams.find(t => t._id === trackingInfo.teamId) : null;
-                    
+
                     return (
                         <motion.div
                             initial={{ opacity: 0 }}
@@ -729,7 +867,7 @@ const HackathonList = () => {
                                     Are you sure you want to remove <span className="font-bold text-zinc-800 dark:text-zinc-200">"{hackToUntrack?.title || 'this hackathon'}"</span> from team <span className="font-bold text-zinc-800 dark:text-zinc-200">"{teamToUntrack?.name || 'your team'}"</span>?
                                 </p>
                                 <p className="mt-2 text-[11px] text-zinc-400 dark:text-zinc-500 leading-normal">
-                                    This will permanently delete all timeline stages, logs, and reflections associated with this participation.
+                                    This will permanently delete all timeline stages and logs associated with this participation.
                                 </p>
 
                                 <div className="flex gap-2.5 pt-4">
@@ -756,6 +894,16 @@ const HackathonList = () => {
                 })()}
             </AnimatePresence>
 
+            <FitCheckModal
+                isOpen={!!fitModalHackathon}
+                hackathon={fitModalHackathon}
+                preferences={activePreferences}
+                isAuthenticated={isAuthenticated}
+                onClose={() => setFitModalHackathon(null)}
+                onSavePreferences={handleSavePreferences}
+                onTrack={(id) => handleInitiateTrack(id)}
+                isTracked={!!(fitModalHackathon && trackedHackathons[fitModalHackathon._id])}
+            />
         </div>
     )
 }

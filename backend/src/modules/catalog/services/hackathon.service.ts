@@ -3,7 +3,8 @@ import axios from "axios";
 import redisClient from "../../../infrastructure/cache/redis.ts";
 import { hackathonListCacheKey } from "../../../infrastructure/cache/cacheKeys.ts";
 
-const HACKATHON_CACHE_TTL = 60;
+// 30 minutes; nightly 3:00 AM scraper also invalidates keys on completion
+const HACKATHON_CACHE_TTL = 1800;
 const CACHE_ENABLED = process.env.CACHE_ENABLED !== "false";
 
 const escapeRegExp = (value: string) => value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
@@ -214,14 +215,12 @@ export const getHackathonsService = async (filters: HackathonQueryFilters): Prom
     try {
       const cachedData = await redisClient.get(cacheKey);
       if (cachedData) {
-        console.log(`[Redis] CACHE HIT: ${cacheKey}`);
         return {
           data: JSON.parse(cachedData),
           message: "Hackathons fetched from Redis cache",
           fromCache: true,
         };
       }
-      console.log(`[Redis] CACHE MISS: ${cacheKey}`);
     } catch (redisErr) {
       console.warn("[Redis] Failed to read from cache:", redisErr);
     }
@@ -327,7 +326,6 @@ export const getHackathonsService = async (filters: HackathonQueryFilters): Prom
       await redisClient.set(cacheKey, JSON.stringify(plainList), {
         EX: HACKATHON_CACHE_TTL,
       });
-      console.log(`[Redis] cache set: ${cacheKey}`);
     } catch (redisErr) {
       console.warn("[Redis] Failed to save to cache:", redisErr);
     }
@@ -338,4 +336,24 @@ export const getHackathonsService = async (filters: HackathonQueryFilters): Prom
     message: "Hackathons fetched successfully",
     fromCache: false,
   };
+};
+
+export const getHackathonBySlugService = async (slugOrId: string) => {
+  const key = slugOrId.trim();
+  if (!key) return null;
+
+  const doc: any = await hackathon
+    .findOne({
+      $or: [
+        { slug: key },
+        ...(key.match(/^[0-9a-fA-F]{24}$/) ? [{ _id: key }] : []),
+      ],
+    })
+    .lean();
+
+  if (!doc) return null;
+
+  const usdToInrRate = await getUSDToINRExchangeRate();
+  doc.prize = convertAndFormatPrizeToINR(doc.prize, doc.platform, usdToInrRate);
+  return doc;
 };

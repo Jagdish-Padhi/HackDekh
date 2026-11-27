@@ -380,3 +380,17 @@ HackDekh - ${siteUrl}`;
     text,
   });
 }
+
+export async function sendAlertEmail(input: {
+  to: string;
+  subject: string;
+  html: string;
+  text: string;
+}): Promise<void> {
+  await sendMailWithFallback({
+    to: input.to,
+    subject: input.subject,
+    html: input.html,
+    text: input.text,
+  });
+}

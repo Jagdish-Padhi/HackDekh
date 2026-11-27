@@ -2,11 +2,26 @@ import { createContext, useContext, useEffect, useRef, useState, type ReactNode 
 import axiosInstance from "../utils/axiosInstance";
 import posthog, { isPostHogEnabled } from "../posthog";
 
+export type TravelPreference = "online_only" | "same_city" | "anywhere_reimbursed" | "anywhere";
+
+export type UserPreferences = {
+  homeCity?: string;
+  travelPreference?: TravelPreference;
+  maxTravelBudgetINR?: number;
+  minPrizeINR?: number;
+  minDaysToPrepare?: number;
+  preferredModes?: string[];
+  preferredPlatforms?: string[];
+  preferredTeamSize?: number;
+  skills?: string[];
+};
+
 export type User = {
   _id: string;
   username: string;
   email: string;
   fullName: string;
+  preferences?: UserPreferences;
 };
 
 type AuthContextType = {

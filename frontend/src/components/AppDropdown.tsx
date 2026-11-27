@@ -79,11 +79,11 @@ export const AppDropdown = ({
                 onClick={() => !disabled && setOpen(prev => !prev)}
                 title={label}
                 className={`flex ${heightClass} w-full items-center justify-between gap-2 whitespace-nowrap rounded-lg border font-medium shadow-xs transition-all duration-150 focus:outline-none select-none cursor-pointer ${
-                    disabled ? 'opacity-50 cursor-not-allowed' : 'hover:border-zinc-350 dark:hover:border-zinc-650'
+                    disabled ? 'opacity-50 cursor-not-allowed' : 'hover:border-zinc-300 dark:hover:border-zinc-700'
                 } ${
                     open
-                        ? 'border-blue-500 ring-2 ring-blue-500/15 dark:border-blue-400 dark:ring-blue-400/20'
-                        : 'border-zinc-250 dark:border-zinc-750'
+                        ? 'border-blue-500/70 ring-3 ring-blue-500/12 dark:border-blue-500/60 dark:ring-blue-500/15'
+                        : 'border-zinc-200 dark:border-zinc-800'
                 } bg-white text-zinc-900 dark:bg-zinc-900 dark:text-zinc-100`}
             >
                 {/* Label row */}
