@@ -16,6 +16,7 @@ import { useAuth, useToast, useCache } from "../context";
 import { USER_CACHE_TTL_MS } from "../context/CacheContext";
 import { usePageChrome } from "../context/pageChrome";
 import { teamApi } from "../services";
+import AppDropdown from "../components/AppDropdown";
 import type { Team, TeamHackathon } from "../types";
 
 export const isRegistrationStage = (name: string): boolean => {
@@ -38,7 +39,9 @@ export default function TrackerPage() {
   const navigate = useNavigate();
   const { setPageActions } = usePageChrome();
 
-  const { trackerData, trackerFetchedAt, setTrackerData } = useCache();
+  const { trackerData, trackerFetchedAt, setTrackerData, invalidateUserCaches } = useCache();
+  const [selectedTeamFilter, setSelectedTeamFilter] = useState<string>("all");
+  const [userTeamsList, setUserTeamsList] = useState<Team[]>([]);
   const [participations, setParticipations] = useState<(TeamHackathon & { teamInfo: Team })[]>(trackerData || []);
   const [loading, setLoading] = useState(!trackerData);
   const [activeSubTab, setActiveSubTab] = useState<"tracking" | "active" | "finished">("tracking");
@@ -66,6 +69,9 @@ export default function TrackerPage() {
     try {
       const userTeams = await teamApi.getUserTeams();
       const teams = Array.isArray(userTeams) ? userTeams : [];
+      if (isMountedRef.current) {
+        setUserTeamsList(teams);
+      }
 
       const allParts: (TeamHackathon & { teamInfo: Team })[] = [];
       await Promise.all(
@@ -115,45 +121,83 @@ export default function TrackerPage() {
     loadTrackerData(!!trackerData);
   }, [isAuthenticated, navigate, loadTrackerData, trackerData, trackerFetchedAt]);
 
-  // Filtered participations based on active tab
-  const filteredParticipations = useMemo(() => {
-    if (activeSubTab === "tracking") {
-      return participations.filter((p) => p.status === "tracking");
-    } else if (activeSubTab === "active") {
-      return participations.filter((p) => p.status === "active");
-    } else {
-      return participations.filter((p) => ["won", "finalist", "eliminated"].includes(p.status));
-    }
-  }, [participations, activeSubTab]);
+  const uniqueTeams = useMemo(() => {
+    const map = new Map<string, Team>();
+    userTeamsList.forEach((t) => {
+      if (t?._id) map.set(t._id, t);
+    });
+    participations.forEach((p) => {
+      if (p.teamInfo?._id) map.set(p.teamInfo._id, p.teamInfo);
+    });
+    return Array.from(map.values());
+  }, [userTeamsList, participations]);
 
-  // Header tab buttons
+  // Filtered participations based on active tab & team filter
+  const filteredParticipations = useMemo(() => {
+    const byTeam =
+      selectedTeamFilter === "all"
+        ? participations
+        : participations.filter((p) => p.teamInfo?._id === selectedTeamFilter);
+
+    if (activeSubTab === "tracking") {
+      return byTeam.filter((p) => p.status === "tracking");
+    } else if (activeSubTab === "active") {
+      return byTeam.filter((p) => p.status === "active");
+    } else {
+      return byTeam.filter((p) => ["won", "finalist", "eliminated"].includes(p.status));
+    }
+  }, [participations, activeSubTab, selectedTeamFilter]);
+
+  // Header tab buttons + Team filter
   const pageActions = useMemo(() => {
-    const trackingCount = participations.filter((p) => p.status === "tracking").length;
-    const activeCount = participations.filter((p) => p.status === "active").length;
-    const finishedCount = participations.filter((p) => ["won", "finalist", "eliminated"].includes(p.status)).length;
+    const teamScoped =
+      selectedTeamFilter === "all"
+        ? participations
+        : participations.filter((p) => p.teamInfo?._id === selectedTeamFilter);
+
+    const trackingCount = teamScoped.filter((p) => p.status === "tracking").length;
+    const activeCount = teamScoped.filter((p) => p.status === "active").length;
+    const finishedCount = teamScoped.filter((p) => ["won", "finalist", "eliminated"].includes(p.status)).length;
+
+    const teamOptions = [
+      { label: "All Teams", value: "all" },
+      ...uniqueTeams.map((t) => ({ label: t.name, value: t._id })),
+    ];
 
     return (
-      <div className="flex items-center gap-0.5 bg-zinc-100 dark:bg-zinc-800/60 p-0.5 rounded-lg border border-zinc-200/60 dark:border-zinc-700/60 shrink-0">
-        {[
-          { id: "tracking", label: `In Queue (${trackingCount})` },
-          { id: "active", label: `Registered (${activeCount})` },
-          { id: "finished", label: `Finished (${finishedCount})` }
-        ].map((tab) => (
-          <button
-            key={tab.id}
-            onClick={() => setActiveSubTab(tab.id as any)}
-            className={`rounded-lg px-3 py-1.5 text-xs font-bold transition-all cursor-pointer ${
-              activeSubTab === tab.id
-                ? "bg-white dark:bg-zinc-700 text-blue-600 dark:text-blue-400 shadow-xs"
-                : "text-zinc-500 hover:text-zinc-800 dark:text-zinc-400 dark:hover:text-zinc-200"
-            }`}
-          >
-            {tab.label}
-          </button>
-        ))}
+      <div className="flex items-center gap-2.5 shrink-0">
+        {uniqueTeams.length > 1 && (
+          <AppDropdown
+            value={selectedTeamFilter}
+            onChange={(val) => setSelectedTeamFilter(val || "all")}
+            options={teamOptions}
+            placeholder="All Teams"
+            className="w-36"
+          />
+        )}
+
+        <div className="flex items-center gap-0.5 bg-zinc-100 dark:bg-zinc-800/60 p-0.5 rounded-lg border border-zinc-200/60 dark:border-zinc-700/60 shrink-0">
+          {[
+            { id: "tracking", label: `In Queue (${trackingCount})` },
+            { id: "active", label: `Registered (${activeCount})` },
+            { id: "finished", label: `Finished (${finishedCount})` }
+          ].map((tab) => (
+            <button
+              key={tab.id}
+              onClick={() => setActiveSubTab(tab.id as any)}
+              className={`rounded-lg px-3 py-1.5 text-xs font-bold transition-all cursor-pointer ${
+                activeSubTab === tab.id
+                  ? "bg-white dark:bg-zinc-700 text-blue-600 dark:text-blue-400 shadow-xs"
+                  : "text-zinc-500 hover:text-zinc-800 dark:text-zinc-400 dark:hover:text-zinc-200"
+              }`}
+            >
+              {tab.label}
+            </button>
+          ))}
+        </div>
       </div>
     );
-  }, [participations, activeSubTab]);
+  }, [participations, activeSubTab, uniqueTeams, selectedTeamFilter]);
 
   useEffect(() => {
     setPageActions(pageActions);
@@ -165,6 +209,7 @@ export default function TrackerPage() {
     setUpdatingStatusId(participationId);
     try {
       await teamApi.updateStatus(teamId, participationId, nextStatus as any);
+      invalidateUserCaches();
       showToast(`Status updated to "${nextStatus}" successfully!`, "success");
       await loadTrackerData(true);
     } catch (error: any) {
@@ -186,6 +231,7 @@ export default function TrackerPage() {
     setIsUntracking(true);
     try {
       await teamApi.unlinkHackathon(participationToUntrack.teamId, participationToUntrack.hackathonId);
+      invalidateUserCaches();
       showToast(`Successfully stopped tracking "${participationToUntrack.title}"`, "success");
       setShowUntrackModal(false);
       setParticipationToUntrack(null);
@@ -225,7 +271,7 @@ export default function TrackerPage() {
 
 
       {/* Main List */}
-      <div className="space-y-6">
+      <div className="space-y-4">
         {filteredParticipations.length === 0 ? (
           <div className="rounded-xl border border-dashed border-zinc-300 bg-zinc-50/50 p-16 text-center dark:border-zinc-800 dark:bg-zinc-950/20 max-w-2xl mx-auto mt-6">
             <Flag className="mx-auto h-12 w-12 text-zinc-400" />
@@ -241,7 +287,8 @@ export default function TrackerPage() {
             </Link>
           </div>
         ) : (
-          <div className="space-y-6">
+          <div className="space-y-4">
+
             {filteredParticipations.map((part) => {
               const competitiveStages = part.stages.filter((s) => !isRegistrationStage(s.name));
               const failedStageIdx = competitiveStages.findIndex((s) => s.result === "rejected");
@@ -250,23 +297,13 @@ export default function TrackerPage() {
               return (
                 <div
                   key={part._id}
-                  className="group rounded-xl border border-zinc-200 bg-white p-5 text-left transition-all duration-300 hover:border-zinc-300 hover:shadow-md dark:border-zinc-800 dark:bg-zinc-900/40 flex flex-col lg:flex-row gap-6 relative"
+                  className="group rounded-xl border border-zinc-200 bg-white p-5 text-left transition-all duration-300 hover:border-zinc-300 hover:shadow-md dark:border-zinc-800 dark:bg-zinc-900/40 flex flex-col lg:flex-row gap-6 overflow-hidden"
                 >
-                  {/* Floating Team Badge */}
-                  <div className="absolute top-4 right-4 z-20">
-                    <Link
-                      to={`/teams?teamId=${part.teamInfo._id}`}
-                      className="inline-flex items-center gap-1.5 rounded-lg bg-zinc-100 hover:bg-zinc-200 dark:bg-zinc-800 dark:hover:bg-zinc-700 text-[10px] font-extrabold uppercase tracking-wider text-zinc-700 dark:text-zinc-300 px-2.5 py-1 shadow-xs border border-zinc-200/50 dark:border-zinc-700/50 transition-colors"
-                    >
-                      <Users className="h-3 w-3 text-zinc-500 dark:text-zinc-400 shrink-0" /> {part.teamInfo.name}
-                    </Link>
-                  </div>
-
                   {/* Left Column: Cover & Identity */}
-                  <div className="w-full lg:w-72 shrink-0 flex flex-col gap-4">
-                    <div className="flex items-start gap-4">
+                  <div className="w-full lg:w-80 shrink-0 flex flex-col gap-3.5 min-w-0">
+                    <div className="flex items-start gap-3.5 min-w-0">
                       {/* Cover Image */}
-                      <div className="h-16 w-16 shrink-0 overflow-hidden rounded-lg border border-zinc-200 bg-zinc-100 dark:border-zinc-800 dark:bg-zinc-900">
+                      <div className="h-14 w-14 shrink-0 overflow-hidden rounded-lg border border-zinc-200 bg-zinc-100 dark:border-zinc-800 dark:bg-zinc-900">
                         <img
                           src={part.hackathon.coverImage || "/BrandImages/HackDekh.png"}
                           alt={part.hackathon.title}
@@ -277,25 +314,25 @@ export default function TrackerPage() {
                           }}
                         />
                       </div>
-                      
-                      <div className="min-w-0 flex-1 space-y-1 text-left pr-20">
+
+                      <div className="min-w-0 flex-1 space-y-1.5 text-left">
                         {part.hackathon.applyLink ? (
                           <a
                             href={part.hackathon.applyLink}
                             target="_blank"
                             rel="noopener noreferrer"
-                            className="inline-flex items-center gap-1.5 text-sm font-bold text-zinc-900 dark:text-white hover:text-blue-600 dark:hover:text-blue-400 truncate transition-colors"
-                            title="Open Official Site"
+                            className="flex w-full min-w-0 items-center gap-1.5 text-sm font-bold text-zinc-900 dark:text-white hover:text-blue-600 dark:hover:text-blue-400 transition-colors"
+                            title={part.hackathon.title}
                           >
                             <span className="truncate">{part.hackathon.title}</span>
                             <ExternalLink className="h-3 w-3 shrink-0 opacity-70" />
                           </a>
                         ) : (
-                          <span className="block text-sm font-bold text-zinc-900 dark:text-white truncate">
+                          <span className="block text-sm font-bold text-zinc-900 dark:text-white truncate" title={part.hackathon.title}>
                             {part.hackathon.title}
                           </span>
                         )}
-                        <div className="flex items-center gap-2 mt-0.5 flex-wrap">
+                        <div className="flex items-center gap-1.5 flex-wrap">
                           <span className={`text-[9px] font-extrabold uppercase tracking-wider px-2 py-0.5 rounded-md border ${
                             part.status === "won" ? "text-emerald-600 dark:text-emerald-400 bg-emerald-500/5 dark:bg-emerald-500/10 border-emerald-500/15" :
                             part.status === "eliminated" ? "text-rose-600 dark:text-rose-400 bg-rose-500/5 dark:bg-rose-500/10 border-rose-500/15" :
@@ -303,9 +340,15 @@ export default function TrackerPage() {
                           }`}>
                             {part.status}
                           </span>
-                          <span className="w-px h-3.5 bg-zinc-200 dark:bg-zinc-800" />
+                          <Link
+                            to={`/teams?teamId=${part.teamInfo._id}`}
+                            className="inline-flex items-center gap-1 rounded-md bg-zinc-100 hover:bg-zinc-200 dark:bg-zinc-800 dark:hover:bg-zinc-700 text-[9px] font-bold uppercase tracking-wider text-zinc-600 dark:text-zinc-300 px-2 py-0.5 border border-zinc-200/60 dark:border-zinc-700/60 transition-colors"
+                          >
+                            <Users className="h-2.5 w-2.5 shrink-0" />
+                            {part.teamInfo.name}
+                          </Link>
                           <span className="inline-flex items-center gap-1 text-[10px] text-zinc-400 dark:text-zinc-500 font-medium">
-                            <Calendar className="h-3.5 w-3.5 text-zinc-400" />
+                            <Calendar className="h-3 w-3 text-zinc-400" />
                             {formatDateTag(part.createdAt)}
                           </span>
                         </div>
@@ -313,27 +356,28 @@ export default function TrackerPage() {
                     </div>
 
                     {/* Action Buttons */}
-                    <div className="flex items-center gap-2 mt-1 flex-wrap">
-                      {isTracking ? (
-                        <button
-                          onClick={() => handleUpdateStatus(part._id, part.teamInfo._id, "active")}
-                          disabled={updatingStatusId === part._id}
-                          className="inline-flex items-center justify-center gap-1 h-8 px-3.5 rounded-lg bg-emerald-600 hover:bg-emerald-500 active:bg-emerald-700 text-white text-[10px] font-bold transition duration-150 cursor-pointer shadow-xs active:scale-95 leading-none shrink-0"
+                    <div className="flex items-center gap-2 flex-wrap">
+                      {part.hackathon.applyLink && (
+                        <a
+                          href={part.hackathon.applyLink}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="inline-flex items-center justify-center gap-1.5 h-8 px-3 rounded-lg border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-950 hover:bg-zinc-50 dark:hover:bg-zinc-900 text-zinc-700 dark:text-zinc-200 text-[10.5px] font-bold transition duration-150 leading-none shrink-0"
                         >
-                          {updatingStatusId === part._id ? "..." : "Register"}
-                        </button>
-                      ) : (
+                          Official Site <ExternalLink className="h-3 w-3" />
+                        </a>
+                      )}
+                      {!isTracking && (
                         <Link
-                          to={`/teams?teamId=${part.teamInfo._id}&tab=Stages&participationId=${part._id}`}
-                          className="inline-flex items-center gap-1 h-8 px-3.5 rounded-lg bg-emerald-500/10 dark:bg-emerald-500/15 border border-emerald-500/20 dark:border-emerald-500/10 text-emerald-600 dark:text-emerald-400 text-[10px] font-bold leading-none shrink-0"
+                          to={`/teams?teamId=${part.teamInfo._id}`}
+                          className="inline-flex items-center gap-1 h-8 px-3 rounded-lg bg-emerald-500/10 dark:bg-emerald-500/15 border border-emerald-500/20 dark:border-emerald-500/10 text-emerald-600 dark:text-emerald-400 text-[10.5px] font-bold leading-none shrink-0"
                         >
-                          <CheckCircle2 className="h-3.5 w-3.5" /> Manage Workspace
+                          <CheckCircle2 className="h-3.5 w-3.5" /> Squad
                         </Link>
                       )}
-
                       <button
                         onClick={() => handleInitiateUntrack(part._id, part.teamInfo._id, part.hackathon._id, part.hackathon.title)}
-                        className="inline-flex items-center justify-center gap-1 h-8 px-3.5 rounded-lg border border-zinc-200 dark:border-zinc-800 hover:border-rose-300 dark:hover:border-rose-900/50 hover:bg-rose-500/5 dark:hover:bg-rose-500/5 text-zinc-500 dark:text-zinc-400 hover:text-rose-600 dark:hover:text-rose-400 text-[10px] font-bold transition duration-150 cursor-pointer leading-none active:scale-95 shrink-0"
+                        className="inline-flex items-center justify-center gap-1 h-8 px-3 rounded-lg border border-zinc-200 dark:border-zinc-800 hover:border-rose-300 dark:hover:border-rose-900/50 hover:bg-rose-500/5 text-zinc-500 dark:text-zinc-400 hover:text-rose-600 dark:hover:text-rose-400 text-[10.5px] font-bold transition duration-150 cursor-pointer leading-none shrink-0"
                       >
                         <Trash2 className="h-3.5 w-3.5" /> Untrack
                       </button>
@@ -344,9 +388,9 @@ export default function TrackerPage() {
                   <div className="flex-1 min-w-0 flex flex-col gap-4 overflow-visible w-full justify-center">
                     {/* Registration Tracker Block */}
                     {isTracking && (
-                      <div className="w-full rounded-lg border p-3 flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs backdrop-blur-sm transition-all duration-350 border-amber-500/15 bg-amber-500/5 dark:bg-amber-500/3 text-amber-800 dark:text-amber-300 shadow-xs">
+                      <div className="w-full rounded-lg border p-3.5 flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs border-amber-500/20 bg-amber-500/5 dark:bg-amber-500/5 text-amber-800 dark:text-amber-300">
                         <div className="flex items-center gap-2.5 min-w-0">
-                          <div className="h-7 w-7 rounded-lg flex items-center justify-center shrink-0 shadow-xs bg-gradient-to-tr from-amber-500 to-orange-500 text-white">
+                          <div className="h-7 w-7 rounded-lg flex items-center justify-center shrink-0 bg-gradient-to-tr from-amber-500 to-orange-500 text-white">
                             <AlertTriangle className="h-4 w-4" />
                           </div>
                           <div className="min-w-0 text-left">
@@ -359,37 +403,26 @@ export default function TrackerPage() {
                                   Deadline: {new Date(part.hackathon.deadline).toLocaleDateString(undefined, { month: "short", day: "numeric", year: "numeric" })}
                                   {(() => {
                                     const days = Math.ceil((new Date(part.hackathon.deadline).getTime() - new Date().getTime()) / (1000 * 60 * 60 * 24));
-                                    if (days > 0) return ` (Ends in ${days} days)`;
-                                    if (days === 0) return ` (Ends today!)`;
-                                    return ` (Closed)`;
+                                    if (days === 1) return " (Ends in 1 day)";
+                                    if (days > 1) return ` (Ends in ${days} days)`;
+                                    if (days === 0) return " (Ends today!)";
+                                    return " (Closed)";
                                   })()}
                                 </span>
                               ) : (
-                                "No official deadline specified. Register soon!"
+                                "No official deadline specified."
                               )}
                             </p>
                           </div>
                         </div>
 
-                        <div className="flex items-center gap-2 shrink-0 self-end sm:self-auto">
-                          {part.hackathon.applyLink && (
-                            <a
-                              href={part.hackathon.applyLink}
-                              target="_blank"
-                              rel="noopener noreferrer"
-                              className="inline-flex items-center gap-1.5 h-7.5 px-3.5 rounded-lg border border-amber-500/20 hover:border-amber-500/35 bg-white dark:bg-zinc-950 text-amber-700 dark:text-amber-400 font-bold transition-all duration-200 hover:bg-amber-500/5 text-[10.5px] cursor-pointer"
-                            >
-                              Register Site <ExternalLink className="h-3 w-3" />
-                            </a>
-                          )}
-                          <button
-                            onClick={() => handleUpdateStatus(part._id, part.teamInfo._id, "active")}
-                            disabled={updatingStatusId === part._id}
-                            className="inline-flex items-center justify-center gap-1.5 h-7.5 px-3.5 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white font-bold transition duration-150 text-[10.5px] shadow-xs active:scale-95 cursor-pointer leading-none"
-                          >
-                            Mark Registered
-                          </button>
-                        </div>
+                        <button
+                          onClick={() => handleUpdateStatus(part._id, part.teamInfo._id, "active")}
+                          disabled={updatingStatusId === part._id}
+                          className="inline-flex items-center justify-center gap-1.5 h-8 px-4 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white font-bold transition duration-150 text-[11px] shadow-xs cursor-pointer leading-none shrink-0 self-end sm:self-auto"
+                        >
+                          {updatingStatusId === part._id ? "Updating..." : "Mark Registered"}
+                        </button>
                       </div>
                     )}
 
@@ -399,14 +432,14 @@ export default function TrackerPage() {
                         <div className="flex items-start gap-3 rounded-lg border border-zinc-200/60 dark:border-zinc-800/40 bg-zinc-50/40 dark:bg-zinc-900/5 px-4 py-3 text-zinc-500 dark:text-zinc-400 text-xs text-left max-w-md shadow-xs">
                           <Info className="h-4 w-4 text-zinc-400 dark:text-zinc-500 shrink-0 mt-0.5" />
                           <p className="leading-relaxed">
-                            No competitive stages defined yet. Go to the{" "}
+                            No competitive stages defined yet. View your{" "}
                             <Link
-                              to={`/teams?teamId=${part.teamInfo._id}&tab=Stages&participationId=${part._id}`}
+                              to={`/teams?teamId=${part.teamInfo._id}`}
                               className="font-semibold text-blue-600 dark:text-blue-400 hover:underline"
                             >
-                              Workspace
+                              {part.teamInfo.name}
                             </Link>{" "}
-                            to add custom milestones.
+                            squad to coordinate with teammates.
                           </p>
                         </div>
                       ) : (

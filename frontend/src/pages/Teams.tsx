@@ -16,7 +16,6 @@ import {
   XCircle,
   Info,
   X,
-  Star,
   AlertTriangle,
   RotateCcw,
   Check
@@ -916,30 +915,6 @@ export default function TeamsPage() {
                 filteredTeams.map((t) => {
                   const isOwner = t.owner._id === user?._id;
                   const teamParts = allParticipations[t._id] || [];
-                  const wins = teamParts.filter(p => p.status === "won").length;
-
-
-
-                  // Find next upcoming milestone/deadline
-                  let nextDeadline: { date: Date; name: string; hackathonTitle: string } | null = null;
-                  for (const p of teamParts) {
-                    for (const s of p.stages) {
-                      if (s.result === 'pending' && s.deadline) {
-                        const d = new Date(s.deadline);
-                        if (!Number.isNaN(d.getTime())) {
-                          const currentNext = nextDeadline as { date: Date; name: string; hackathonTitle: string } | null;
-                          if (!currentNext || d.getTime() < currentNext.date.getTime()) {
-                            nextDeadline = { date: d, name: s.name, hackathonTitle: p.hackathon.title };
-                          }
-                        }
-                      }
-                    }
-                  }
-
-                  // Win rate calculations
-                  const totalCompleted = teamParts.filter(p => p.status === 'won' || p.status === 'eliminated').length;
-                  const winRate = totalCompleted > 0 ? Math.round((wins / totalCompleted) * 100) : 0;
-                  const rating = (4.1 + Math.min(t.members.length * 0.1, 0.4) + Math.min(wins * 0.2, 0.4)).toFixed(1);
                   const shouldOverlap = t.members.length > 3;
 
                   return (
@@ -973,10 +948,6 @@ export default function TeamsPage() {
                               }`}>
                               {isOwner ? "Leader" : "Teammate"}
                             </span>
-                            <div className="flex items-center gap-1 rounded-full bg-amber-500/10 px-2 py-0.5 text-[10px] font-bold text-amber-700 dark:bg-amber-400/10 dark:text-amber-400 border border-amber-500/20 dark:border-amber-400/20">
-                              <Star className="h-3 w-3 fill-amber-500 text-amber-500 dark:fill-amber-400 dark:text-amber-400" />
-                              <span>{rating}</span>
-                            </div>
                           </div>
                         </div>
 
@@ -1002,28 +973,16 @@ export default function TeamsPage() {
                         </div>
                       </div>
 
-                      {/* Performance Summaries & View Button */}
-                      <div className="mt-4 pt-3.5 border-t border-zinc-100 dark:border-zinc-800 flex items-center justify-between">
-                        <div className="min-w-0">
-                          <div className="flex items-center gap-1.5 text-[10px] text-zinc-400 dark:text-zinc-500">
-                            <span className="font-semibold text-zinc-600 dark:text-zinc-400">{teamParts.length} trackings</span>
-                            <span>•</span>
-                            {totalCompleted > 0 ? (
-                              <span className="font-bold text-emerald-600 dark:text-emerald-400">{winRate}% Win Rate</span>
-                            ) : (
-                              <span className="text-zinc-400 italic">No record</span>
-                            )}
-                          </div>
-                          <div className="h-1 w-28 bg-zinc-100 dark:bg-zinc-800 rounded-full overflow-hidden flex mt-1.5">
-                            {totalCompleted > 0 ? (
-                              <>
-                                <div style={{ width: `${winRate}%` }} className="bg-emerald-500 h-full" />
-                                <div style={{ width: `${100 - winRate}%` }} className="bg-rose-500 h-full" />
-                              </>
-                            ) : (
-                              <div className="w-full bg-zinc-200 dark:bg-zinc-800 h-full" />
-                            )}
-                          </div>
+                      {/* Footer Summary & Open Button */}
+                      <div className="mt-4 pt-3.5 border-t border-zinc-100 dark:border-zinc-800 flex items-center justify-between gap-3">
+                        <div className="flex items-center gap-1.5 text-[11px] text-zinc-500 dark:text-zinc-400 min-w-0">
+                          <span className="font-semibold text-zinc-700 dark:text-zinc-300">{teamParts.length} tracked</span>
+                          {t.code && (
+                            <>
+                              <span>•</span>
+                              <span className="font-mono text-[10px] text-zinc-400 dark:text-zinc-500">#{t.code}</span>
+                            </>
+                          )}
                         </div>
 
                         <button

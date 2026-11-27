@@ -223,7 +223,7 @@ const HackathonList = () => {
         loadTrackedHackathons();
     }, [loadTrackedHackathons]);
 
-    const trackOnTeam = async (hackathonId: string, teamId: string) => {
+    const trackOnTeam = async (hackathonId: string, teamId: string, teamName?: string) => {
         const tempId = `optimistic_${Date.now()}`;
         setTrackedHackathons(prev => ({
             ...prev,
@@ -250,7 +250,7 @@ const HackathonList = () => {
                 return prev;
             });
             invalidateUserCaches();
-            showToast("Hackathon tracked successfully", "success");
+            showToast(teamName ? `Tracked under "${teamName}".` : "Hackathon tracked successfully.", "success");
         } catch (error: any) {
             console.error("Failed to track hackathon in background", error);
             setTrackedHackathons(prev => {
@@ -275,14 +275,14 @@ const HackathonList = () => {
                 const personalTeam = await teamApi.createTeam({ name: "Personal" });
                 setTeams([personalTeam]);
                 invalidateUserCaches();
-                await trackOnTeam(hackathonId, personalTeam._id);
+                await trackOnTeam(hackathonId, personalTeam._id, personalTeam.name);
             } catch (error: any) {
                 showToast(error.response?.data?.message || "Failed to track hackathon", "error");
             }
             return;
         }
         if (teams.length === 1) {
-            await trackOnTeam(hackathonId, teams[0]._id);
+            await trackOnTeam(hackathonId, teams[0]._id, teams[0].name);
             return;
         }
         setSelectedHackathonToTrack(hackathonId);
