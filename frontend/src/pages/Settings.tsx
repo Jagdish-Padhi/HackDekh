@@ -441,7 +441,7 @@ const SettingsPage = () => {
                       className={inputCls}
                     >
                       {[1, 2, 3, 4, 5].map((n) => (
-                        <option key={n} value={n}>
+                        <option key={n} value={n} className="bg-white text-zinc-900 dark:bg-zinc-900 dark:text-zinc-100">
                           {n} {n === 1 ? "member (Solo)" : "members"}
                         </option>
                       ))}

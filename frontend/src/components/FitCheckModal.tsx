@@ -178,7 +178,7 @@ export default function FitCheckModal({
                         value={homeCity}
                         onChange={(e) => setHomeCity(e.target.value)}
                         placeholder="e.g. Bengaluru, Delhi"
-                        className="w-full rounded-lg border border-zinc-200 bg-zinc-50/50 px-3 py-2 text-sm text-zinc-900 outline-none focus:border-blue-500 focus:bg-white dark:border-zinc-800 dark:bg-zinc-900 dark:text-zinc-100"
+                        className="w-full rounded-lg border border-zinc-200 bg-zinc-50/50 px-3 py-2 text-sm text-zinc-900 placeholder:text-zinc-400 outline-none transition focus:border-blue-500 focus:bg-white dark:border-zinc-800 dark:bg-zinc-900 dark:text-zinc-100 dark:placeholder:text-zinc-500 dark:focus:bg-zinc-950"
                       />
                     </div>
 
@@ -189,10 +189,10 @@ export default function FitCheckModal({
                       <select
                         value={preferredTeamSize}
                         onChange={(e) => setPreferredTeamSize(Number(e.target.value))}
-                        className="w-full rounded-lg border border-zinc-200 bg-zinc-50/50 px-3 py-2 text-sm text-zinc-900 outline-none focus:border-blue-500 focus:bg-white dark:border-zinc-800 dark:bg-zinc-900 dark:text-zinc-100"
+                        className="w-full rounded-lg border border-zinc-200 bg-zinc-50/50 px-3 py-2 text-sm text-zinc-900 outline-none transition focus:border-blue-500 focus:bg-white dark:border-zinc-800 dark:bg-zinc-900 dark:text-zinc-100 dark:focus:bg-zinc-950 cursor-pointer"
                       >
                         {[1, 2, 3, 4, 5].map((n) => (
-                          <option key={n} value={n}>
+                          <option key={n} value={n} className="bg-white text-zinc-900 dark:bg-zinc-900 dark:text-zinc-100">
                             {n} {n === 1 ? "member (Solo)" : "members"}
                           </option>
                         ))}
@@ -212,7 +212,7 @@ export default function FitCheckModal({
                         value={minPrizeINR}
                         onChange={(e) => setMinPrizeINR(Number(e.target.value))}
                         placeholder="0 for any"
-                        className="w-full rounded-lg border border-zinc-200 bg-zinc-50/50 px-3 py-2 text-sm text-zinc-900 outline-none focus:border-blue-500 focus:bg-white dark:border-zinc-800 dark:bg-zinc-900 dark:text-zinc-100"
+                        className="w-full rounded-lg border border-zinc-200 bg-zinc-50/50 px-3 py-2 text-sm text-zinc-900 placeholder:text-zinc-400 outline-none transition focus:border-blue-500 focus:bg-white dark:border-zinc-800 dark:bg-zinc-900 dark:text-zinc-100 dark:placeholder:text-zinc-500 dark:focus:bg-zinc-950"
                       />
                     </div>
 
@@ -226,7 +226,7 @@ export default function FitCheckModal({
                         max={60}
                         value={minDaysToPrepare}
                         onChange={(e) => setMinDaysToPrepare(Number(e.target.value))}
-                        className="w-full rounded-lg border border-zinc-200 bg-zinc-50/50 px-3 py-2 text-sm text-zinc-900 outline-none focus:border-blue-500 focus:bg-white dark:border-zinc-800 dark:bg-zinc-900 dark:text-zinc-100"
+                        className="w-full rounded-lg border border-zinc-200 bg-zinc-50/50 px-3 py-2 text-sm text-zinc-900 placeholder:text-zinc-400 outline-none transition focus:border-blue-500 focus:bg-white dark:border-zinc-800 dark:bg-zinc-900 dark:text-zinc-100 dark:placeholder:text-zinc-500 dark:focus:bg-zinc-950"
                       />
                     </div>
                   </div>
@@ -264,7 +264,7 @@ export default function FitCheckModal({
                         step={500}
                         value={maxTravelBudgetINR}
                         onChange={(e) => setMaxTravelBudgetINR(Number(e.target.value))}
-                        className="w-full rounded-lg border border-zinc-200 bg-zinc-50/50 px-3 py-2 text-sm text-zinc-900 outline-none focus:border-blue-500 focus:bg-white dark:border-zinc-800 dark:bg-zinc-900 dark:text-zinc-100"
+                        className="w-full rounded-lg border border-zinc-200 bg-zinc-50/50 px-3 py-2 text-sm text-zinc-900 placeholder:text-zinc-400 outline-none transition focus:border-blue-500 focus:bg-white dark:border-zinc-800 dark:bg-zinc-900 dark:text-zinc-100 dark:placeholder:text-zinc-500 dark:focus:bg-zinc-950"
                       />
                     </div>
                   )}
@@ -322,7 +322,7 @@ export default function FitCheckModal({
                       value={skillsInput}
                       onChange={(e) => setSkillsInput(e.target.value)}
                       placeholder="e.g. React, Node.js, AI, Python"
-                      className="w-full rounded-lg border border-zinc-200 bg-zinc-50/50 px-3 py-2 text-sm text-zinc-900 outline-none focus:border-blue-500 focus:bg-white dark:border-zinc-800 dark:bg-zinc-900 dark:text-zinc-100"
+                      className="w-full rounded-lg border border-zinc-200 bg-zinc-50/50 px-3 py-2 text-sm text-zinc-900 placeholder:text-zinc-400 outline-none transition focus:border-blue-500 focus:bg-white dark:border-zinc-800 dark:bg-zinc-900 dark:text-zinc-100 dark:placeholder:text-zinc-500 dark:focus:bg-zinc-950"
                     />
                   </div>
 
