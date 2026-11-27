@@ -13,6 +13,7 @@ import { useCache, useToast } from "../context";
 import { usePageChrome } from "../context/pageChrome";
 import { teamApi, userApi } from "../services";
 import type { Stage, Team, TeamHackathon, TeamInvitation } from "../types";
+import posthog, { isPostHogEnabled } from "../posthog";
 
 type Participation = TeamHackathon & { teamInfo: Team };
 
@@ -147,6 +148,9 @@ export default function DashboardPage() {
       setPendingReflections((prev) => prev.filter((s) => s._id !== activeReflectionStageId));
       setReflectionDraft("");
       setActiveReflectionStageId("");
+      if (isPostHogEnabled) {
+        posthog.capture('reflection_saved');
+      }
       showToast("Reflection note saved!", "success");
     } catch (error) {
       console.error("Failed to add reflection", error);

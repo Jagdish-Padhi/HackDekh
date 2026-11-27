@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
 import LogoTransition from "../components/LogoAnimation";
 import axiosInstance from "../utils/axiosInstance";
+import posthog, { isPostHogEnabled } from "../posthog";
 
 export default function GithubCallbackPage() {
   const navigate = useNavigate();
@@ -52,6 +53,9 @@ export default function GithubCallbackPage() {
 
           setLoadingText("Restoring session context...");
           await checkAuth();
+          if (isPostHogEnabled) {
+            posthog.capture('login_completed', { authentication_method: 'github' });
+          }
           setApiCompleted(true);
         } else {
           throw new Error("Invalid response payload from server.");

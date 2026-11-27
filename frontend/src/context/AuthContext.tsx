@@ -1,5 +1,6 @@
-import { createContext, useContext, useEffect, useState, type ReactNode } from "react";
+import { createContext, useContext, useEffect, useRef, useState, type ReactNode } from "react";
 import axiosInstance from "../utils/axiosInstance";
+import posthog, { isPostHogEnabled } from "../posthog";
 
 export type User = {
   _id: string;
@@ -15,7 +16,7 @@ type AuthContextType = {
   isBackendWarming: boolean;
   login: (email: string, password: string) => Promise<User>;
   logout: () => Promise<void>;
-  updateUser: (updatedUser: User) => void;
+  updateUser: (updatedUser: User, shouldIdentify?: boolean) => void;
   checkAuth: () => Promise<void>;
 };
 
@@ -25,6 +26,24 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [user, setUser] = useState<User | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isBackendWarming, setIsBackendWarming] = useState(false);
+  const identifiedUserId = useRef<string | null>(null);
+
+  const identifyUser = (identifiedUser: User) => {
+    if (!isPostHogEnabled || !identifiedUser._id || identifiedUserId.current === identifiedUser._id) {
+      return;
+    }
+
+    if (identifiedUserId.current && identifiedUserId.current !== identifiedUser._id) {
+      posthog.reset();
+    }
+
+    posthog.identify(identifiedUser._id, {
+      email: identifiedUser.email,
+      name: identifiedUser.fullName,
+      username: identifiedUser.username,
+    });
+    identifiedUserId.current = identifiedUser._id;
+  };
 
   useEffect(() => {
     let isMounted = true;
@@ -68,8 +87,10 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     try {
       const res = await axiosInstance.get("/users/me");
       if (res.data?.success && res.data?.data) {
+        identifyUser(res.data.data);
         setUser(res.data.data);
       } else if (res.data) {
+        identifyUser(res.data);
         setUser(res.data);
       }
     } catch (err) {
@@ -93,6 +114,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     localStorage.setItem("accessToken", accessToken);
     localStorage.setItem("refreshToken", refreshToken);
 
+    identifyUser(loggedUser);
     setUser(loggedUser);
     return loggedUser;
   };
@@ -105,11 +127,18 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     } finally {
       localStorage.removeItem("accessToken");
       localStorage.removeItem("refreshToken");
+      if (isPostHogEnabled) {
+        posthog.reset();
+      }
+      identifiedUserId.current = null;
       setUser(null);
     }
   };
 
-  const updateUser = (updatedUser: User) => {
+  const updateUser = (updatedUser: User, shouldIdentify = false) => {
+    if (shouldIdentify) {
+      identifyUser(updatedUser);
+    }
     setUser(updatedUser);
   };
 
