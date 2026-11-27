@@ -15,7 +15,13 @@ import {
 import { useAuth, type TravelPreference, type UserPreferences } from "../context/AuthContext";
 import { useToast } from "../context";
 import { userApi } from "../services";
-import { DEFAULT_PREFERENCES, saveLocalPreferences, TRAVEL_PREFERENCE_LABELS } from "../utils/fitEngine";
+import {
+  AVAILABLE_MODES,
+  AVAILABLE_PLATFORMS,
+  DEFAULT_PREFERENCES,
+  saveLocalPreferences,
+  TRAVEL_PREFERENCE_LABELS,
+} from "../utils/fitEngine";
 import axiosInstance from "../utils/axiosInstance";
 import { AnimatePresence, motion } from "framer-motion";
 
@@ -71,6 +77,14 @@ const SettingsPage = () => {
   const [maxTravelBudgetINR, setMaxTravelBudgetINR] = useState<number>(
     user?.preferences?.maxTravelBudgetINR ?? DEFAULT_PREFERENCES.maxTravelBudgetINR
   );
+  const [minPrizeINR, setMinPrizeINR] = useState<number>(
+    user?.preferences?.minPrizeINR ?? DEFAULT_PREFERENCES.minPrizeINR
+  );
+  const [minDaysToPrepare, setMinDaysToPrepare] = useState<number>(
+    user?.preferences?.minDaysToPrepare ?? DEFAULT_PREFERENCES.minDaysToPrepare
+  );
+  const [preferredModes, setPreferredModes] = useState<string[]>(user?.preferences?.preferredModes || []);
+  const [preferredPlatforms, setPreferredPlatforms] = useState<string[]>(user?.preferences?.preferredPlatforms || []);
   const [preferredTeamSize, setPreferredTeamSize] = useState<number>(
     user?.preferences?.preferredTeamSize ?? DEFAULT_PREFERENCES.preferredTeamSize
   );
@@ -85,11 +99,19 @@ const SettingsPage = () => {
         setHomeCity(user.preferences.homeCity || "");
         setTravelPreference(user.preferences.travelPreference || DEFAULT_PREFERENCES.travelPreference);
         setMaxTravelBudgetINR(user.preferences.maxTravelBudgetINR ?? DEFAULT_PREFERENCES.maxTravelBudgetINR);
+        setMinPrizeINR(user.preferences.minPrizeINR ?? DEFAULT_PREFERENCES.minPrizeINR);
+        setMinDaysToPrepare(user.preferences.minDaysToPrepare ?? DEFAULT_PREFERENCES.minDaysToPrepare);
+        setPreferredModes(user.preferences.preferredModes || []);
+        setPreferredPlatforms(user.preferences.preferredPlatforms || []);
         setPreferredTeamSize(user.preferences.preferredTeamSize ?? DEFAULT_PREFERENCES.preferredTeamSize);
         setSkillsInput((user.preferences.skills || []).join(", "));
       }
     }
   }, [user]);
+
+  const togglePrefItem = (list: string[], value: string, setter: (next: string[]) => void) => {
+    setter(list.includes(value) ? list.filter((item) => item !== value) : [...list, value]);
+  };
 
   const handleSavePreferences = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -98,6 +120,10 @@ const SettingsPage = () => {
       homeCity: homeCity.trim(),
       travelPreference,
       maxTravelBudgetINR,
+      minPrizeINR,
+      minDaysToPrepare,
+      preferredModes,
+      preferredPlatforms,
       preferredTeamSize,
       skills: skillsInput
         .split(",")
@@ -460,6 +486,80 @@ const SettingsPage = () => {
                     />
                   </div>
                 )}
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-xs font-semibold text-zinc-700 dark:text-zinc-300 mb-1.5">
+                      Minimum Prize Pool (₹)
+                    </label>
+                    <input
+                      type="number"
+                      min={0}
+                      step={5000}
+                      value={minPrizeINR}
+                      onChange={(e) => setMinPrizeINR(Number(e.target.value))}
+                      placeholder="0 for any"
+                      className={inputCls}
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-semibold text-zinc-700 dark:text-zinc-300 mb-1.5">
+                      Min Days to Prepare
+                    </label>
+                    <input
+                      type="number"
+                      min={0}
+                      max={60}
+                      value={minDaysToPrepare}
+                      onChange={(e) => setMinDaysToPrepare(Number(e.target.value))}
+                      className={inputCls}
+                    />
+                  </div>
+                </div>
+
+                <div>
+                  <label className="block text-xs font-semibold text-zinc-700 dark:text-zinc-300 mb-1.5">
+                    Preferred Event Modes <span className="font-normal text-zinc-400">(optional)</span>
+                  </label>
+                  <div className="flex flex-wrap gap-2">
+                    {AVAILABLE_MODES.map((m) => (
+                      <button
+                        key={m}
+                        type="button"
+                        onClick={() => togglePrefItem(preferredModes, m, setPreferredModes)}
+                        className={`rounded-lg border px-3 py-1.5 text-xs font-semibold capitalize transition cursor-pointer ${
+                          preferredModes.includes(m)
+                            ? "border-blue-500 bg-blue-50 text-blue-700 dark:bg-blue-950/40 dark:text-blue-300"
+                            : "border-zinc-200 bg-white text-zinc-600 hover:bg-zinc-50 dark:border-zinc-800 dark:bg-zinc-900 dark:text-zinc-400"
+                        }`}
+                      >
+                        {m}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                <div>
+                  <label className="block text-xs font-semibold text-zinc-700 dark:text-zinc-300 mb-1.5">
+                    Preferred Platforms <span className="font-normal text-zinc-400">(optional)</span>
+                  </label>
+                  <div className="flex flex-wrap gap-2">
+                    {AVAILABLE_PLATFORMS.map((p) => (
+                      <button
+                        key={p}
+                        type="button"
+                        onClick={() => togglePrefItem(preferredPlatforms, p, setPreferredPlatforms)}
+                        className={`rounded-lg border px-3 py-1.5 text-xs font-semibold transition cursor-pointer ${
+                          preferredPlatforms.includes(p)
+                            ? "border-blue-500 bg-blue-50 text-blue-700 dark:bg-blue-950/40 dark:text-blue-300"
+                            : "border-zinc-200 bg-white text-zinc-600 hover:bg-zinc-50 dark:border-zinc-800 dark:bg-zinc-900 dark:text-zinc-400"
+                        }`}
+                      >
+                        {p}
+                      </button>
+                    ))}
+                  </div>
+                </div>
 
                 <div>
                   <label className="block text-xs font-semibold text-zinc-700 dark:text-zinc-300 mb-1.5">

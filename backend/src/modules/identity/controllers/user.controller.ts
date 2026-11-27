@@ -170,9 +170,20 @@ export const updateAccountDetails = asyncHandler(async (req: any, res: any) => {
 });
 
 const ALLOWED_TRAVEL_PREFS = ['online_only', 'same_city', 'anywhere_reimbursed', 'anywhere'] as const;
+const ALLOWED_MODES = ['online', 'in-person', 'hybrid'] as const;
 
 export const updateUserPreferences = asyncHandler(async (req: any, res: any) => {
-  const { homeCity, travelPreference, maxTravelBudgetINR, preferredTeamSize, skills } = req.body || {};
+  const {
+    homeCity,
+    travelPreference,
+    maxTravelBudgetINR,
+    minPrizeINR,
+    minDaysToPrepare,
+    preferredModes,
+    preferredPlatforms,
+    preferredTeamSize,
+    skills,
+  } = req.body || {};
 
   const preferencesUpdate: Record<string, any> = {};
   if (typeof homeCity === "string") {
@@ -183,6 +194,23 @@ export const updateUserPreferences = asyncHandler(async (req: any, res: any) => 
   }
   if (maxTravelBudgetINR !== undefined && !Number.isNaN(Number(maxTravelBudgetINR))) {
     preferencesUpdate["preferences.maxTravelBudgetINR"] = Math.max(0, Math.min(1000000, Number(maxTravelBudgetINR)));
+  }
+  if (minPrizeINR !== undefined && !Number.isNaN(Number(minPrizeINR))) {
+    preferencesUpdate["preferences.minPrizeINR"] = Math.max(0, Math.min(100000000, Number(minPrizeINR)));
+  }
+  if (minDaysToPrepare !== undefined && !Number.isNaN(Number(minDaysToPrepare))) {
+    preferencesUpdate["preferences.minDaysToPrepare"] = Math.max(0, Math.min(90, Math.round(Number(minDaysToPrepare))));
+  }
+  if (Array.isArray(preferredModes)) {
+    preferencesUpdate["preferences.preferredModes"] = preferredModes
+      .map((m) => String(m).trim().toLowerCase())
+      .filter((m) => ALLOWED_MODES.includes(m as any));
+  }
+  if (Array.isArray(preferredPlatforms)) {
+    preferencesUpdate["preferences.preferredPlatforms"] = preferredPlatforms
+      .map((p) => String(p).trim())
+      .filter(Boolean)
+      .slice(0, 10);
   }
   if (preferredTeamSize !== undefined && !Number.isNaN(Number(preferredTeamSize))) {
     preferencesUpdate["preferences.preferredTeamSize"] = Math.max(1, Math.min(10, Math.round(Number(preferredTeamSize))));

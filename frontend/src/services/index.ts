@@ -202,6 +202,10 @@ export const userApi = {
     homeCity?: string;
     travelPreference?: string;
     maxTravelBudgetINR?: number;
+    minPrizeINR?: number;
+    minDaysToPrepare?: number;
+    preferredModes?: string[];
+    preferredPlatforms?: string[];
     preferredTeamSize?: number;
     skills?: string[];
   }) => {

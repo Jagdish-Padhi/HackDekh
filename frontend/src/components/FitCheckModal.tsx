@@ -3,6 +3,8 @@ import { AnimatePresence, motion } from "framer-motion";
 import { CheckCircle2, AlertTriangle, XCircle, X, ExternalLink, SlidersHorizontal, Loader2 } from "lucide-react";
 import type { TravelPreference, UserPreferences } from "../context/AuthContext";
 import {
+  AVAILABLE_MODES,
+  AVAILABLE_PLATFORMS,
   DEFAULT_PREFERENCES,
   evaluateHackathonFit,
   hasConfiguredPreferences,
@@ -41,6 +43,14 @@ export default function FitCheckModal({
   const [maxTravelBudgetINR, setMaxTravelBudgetINR] = useState<number>(
     preferences?.maxTravelBudgetINR ?? DEFAULT_PREFERENCES.maxTravelBudgetINR
   );
+  const [minPrizeINR, setMinPrizeINR] = useState<number>(
+    preferences?.minPrizeINR ?? DEFAULT_PREFERENCES.minPrizeINR
+  );
+  const [minDaysToPrepare, setMinDaysToPrepare] = useState<number>(
+    preferences?.minDaysToPrepare ?? DEFAULT_PREFERENCES.minDaysToPrepare
+  );
+  const [preferredModes, setPreferredModes] = useState<string[]>(preferences?.preferredModes || []);
+  const [preferredPlatforms, setPreferredPlatforms] = useState<string[]>(preferences?.preferredPlatforms || []);
   const [preferredTeamSize, setPreferredTeamSize] = useState<number>(
     preferences?.preferredTeamSize ?? DEFAULT_PREFERENCES.preferredTeamSize
   );
@@ -54,16 +64,28 @@ export default function FitCheckModal({
     setHomeCity(preferences?.homeCity || "");
     setTravelPreference(preferences?.travelPreference || DEFAULT_PREFERENCES.travelPreference);
     setMaxTravelBudgetINR(preferences?.maxTravelBudgetINR ?? DEFAULT_PREFERENCES.maxTravelBudgetINR);
+    setMinPrizeINR(preferences?.minPrizeINR ?? DEFAULT_PREFERENCES.minPrizeINR);
+    setMinDaysToPrepare(preferences?.minDaysToPrepare ?? DEFAULT_PREFERENCES.minDaysToPrepare);
+    setPreferredModes(preferences?.preferredModes || []);
+    setPreferredPlatforms(preferences?.preferredPlatforms || []);
     setPreferredTeamSize(preferences?.preferredTeamSize ?? DEFAULT_PREFERENCES.preferredTeamSize);
     setSkillsInput((preferences?.skills || []).join(", "));
   }, [isOpen, preferences]);
 
   if (!hackathon) return null;
 
+  const toggleItem = (list: string[], value: string, setter: (next: string[]) => void) => {
+    setter(list.includes(value) ? list.filter((item) => item !== value) : [...list, value]);
+  };
+
   const currentPrefs: UserPreferences = {
     homeCity: homeCity.trim(),
     travelPreference,
     maxTravelBudgetINR,
+    minPrizeINR,
+    minDaysToPrepare,
+    preferredModes,
+    preferredPlatforms,
     preferredTeamSize,
     skills: skillsInput
       .split(",")
@@ -110,10 +132,10 @@ export default function FitCheckModal({
             animate={{ opacity: 1, scale: 1, y: 0 }}
             exit={{ opacity: 0, scale: 0.96, y: 8 }}
             transition={{ duration: 0.16 }}
-            className="w-full max-w-lg rounded-xl border border-zinc-200 bg-white shadow-2xl dark:border-zinc-800 dark:bg-zinc-950 overflow-hidden"
+            className="w-full max-w-lg max-h-[90vh] flex flex-col rounded-xl border border-zinc-200 bg-white shadow-2xl dark:border-zinc-800 dark:bg-zinc-950 overflow-hidden"
           >
             {/* Header */}
-            <div className="flex items-start justify-between gap-4 border-b border-zinc-100 px-6 py-4 dark:border-zinc-800">
+            <div className="flex items-start justify-between gap-4 border-b border-zinc-100 px-6 py-4 dark:border-zinc-800 shrink-0">
               <div className="min-w-0">
                 <p className="text-[11px] font-bold uppercase tracking-wider text-blue-600 dark:text-blue-400">
                   Participation Fit Check
@@ -132,16 +154,16 @@ export default function FitCheckModal({
               </button>
             </div>
 
-            <div className="p-6">
+            <div className="p-6 overflow-y-auto">
               {isEditing ? (
                 <form onSubmit={handleSave} className="space-y-4">
                   <div>
                     <h4 className="text-sm font-bold text-zinc-900 dark:text-zinc-100">
-                      Set your participation context
+                      Set your participation criteria
                     </h4>
                     <p className="text-xs text-zinc-500 dark:text-zinc-400 mt-0.5">
                       {isAuthenticated
-                        ? "Saved to your profile so every hackathon is evaluated automatically."
+                        ? "Saved to your profile for accurate, personalized fit scoring."
                         : "Saved locally in your browser. Sign in anytime to sync across devices."}
                     </p>
                   </div>
@@ -175,6 +197,37 @@ export default function FitCheckModal({
                           </option>
                         ))}
                       </select>
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
+                    <div>
+                      <label className="block text-xs font-semibold text-zinc-700 dark:text-zinc-300 mb-1">
+                        Minimum Prize Pool (₹)
+                      </label>
+                      <input
+                        type="number"
+                        min={0}
+                        step={5000}
+                        value={minPrizeINR}
+                        onChange={(e) => setMinPrizeINR(Number(e.target.value))}
+                        placeholder="0 for any"
+                        className="w-full rounded-lg border border-zinc-200 bg-zinc-50/50 px-3 py-2 text-sm text-zinc-900 outline-none focus:border-blue-500 focus:bg-white dark:border-zinc-800 dark:bg-zinc-900 dark:text-zinc-100"
+                      />
+                    </div>
+
+                    <div>
+                      <label className="block text-xs font-semibold text-zinc-700 dark:text-zinc-300 mb-1">
+                        Min Days to Prepare
+                      </label>
+                      <input
+                        type="number"
+                        min={0}
+                        max={60}
+                        value={minDaysToPrepare}
+                        onChange={(e) => setMinDaysToPrepare(Number(e.target.value))}
+                        className="w-full rounded-lg border border-zinc-200 bg-zinc-50/50 px-3 py-2 text-sm text-zinc-900 outline-none focus:border-blue-500 focus:bg-white dark:border-zinc-800 dark:bg-zinc-900 dark:text-zinc-100"
+                      />
                     </div>
                   </div>
 
@@ -215,6 +268,50 @@ export default function FitCheckModal({
                       />
                     </div>
                   )}
+
+                  <div>
+                    <label className="block text-xs font-semibold text-zinc-700 dark:text-zinc-300 mb-1.5">
+                      Preferred Event Modes <span className="font-normal text-zinc-400">(optional)</span>
+                    </label>
+                    <div className="flex flex-wrap gap-2">
+                      {AVAILABLE_MODES.map((m) => (
+                        <button
+                          key={m}
+                          type="button"
+                          onClick={() => toggleItem(preferredModes, m, setPreferredModes)}
+                          className={`rounded-lg border px-3 py-1.5 text-xs font-semibold capitalize transition cursor-pointer ${
+                            preferredModes.includes(m)
+                              ? "border-blue-500 bg-blue-50 text-blue-700 dark:bg-blue-950/40 dark:text-blue-300"
+                              : "border-zinc-200 bg-white text-zinc-600 hover:bg-zinc-50 dark:border-zinc-800 dark:bg-zinc-900 dark:text-zinc-400"
+                          }`}
+                        >
+                          {m}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+
+                  <div>
+                    <label className="block text-xs font-semibold text-zinc-700 dark:text-zinc-300 mb-1.5">
+                      Preferred Platforms <span className="font-normal text-zinc-400">(optional)</span>
+                    </label>
+                    <div className="flex flex-wrap gap-2">
+                      {AVAILABLE_PLATFORMS.map((p) => (
+                        <button
+                          key={p}
+                          type="button"
+                          onClick={() => toggleItem(preferredPlatforms, p, setPreferredPlatforms)}
+                          className={`rounded-lg border px-3 py-1.5 text-xs font-semibold transition cursor-pointer ${
+                            preferredPlatforms.includes(p)
+                              ? "border-blue-500 bg-blue-50 text-blue-700 dark:bg-blue-950/40 dark:text-blue-300"
+                              : "border-zinc-200 bg-white text-zinc-600 hover:bg-zinc-50 dark:border-zinc-800 dark:bg-zinc-900 dark:text-zinc-400"
+                          }`}
+                        >
+                          {p}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
 
                   <div>
                     <label className="block text-xs font-semibold text-zinc-700 dark:text-zinc-300 mb-1">

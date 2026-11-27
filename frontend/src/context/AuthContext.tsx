@@ -7,6 +7,10 @@ export type UserPreferences = {
   homeCity?: string;
   travelPreference?: TravelPreference;
   maxTravelBudgetINR?: number;
+  minPrizeINR?: number;
+  minDaysToPrepare?: number;
+  preferredModes?: string[];
+  preferredPlatforms?: string[];
   preferredTeamSize?: number;
   skills?: string[];
 };
