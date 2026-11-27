@@ -43,7 +43,7 @@ function getPasswordStrength(pw: string) {
 }
 
 const inputCls =
-  "w-full rounded-lg border border-zinc-200 bg-zinc-50/50 px-4 py-2.5 text-sm text-zinc-800 outline-none transition focus:border-blue-400 focus:bg-white dark:border-zinc-800 dark:bg-zinc-900 dark:text-zinc-100 dark:focus:bg-zinc-950 dark:focus:border-blue-400 dark:placeholder-zinc-600";
+  "w-full rounded-lg border border-zinc-200 bg-zinc-50/50 px-4 py-2.5 text-sm text-zinc-800 outline-none transition hover:border-zinc-300 focus:border-blue-500/70 focus:bg-white focus:ring-3 focus:ring-blue-500/12 dark:border-zinc-800 dark:bg-zinc-900 dark:text-zinc-100 dark:hover:border-zinc-700 dark:focus:bg-zinc-950 dark:focus:border-blue-500/60 dark:focus:ring-blue-500/15 dark:placeholder-zinc-600";
 
 /* ─── sub-components ────────────────────────────────────────────────────────── */
 
@@ -731,7 +731,7 @@ const SettingsPage = () => {
               </p>
 
               {/* Theme row */}
-              <div className="py-4 border-b border-zinc-100 dark:border-zinc-800">
+              <div className="py-4 border-b border-zinc-200/80 dark:border-zinc-800/80">
                 <p className="text-sm font-semibold text-zinc-800 dark:text-zinc-200">Interface Theme</p>
                 <p className="text-xs text-zinc-500 dark:text-zinc-400 mt-0.5">
                   Choose between light and dark mode. Your preference is saved locally.
@@ -744,8 +744,8 @@ const SettingsPage = () => {
                   onClick={() => { if (isDark) toggleTheme(); }}
                   className={`rounded-lg border-2 p-3 text-left transition cursor-pointer ${
                     !isDark
-                      ? "border-blue-500 shadow-md"
-                      : "border-zinc-200 dark:border-zinc-700 opacity-60 hover:opacity-80"
+                      ? "border-blue-500/80 shadow-md"
+                      : "border-zinc-200 dark:border-zinc-800 hover:border-zinc-300 dark:hover:border-zinc-700 opacity-60 hover:opacity-85"
                   }`}
                 >
                   <div className="h-16 rounded-lg bg-white border border-zinc-200 mb-2 flex flex-col gap-1 p-2">
@@ -763,8 +763,8 @@ const SettingsPage = () => {
                   onClick={() => { if (!isDark) toggleTheme(); }}
                   className={`rounded-lg border-2 p-3 text-left transition cursor-pointer ${
                     isDark
-                      ? "border-blue-500 shadow-md"
-                      : "border-zinc-200 dark:border-zinc-700 opacity-60 hover:opacity-80"
+                      ? "border-blue-500/80 shadow-md"
+                      : "border-zinc-200 dark:border-zinc-800 hover:border-zinc-300 dark:hover:border-zinc-700 opacity-60 hover:opacity-85"
                   }`}
                 >
                   <div className="h-16 rounded-lg bg-zinc-900 border border-zinc-700 mb-2 flex flex-col gap-1 p-2">

@@ -511,8 +511,8 @@ html.dark .btn-icon:hover:not(:disabled) {
 	font-weight: 600;
 	background-color: #2563eb;
 	color: #ffffff !important;
-	border: 1px solid rgba(255, 255, 255, 0.2);
-	box-shadow: 0 2px 12px 0 rgba(37, 99, 235, 0.35), inset 0 1px 0 0 rgba(255, 255, 255, 0.2);
+	border: 1px solid #1d4ed8;
+	box-shadow: 0 2px 10px 0 rgba(37, 99, 235, 0.28);
 	transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
 	cursor: pointer;
 	text-decoration: none;
@@ -520,7 +520,8 @@ html.dark .btn-icon:hover:not(:disabled) {
 
 .btn-brand-primary:hover:not(:disabled) {
 	background-color: #1d4ed8;
-	box-shadow: 0 4px 18px 0 rgba(37, 99, 235, 0.5), inset 0 1px 0 0 rgba(255, 255, 255, 0.3);
+	border-color: #1e40af;
+	box-shadow: 0 4px 16px 0 rgba(37, 99, 235, 0.38);
 	transform: translateY(-1px);
 }
 
@@ -550,8 +551,8 @@ html.dark .btn-icon:hover:not(:disabled) {
 }
 
 html.dark .btn-brand-secondary {
-	border: 1px solid rgba(255, 255, 255, 0.12);
-	background-color: rgba(24, 24, 27, 0.8);
+	border: 1px solid #27272a;
+	background-color: rgba(24, 24, 27, 0.85);
 	color: #f4f4f5 !important;
 	backdrop-filter: blur(8px);
 	box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.3);
@@ -566,7 +567,7 @@ html.dark .btn-brand-secondary {
 
 html.dark .btn-brand-secondary:hover:not(:disabled) {
 	background-color: rgba(39, 39, 42, 0.95);
-	border-color: rgba(255, 255, 255, 0.22);
+	border-color: #3f3f46;
 	color: #ffffff !important;
 	transform: translateY(-1px);
 }

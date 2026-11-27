@@ -70,7 +70,7 @@ const Sidebar = () => {
                     <button
                         type="button"
                         onClick={toggleSidebar}
-                        className="inline-flex h-9 w-9 items-center justify-center rounded-full border border-zinc-200 bg-white text-zinc-600 shadow-sm transition hover:border-blue-400 hover:text-blue-700 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-300 dark:hover:border-blue-400 dark:hover:text-blue-300"
+                        className="inline-flex h-9 w-9 items-center justify-center rounded-full border border-zinc-200 bg-white text-zinc-600 shadow-xs transition hover:border-zinc-300 hover:bg-zinc-50 hover:text-zinc-900 dark:border-zinc-800 dark:bg-zinc-900 dark:text-zinc-300 dark:hover:border-zinc-700 dark:hover:bg-zinc-800 dark:hover:text-zinc-100"
                         aria-label={sidebarExpanded ? 'Close sidebar' : 'Open sidebar'}
                     >
                         {sidebarExpanded ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
@@ -87,7 +87,6 @@ const Sidebar = () => {
                             <span className="text-zinc-900 dark:text-white">Hack</span>
                             <span className="bg-gradient-to-r from-blue-500 to-indigo-500 dark:from-blue-400 dark:via-sky-400 dark:to-indigo-400 bg-clip-text text-transparent">Dekh</span>
                         </div>
-                        <p className="text-[11px] text-zinc-500 dark:text-zinc-400 font-medium">Hackathon OS</p>
                     </div>
                 </Link>
 
@@ -95,7 +94,7 @@ const Sidebar = () => {
                     <button
                         type="button"
                         onClick={toggleSidebar}
-                        className="inline-flex h-9 w-9 items-center justify-center rounded-lg border border-zinc-200 bg-white text-zinc-700 shadow-sm transition hover:-translate-y-0.5 hover:border-blue-400 hover:text-blue-700 hover:shadow-md dark:border-zinc-800 dark:bg-zinc-900 dark:text-zinc-200 dark:hover:border-blue-400 dark:hover:text-blue-300"
+                        className="inline-flex h-9 w-9 items-center justify-center rounded-lg border border-zinc-200 bg-white text-zinc-700 shadow-xs transition hover:border-zinc-300 hover:bg-zinc-50 hover:text-zinc-900 dark:border-zinc-800 dark:bg-zinc-900 dark:text-zinc-200 dark:hover:border-zinc-700 dark:hover:bg-zinc-800 dark:hover:text-zinc-100 cursor-pointer"
                         aria-label={sidebarExpanded ? 'Collapse sidebar' : 'Expand sidebar'}
                     >
                         {sidebarExpanded ? <PanelLeftClose className="h-4.5 w-4.5" /> : <PanelLeftOpen className="h-4.5 w-4.5" />}

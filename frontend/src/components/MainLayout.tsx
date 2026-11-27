@@ -63,7 +63,7 @@ const Shell = ({ children }: MainLayoutProps) => {
 
     const renderGuestNavbar = () => {
         return (
-            <header className="fixed inset-x-0 top-0 z-40 border-b border-zinc-200/80 bg-white/80 backdrop-blur-xl dark:border-zinc-800/80 dark:bg-zinc-950/80 h-16 w-full flex items-center justify-between px-4 sm:px-6 lg:px-8">
+            <header className="fixed inset-x-0 top-0 z-40 border-b border-zinc-200 bg-white/85 backdrop-blur-xl dark:border-zinc-800 dark:bg-zinc-950/85 h-16 w-full flex items-center justify-between px-4 sm:px-6 lg:px-8">
                 {/* Brand Logo and Title */}
                 <Link to="/" className="flex items-center gap-2.5 transition opacity-95 hover:opacity-100">
                     <img src="/BrandImages/HackDekh.png" alt="HackDekh Logo" className="h-10 w-10 sm:h-11 sm:w-11 rounded-full object-contain shrink-0 drop-shadow-md" />

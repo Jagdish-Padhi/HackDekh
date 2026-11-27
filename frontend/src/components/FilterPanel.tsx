@@ -54,9 +54,9 @@ const Dropdown = ({ value, onChange, options, placeholder }: DropdownProps) => {
             <button
                 type="button"
                 onClick={() => setOpen(prev => !prev)}
-                className={`flex h-9 w-full items-center justify-between gap-2 whitespace-nowrap rounded-lg border px-2.5 py-1.5 text-[0.78rem] font-medium shadow-xs transition-all duration-200 hover:-translate-y-0.5 hover:shadow-sm focus:outline-none focus:ring-3 ${
+                className={`flex h-9 w-full items-center justify-between gap-2 whitespace-nowrap rounded-lg border px-2.5 py-1.5 text-[0.78rem] font-medium shadow-xs transition-all duration-200 hover:border-zinc-300 dark:hover:border-zinc-700 focus:outline-none focus:ring-3 ${
                     open
-                        ? 'border-blue-500/45 ring-3 ring-blue-500/12 dark:border-blue-400/50 dark:ring-blue-400/20'
+                        ? 'border-blue-500/70 ring-3 ring-blue-500/12 dark:border-blue-500/60 dark:ring-blue-500/15'
                         : 'border-zinc-200 dark:border-zinc-800'
                 } bg-white text-zinc-900 dark:bg-zinc-900 dark:text-zinc-100`}
             >
@@ -83,7 +83,7 @@ const Dropdown = ({ value, onChange, options, placeholder }: DropdownProps) => {
 
             {/* Dropdown panel */}
             <div
-                className={`absolute left-0 z-60 mt-2 w-full min-w-full origin-top overflow-hidden rounded-xl border border-zinc-200/90 bg-white shadow-sm backdrop-blur-md transition-all duration-200 dark:border-zinc-800 dark:bg-zinc-900 dark:shadow-md ${
+                className={`absolute left-0 z-60 mt-2 w-full min-w-full origin-top overflow-hidden rounded-xl border border-zinc-200 bg-white shadow-lg backdrop-blur-md transition-all duration-200 dark:border-zinc-800 dark:bg-zinc-900 ${
                     open
                         ? 'pointer-events-auto scale-100 opacity-100'
                         : 'pointer-events-none scale-95 opacity-0'

@@ -194,7 +194,7 @@ export default function HackathonDetailPage() {
         Back to Hackathons
       </Link>
 
-      <div className="rounded-xl border border-zinc-200/90 bg-white p-6 sm:p-8 shadow-xs dark:border-zinc-800 dark:bg-zinc-900/60 space-y-6">
+      <div className="rounded-xl border border-zinc-200 bg-white p-6 sm:p-8 shadow-xs dark:border-zinc-800 dark:bg-zinc-900/60 space-y-6">
         <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4">
           <div className="space-y-2 min-w-0">
             <div className="flex flex-wrap items-center gap-2">
@@ -253,28 +253,28 @@ export default function HackathonDetailPage() {
 
         {/* Key Facts Grid */}
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 pt-2">
-          <div className="rounded-lg border border-zinc-100 bg-zinc-50/70 p-3.5 dark:border-zinc-800 dark:bg-zinc-950/60">
+          <div className="rounded-lg border border-zinc-200 bg-zinc-50/70 p-3.5 dark:border-zinc-800 dark:bg-zinc-950/60">
             <p className="text-[10px] font-bold uppercase tracking-wider text-zinc-400">Prize Pool</p>
             <p className="mt-1 flex items-center gap-1.5 text-sm font-bold text-emerald-700 dark:text-emerald-400">
               <Trophy className="h-3.5 w-3.5 shrink-0" />
               <span className="truncate">{hackathon.prize || "TBD"}</span>
             </p>
           </div>
-          <div className="rounded-lg border border-zinc-100 bg-zinc-50/70 p-3.5 dark:border-zinc-800 dark:bg-zinc-950/60">
+          <div className="rounded-lg border border-zinc-200 bg-zinc-50/70 p-3.5 dark:border-zinc-800 dark:bg-zinc-950/60">
             <p className="text-[10px] font-bold uppercase tracking-wider text-zinc-400">Deadline</p>
             <p className="mt-1 flex items-center gap-1.5 text-sm font-bold text-zinc-900 dark:text-zinc-100">
               <Calendar className="h-3.5 w-3.5 shrink-0 text-zinc-400" />
               <span>{formatDate(hackathon.deadline)}</span>
             </p>
           </div>
-          <div className="rounded-lg border border-zinc-100 bg-zinc-50/70 p-3.5 dark:border-zinc-800 dark:bg-zinc-950/60">
+          <div className="rounded-lg border border-zinc-200 bg-zinc-50/70 p-3.5 dark:border-zinc-800 dark:bg-zinc-950/60">
             <p className="text-[10px] font-bold uppercase tracking-wider text-zinc-400">Location</p>
             <p className="mt-1 flex items-center gap-1.5 text-sm font-bold text-zinc-900 dark:text-zinc-100">
               <MapPin className="h-3.5 w-3.5 shrink-0 text-zinc-400" />
               <span className="truncate">{hackathon.location || "TBD"}</span>
             </p>
           </div>
-          <div className="rounded-lg border border-zinc-100 bg-zinc-50/70 p-3.5 dark:border-zinc-800 dark:bg-zinc-950/60">
+          <div className="rounded-lg border border-zinc-200 bg-zinc-50/70 p-3.5 dark:border-zinc-800 dark:bg-zinc-950/60">
             <p className="text-[10px] font-bold uppercase tracking-wider text-zinc-400">Team Size</p>
             <p className="mt-1 flex items-center gap-1.5 text-sm font-bold text-zinc-900 dark:text-zinc-100">
               <Users className="h-3.5 w-3.5 shrink-0 text-zinc-400" />
@@ -284,7 +284,7 @@ export default function HackathonDetailPage() {
         </div>
 
         {hackathon.description && (
-          <div className="border-t border-zinc-100 pt-5 dark:border-zinc-800">
+          <div className="border-t border-zinc-200/80 pt-5 dark:border-zinc-800/80">
             <h2 className="text-xs font-bold uppercase tracking-wider text-zinc-400 mb-2">Overview</h2>
             <p className="text-sm text-zinc-600 dark:text-zinc-300 leading-relaxed whitespace-pre-line">
               {hackathon.description}
@@ -293,7 +293,7 @@ export default function HackathonDetailPage() {
         )}
 
         {/* Primary CTA Row */}
-        <div className="flex flex-col sm:flex-row gap-3 pt-2 border-t border-zinc-100 dark:border-zinc-800">
+        <div className="flex flex-col sm:flex-row gap-3 pt-2 border-t border-zinc-200/80 dark:border-zinc-800/80">
           {hackathon.applyLink && (
             <a
               href={hackathon.applyLink}

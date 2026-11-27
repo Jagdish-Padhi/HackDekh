@@ -165,7 +165,7 @@ export default function DashboardPage() {
     <div className="mx-auto w-full max-w-7xl px-4 py-2 md:px-6 lg:h-[calc(100vh-5.5rem)] lg:overflow-hidden flex flex-col relative">
       {loadingData ? (
         <div className="flex-1 min-h-0 grid gap-5 grid-cols-1 lg:grid-cols-[minmax(0,3fr)_minmax(240px,1fr)] select-none pointer-events-none animate-pulse">
-          <div className="rounded-xl border border-zinc-200/90 bg-white p-6 shadow-xs dark:border-zinc-800 dark:bg-zinc-950/40 h-full min-h-[320px]">
+          <div className="rounded-xl border border-zinc-200 bg-white p-6 shadow-xs dark:border-zinc-800 dark:bg-zinc-950/40 h-full min-h-[320px]">
             <div className="h-full w-full rounded-lg bg-[linear-gradient(110deg,rgba(228,228,231,0.6),rgba(250,250,250,0.95),rgba(228,228,231,0.6))] bg-size-[200%_100%] animate-[shimmer_1.3s_linear_infinite] dark:bg-[linear-gradient(110deg,rgba(39,39,42,0.9),rgba(63,63,70,0.95),rgba(39,39,42,0.9))]" />
           </div>
 
@@ -178,7 +178,7 @@ export default function DashboardPage() {
       ) : (
         <div className="flex-1 min-h-0 grid gap-5 grid-cols-1 lg:grid-cols-[minmax(0,3fr)_minmax(240px,1fr)]">
           {/* Left Column (75%): Upcoming Stages & Deadlines */}
-          <div className="min-h-0 flex flex-col rounded-xl border border-zinc-200/90 bg-white p-6 shadow-xs dark:border-zinc-800 dark:bg-zinc-950/40">
+          <div className="min-h-0 flex flex-col rounded-xl border border-zinc-200 bg-white p-6 shadow-xs dark:border-zinc-800 dark:bg-zinc-950/40">
             <div className="flex items-center justify-between mb-5 shrink-0">
               <div className="flex items-center gap-2">
                 <Calendar className="h-5 w-5 text-blue-600 dark:text-blue-400" />
@@ -259,7 +259,7 @@ export default function DashboardPage() {
                 return (
                   <div
                     key={item.label}
-                    className="flex items-center justify-between rounded-xl border border-zinc-200/80 bg-white px-4 py-3 shadow-xs dark:border-zinc-800 dark:bg-zinc-900/60"
+                    className="flex items-center justify-between rounded-xl border border-zinc-200 bg-white px-4 py-3 shadow-xs dark:border-zinc-800 dark:bg-zinc-900/60"
                   >
                     <span className="flex items-center gap-2.5 text-xs font-medium text-zinc-500 dark:text-zinc-400">
                       <Icon className="h-3.5 w-3.5 shrink-0 text-zinc-400 dark:text-zinc-500" />

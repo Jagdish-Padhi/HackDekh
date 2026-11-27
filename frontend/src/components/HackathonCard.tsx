@@ -231,8 +231,8 @@ const HackathonCard = ({ hackathon, displayIndex, extraActions = [], trackingSta
     const locationLabel = hackathon.location?.trim() || "TBD";
     const prizeDisplay = getPrizeDisplay(hackathon.prize);
     const prizeChipClass = prizeDisplay.isTbd
-        ? "inline-flex max-w-full items-center gap-1 rounded-md border border-zinc-200 bg-zinc-50 px-2 py-0.5 h-6 text-[10px] font-semibold text-zinc-500 dark:border-zinc-850 dark:bg-zinc-800/40 dark:text-zinc-400"
-        : "inline-flex max-w-full items-center gap-1 rounded-md border border-emerald-200/80 bg-emerald-50/60 px-2 py-0.5 h-6 text-[10.5px] font-bold text-emerald-700 dark:border-emerald-500/20 dark:bg-emerald-500/10 dark:text-emerald-400";
+        ? "inline-flex max-w-full items-center gap-1 rounded-md border border-zinc-200 bg-zinc-50 px-2 py-0.5 h-6 text-[10px] font-semibold text-zinc-500 dark:border-zinc-800 dark:bg-zinc-800/50 dark:text-zinc-400"
+        : "inline-flex max-w-full items-center gap-1 rounded-md border border-emerald-200/80 bg-emerald-50/60 px-2 py-0.5 h-6 text-[10.5px] font-bold text-emerald-700 dark:border-emerald-500/25 dark:bg-emerald-500/10 dark:text-emerald-400";
     const revealDelay = (displayIndex % 4) * 65;
 
     // Read tracked state
@@ -244,7 +244,7 @@ const HackathonCard = ({ hackathon, displayIndex, extraActions = [], trackingSta
     return (
         <div
             ref={cardRef}
-            className={`group premium-border-card relative flex h-full flex-col overflow-hidden rounded-lg border border-zinc-200/80 bg-white p-4 shadow-sm transition-all duration-500 ease-out hover:-translate-y-1 hover:border-zinc-300 hover:shadow-lg dark:border-zinc-800 dark:bg-zinc-900 dark:shadow-md dark:hover:border-zinc-700 dark:hover:shadow-lg ${isExpired ? "expired opacity-80" : ""} ${isVisible ? "translate-x-0 translate-y-0 opacity-100" : "-translate-x-3 translate-y-2 opacity-0"}`}
+            className={`group premium-border-card relative flex h-full flex-col overflow-hidden rounded-xl border border-zinc-200 bg-white p-4 shadow-xs transition-all duration-300 ease-out hover:-translate-y-0.5 hover:border-zinc-300 hover:shadow-md dark:border-zinc-800 dark:bg-zinc-900 dark:hover:border-zinc-700 ${isExpired ? "expired opacity-80" : ""} ${isVisible ? "translate-x-0 translate-y-0 opacity-100" : "-translate-x-3 translate-y-2 opacity-0"}`}
             style={{ transitionDelay: isVisible ? `${revealDelay}ms` : "0ms" }}
         >
             {isExpired && (
@@ -322,7 +322,7 @@ const HackathonCard = ({ hackathon, displayIndex, extraActions = [], trackingSta
             </div>
 
             {/* Vertical structured metadata list */}
-            <div className="mt-3.5 space-y-2 border-t border-zinc-100 pt-3 dark:border-zinc-800/80">
+            <div className="mt-3.5 space-y-2 border-t border-zinc-200/80 pt-3 dark:border-zinc-800/80">
                 <div className="flex items-center gap-2 text-[0.72rem] text-zinc-500 dark:text-zinc-400">
                     <svg className="h-3.5 w-3.5 shrink-0 text-zinc-400 dark:text-zinc-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
                         <path strokeLinecap="round" strokeLinejoin="round" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
@@ -412,7 +412,7 @@ const HackathonCard = ({ hackathon, displayIndex, extraActions = [], trackingSta
                                             : fitBadge.verdict === "consider"
                                             ? "border-amber-200 bg-amber-50 text-amber-700 hover:bg-amber-100 dark:border-amber-800/60 dark:bg-amber-950/40 dark:text-amber-300 dark:hover:bg-amber-950/60"
                                             : "border-rose-200 bg-rose-50 text-rose-700 hover:bg-rose-100 dark:border-rose-800/60 dark:bg-rose-950/40 dark:text-rose-300 dark:hover:bg-rose-950/60"
-                                        : "border-zinc-200 bg-zinc-50 text-zinc-600 hover:border-blue-400/60 hover:bg-blue-50/60 hover:text-blue-700 dark:border-zinc-800 dark:bg-zinc-900 dark:text-zinc-300 dark:hover:border-blue-500/50 dark:hover:bg-blue-950/30 dark:hover:text-blue-300"
+                                        : "border-zinc-200 bg-zinc-50 text-zinc-600 hover:border-zinc-300 hover:bg-zinc-100 hover:text-zinc-900 dark:border-zinc-800 dark:bg-zinc-900 dark:text-zinc-300 dark:hover:border-zinc-700 dark:hover:bg-zinc-800 dark:hover:text-zinc-100"
                                 }`}
                             >
                                 <CheckCircle2 className="h-3 w-3 shrink-0" />
@@ -428,7 +428,7 @@ const HackathonCard = ({ hackathon, displayIndex, extraActions = [], trackingSta
                             href={hackathon.applyLink}
                             target="_blank"
                             rel="noopener noreferrer"
-                            className="flex-1 h-8 inline-flex items-center justify-center rounded-lg border border-zinc-200 bg-white px-2.5 !text-[11px] leading-none font-bold text-zinc-700 shadow-xs transition hover:bg-zinc-50 hover:border-zinc-300 dark:border-zinc-850 dark:bg-zinc-950 dark:text-zinc-300 dark:hover:bg-zinc-900 whitespace-nowrap"
+                            className="flex-1 h-8 inline-flex items-center justify-center rounded-lg border border-zinc-200 bg-white px-2.5 !text-[11px] leading-none font-bold text-zinc-700 shadow-xs transition hover:bg-zinc-50 hover:border-zinc-300 dark:border-zinc-800 dark:bg-zinc-950 dark:text-zinc-300 dark:hover:border-zinc-700 dark:hover:bg-zinc-900 whitespace-nowrap"
                         >
                             Official Site
                             <ExternalLink className="ml-1 h-3 w-3 shrink-0" />
@@ -446,7 +446,7 @@ const HackathonCard = ({ hackathon, displayIndex, extraActions = [], trackingSta
                             className={`flex-1 h-8 inline-flex items-center justify-center rounded-lg px-2.5 !text-[11px] leading-none font-bold transition-all duration-200 cursor-pointer border whitespace-nowrap ${
                                 isHovered
                                     ? "bg-rose-500 border-rose-500 text-white shadow-sm shadow-rose-500/20"
-                                    : "bg-zinc-100 border-zinc-200 text-zinc-505 dark:bg-zinc-800/40 dark:border-zinc-700/50 dark:text-zinc-400"
+                                    : "bg-zinc-100 border-zinc-200 text-zinc-600 dark:bg-zinc-800/60 dark:border-zinc-800 dark:text-zinc-300"
                             }`}
                         >
                             {isHovered ? "Untrack" : "Tracked ✓"}

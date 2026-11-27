@@ -135,7 +135,7 @@ export default function FitCheckModal({
             className="w-full max-w-lg max-h-[90vh] flex flex-col rounded-xl border border-zinc-200 bg-white shadow-2xl dark:border-zinc-800 dark:bg-zinc-950 overflow-hidden"
           >
             {/* Header */}
-            <div className="flex items-start justify-between gap-4 border-b border-zinc-100 px-6 py-4 dark:border-zinc-800 shrink-0">
+            <div className="flex items-start justify-between gap-4 border-b border-zinc-200/80 px-6 py-4 dark:border-zinc-800/80 shrink-0">
               <div className="min-w-0">
                 <p className="text-[11px] font-bold uppercase tracking-wider text-blue-600 dark:text-blue-400">
                   Participation Fit Check
@@ -178,7 +178,7 @@ export default function FitCheckModal({
                         value={homeCity}
                         onChange={(e) => setHomeCity(e.target.value)}
                         placeholder="e.g. Bengaluru, Delhi"
-                        className="w-full rounded-lg border border-zinc-200 bg-zinc-50/50 px-3 py-2 text-sm text-zinc-900 placeholder:text-zinc-400 outline-none transition focus:border-blue-500 focus:bg-white dark:border-zinc-800 dark:bg-zinc-900 dark:text-zinc-100 dark:placeholder:text-zinc-500 dark:focus:bg-zinc-950"
+                        className="w-full rounded-lg border border-zinc-200 bg-zinc-50/50 px-3 py-2 text-sm text-zinc-900 placeholder:text-zinc-400 outline-none transition hover:border-zinc-300 focus:border-blue-500/70 focus:bg-white focus:ring-3 focus:ring-blue-500/12 dark:border-zinc-800 dark:bg-zinc-900 dark:text-zinc-100 dark:placeholder:text-zinc-500 dark:hover:border-zinc-700 dark:focus:bg-zinc-950 dark:focus:border-blue-500/60 dark:focus:ring-blue-500/15"
                       />
                     </div>
 
@@ -212,7 +212,7 @@ export default function FitCheckModal({
                         value={minPrizeINR}
                         onChange={(e) => setMinPrizeINR(Number(e.target.value))}
                         placeholder="0 for any"
-                        className="w-full rounded-lg border border-zinc-200 bg-zinc-50/50 px-3 py-2 text-sm text-zinc-900 placeholder:text-zinc-400 outline-none transition focus:border-blue-500 focus:bg-white dark:border-zinc-800 dark:bg-zinc-900 dark:text-zinc-100 dark:placeholder:text-zinc-500 dark:focus:bg-zinc-950"
+                        className="w-full rounded-lg border border-zinc-200 bg-zinc-50/50 px-3 py-2 text-sm text-zinc-900 placeholder:text-zinc-400 outline-none transition hover:border-zinc-300 focus:border-blue-500/70 focus:bg-white focus:ring-3 focus:ring-blue-500/12 dark:border-zinc-800 dark:bg-zinc-900 dark:text-zinc-100 dark:placeholder:text-zinc-500 dark:hover:border-zinc-700 dark:focus:bg-zinc-950 dark:focus:border-blue-500/60 dark:focus:ring-blue-500/15"
                       />
                     </div>
 
@@ -226,7 +226,7 @@ export default function FitCheckModal({
                         max={60}
                         value={minDaysToPrepare}
                         onChange={(e) => setMinDaysToPrepare(Number(e.target.value))}
-                        className="w-full rounded-lg border border-zinc-200 bg-zinc-50/50 px-3 py-2 text-sm text-zinc-900 placeholder:text-zinc-400 outline-none transition focus:border-blue-500 focus:bg-white dark:border-zinc-800 dark:bg-zinc-900 dark:text-zinc-100 dark:placeholder:text-zinc-500 dark:focus:bg-zinc-950"
+                        className="w-full rounded-lg border border-zinc-200 bg-zinc-50/50 px-3 py-2 text-sm text-zinc-900 placeholder:text-zinc-400 outline-none transition hover:border-zinc-300 focus:border-blue-500/70 focus:bg-white focus:ring-3 focus:ring-blue-500/12 dark:border-zinc-800 dark:bg-zinc-900 dark:text-zinc-100 dark:placeholder:text-zinc-500 dark:hover:border-zinc-700 dark:focus:bg-zinc-950 dark:focus:border-blue-500/60 dark:focus:ring-blue-500/15"
                       />
                     </div>
                   </div>
@@ -264,7 +264,7 @@ export default function FitCheckModal({
                         step={500}
                         value={maxTravelBudgetINR}
                         onChange={(e) => setMaxTravelBudgetINR(Number(e.target.value))}
-                        className="w-full rounded-lg border border-zinc-200 bg-zinc-50/50 px-3 py-2 text-sm text-zinc-900 placeholder:text-zinc-400 outline-none transition focus:border-blue-500 focus:bg-white dark:border-zinc-800 dark:bg-zinc-900 dark:text-zinc-100 dark:placeholder:text-zinc-500 dark:focus:bg-zinc-950"
+                        className="w-full rounded-lg border border-zinc-200 bg-zinc-50/50 px-3 py-2 text-sm text-zinc-900 placeholder:text-zinc-400 outline-none transition hover:border-zinc-300 focus:border-blue-500/70 focus:bg-white focus:ring-3 focus:ring-blue-500/12 dark:border-zinc-800 dark:bg-zinc-900 dark:text-zinc-100 dark:placeholder:text-zinc-500 dark:hover:border-zinc-700 dark:focus:bg-zinc-950 dark:focus:border-blue-500/60 dark:focus:ring-blue-500/15"
                       />
                     </div>
                   )}

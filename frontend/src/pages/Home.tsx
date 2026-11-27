@@ -102,50 +102,50 @@ const HomePage = () => {
             >
                 <div className="mx-auto max-w-3xl text-center space-y-3">
                     <h2 className="text-3xl font-bold tracking-tight text-zinc-900 sm:text-4xl dark:text-zinc-100">
-                        Stop running hackathons on messy chats
+                        Stop losing track of hackathons in group chats
                     </h2>
                     <p className="text-base text-zinc-600 dark:text-zinc-400 max-w-2xl mx-auto">
-                        No more lost Google Docs, scattered WhatsApp links, or missed deadlines. Bring your entire hackathon lifecycle under one clean roof.
+                        No more buried Devfolio links, forgotten Unstop cutoffs, or asking your squad whether anyone actually registered.
                     </p>
                 </div>
 
                 <div className="grid gap-6 sm:grid-cols-3 text-left">
                     {/* Highlight 1 */}
-                    <div className="group premium-border-card relative overflow-hidden rounded-xl border border-zinc-200/90 bg-white/70 p-7 backdrop-blur-md transition-all duration-200 hover:-translate-y-1 hover:border-zinc-300 dark:border-zinc-800/90 dark:bg-zinc-900/70 dark:hover:border-zinc-700">
+                    <div className="group premium-border-card relative overflow-hidden rounded-xl border border-zinc-200 bg-white/75 p-7 backdrop-blur-md transition-all duration-200 hover:-translate-y-1 hover:border-zinc-300 dark:border-zinc-800 dark:bg-zinc-900/75 dark:hover:border-zinc-700">
                         <div className="flex h-11 w-11 items-center justify-center rounded-lg bg-blue-500/10 text-blue-600 dark:text-blue-400">
                             <Users className="h-5 w-5" />
                         </div>
                         <h3 className="mt-5 text-lg font-bold text-zinc-900 dark:text-zinc-100 tracking-tight">
-                            Team Workspaces
+                            6-Digit Squad Codes
                         </h3>
                         <p className="mt-2 text-sm text-zinc-600 dark:text-zinc-400 leading-relaxed">
-                            Form teams for different hackathons, delegate member roles, and keep everyone focused on what to build.
+                            Create a squad and share a 6-character join code. Teammates hop in within seconds—no email invites or waiting.
                         </p>
                     </div>
 
                     {/* Highlight 2 */}
-                    <div className="group premium-border-card relative overflow-hidden rounded-xl border border-zinc-200/90 bg-white/70 p-7 backdrop-blur-md transition-all duration-200 hover:-translate-y-1 hover:border-zinc-300 dark:border-zinc-800/90 dark:bg-zinc-900/70 dark:hover:border-zinc-700">
+                    <div className="group premium-border-card relative overflow-hidden rounded-xl border border-zinc-200 bg-white/75 p-7 backdrop-blur-md transition-all duration-200 hover:-translate-y-1 hover:border-zinc-300 dark:border-zinc-800 dark:bg-zinc-900/75 dark:hover:border-zinc-700">
                         <div className="flex h-11 w-11 items-center justify-center rounded-lg bg-blue-500/10 text-blue-600 dark:text-blue-400">
                             <Calendar className="h-5 w-5" />
                         </div>
                         <h3 className="mt-5 text-lg font-bold text-zinc-900 dark:text-zinc-100 tracking-tight">
-                            Stage Milestones
+                            One-Click Track & Stage Flow
                         </h3>
                         <p className="mt-2 text-sm text-zinc-600 dark:text-zinc-400 leading-relaxed">
-                            Track rounds from idea submission to shortlisted, demo day, and finals. Never submit late again.
+                            Save any hackathon in one click, mark it registered once you apply, and update each round cleanly as results drop.
                         </p>
                     </div>
 
                     {/* Highlight 3 */}
-                    <div className="group premium-border-card relative overflow-hidden rounded-xl border border-zinc-200/90 bg-white/70 p-7 backdrop-blur-md transition-all duration-200 hover:-translate-y-1 hover:border-zinc-300 dark:border-zinc-800/90 dark:bg-zinc-900/70 dark:hover:border-zinc-700">
+                    <div className="group premium-border-card relative overflow-hidden rounded-xl border border-zinc-200 bg-white/75 p-7 backdrop-blur-md transition-all duration-200 hover:-translate-y-1 hover:border-zinc-300 dark:border-zinc-800 dark:bg-zinc-900/75 dark:hover:border-zinc-700">
                         <div className="flex h-11 w-11 items-center justify-center rounded-lg bg-blue-500/10 text-blue-600 dark:text-blue-400">
                             <ShieldCheck className="h-5 w-5" />
                         </div>
                         <h3 className="mt-5 text-lg font-bold text-zinc-900 dark:text-zinc-100 tracking-tight">
-                            Instant Team Invites
+                            &ldquo;Worth It?&rdquo; Fit Check
                         </h3>
                         <p className="mt-2 text-sm text-zinc-600 dark:text-zinc-400 leading-relaxed">
-                            Share simple invite codes or magic links. Get your teammates on board in seconds with zero hassle.
+                            Set your city, preferred mode, and minimum prize once. Instantly see if an event is worth your weekend and travel.
                         </p>
                     </div>
                 </div>
@@ -162,43 +162,43 @@ const HomePage = () => {
             >
                 <div className="mx-auto max-w-3xl text-center space-y-3">
                     <h2 className="text-3xl font-bold tracking-tight text-zinc-900 sm:text-4xl dark:text-zinc-100">
-                        Built for builders who want to ship
+                        Built for how students actually compete
                     </h2>
                     <p className="text-base text-zinc-600 dark:text-zinc-400 max-w-2xl mx-auto">
-                        Practical tools that keep your team organized from registration to demo day.
+                        Everything you need from finding the right event to tracking every round with your squad.
                     </p>
                 </div>
 
                 <div className="grid w-full grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-3 lg:gap-8">
                     <FeatureCard
                         icon={Search}
-                        title="All Hackathons in One Feed"
-                        desc="Automatically aggregated from Devfolio, Unstop, Devpost, MLH, and Hack2Skill. Filter by mode, prize pool, and deadline."
+                        title="All Major Platforms, One Feed"
+                        desc="Live listings synced daily from Devfolio, Unstop, Devpost, MLH, and Hack2Skill. Filter by mode, city, team size, prize, and deadline."
                     />
                     <FeatureCard
                         icon={Users}
-                        title="Multi-Team Management"
-                        desc="Create teams with friends, classmates, or online builders. Keep everyone aligned on shared hackathons."
+                        title="Solo or Squad Tracking"
+                        desc="Start tracking solo with one click, or switch between squads in your Tracker header when you team up with different friends."
                     />
                     <FeatureCard
                         icon={Workflow}
-                        title="Stage-by-Stage Tracker"
-                        desc="Always know your standing: Saved, Registered, Shortlisted, or Winner. Update rounds cleanly as results roll in."
+                        title="Clean Stage Pipeline"
+                        desc="Move hackathons from In Queue to Registered and Finished, with every upcoming round and submission cutoff clear at a glance."
                     />
                     <FeatureCard
                         icon={Lightbulb}
-                        title="Deadline Protection"
-                        desc="See every registration cutoff and round submission date in one timeline so your team never submits late."
-                    />
-                    <FeatureCard
-                        icon={BarChart3}
-                        title="Track Record & History"
-                        desc="Keep a clean record of every hackathon your team has joined, active rounds, and completed finishes."
+                        title="Deadline-First Dashboard"
+                        desc="See your upcoming stage deadlines and active counts on one screen so your team never misses a submission window."
                     />
                     <FeatureCard
                         icon={Compass}
-                        title="Fast Search & Filters"
-                        desc="Search by title, platform, mode, and upcoming deadlines without jumping across dozens of tabs."
+                        title="Shareable Event & Squad Links"
+                        desc="Send a clean HackDekh link for any hackathon or public squad schedule—showing prizes, deadlines, and team size without login walls."
+                    />
+                    <FeatureCard
+                        icon={BarChart3}
+                        title="Fast Cached Browsing"
+                        desc="Switch tabs instantly with smart client caching and daily 3 AM platform refreshes—no waiting for listings to reload."
                     />
                 </div>
             </motion.section>
@@ -212,13 +212,13 @@ const HomePage = () => {
                 style={{ willChange: "transform, opacity" }}
                 className="w-full"
             >
-                <div className="group premium-border-card relative overflow-hidden rounded-xl border border-zinc-200/90 bg-white/70 p-8 sm:p-12 text-center dark:border-zinc-800/90 dark:bg-zinc-900/70 backdrop-blur-md">
+                <div className="group premium-border-card relative overflow-hidden rounded-xl border border-zinc-200 bg-white/75 p-8 sm:p-12 text-center dark:border-zinc-800 dark:bg-zinc-900/75 backdrop-blur-md">
                     <div className="mx-auto max-w-2xl space-y-4">
                         <h2 className="text-3xl font-extrabold tracking-tight text-zinc-900 sm:text-4xl dark:text-zinc-50">
-                            Ready to win your next hackathon?
+                            Ready for your next hackathon?
                         </h2>
                         <p className="text-base text-zinc-600 dark:text-zinc-400">
-                            Organize your team, track every deadline, and never miss a hackathon submission again.
+                            Find events worth your weekend, sync with your squad using a 6-digit code, and track every deadline in one place.
                         </p>
                         <div className="pt-4 flex flex-col sm:flex-row items-center justify-center gap-4">
                             <Link

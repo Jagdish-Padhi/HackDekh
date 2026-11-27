@@ -176,7 +176,7 @@ export default function TrackerPage() {
           />
         )}
 
-        <div className="flex items-center gap-0.5 bg-zinc-100 dark:bg-zinc-800/60 p-0.5 rounded-lg border border-zinc-200/60 dark:border-zinc-700/60 shrink-0">
+        <div className="flex items-center gap-0.5 bg-zinc-100 dark:bg-zinc-800/60 p-0.5 rounded-lg border border-zinc-200 dark:border-zinc-800 shrink-0">
           {[
             { id: "tracking", label: `In Queue (${trackingCount})` },
             { id: "active", label: `Registered (${activeCount})` },
@@ -273,7 +273,7 @@ export default function TrackerPage() {
       {/* Main List */}
       <div className="space-y-4">
         {filteredParticipations.length === 0 ? (
-          <div className="rounded-xl border border-dashed border-zinc-300 bg-zinc-50/50 p-16 text-center dark:border-zinc-800 dark:bg-zinc-950/20 max-w-2xl mx-auto mt-6">
+          <div className="rounded-xl border border-dashed border-zinc-300 bg-zinc-50/50 p-16 text-center dark:border-zinc-700 dark:bg-zinc-950/20 max-w-2xl mx-auto mt-6">
             <Flag className="mx-auto h-12 w-12 text-zinc-400" />
             <h3 className="mt-4 text-lg font-bold text-zinc-900 dark:text-zinc-100">No tracked hackathons found</h3>
             <p className="mx-auto mt-2 max-w-sm text-xs text-zinc-600 dark:text-zinc-400 leading-normal">
@@ -297,7 +297,7 @@ export default function TrackerPage() {
               return (
                 <div
                   key={part._id}
-                  className="group rounded-xl border border-zinc-200 bg-white p-5 text-left transition-all duration-300 hover:border-zinc-300 hover:shadow-md dark:border-zinc-800 dark:bg-zinc-900/40 flex flex-col lg:flex-row gap-6 overflow-hidden"
+                  className="group rounded-xl border border-zinc-200 bg-white p-5 text-left transition-all duration-300 hover:border-zinc-300 hover:shadow-md dark:border-zinc-800 dark:bg-zinc-900/40 dark:hover:border-zinc-700 flex flex-col lg:flex-row gap-6 overflow-hidden"
                 >
                   {/* Left Column: Cover & Identity */}
                   <div className="w-full lg:w-80 shrink-0 flex flex-col gap-3.5 min-w-0">
@@ -342,7 +342,7 @@ export default function TrackerPage() {
                           </span>
                           <Link
                             to={`/teams?teamId=${part.teamInfo._id}`}
-                            className="inline-flex items-center gap-1 rounded-md bg-zinc-100 hover:bg-zinc-200 dark:bg-zinc-800 dark:hover:bg-zinc-700 text-[9px] font-bold uppercase tracking-wider text-zinc-600 dark:text-zinc-300 px-2 py-0.5 border border-zinc-200/60 dark:border-zinc-700/60 transition-colors"
+                            className="inline-flex items-center gap-1 rounded-md bg-zinc-100 hover:bg-zinc-200 dark:bg-zinc-800 dark:hover:bg-zinc-700 text-[9px] font-bold uppercase tracking-wider text-zinc-600 dark:text-zinc-300 px-2 py-0.5 border border-zinc-200 dark:border-zinc-700 transition-colors"
                           >
                             <Users className="h-2.5 w-2.5 shrink-0" />
                             {part.teamInfo.name}
@@ -362,7 +362,7 @@ export default function TrackerPage() {
                           href={part.hackathon.applyLink}
                           target="_blank"
                           rel="noopener noreferrer"
-                          className="inline-flex items-center justify-center gap-1.5 h-8 px-3 rounded-lg border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-950 hover:bg-zinc-50 dark:hover:bg-zinc-900 text-zinc-700 dark:text-zinc-200 text-[10.5px] font-bold transition duration-150 leading-none shrink-0"
+                          className="inline-flex items-center justify-center gap-1.5 h-8 px-3 rounded-lg border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-950 hover:border-zinc-300 hover:bg-zinc-50 dark:hover:border-zinc-700 dark:hover:bg-zinc-900 text-zinc-700 dark:text-zinc-200 text-[10.5px] font-bold transition duration-150 leading-none shrink-0"
                         >
                           Official Site <ExternalLink className="h-3 w-3" />
                         </a>
@@ -429,7 +429,7 @@ export default function TrackerPage() {
                     {/* Stages Timeline */}
                     <div className={`pt-1 pb-4 overflow-visible transition-all duration-300 ${isTracking ? "opacity-40 select-none" : ""}`}>
                       {competitiveStages.length === 0 ? (
-                        <div className="flex items-start gap-3 rounded-lg border border-zinc-200/60 dark:border-zinc-800/40 bg-zinc-50/40 dark:bg-zinc-900/5 px-4 py-3 text-zinc-500 dark:text-zinc-400 text-xs text-left max-w-md shadow-xs">
+                        <div className="flex items-start gap-3 rounded-lg border border-zinc-200 dark:border-zinc-800 bg-zinc-50/60 dark:bg-zinc-900/30 px-4 py-3 text-zinc-500 dark:text-zinc-400 text-xs text-left max-w-md shadow-xs">
                           <Info className="h-4 w-4 text-zinc-400 dark:text-zinc-500 shrink-0 mt-0.5" />
                           <p className="leading-relaxed">
                             No competitive stages defined yet. View your{" "}

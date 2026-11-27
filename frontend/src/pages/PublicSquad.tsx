@@ -116,7 +116,7 @@ export default function PublicSquadPage() {
   return (
     <div className="mx-auto w-full max-w-4xl py-6 space-y-6">
       {/* Squad Header */}
-      <div className="rounded-xl border border-zinc-200/90 bg-white p-6 shadow-xs dark:border-zinc-800 dark:bg-zinc-900/60">
+      <div className="rounded-xl border border-zinc-200 bg-white p-6 shadow-xs dark:border-zinc-800 dark:bg-zinc-900/60">
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
           <div className="space-y-1">
             <div className="flex items-center gap-2.5">
@@ -159,7 +159,7 @@ export default function PublicSquadPage() {
 
       {/* Tracked Hackathons */}
       {hackathons.length === 0 ? (
-        <div className="rounded-xl border border-zinc-200/90 bg-white p-12 text-center dark:border-zinc-800 dark:bg-zinc-900/60">
+        <div className="rounded-xl border border-zinc-200 bg-white p-12 text-center dark:border-zinc-800 dark:bg-zinc-900/60">
           <Trophy className="mx-auto h-8 w-8 text-zinc-400" />
           <h2 className="mt-3 text-sm font-bold text-zinc-900 dark:text-zinc-100">No hackathons tracked yet</h2>
           <p className="mt-1 text-xs text-zinc-500 dark:text-zinc-400">
@@ -182,7 +182,7 @@ export default function PublicSquadPage() {
             return (
               <div
                 key={_id}
-                className="rounded-xl border border-zinc-200/90 bg-white p-5 shadow-xs dark:border-zinc-800 dark:bg-zinc-900/60 space-y-4"
+                className="rounded-xl border border-zinc-200 bg-white p-5 shadow-xs dark:border-zinc-800 dark:bg-zinc-900/60 space-y-4"
               >
                 <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3">
                   <div className="space-y-1.5 min-w-0">

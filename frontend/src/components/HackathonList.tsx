@@ -549,7 +549,7 @@ const HackathonList = () => {
                     type="button"
                     onClick={handleRefresh}
                     disabled={isStillLoading}
-                    className="inline-flex h-10 w-10 items-center justify-center rounded-xl border border-zinc-200 bg-white text-zinc-600 shadow-sm transition-all duration-200 hover:-translate-y-0.5 hover:border-blue-400 hover:text-blue-700 hover:shadow-md disabled:cursor-not-allowed disabled:opacity-60 dark:border-zinc-800 dark:bg-zinc-900 dark:text-zinc-300 dark:hover:border-blue-400 dark:hover:text-blue-300"
+                    className="inline-flex h-10 w-10 items-center justify-center rounded-xl border border-zinc-200 bg-white text-zinc-600 shadow-xs transition-all duration-200 hover:border-zinc-300 hover:bg-zinc-50 hover:text-zinc-900 disabled:cursor-not-allowed disabled:opacity-60 dark:border-zinc-800 dark:bg-zinc-900 dark:text-zinc-300 dark:hover:border-zinc-700 dark:hover:bg-zinc-800 dark:hover:text-zinc-100 cursor-pointer"
                     aria-label="Refresh hackathons"
                     title="Refresh hackathons"
                 >
@@ -594,7 +594,7 @@ const HackathonList = () => {
     return (
         <div className="space-y-4">
             <div className="relative z-50 isolate space-y-3 lg:hidden">
-                <div className="relative z-50 isolate overflow-visible rounded-xl border border-zinc-200/90 bg-white/90 p-4 shadow-sm backdrop-blur-md dark:border-zinc-800 dark:bg-zinc-900/78 dark:shadow-md">
+                <div className="relative z-50 isolate overflow-visible rounded-xl border border-zinc-200 bg-white/90 p-4 shadow-xs backdrop-blur-md dark:border-zinc-800 dark:bg-zinc-900/78">
                     <div className="flex items-end gap-3">
                         <div className="min-w-0 flex-1">
                             <SearchBar value={search} onChange={setSearch} />
@@ -603,7 +603,7 @@ const HackathonList = () => {
                             type="button"
                             onClick={handleRefresh}
                             disabled={isStillLoading}
-                            className="inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-zinc-200 bg-white text-zinc-600 shadow-sm transition-all duration-200 hover:-translate-y-0.5 hover:border-blue-400 hover:text-blue-700 hover:shadow-md disabled:cursor-not-allowed disabled:opacity-60 dark:border-zinc-800 dark:bg-zinc-900 dark:text-zinc-300 dark:hover:border-blue-400 dark:hover:text-blue-300"
+                            className="inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-zinc-200 bg-white text-zinc-600 shadow-xs transition-all duration-200 hover:border-zinc-300 hover:bg-zinc-50 hover:text-zinc-900 disabled:cursor-not-allowed disabled:opacity-60 dark:border-zinc-800 dark:bg-zinc-900 dark:text-zinc-300 dark:hover:border-zinc-700 dark:hover:bg-zinc-800 dark:hover:text-zinc-100 cursor-pointer"
                             aria-label="Refresh hackathons"
                             title="Refresh hackathons"
                         >
@@ -612,7 +612,7 @@ const HackathonList = () => {
                     </div>
                 </div>
 
-                <div className="relative z-50 isolate overflow-visible rounded-xl border border-zinc-200/90 bg-white/90 p-4 shadow-sm backdrop-blur-md dark:border-zinc-800 dark:bg-zinc-900/78 dark:shadow-md">
+                <div className="relative z-50 isolate overflow-visible rounded-xl border border-zinc-200 bg-white/90 p-4 shadow-xs backdrop-blur-md dark:border-zinc-800 dark:bg-zinc-900/78">
                     <FilterPanel
                         platform={platform}
                         setPlatform={setPlatform}
@@ -642,7 +642,7 @@ const HackathonList = () => {
                         {Array.from({ length: isDesktopView ? 8 : 6 }).map((_, index) => (
                             <div
                                 key={index}
-                                className="h-84 rounded-xl border border-zinc-200/90 bg-white p-4 shadow-sm dark:border-zinc-800 dark:bg-zinc-900"
+                                className="h-84 rounded-xl border border-zinc-200 bg-white p-4 shadow-xs dark:border-zinc-800 dark:bg-zinc-900"
                             >
                                 <div className="h-full w-full rounded-lg bg-[linear-gradient(110deg,rgba(228,228,231,0.6),rgba(250,250,250,0.95),rgba(228,228,231,0.6))] bg-size-[200%_100%] animate-[shimmer_1.3s_linear_infinite] dark:bg-[linear-gradient(110deg,rgba(39,39,42,0.9),rgba(63,63,70,0.95),rgba(39,39,42,0.9))]" />
                             </div>
@@ -675,7 +675,7 @@ const HackathonList = () => {
                         })}
                     </div>
                 ) : (
-                    <div className={`rounded-xl border border-zinc-200/90 bg-white/90 px-6 py-16 text-center text-base text-zinc-600 shadow-sm backdrop-blur-md transition-all duration-300 dark:border-zinc-800 dark:bg-zinc-900/78 dark:text-zinc-400 dark:shadow-md ${showResults ? 'translate-y-0 opacity-100' : 'translate-y-1 opacity-0'}`}>
+                    <div className={`rounded-xl border border-zinc-200 bg-white/90 px-6 py-16 text-center text-base text-zinc-600 shadow-xs backdrop-blur-md transition-all duration-300 dark:border-zinc-800 dark:bg-zinc-900/78 dark:text-zinc-400 ${showResults ? 'translate-y-0 opacity-100' : 'translate-y-1 opacity-0'}`}>
                         {emptyStateMessage}
                     </div>
                 )}

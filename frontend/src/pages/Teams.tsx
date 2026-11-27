@@ -523,7 +523,7 @@ export default function TeamsPage() {
             <div className="w-px h-6 bg-zinc-200 dark:bg-zinc-700 shrink-0" />
 
             {/* Tabs — left side, right after identity */}
-            <div className="flex gap-0.5 bg-zinc-100 dark:bg-zinc-800/60 p-0.5 rounded-lg border border-zinc-200/60 dark:border-zinc-700/60 shrink-0">
+            <div className="flex gap-0.5 bg-zinc-100 dark:bg-zinc-800/60 p-0.5 rounded-lg border border-zinc-200 dark:border-zinc-800 shrink-0">
               {teamTabs.map((tab) => (
                 <button
                   key={tab}
@@ -542,7 +542,7 @@ export default function TeamsPage() {
           {/* Center: Sort controls — flex-1 + justify-center keeps it truly centered */}
           <div className="flex-1 flex items-center justify-center">
             {activeTab === "Hackathons" && teamParticipations.length > 0 && (
-              <div className="flex items-center gap-0.5 bg-zinc-100 dark:bg-zinc-800/60 p-0.5 rounded-lg border border-zinc-200/60 dark:border-zinc-700/60">
+              <div className="flex items-center gap-0.5 bg-zinc-100 dark:bg-zinc-800/60 p-0.5 rounded-lg border border-zinc-200 dark:border-zinc-800">
                 {(['latest', 'oldest', 'most_qualified'] as const).map((opt) => (
                   <button
                     key={opt}
@@ -590,7 +590,7 @@ export default function TeamsPage() {
           <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-zinc-400 dark:text-zinc-500" />
           <input
             type="text"
-            className="h-10 w-full rounded-lg border border-zinc-200 bg-white pl-9 pr-8 py-2 text-sm text-zinc-900 placeholder:text-zinc-400 focus:border-blue-500/45 focus:outline-none focus:ring-3 focus:ring-blue-500/12 dark:border-zinc-800 dark:bg-zinc-900 dark:text-zinc-100 dark:placeholder:text-zinc-500 dark:focus:border-blue-400/50"
+            className="h-10 w-full rounded-lg border border-zinc-200 bg-white pl-9 pr-8 py-2 text-sm text-zinc-900 placeholder:text-zinc-400 hover:border-zinc-300 focus:border-blue-500/70 focus:outline-none focus:ring-3 focus:ring-blue-500/12 dark:border-zinc-800 dark:bg-zinc-900 dark:text-zinc-100 dark:placeholder:text-zinc-500 dark:hover:border-zinc-700 dark:focus:border-blue-500/60 dark:focus:ring-blue-500/15"
             placeholder="Search teams..."
             value={searchQuery}
             onChange={e => setSearchQuery(e.target.value)}
@@ -821,7 +821,7 @@ export default function TeamsPage() {
             {Array.from({ length: 6 }).map((_, index) => (
               <div
                 key={index}
-                className="h-48 rounded-xl border border-zinc-200/90 bg-white p-5 shadow-sm dark:border-zinc-800 dark:bg-zinc-900/60"
+                className="h-48 rounded-xl border border-zinc-200 bg-white p-5 shadow-xs dark:border-zinc-800 dark:bg-zinc-900/60"
               >
                 <div className="h-full w-full rounded-lg bg-[linear-gradient(110deg,rgba(228,228,231,0.6),rgba(250,250,250,0.95),rgba(228,228,231,0.6))] bg-size-[200%_100%] animate-[shimmer_1.3s_linear_infinite] dark:bg-[linear-gradient(110deg,rgba(39,39,42,0.9),rgba(63,63,70,0.95),rgba(39,39,42,0.9))]" />
               </div>
@@ -834,13 +834,13 @@ export default function TeamsPage() {
           {/* Mobile Filter / Action Panel (Consistent layout with Hackathons page, only when not viewing team workspace) */}
           {!selectedTeamId && (
             <div className="relative z-50 isolate space-y-3 lg:hidden">
-              <div className="relative z-50 isolate overflow-visible rounded-xl border border-zinc-200/90 bg-white/90 p-4 shadow-sm backdrop-blur-md dark:border-zinc-800 dark:bg-zinc-900/78 dark:shadow-md flex items-end gap-3">
+              <div className="relative z-50 isolate overflow-visible rounded-xl border border-zinc-200 bg-white/90 p-4 shadow-xs backdrop-blur-md dark:border-zinc-800 dark:bg-zinc-900/78 flex items-end gap-3">
                 {/* Search */}
                 <div className="relative min-w-0 flex-1">
                   <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-zinc-400 dark:text-zinc-500" />
                   <input
                     type="text"
-                    className="h-10 w-full rounded-lg border border-zinc-200 bg-white pl-9 pr-8 py-2 text-sm text-zinc-900 shadow-sm transition-all placeholder:text-zinc-400 focus:border-blue-500/45 focus:outline-none focus:ring-3 focus:ring-blue-500/12 dark:border-zinc-800 dark:bg-zinc-900 dark:text-zinc-100 dark:placeholder:text-zinc-500 dark:focus:border-blue-400/50"
+                    className="h-10 w-full rounded-lg border border-zinc-200 bg-white pl-9 pr-8 py-2 text-sm text-zinc-900 shadow-xs transition-all placeholder:text-zinc-400 hover:border-zinc-300 focus:border-blue-500/70 focus:outline-none focus:ring-3 focus:ring-blue-500/12 dark:border-zinc-800 dark:bg-zinc-900 dark:text-zinc-100 dark:placeholder:text-zinc-500 dark:hover:border-zinc-700 dark:focus:border-blue-500/60 dark:focus:ring-blue-500/15"
                     placeholder="Search teams or members..."
                     value={searchQuery}
                     onChange={e => setSearchQuery(e.target.value)}
@@ -906,7 +906,7 @@ export default function TeamsPage() {
             /* Team Grid view */
             <div className="grid gap-6 grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
               {filteredTeams.length === 0 ? (
-                <div className="col-span-full rounded-xl border border-dashed border-zinc-200 bg-white p-16 text-center dark:border-zinc-800 dark:bg-zinc-950/40">
+                <div className="col-span-full rounded-xl border border-dashed border-zinc-300 bg-white p-16 text-center dark:border-zinc-700 dark:bg-zinc-950/40">
                   <Users className="mx-auto h-12 w-12 text-zinc-400 dark:text-zinc-500" />
                   <h3 className="mt-4 text-base font-bold text-zinc-900 dark:text-zinc-100">No teams match</h3>
                   <p className="mt-2 text-sm text-zinc-500 dark:text-zinc-400">Try adjusting your filters or search criteria.</p>
@@ -974,7 +974,7 @@ export default function TeamsPage() {
                       </div>
 
                       {/* Footer Summary & Open Button */}
-                      <div className="mt-4 pt-3.5 border-t border-zinc-100 dark:border-zinc-800 flex items-center justify-between gap-3">
+                      <div className="mt-4 pt-3.5 border-t border-zinc-200/80 dark:border-zinc-800/80 flex items-center justify-between gap-3">
                         <div className="flex items-center gap-1.5 text-[11px] text-zinc-500 dark:text-zinc-400 min-w-0">
                           <span className="font-semibold text-zinc-700 dark:text-zinc-300">{teamParts.length} tracked</span>
                           {t.code && (
@@ -1007,7 +1007,7 @@ export default function TeamsPage() {
 
               {/* Mobile-only header panel */}
               {selectedTeam && (
-                <div className="lg:hidden flex flex-col gap-3 bg-white dark:bg-zinc-900/40 border border-zinc-200/90 dark:border-zinc-800 p-4 rounded-xl shadow-xs">
+                <div className="lg:hidden flex flex-col gap-3 bg-white dark:bg-zinc-900/40 border border-zinc-200 dark:border-zinc-800 p-4 rounded-xl shadow-xs">
                   <div className="flex items-center gap-3">
                     <button
                       onClick={() => setSelectedTeamId("")}
@@ -1203,7 +1203,7 @@ export default function TeamsPage() {
                                   <div className={`pt-1 pb-24 overflow-visible transition-all duration-300 ${participation.status === 'tracking' ? 'opacity-40 select-none' : ''
                                     }`}>
                                     {competitiveStages.length === 0 ? (
-                                      <div className="flex items-start gap-3 rounded-lg border border-zinc-200/60 dark:border-zinc-800/40 bg-zinc-50/40 dark:bg-zinc-900/5 px-4 py-3.5 text-zinc-500 dark:text-zinc-400 text-xs text-left max-w-md shadow-xs backdrop-blur-sm">
+                                      <div className="flex items-start gap-3 rounded-lg border border-zinc-200 dark:border-zinc-800 bg-zinc-50/60 dark:bg-zinc-900/30 px-4 py-3.5 text-zinc-500 dark:text-zinc-400 text-xs text-left max-w-md shadow-xs backdrop-blur-sm">
                                         <Info className="h-4 w-4 text-zinc-400 dark:text-zinc-500 shrink-0 mt-0.5" />
                                         <p className="leading-relaxed">
                                           No competitive stages defined yet. Manage rounds and deadlines in the <span className="font-semibold text-blue-650 dark:text-blue-400 cursor-pointer hover:underline" onClick={() => navigate("/tracker")}>Tracker</span>.
@@ -1364,7 +1364,7 @@ export default function TeamsPage() {
                                                       ? 'border-l-rose-500'
                                                       : hoverStatusText === 'pending'
                                                         ? 'border-l-blue-500'
-                                                        : 'border-l-zinc-300 dark:border-l-zinc-650';
+                                                        : 'border-l-zinc-300 dark:border-l-zinc-700';
 
                                                 return (
                                                   <>
@@ -1420,8 +1420,8 @@ export default function TeamsPage() {
                     return (
                       <div className="grid grid-cols-1 lg:grid-cols-[minmax(0,2fr)_minmax(280px,1fr)] gap-6">
                         {/* Left Column: Clean Member Roster */}
-                        <div className="rounded-xl border border-zinc-200/90 bg-white p-6 shadow-xs dark:border-zinc-800 dark:bg-zinc-900/40">
-                          <div className="flex items-center justify-between pb-4 mb-4 border-b border-zinc-100 dark:border-zinc-800">
+                        <div className="rounded-xl border border-zinc-200 bg-white p-6 shadow-xs dark:border-zinc-800 dark:bg-zinc-900/40">
+                          <div className="flex items-center justify-between pb-4 mb-4 border-b border-zinc-200/80 dark:border-zinc-800/80">
                             <div>
                               <h3 className="text-sm font-bold text-zinc-900 dark:text-zinc-100">Team Members</h3>
                               <p className="text-xs text-zinc-500 dark:text-zinc-400 mt-0.5">
@@ -1487,7 +1487,7 @@ export default function TeamsPage() {
 
                         {/* Right Column: Join Code & Shareable Squad Link */}
                         <div className="space-y-4">
-                          <div className="rounded-xl border border-zinc-200/90 bg-white p-5 shadow-xs dark:border-zinc-800 dark:bg-zinc-900/40 space-y-4">
+                          <div className="rounded-xl border border-zinc-200 bg-white p-5 shadow-xs dark:border-zinc-800 dark:bg-zinc-900/40 space-y-4">
                             <div>
                               <h3 className="text-sm font-bold text-zinc-900 dark:text-zinc-100">Join Code</h3>
                               <p className="text-xs text-zinc-500 dark:text-zinc-400 mt-0.5">
@@ -1529,7 +1529,7 @@ export default function TeamsPage() {
                           </div>
 
                           {selectedTeam.code && (
-                            <div className="rounded-xl border border-zinc-200/90 bg-white p-5 shadow-xs dark:border-zinc-800 dark:bg-zinc-900/40 space-y-3">
+                            <div className="rounded-xl border border-zinc-200 bg-white p-5 shadow-xs dark:border-zinc-800 dark:bg-zinc-900/40 space-y-3">
                               <div>
                                 <h3 className="text-sm font-bold text-zinc-900 dark:text-zinc-100">Share Squad Schedule</h3>
                                 <p className="text-xs text-zinc-500 dark:text-zinc-400 mt-0.5">
@@ -1563,7 +1563,7 @@ export default function TeamsPage() {
                       { id: 'danger' as const, label: 'Danger Zone', danger: true },
                     ];
 
-                    const settingsInputCls = "w-full rounded-lg border border-zinc-200 bg-zinc-50/50 px-3.5 py-2.5 text-sm text-zinc-800 outline-none transition focus:border-blue-400 focus:bg-white dark:border-zinc-800 dark:bg-zinc-900 dark:text-zinc-200 dark:focus:bg-zinc-950";
+                    const settingsInputCls = "w-full rounded-lg border border-zinc-200 bg-zinc-50/50 px-3.5 py-2.5 text-sm text-zinc-800 outline-none transition hover:border-zinc-300 focus:border-blue-500/70 focus:bg-white focus:ring-3 focus:ring-blue-500/12 dark:border-zinc-800 dark:bg-zinc-900 dark:text-zinc-200 dark:hover:border-zinc-700 dark:focus:bg-zinc-950 dark:focus:border-blue-500/60 dark:focus:ring-blue-500/15";
 
                     return (
                       <div>
@@ -1874,7 +1874,7 @@ export default function TeamsPage() {
                         value={createTeamName}
                         onChange={(event) => setCreateTeamName(event.target.value)}
                         placeholder="Team Horizon"
-                        className="w-full rounded-lg border border-zinc-200 bg-zinc-50/50 px-3.5 py-2 text-sm text-zinc-800 outline-none transition focus:border-blue-400 dark:border-zinc-800 dark:bg-zinc-950 dark:text-zinc-200"
+                        className="w-full rounded-lg border border-zinc-200 bg-zinc-50/50 px-3.5 py-2 text-sm text-zinc-800 outline-none transition hover:border-zinc-300 focus:border-blue-500/70 focus:ring-3 focus:ring-blue-500/12 dark:border-zinc-800 dark:bg-zinc-950 dark:text-zinc-200 dark:hover:border-zinc-700 dark:focus:border-blue-500/60 dark:focus:ring-blue-500/15"
                       />
                     </div>
 
@@ -1983,7 +1983,7 @@ export default function TeamsPage() {
                         value={joinTokenInput}
                         onChange={(event) => setJoinTokenInput(event.target.value)}
                         placeholder="e.g. 9D3F8A or accept-invitation?token=..."
-                        className="w-full rounded-lg border border-zinc-200 bg-zinc-50/50 px-3.5 py-2.5 text-sm text-zinc-800 outline-none transition focus:border-blue-400 dark:border-zinc-800 dark:bg-zinc-950 dark:text-zinc-200"
+                        className="w-full rounded-lg border border-zinc-200 bg-zinc-50/50 px-3.5 py-2.5 text-sm text-zinc-800 outline-none transition hover:border-zinc-300 focus:border-blue-500/70 focus:ring-3 focus:ring-blue-500/12 dark:border-zinc-800 dark:bg-zinc-950 dark:text-zinc-200 dark:hover:border-zinc-700 dark:focus:border-blue-500/60 dark:focus:ring-blue-500/15"
                       />
                     </div>
 

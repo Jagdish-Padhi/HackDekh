@@ -7,7 +7,7 @@
   <br />
   <br />
 
-  <h3>Centralizing Hackathon Ecosystem.</h3>
+  <h3>Discover Faster. Build Better. Win Together.</h3>
 
   <p>
     <a href="https://hackdekh.jdecodes.tech/">Live App</a> •
@@ -32,40 +32,42 @@
 
 ## Overview
 
-Hackathon teams rarely lose because of bad ideas. They lose because the process around the build is messy — listings scattered across Devfolio and Devpost, deadlines slipping on Unstop, team coordination lost in chaotic WhatsApp groups, and judge feedback forgotten minutes after demo day.
+Students rarely miss out on hackathons because they lack skills—they miss out because discovery and coordination are fragmented across Devfolio, Unstop, Devpost, MLH, Hack2Skill, and buried group-chat links.
 
-**HackDekh replaces that chaos with one clean, unified workspace:**
-- **Aggregate everything** — Live hackathon feeds automatically normalized from top platforms.
-- **Form dedicated teams** — Instant roster management, invite codes, and magic links.
-- **Stage-by-stage tracking** — Clear milestones from idea submission to demo day and finals.
-- **Capture reflections** — Document judge questions, feedback, and learnings to build institutional memory.
+**HackDekh brings the entire student hackathon workflow into one fast, zero-friction app:**
+- **Unified Discovery Feed** — Live hackathons synced daily at 3:00 AM from top platforms with instant cached browsing.
+- **"Worth It?" Fit Check** — Score any hackathon against your city, preferred mode, team size, and minimum prize before committing a weekend.
+- **1-Click Tracking & Stage Pipeline** — Track solo immediately in one click, mark registered when you apply, and manage rounds cleanly in one Tracker.
+- **6-Digit Squad Codes** — Create squads and let teammates join in seconds via a 6-character code or public squad schedule link.
+- **Shareable Public Pages** — Clean `/hackathons/:slug` and `/squad/:code` pages with prizes, deadlines, and team sizes—no login wall to preview.
 
 ---
 
 ## Core Features
 
-### Unified Hackathon Feed
-- Automatically pulls from Devfolio, Devpost, Unstop, MLH, and Hack2Skill.
-- Background cron aggregation runs on an independent cadence without blocking incoming traffic.
-- Real-time search, filters for online/in-person modes, upcoming deadlines, and prize pools.
+### Unified Hackathon Feed & Smart Caching
+- Aggregates and normalizes live hackathons from **Devfolio**, **Unstop**, **Devpost**, **MLH**, and **Hack2Skill**.
+- Scheduled daily **3:00 AM** background sync keeps listings fresh without blocking user traffic.
+- TTL-aware client caching (`CacheContext`) paired with Redis backend caching makes switching tabs instantaneous, with resilient image loading and fallback handling.
+- Search and filter by platform, mode (`Online` / `Offline` / `Hybrid`), location, team size, prize pool, and deadline.
 
-### Team Workspaces
-- Build distinct teams for different hackathons or collaborate with recurring teammates.
-- Invite members instantly via shareable 6-character team codes, direct username lookup, or email magic links.
-- Dedicated roster roles and team directories with zero chat clutter.
+### "Worth It?" Fit Engine
+- Configure your personal preferences once in **Settings** (home city, preferred mode, target team size, and minimum prize threshold) or directly inside the **Worth It?** modal.
+- Every hackathon card evaluates fit into a clear verdict (**Strong Fit**, **Worth Considering**, or **Skip**) with a transparent score breakdown.
 
-### Stage-by-Stage Milestone Tracker
-- Break each hackathon campaign into structured stages: *Idea Phase*, *Shortlisted*, *Prototype Build*, *Demo Day*, and *Winner*.
-- Transition statuses with real-time feedback and never miss a submission window again.
+### 1-Click Track & Stage-by-Stage Tracker
+- Click **Track** on any hackathon card to add it to your Tracker immediately—no forced squad-creation modal.
+- Single source of truth in **Tracker** with clean status tabs (**In Queue**, **Registered**, **Finished**) and a compact **Squad Filter** dropdown in the top header bar.
+- Register via the external platform link, mark registered in one click, and advance through custom round stages with deadlines.
 
-### Judge Reflections & Team Knowledge
-- Document judge queries, pitch feedback, and retrospective notes right after presentations.
-- Turn every hackathon into compounding insights so future hackathons are easier to win.
+### Frictionless Squads & Public Schedules
+- Create squads for different hackathons or recurring teammates.
+- Invite teammates directly with a **6-character Join Code**—no email invite queues or approval clutter.
+- Share a public `/squad/:code` link so teammates or mentors can view the squad's tracked hackathons and upcoming deadlines.
 
-### Multi-Provider Authentication & Security
-- Email and password sign-in with Brevo SMTP email verification.
-- One-click Google Authentication (via Firebase Admin SDK) and GitHub OAuth.
-- Strict rate limiting on authentication, join codes, verification emails, and scraper routes.
+### Focused Dashboard & Auth
+- Single-screen **Dashboard** with a 75%/25% layout: upcoming stage deadlines on the left, live status counters on the right.
+- Supports email/password (with Brevo SMTP verification), one-click **Google Auth** (Firebase Admin SDK), and **GitHub OAuth**, backed by route-level rate limiting.
 
 ---
 
@@ -73,9 +75,9 @@ Hackathon teams rarely lose because of bad ideas. They lose because the process 
 
 | Domain | Technologies |
 |:---|:---|
-| **Frontend** | React 19, TypeScript, Vite, Tailwind CSS, Framer Motion, Lucide Icons |
+| **Frontend** | React 19, TypeScript, Vite, Tailwind CSS v4, Framer Motion, Lucide Icons |
 | **Backend** | Node.js, Express 5, TypeScript, Node-cron |
-| **Database & Cache** | MongoDB (Mongoose ODM), Redis |
+| **Database & Cache** | MongoDB (Mongoose ODM), Redis, TTL-aware Client Cache |
 | **Scraper Engine** | Axios, Cheerio, Custom Multi-Platform Normalizers |
 | **Authentication & Email** | JWT, bcrypt, Firebase Admin (Google Auth), GitHub OAuth, Brevo SMTP |
 | **Security & Quality** | Express Rate Limit (IP & route-level), Supertest, Vitest |
@@ -124,11 +126,11 @@ Visit `http://localhost:5173` to explore HackDekh locally.
 | `ACCESS_TOKEN_SECRET` / `EXPIRY` | JWT access token secret and lifetime (e.g. `1d`) |
 | `REFRESH_TOKEN_SECRET` / `EXPIRY` | JWT refresh token secret and lifetime (e.g. `10d`) |
 | `REDIS_URL` | Redis instance URL (`redis://127.0.0.1:6379`) |
-| `CACHE_ENABLED` | Toggle for in-memory cache layer (`true` / `false`) |
+| `CACHE_ENABLED` | Toggle for cache layer (`true` / `false`) |
 | `CRON_SECRET` | Secret key required to invoke protected scraper cron routes |
 | `GITHUB_CLIENT_ID` / `SECRET` | GitHub OAuth application credentials |
 | `FIREBASE_*` | Firebase project credentials for Google token verification |
-| `SMTP_*` / `BREVO_API_KEY` | SMTP configuration for email verification & invite dispatch |
+| `SMTP_*` / `BREVO_API_KEY` | SMTP configuration for email verification & password resets |
 
 ### Frontend — `frontend/.env.local`
 
@@ -161,5 +163,5 @@ Distributed under the **MIT License**. See [`LICENSE`](LICENSE) for complete ter
 ---
 
 <div align="center">
-  <sub>Built by <a href="https://jdecodes.tech">Jagdish Padhi</a> for me and you.</sub>
+  <sub>Built by <a href="https://jdecodes.tech">Jagdish Padhi</a> for builders who ship.</sub>
 </div>

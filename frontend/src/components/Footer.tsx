@@ -1,7 +1,7 @@
 import { Github, Heart, Linkedin, Mail } from 'lucide-react';
 
 const Footer = () => (
-    <footer className="mt-auto w-full border-t border-zinc-200/80 bg-white/40 backdrop-blur-md dark:border-zinc-850 dark:bg-zinc-950/40">
+    <footer className="mt-auto w-full border-t border-zinc-200 bg-white/60 backdrop-blur-md dark:border-zinc-800 dark:bg-zinc-950/60">
         <div className="mx-auto flex w-full max-w-7xl flex-col items-center justify-between gap-4 px-4 py-5 sm:flex-row sm:px-6 lg:px-8">
             {/* Left: Built with heart by Jagdish Padhi (with GitHub link) */}
             <div className="flex items-center gap-1.5 text-xs text-zinc-500 dark:text-zinc-400">
