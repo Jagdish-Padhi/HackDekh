@@ -30,9 +30,35 @@ type Hackathon = {
     mode?: string
     prize?: string
     location?: string
+    teamSize?: string
 }
 
-type SortBy = '' | 'deadline-asc' | 'deadline-desc' | 'prize-desc' | 'prize-asc'
+function matchesTeamSizeFilter(teamSize?: string, filter?: string): boolean {
+    if (!filter) return true
+    if (!teamSize?.trim()) return false
+
+    const raw = teamSize.trim().toLowerCase()
+    let min = 0
+    let max = 0
+
+    if (/solo|individual/i.test(raw)) {
+        min = 1
+        max = 1
+    } else {
+        const nums = raw.match(/\d+/g)?.map(Number).filter((n) => !Number.isNaN(n)) || []
+        if (nums.length === 0) return false
+        min = Math.min(...nums)
+        max = Math.max(...nums)
+    }
+
+    if (filter === '1') return min <= 1 && max >= 1
+    if (filter === '2-3') return min <= 3 && max >= 2
+    if (filter === '4-5') return min <= 5 && max >= 4
+    if (filter === '6+') return max >= 6
+    return true
+}
+
+type SortBy = '' | 'best-fit' | 'deadline-asc' | 'deadline-desc' | 'prize-desc' | 'prize-asc'
 
 
 
@@ -56,7 +82,7 @@ const HackathonList = () => {
     const [mode, setMode] = useState(hackathonsFilters.mode)
     const [sortBy, setSortBy] = useState<SortBy>(hackathonsFilters.sortBy as SortBy)
     const [locationFilter, setLocationFilter] = useState(hackathonsFilters.locationFilter)
-    const [showExpired, setShowExpired] = useState(hackathonsFilters.showExpired)
+    const [teamSizeFilter, setTeamSizeFilter] = useState(hackathonsFilters.teamSizeFilter)
     const { isAuthenticated, user, updateUser } = useAuth()
     const { showToast } = useToast()
     const [fitModalHackathon, setFitModalHackathon] = useState<Hackathon | null>(null)
@@ -334,9 +360,9 @@ const HackathonList = () => {
             mode,
             locationFilter,
             sortBy,
-            showExpired,
+            teamSizeFilter,
         });
-    }, [deferredSearch, platform, mode, locationFilter, sortBy, showExpired, setHackathonsFilters]);
+    }, [deferredSearch, platform, mode, locationFilter, sortBy, teamSizeFilter, setHackathonsFilters]);
 
     useEffect(() => {
         let isMounted = true
@@ -365,8 +391,8 @@ const HackathonList = () => {
                     platform,
                     mode,
                     location: locationFilter,
-                    sortBy,
-                    showExpired: showExpired ? "true" : "false"
+                    sortBy: sortBy === 'best-fit' ? '' : sortBy,
+                    showExpired: "false"
                 },
             })
                 .then(res => {
@@ -416,7 +442,7 @@ const HackathonList = () => {
             }
         }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [refreshNonce, deferredSearch, platform, mode, locationFilter, sortBy, showExpired, setCachedHackathons])
+    }, [refreshNonce, deferredSearch, platform, mode, locationFilter, sortBy, setCachedHackathons])
 
     // isStillLoading is declared at top
 
@@ -436,7 +462,34 @@ const HackathonList = () => {
         ? 'Loading hackathons'
         : 'Scraping from server for you...'
 
-    const visibleHackathons = hackathons
+    const visibleHackathons = useMemo(() => {
+        const filtered = teamSizeFilter
+            ? hackathons.filter((h) => matchesTeamSizeFilter(h.teamSize, teamSizeFilter))
+            : hackathons
+
+        if (sortBy !== 'best-fit') return filtered
+        return [...filtered].sort((a, b) => {
+            const scoreA = evaluateHackathonFit(a, activePreferences).score
+            const scoreB = evaluateHackathonFit(b, activePreferences).score
+            return scoreB - scoreA
+        })
+    }, [hackathons, teamSizeFilter, sortBy, activePreferences])
+
+    const handleShareHackathon = useCallback(async (hack: Hackathon) => {
+        const parts = [
+            `${hack.title} (${hack.platform})`,
+            hack.prize ? `Prize: ${hack.prize}` : null,
+            hack.deadline ? `Deadline: ${new Date(hack.deadline).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}` : null,
+            (hack as any).applyLink || window.location.href,
+        ].filter(Boolean)
+
+        try {
+            await navigator.clipboard.writeText(parts.join(' • '))
+            showToast('Hackathon details copied for sharing.', 'success')
+        } catch {
+            showToast('Could not copy hackathon details.', 'error')
+        }
+    }, [showToast])
 
     const emptyStateMessage = hackathons.length === 0
         ? 'No hackathons found...'
@@ -467,8 +520,8 @@ const HackathonList = () => {
                     setSortBy={value => setSortBy(value as SortBy)}
                     locationFilter={locationFilter}
                     setLocationFilter={setLocationFilter}
-                    showExpired={showExpired}
-                    setShowExpired={setShowExpired}
+                    teamSizeFilter={teamSizeFilter}
+                    setTeamSizeFilter={setTeamSizeFilter}
                 />
             </div>
         )
@@ -478,7 +531,7 @@ const HackathonList = () => {
         mode,
         sortBy,
         locationFilter,
-        showExpired,
+        teamSizeFilter,
         handleRefresh,
         isStillLoading,
         isRefreshing,
@@ -522,8 +575,8 @@ const HackathonList = () => {
                         setSortBy={value => setSortBy(value as SortBy)}
                         locationFilter={locationFilter}
                         setLocationFilter={setLocationFilter}
-                        showExpired={showExpired}
-                        setShowExpired={setShowExpired}
+                        teamSizeFilter={teamSizeFilter}
+                        setTeamSizeFilter={setTeamSizeFilter}
                     />
                 </div>
             </div>
@@ -564,6 +617,7 @@ const HackathonList = () => {
                                     trackingStatus={trackingInfo?.status}
                                     onUntrack={() => handleInitiateUntrack(hack._id)}
                                     onWorthIt={() => setFitModalHackathon(hack)}
+                                    onShare={() => handleShareHackathon(hack)}
                                     fitBadge={fitResult ? { label: fitResult.label, verdict: fitResult.verdict } : null}
                                     extraActions={[
                                         { label: isTracked ? "TRACKED_TRUE" : "TRACKED_FALSE", onClick: () => {} },

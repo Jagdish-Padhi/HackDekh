@@ -1,11 +1,10 @@
-import { ArrowDown, ArrowUp } from 'lucide-react'
+import { ArrowDown, ArrowUp, Sparkles } from 'lucide-react'
 import { useEffect, useRef, useState } from 'react'
-import Switch from './Switch'
 
 type Option = {
     label: string
     value: string
-    icon?: 'up' | 'down'
+    icon?: 'up' | 'down' | 'sparkle'
 }
 
 type DropdownProps = {
@@ -42,16 +41,20 @@ const Dropdown = ({ value, onChange, options, placeholder }: DropdownProps) => {
             return <ArrowDown className="h-3.5 w-3.5 shrink-0" strokeWidth={2.2} aria-hidden="true" />
         }
 
+        if (direction === 'sparkle') {
+            return <Sparkles className="h-3.5 w-3.5 shrink-0 text-blue-500 dark:text-blue-400" strokeWidth={2.1} aria-hidden="true" />
+        }
+
         return null
     }
 
     return (
-        <div ref={ref} className={`relative w-full sm:w-36 sm:shrink-0 xl:w-44 ${open ? 'z-60' : 'z-0'}`}>
+        <div ref={ref} className={`relative w-full sm:w-34 sm:shrink-0 xl:w-40 ${open ? 'z-60' : 'z-0'}`}>
             {/* Trigger button */}
             <button
                 type="button"
                 onClick={() => setOpen(prev => !prev)}
-                className={`flex h-10 w-full items-center justify-between gap-2 whitespace-nowrap rounded-lg border px-3 py-2 text-[0.82rem] font-medium shadow-sm transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md focus:outline-none focus:ring-3 ${
+                className={`flex h-9 w-full items-center justify-between gap-2 whitespace-nowrap rounded-lg border px-2.5 py-1.5 text-[0.78rem] font-medium shadow-xs transition-all duration-200 hover:-translate-y-0.5 hover:shadow-sm focus:outline-none focus:ring-3 ${
                     open
                         ? 'border-blue-500/45 ring-3 ring-blue-500/12 dark:border-blue-400/50 dark:ring-blue-400/20'
                         : 'border-zinc-200 dark:border-zinc-800'
@@ -126,8 +129,8 @@ type FilterPanelProps = {
     setSortBy: (value: string) => void
     locationFilter: string
     setLocationFilter: (value: string) => void
-    showExpired: boolean
-    setShowExpired: (value: boolean) => void
+    teamSizeFilter: string
+    setTeamSizeFilter: (value: string) => void
 }
 
 const platformOptions: Option[] = [
@@ -147,10 +150,19 @@ const modeOptions: Option[] = [
 
 const sortOptions: Option[] = [
     { label: 'Default Order', value: '' },
+    { label: 'Best Fit', value: 'best-fit', icon: 'sparkle' },
     { label: 'Deadline', value: 'deadline-asc', icon: 'up' },
     { label: 'Deadline', value: 'deadline-desc', icon: 'down' },
     { label: 'Prize', value: 'prize-desc', icon: 'down' },
     { label: 'Prize', value: 'prize-asc', icon: 'up' },
+]
+
+const teamSizeOptions: Option[] = [
+    { label: 'All Team Sizes', value: '' },
+    { label: 'Solo (1)', value: '1' },
+    { label: '2–3 Members', value: '2-3' },
+    { label: '4–5 Members', value: '4-5' },
+    { label: '6+ Members', value: '6+' },
 ]
 
 const locationOptions: Option[] = [
@@ -176,8 +188,8 @@ const FilterPanel = ({
     setSortBy,
     locationFilter,
     setLocationFilter,
-    showExpired,
-    setShowExpired,
+    teamSizeFilter,
+    setTeamSizeFilter,
 }: FilterPanelProps) => (
     <div className="flex w-full flex-col gap-2 overflow-visible sm:flex-row sm:flex-wrap sm:items-center lg:w-auto lg:flex-nowrap">
         <Dropdown
@@ -204,15 +216,12 @@ const FilterPanel = ({
             options={locationOptions}
             placeholder="City"
         />
-        <div className="flex h-10 items-center justify-between gap-3 rounded-lg border border-zinc-200 bg-white px-3.5 shadow-sm dark:border-zinc-800 dark:bg-zinc-900 w-full sm:w-auto shrink-0 select-none">
-            <span className="text-[0.82rem] font-bold text-zinc-650 dark:text-zinc-400">Show Expired</span>
-            <Switch
-                id="show-expired-switch"
-                checked={showExpired}
-                onChange={() => setShowExpired(!showExpired)}
-                activeBg="linear-gradient(to bottom, #ef4444, #b91c1c)"
-            />
-        </div>
+        <Dropdown
+            value={teamSizeFilter}
+            onChange={setTeamSizeFilter}
+            options={teamSizeOptions}
+            placeholder="Team Size"
+        />
     </div>
 )
 

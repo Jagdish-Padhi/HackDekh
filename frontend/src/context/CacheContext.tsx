@@ -6,7 +6,7 @@ export type HackathonsFilters = {
   mode: string;
   locationFilter: string;
   sortBy: string;
-  showExpired: boolean;
+  teamSizeFilter: string;
 };
 
 export type DashboardCache = {
@@ -38,7 +38,7 @@ const defaultFilters: HackathonsFilters = {
   mode: "",
   locationFilter: "",
   sortBy: "",
-  showExpired: false,
+  teamSizeFilter: "",
 };
 
 const CacheContext = createContext<CacheContextType | undefined>(undefined);
