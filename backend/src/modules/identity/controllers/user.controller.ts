@@ -169,6 +169,46 @@ export const updateAccountDetails = asyncHandler(async (req: any, res: any) => {
     .json(new ApiResponse(200, user, "Account details updated successfully!"));
 });
 
+const ALLOWED_TRAVEL_PREFS = ['online_only', 'same_city', 'anywhere_reimbursed', 'anywhere'] as const;
+
+export const updateUserPreferences = asyncHandler(async (req: any, res: any) => {
+  const { homeCity, travelPreference, maxTravelBudgetINR, preferredTeamSize, skills } = req.body || {};
+
+  const preferencesUpdate: Record<string, any> = {};
+  if (typeof homeCity === "string") {
+    preferencesUpdate["preferences.homeCity"] = homeCity.trim().slice(0, 100);
+  }
+  if (typeof travelPreference === "string" && ALLOWED_TRAVEL_PREFS.includes(travelPreference as any)) {
+    preferencesUpdate["preferences.travelPreference"] = travelPreference;
+  }
+  if (maxTravelBudgetINR !== undefined && !Number.isNaN(Number(maxTravelBudgetINR))) {
+    preferencesUpdate["preferences.maxTravelBudgetINR"] = Math.max(0, Math.min(1000000, Number(maxTravelBudgetINR)));
+  }
+  if (preferredTeamSize !== undefined && !Number.isNaN(Number(preferredTeamSize))) {
+    preferencesUpdate["preferences.preferredTeamSize"] = Math.max(1, Math.min(10, Math.round(Number(preferredTeamSize))));
+  }
+  if (Array.isArray(skills)) {
+    preferencesUpdate["preferences.skills"] = skills
+      .map((s) => String(s).trim())
+      .filter(Boolean)
+      .slice(0, 15);
+  }
+
+  if (Object.keys(preferencesUpdate).length === 0) {
+    throw new ApiError(400, "No valid preference fields provided.");
+  }
+
+  const user = await User.findByIdAndUpdate(
+    req.user?._id,
+    { $set: preferencesUpdate },
+    { returnDocument: 'after' }
+  ).select("-password -refreshToken");
+
+  return res
+    .status(200)
+    .json(new ApiResponse(200, user, "Preferences updated successfully!"));
+});
+
 
 
 export const getPendingReflections = asyncHandler(async (req: any, res: any) => {

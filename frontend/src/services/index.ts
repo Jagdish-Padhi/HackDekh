@@ -191,15 +191,21 @@ export const teamApi = {
 };
 
 export const userApi = {
-  getPendingReflections: async (): Promise<Stage[]> => {
-    const response = await axiosInstance.get<ApiResponse<Stage[]>>('/users/pending-reflections');
-    return unwrap(response);
-  },
-
   searchUsers: async (query: string): Promise<UserLite[]> => {
     const response = await axiosInstance.get<ApiResponse<UserLite[]>>('/users/search', {
       params: { query },
     });
+    return unwrap(response);
+  },
+
+  updatePreferences: async (preferences: {
+    homeCity?: string;
+    travelPreference?: string;
+    maxTravelBudgetINR?: number;
+    preferredTeamSize?: number;
+    skills?: string[];
+  }) => {
+    const response = await axiosInstance.put<ApiResponse<any>>('/users/preferences', preferences);
     return unwrap(response);
   },
 };

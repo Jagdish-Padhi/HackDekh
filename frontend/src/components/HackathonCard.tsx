@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { ExternalLink } from "lucide-react";
+import { ExternalLink, CheckCircle2 } from "lucide-react";
 
 type Hackathon = {
     _id: string
@@ -27,6 +27,11 @@ type HackathonCardProps = {
     extraActions?: CardAction[];
     trackingStatus?: 'tracking' | 'active' | 'eliminated' | 'finalist' | 'won';
     onUntrack?: () => void;
+    onWorthIt?: () => void;
+    fitBadge?: {
+        label: string;
+        verdict: 'strong' | 'consider' | 'poor';
+    } | null;
 };
 
 const defaultImages = [
@@ -130,7 +135,7 @@ const getDeadlineDisplay = (deadline?: string): DeadlineDisplay => {
     };
 };
 
-const HackathonCard = ({ hackathon, displayIndex, extraActions = [], trackingStatus, onUntrack }: HackathonCardProps) => {
+const HackathonCard = ({ hackathon, displayIndex, extraActions = [], trackingStatus, onUntrack, onWorthIt, fitBadge }: HackathonCardProps) => {
     const cardRef = useRef<HTMLDivElement | null>(null);
     const hasBeenRevealed = revealedCardCache.has(hackathon._id);
     const fallbackImageRef = useRef<string>(getStableDefaultImage(`${hackathon._id}:${hackathon.title}`));
@@ -325,8 +330,8 @@ const HackathonCard = ({ hackathon, displayIndex, extraActions = [], trackingSta
 
             {/* Footer with Prize & Button */}
             <div className="mt-auto pt-4 flex flex-col gap-3">
-                <div className="flex items-center justify-between">
-                    <div className="flex items-center">
+                <div className="flex items-center justify-between gap-2">
+                    <div className="flex items-center min-w-0">
                         <span className={prizeChipClass}>
                             <img
                                 src="/prizeSvg.svg"
@@ -334,11 +339,34 @@ const HackathonCard = ({ hackathon, displayIndex, extraActions = [], trackingSta
                                 aria-hidden="true"
                                 className={`h-3.5 w-3.5 shrink-0 ${prizeDisplay.isTbd ? "opacity-80" : ""}`}
                             />
-                            <span className="truncate max-w-[140px]" title={prizeDisplay.label}>
+                            <span className="truncate max-w-[125px]" title={prizeDisplay.label}>
                                 {prizeDisplay.label}
                             </span>
                         </span>
                     </div>
+                    {onWorthIt && !isExpired && (
+                        <button
+                            type="button"
+                            onClick={(e) => {
+                                e.preventDefault();
+                                e.stopPropagation();
+                                onWorthIt();
+                            }}
+                            title="Check if this hackathon fits your team and travel context"
+                            className={`inline-flex shrink-0 items-center gap-1 rounded-md border px-2 py-0.5 text-[10px] font-bold transition cursor-pointer ${
+                                fitBadge
+                                    ? fitBadge.verdict === "strong"
+                                        ? "border-emerald-200 bg-emerald-50 text-emerald-700 hover:bg-emerald-100 dark:border-emerald-800/60 dark:bg-emerald-950/40 dark:text-emerald-300 dark:hover:bg-emerald-950/60"
+                                        : fitBadge.verdict === "consider"
+                                        ? "border-amber-200 bg-amber-50 text-amber-700 hover:bg-amber-100 dark:border-amber-800/60 dark:bg-amber-950/40 dark:text-amber-300 dark:hover:bg-amber-950/60"
+                                        : "border-rose-200 bg-rose-50 text-rose-700 hover:bg-rose-100 dark:border-rose-800/60 dark:bg-rose-950/40 dark:text-rose-300 dark:hover:bg-rose-950/60"
+                                    : "border-zinc-200 bg-zinc-50 text-zinc-600 hover:border-blue-400/60 hover:bg-blue-50/60 hover:text-blue-700 dark:border-zinc-800 dark:bg-zinc-900 dark:text-zinc-300 dark:hover:border-blue-500/50 dark:hover:bg-blue-950/30 dark:hover:text-blue-300"
+                            }`}
+                        >
+                            <CheckCircle2 className="h-3 w-3 shrink-0" />
+                            <span>{fitBadge ? fitBadge.label : "Worth It?"}</span>
+                        </button>
+                    )}
                 </div>
 
                 <div className="flex gap-2 w-full mt-1">
@@ -347,10 +375,10 @@ const HackathonCard = ({ hackathon, displayIndex, extraActions = [], trackingSta
                             href={hackathon.applyLink}
                             target="_blank"
                             rel="noopener noreferrer"
-                            className="flex-1 inline-flex items-center justify-center rounded-lg border border-zinc-200 bg-white px-2.5 py-1.5 text-[11px] font-bold text-zinc-700 shadow-sm transition hover:bg-zinc-50 hover:border-zinc-300 dark:border-zinc-850 dark:bg-zinc-950 dark:text-zinc-300 dark:hover:bg-zinc-900"
+                            className="flex-1 h-8 inline-flex items-center justify-center rounded-lg border border-zinc-200 bg-white px-2.5 text-[11px] font-bold text-zinc-700 shadow-sm transition hover:bg-zinc-50 hover:border-zinc-300 dark:border-zinc-850 dark:bg-zinc-950 dark:text-zinc-300 dark:hover:bg-zinc-900 whitespace-nowrap"
                         >
                             Official Site
-                            <ExternalLink className="ml-1 h-3 w-3" />
+                            <ExternalLink className="ml-1 h-3 w-3 shrink-0" />
                         </a>
                     )}
                     {trackingStatus ? (
@@ -362,7 +390,7 @@ const HackathonCard = ({ hackathon, displayIndex, extraActions = [], trackingSta
                                 e.stopPropagation();
                                 onUntrack?.();
                             }}
-                            className={`flex-1 inline-flex items-center justify-center rounded-lg px-2.5 py-1.5 text-[11px] font-bold transition-all duration-200 cursor-pointer border ${
+                            className={`flex-1 h-8 inline-flex items-center justify-center rounded-lg px-2.5 text-[11px] font-bold transition-all duration-200 cursor-pointer border whitespace-nowrap ${
                                 isHovered
                                     ? "bg-rose-500 border-rose-500 text-white shadow-md shadow-rose-500/20"
                                     : "bg-zinc-100 border-zinc-200 text-zinc-505 dark:bg-zinc-800/40 dark:border-zinc-700/50 dark:text-zinc-400"
@@ -373,7 +401,7 @@ const HackathonCard = ({ hackathon, displayIndex, extraActions = [], trackingSta
                     ) : (
                         <button
                             onClick={trackHandler}
-                            className="flex-1 inline-flex items-center justify-center rounded-lg bg-blue-600 px-2.5 py-1.5 text-[11px] font-bold text-white shadow-sm transition hover:bg-blue-500 cursor-pointer"
+                            className="flex-1 h-8 inline-flex items-center justify-center rounded-lg bg-blue-600 px-2.5 text-[11px] font-bold text-white shadow-sm transition hover:bg-blue-500 cursor-pointer whitespace-nowrap"
                         >
                             Track
                         </button>

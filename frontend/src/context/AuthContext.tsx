@@ -1,11 +1,22 @@
 import { createContext, useContext, useEffect, useState, type ReactNode } from "react";
 import axiosInstance from "../utils/axiosInstance";
 
+export type TravelPreference = "online_only" | "same_city" | "anywhere_reimbursed" | "anywhere";
+
+export type UserPreferences = {
+  homeCity?: string;
+  travelPreference?: TravelPreference;
+  maxTravelBudgetINR?: number;
+  preferredTeamSize?: number;
+  skills?: string[];
+};
+
 export type User = {
   _id: string;
   username: string;
   email: string;
   fullName: string;
+  preferences?: UserPreferences;
 };
 
 type AuthContextType = {

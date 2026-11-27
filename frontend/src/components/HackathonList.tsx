@@ -10,7 +10,15 @@ import LoadingProgress from './LoadingProgress'
 import AppDropdown from './AppDropdown'
 import { usePageChrome } from '../context/pageChrome'
 import { useAuth, useCache, useToast } from '../context'
-import { teamApi } from '../services'
+import type { UserPreferences } from '../context/AuthContext'
+import { teamApi, userApi } from '../services'
+import FitCheckModal from './FitCheckModal'
+import {
+    evaluateHackathonFit,
+    hasConfiguredPreferences,
+    loadLocalPreferences,
+    saveLocalPreferences,
+} from '../utils/fitEngine'
 
 type Hackathon = {
     _id: string
@@ -49,8 +57,32 @@ const HackathonList = () => {
     const [sortBy, setSortBy] = useState<SortBy>(hackathonsFilters.sortBy as SortBy)
     const [locationFilter, setLocationFilter] = useState(hackathonsFilters.locationFilter)
     const [showExpired, setShowExpired] = useState(hackathonsFilters.showExpired)
-    const { isAuthenticated } = useAuth()
+    const { isAuthenticated, user, updateUser } = useAuth()
     const { showToast } = useToast()
+    const [fitModalHackathon, setFitModalHackathon] = useState<Hackathon | null>(null)
+    const [localPreferences, setLocalPreferences] = useState<UserPreferences | null>(() => loadLocalPreferences())
+    const activePreferences = useMemo(() => {
+        if (user?.preferences && hasConfiguredPreferences(user.preferences)) {
+            return user.preferences
+        }
+        return localPreferences
+    }, [user?.preferences, localPreferences])
+
+    const handleSavePreferences = useCallback(async (prefs: UserPreferences) => {
+        setLocalPreferences(prefs)
+        saveLocalPreferences(prefs)
+        if (isAuthenticated && user) {
+            try {
+                const updatedUser = await userApi.updatePreferences(prefs)
+                updateUser({ ...user, ...updatedUser, preferences: updatedUser?.preferences || prefs })
+                showToast('Participation preferences saved.', 'success')
+            } catch {
+                showToast('Saved locally. Could not sync to profile.', 'error')
+            }
+        } else {
+            showToast('Preferences saved for this browser.', 'success')
+        }
+    }, [isAuthenticated, user, updateUser, showToast])
     const [isDesktopView, setIsDesktopView] = useState<boolean>(() => {
         if (typeof window === 'undefined') {
             return false
@@ -521,6 +553,9 @@ const HackathonList = () => {
                         {visibleHackathons.map((hack, index) => {
                             const trackingInfo = trackedHackathons[hack._id];
                             const isTracked = !!trackingInfo;
+                            const fitResult = hasConfiguredPreferences(activePreferences)
+                                ? evaluateHackathonFit(hack, activePreferences)
+                                : null;
                             return (
                                 <HackathonCard
                                     key={hack._id}
@@ -528,6 +563,8 @@ const HackathonList = () => {
                                     displayIndex={index}
                                     trackingStatus={trackingInfo?.status}
                                     onUntrack={() => handleInitiateUntrack(hack._id)}
+                                    onWorthIt={() => setFitModalHackathon(hack)}
+                                    fitBadge={fitResult ? { label: fitResult.label, verdict: fitResult.verdict } : null}
                                     extraActions={[
                                         { label: isTracked ? "TRACKED_TRUE" : "TRACKED_FALSE", onClick: () => {} },
                                         { label: "TRACK_HANDLER", onClick: () => handleInitiateTrack(hack._id) }
@@ -716,7 +753,7 @@ const HackathonList = () => {
                                     Are you sure you want to remove <span className="font-bold text-zinc-800 dark:text-zinc-200">"{hackToUntrack?.title || 'this hackathon'}"</span> from team <span className="font-bold text-zinc-800 dark:text-zinc-200">"{teamToUntrack?.name || 'your team'}"</span>?
                                 </p>
                                 <p className="mt-2 text-[11px] text-zinc-400 dark:text-zinc-500 leading-normal">
-                                    This will permanently delete all timeline stages, logs, and reflections associated with this participation.
+                                    This will permanently delete all timeline stages and logs associated with this participation.
                                 </p>
 
                                 <div className="flex gap-2.5 pt-4">
@@ -743,6 +780,16 @@ const HackathonList = () => {
                 })()}
             </AnimatePresence>
 
+            <FitCheckModal
+                isOpen={!!fitModalHackathon}
+                hackathon={fitModalHackathon}
+                preferences={activePreferences}
+                isAuthenticated={isAuthenticated}
+                onClose={() => setFitModalHackathon(null)}
+                onSavePreferences={handleSavePreferences}
+                onTrack={(id) => handleInitiateTrack(id)}
+                isTracked={!!(fitModalHackathon && trackedHackathons[fitModalHackathon._id])}
+            />
         </div>
     )
 }

@@ -10,9 +10,12 @@ import {
   Trash2,
   Loader2,
   User,
+  SlidersHorizontal,
 } from "lucide-react";
-import { useAuth } from "../context/AuthContext";
+import { useAuth, type TravelPreference, type UserPreferences } from "../context/AuthContext";
 import { useToast } from "../context";
+import { userApi } from "../services";
+import { DEFAULT_PREFERENCES, saveLocalPreferences, TRAVEL_PREFERENCE_LABELS } from "../utils/fitEngine";
 import axiosInstance from "../utils/axiosInstance";
 import { AnimatePresence, motion } from "framer-motion";
 
@@ -38,10 +41,11 @@ const inputCls =
 
 /* ─── sub-components ────────────────────────────────────────────────────────── */
 
-type NavSection = "profile" | "security" | "appearance" | "danger";
+type NavSection = "profile" | "preferences" | "security" | "appearance" | "danger";
 
 const NAV_ITEMS: { id: NavSection; label: string; icon: React.ElementType; danger?: boolean }[] = [
   { id: "profile", label: "Profile", icon: User },
+  { id: "preferences", label: "Fit Preferences", icon: SlidersHorizontal },
   { id: "security", label: "Security", icon: Shield },
   { id: "appearance", label: "Appearance", icon: Moon },
   { id: "danger", label: "Danger Zone", icon: AlertTriangle, danger: true },
@@ -59,12 +63,58 @@ const SettingsPage = () => {
   const [email, setEmail] = useState(user?.email || "");
   const [profileSaving, setProfileSaving] = useState(false);
 
+  // ── Fit Preferences ──
+  const [homeCity, setHomeCity] = useState(user?.preferences?.homeCity || "");
+  const [travelPreference, setTravelPreference] = useState<TravelPreference>(
+    user?.preferences?.travelPreference || DEFAULT_PREFERENCES.travelPreference
+  );
+  const [maxTravelBudgetINR, setMaxTravelBudgetINR] = useState<number>(
+    user?.preferences?.maxTravelBudgetINR ?? DEFAULT_PREFERENCES.maxTravelBudgetINR
+  );
+  const [preferredTeamSize, setPreferredTeamSize] = useState<number>(
+    user?.preferences?.preferredTeamSize ?? DEFAULT_PREFERENCES.preferredTeamSize
+  );
+  const [skillsInput, setSkillsInput] = useState((user?.preferences?.skills || []).join(", "));
+  const [prefsSaving, setPrefsSaving] = useState(false);
+
   useEffect(() => {
     if (user) {
       setFullName(user.fullName);
       setEmail(user.email);
+      if (user.preferences) {
+        setHomeCity(user.preferences.homeCity || "");
+        setTravelPreference(user.preferences.travelPreference || DEFAULT_PREFERENCES.travelPreference);
+        setMaxTravelBudgetINR(user.preferences.maxTravelBudgetINR ?? DEFAULT_PREFERENCES.maxTravelBudgetINR);
+        setPreferredTeamSize(user.preferences.preferredTeamSize ?? DEFAULT_PREFERENCES.preferredTeamSize);
+        setSkillsInput((user.preferences.skills || []).join(", "));
+      }
     }
   }, [user]);
+
+  const handleSavePreferences = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setPrefsSaving(true);
+    const prefs: UserPreferences = {
+      homeCity: homeCity.trim(),
+      travelPreference,
+      maxTravelBudgetINR,
+      preferredTeamSize,
+      skills: skillsInput
+        .split(",")
+        .map((s) => s.trim())
+        .filter(Boolean),
+    };
+    try {
+      const updatedUser = await userApi.updatePreferences(prefs);
+      saveLocalPreferences(prefs);
+      updateUser({ ...user!, ...updatedUser, preferences: updatedUser?.preferences || prefs });
+      showToast("Fit preferences updated.", "success");
+    } catch (err: any) {
+      showToast(err.response?.data?.message || "Failed to update preferences.", "error");
+    } finally {
+      setPrefsSaving(false);
+    }
+  };
 
   const handleSaveProfile = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -327,6 +377,107 @@ const SettingsPage = () => {
                   >
                     {profileSaving ? <Loader2 className="h-4 w-4 animate-spin text-zinc-400" /> : null}
                     Save changes
+                  </button>
+                </div>
+              </form>
+            </div>
+          )}
+
+          {/* FIT PREFERENCES */}
+          {active === "preferences" && (
+            <div>
+              <h2 className="text-base font-bold text-zinc-900 dark:text-zinc-100 mb-1">Fit Preferences</h2>
+              <p className="text-sm text-zinc-500 dark:text-zinc-400 mb-6">
+                Used by the "Worth It?" check to evaluate travel, team size, and skill fit for every hackathon.
+              </p>
+
+              <form onSubmit={handleSavePreferences} className="space-y-5 max-w-lg">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-xs font-semibold text-zinc-700 dark:text-zinc-300 mb-1.5">
+                      Home City
+                    </label>
+                    <input
+                      type="text"
+                      value={homeCity}
+                      onChange={(e) => setHomeCity(e.target.value)}
+                      placeholder="e.g. Bengaluru, Delhi"
+                      className={inputCls}
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-semibold text-zinc-700 dark:text-zinc-300 mb-1.5">
+                      Preferred Team Size
+                    </label>
+                    <select
+                      value={preferredTeamSize}
+                      onChange={(e) => setPreferredTeamSize(Number(e.target.value))}
+                      className={inputCls}
+                    >
+                      {[1, 2, 3, 4, 5].map((n) => (
+                        <option key={n} value={n}>
+                          {n} {n === 1 ? "member (Solo)" : "members"}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                </div>
+
+                <div>
+                  <label className="block text-xs font-semibold text-zinc-700 dark:text-zinc-300 mb-1.5">
+                    Travel Willingness
+                  </label>
+                  <div className="grid grid-cols-2 gap-2.5">
+                    {(Object.keys(TRAVEL_PREFERENCE_LABELS) as TravelPreference[]).map((key) => (
+                      <button
+                        key={key}
+                        type="button"
+                        onClick={() => setTravelPreference(key)}
+                        className={`rounded-lg border px-3.5 py-2.5 text-left text-xs font-semibold transition cursor-pointer ${
+                          travelPreference === key
+                            ? "border-blue-500 bg-blue-50 text-blue-700 dark:bg-blue-950/40 dark:text-blue-300"
+                            : "border-zinc-200 bg-white text-zinc-600 hover:bg-zinc-50 dark:border-zinc-800 dark:bg-zinc-900 dark:text-zinc-400"
+                        }`}
+                      >
+                        {TRAVEL_PREFERENCE_LABELS[key]}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                {travelPreference !== "online_only" && travelPreference !== "same_city" && (
+                  <div>
+                    <label className="block text-xs font-semibold text-zinc-700 dark:text-zinc-300 mb-1.5">
+                      Max Travel Budget (₹)
+                    </label>
+                    <input
+                      type="number"
+                      min={0}
+                      step={500}
+                      value={maxTravelBudgetINR}
+                      onChange={(e) => setMaxTravelBudgetINR(Number(e.target.value))}
+                      className={inputCls}
+                    />
+                  </div>
+                )}
+
+                <div>
+                  <label className="block text-xs font-semibold text-zinc-700 dark:text-zinc-300 mb-1.5">
+                    Primary Skills / Stack (comma-separated)
+                  </label>
+                  <input
+                    type="text"
+                    value={skillsInput}
+                    onChange={(e) => setSkillsInput(e.target.value)}
+                    placeholder="e.g. React, Node.js, AI, Python"
+                    className={inputCls}
+                  />
+                </div>
+
+                <div className="pt-2">
+                  <button type="submit" disabled={prefsSaving} className="btn btn-primary">
+                    {prefsSaving ? <Loader2 className="h-4 w-4 animate-spin text-zinc-400" /> : null}
+                    Save preferences
                   </button>
                 </div>
               </form>
