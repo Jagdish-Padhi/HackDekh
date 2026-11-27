@@ -10,6 +10,7 @@ import {
   Check,
 } from "lucide-react";
 import { useCache, useToast } from "../context";
+import { USER_CACHE_TTL_MS } from "../context/CacheContext";
 import { usePageChrome } from "../context/pageChrome";
 import { teamApi } from "../services";
 import type { Stage, Team, TeamHackathon, TeamInvitation } from "../types";
@@ -36,7 +37,7 @@ const getTeamName = (team: string | Team | undefined, fallback = "Team") => {
 export default function DashboardPage() {
   const { showToast } = useToast();
   const { setPageActions } = usePageChrome();
-  const { dashboardData, setDashboardData } = useCache();
+  const { dashboardData, dashboardFetchedAt, setDashboardData } = useCache();
   const isInitialMountRef = useRef(true);
 
   const [participations, setParticipations] = useState<Participation[]>(dashboardData?.participations || []);
@@ -107,19 +108,24 @@ export default function DashboardPage() {
     const isInitialMount = isInitialMountRef.current;
     isInitialMountRef.current = false;
 
-    loadDashboardData(isInitialMount && !!dashboardData);
+    const isFresh = !!dashboardData && Date.now() - dashboardFetchedAt < USER_CACHE_TTL_MS;
+    if (!isFresh) {
+      loadDashboardData(isInitialMount && !!dashboardData);
+    }
     loadIncomingInvites();
 
     const onFocus = () => {
-      loadDashboardData(true);
-      loadIncomingInvites();
+      if (Date.now() - dashboardFetchedAt >= USER_CACHE_TTL_MS) {
+        loadDashboardData(true);
+        loadIncomingInvites();
+      }
     };
     window.addEventListener("focus", onFocus);
 
     return () => {
       window.removeEventListener("focus", onFocus);
     };
-  }, [loadDashboardData, loadIncomingInvites]);
+  }, [loadDashboardData, loadIncomingInvites, dashboardData, dashboardFetchedAt]);
 
   // Compute upcoming deadlines
   const upcomingDeadlines = useMemo(() => {

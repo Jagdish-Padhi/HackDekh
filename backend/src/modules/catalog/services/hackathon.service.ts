@@ -3,7 +3,8 @@ import axios from "axios";
 import redisClient from "../../../infrastructure/cache/redis.ts";
 import { hackathonListCacheKey } from "../../../infrastructure/cache/cacheKeys.ts";
 
-const HACKATHON_CACHE_TTL = 60;
+// 30 minutes; nightly 3:00 AM scraper also invalidates keys on completion
+const HACKATHON_CACHE_TTL = 1800;
 const CACHE_ENABLED = process.env.CACHE_ENABLED !== "false";
 
 const escapeRegExp = (value: string) => value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");

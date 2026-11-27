@@ -52,7 +52,7 @@ const defaultImages = [
     "/images/hackathons/hackathon-default-4.svg",
 ];
 
-const IMAGE_LOAD_TIMEOUT_MS = 7000;
+const IMAGE_LOAD_TIMEOUT_MS = 4500;
 const CARD_REVEAL_ROOT_MARGIN = "0px 0px -8% 0px";
 const loadedImageSourceCache = new Set<string>();
 const revealedCardCache = new Set<string>();
@@ -148,14 +148,13 @@ const getDeadlineDisplay = (deadline?: string): DeadlineDisplay => {
 
 const HackathonCard = ({ hackathon, displayIndex, extraActions = [], trackingStatus, onUntrack, onWorthIt, onShare, fitBadge }: HackathonCardProps) => {
     const cardRef = useRef<HTMLDivElement | null>(null);
+    const imgRef = useRef<HTMLImageElement | null>(null);
     const hasBeenRevealed = revealedCardCache.has(hackathon._id);
     const fallbackImageRef = useRef<string>(getStableDefaultImage(`${hackathon._id}:${hackathon.title}`));
     const fallbackImage = fallbackImageRef.current;
     const primaryImage = hackathon.coverImage?.trim() || "";
     
-    // Industry technique: Use a free global Image CDN to proxy external images.
-    // This resizes huge raw images, converts them to WebP, and completely bypasses 
-    // hotlinking/CORS 403 blocks from platforms like Devpost/Unstop/MLH.
+    // Use Image CDN to optimize external images, with direct URL fallback before local SVG
     const optimizedPrimaryImage = primaryImage && !primaryImage.startsWith("/") 
         ? `https://wsrv.nl/?url=${encodeURIComponent(primaryImage)}&w=500&h=250&fit=cover&output=webp&we`
         : primaryImage;
@@ -171,6 +170,14 @@ const HackathonCard = ({ hackathon, displayIndex, extraActions = [], trackingSta
         setImageSource(nextSource);
         setImageLoaded(loadedImageSourceCache.has(nextSource));
     }, [optimizedPrimaryImage, fallbackImage]);
+
+    useEffect(() => {
+        const el = imgRef.current;
+        if (el && el.complete && el.naturalWidth > 0) {
+            loadedImageSourceCache.add(imageSource);
+            setImageLoaded(true);
+        }
+    }, [imageSource]);
 
     useEffect(() => {
         if (isVisible || !cardRef.current) {
@@ -203,14 +210,16 @@ const HackathonCard = ({ hackathon, displayIndex, extraActions = [], trackingSta
             return;
         }
 
-        // Some third-party image URLs never resolve nor error; force fallback after timeout.
+        // If wsrv.nl stalls, fall back to direct primaryImage first, then local SVG
         const timeoutId = window.setTimeout(() => {
             setImageSource(currentSource => {
                 if (currentSource === fallbackImage) {
                     setImageLoaded(true);
                     return currentSource;
                 }
-
+                if (currentSource !== primaryImage && primaryImage) {
+                    return primaryImage;
+                }
                 return fallbackImage;
             });
         }, IMAGE_LOAD_TIMEOUT_MS);
@@ -275,6 +284,7 @@ const HackathonCard = ({ hackathon, displayIndex, extraActions = [], trackingSta
                     />
                 )}
                 <img
+                    ref={imgRef}
                     src={imageSource}
                     alt={hackathon.title}
                     loading="lazy"
@@ -288,6 +298,12 @@ const HackathonCard = ({ hackathon, displayIndex, extraActions = [], trackingSta
                         const imageElement = event.currentTarget;
                         if (imageElement.src.includes("/images/hackathons/")) {
                             setImageLoaded(true);
+                            return;
+                        }
+
+                        // Tier 1 (wsrv.nl) failed -> try direct primaryImage before local SVG
+                        if (primaryImage && imageSource !== primaryImage) {
+                            setImageSource(primaryImage);
                             return;
                         }
 

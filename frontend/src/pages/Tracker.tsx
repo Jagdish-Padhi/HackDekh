@@ -14,6 +14,7 @@ import {
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useAuth, useToast, useCache } from "../context";
+import { USER_CACHE_TTL_MS } from "../context/CacheContext";
 import { usePageChrome } from "../context/pageChrome";
 import { teamApi } from "../services";
 import { downloadDeadlineICS } from "../utils/calendar";
@@ -39,7 +40,7 @@ export default function TrackerPage() {
   const navigate = useNavigate();
   const { setPageActions } = usePageChrome();
 
-  const { trackerData, setTrackerData } = useCache();
+  const { trackerData, trackerFetchedAt, setTrackerData } = useCache();
   const [participations, setParticipations] = useState<(TeamHackathon & { teamInfo: Team })[]>(trackerData || []);
   const [loading, setLoading] = useState(!trackerData);
   const [activeSubTab, setActiveSubTab] = useState<"tracking" | "active" | "finished">("tracking");
@@ -108,8 +109,13 @@ export default function TrackerPage() {
       navigate("/login?returnTo=/tracker");
       return;
     }
+    const isFresh = !!trackerData && Date.now() - trackerFetchedAt < USER_CACHE_TTL_MS;
+    if (isFresh) {
+      setLoading(false);
+      return;
+    }
     loadTrackerData(!!trackerData);
-  }, [isAuthenticated, navigate, loadTrackerData]);
+  }, [isAuthenticated, navigate, loadTrackerData, trackerData, trackerFetchedAt]);
 
   // Filtered participations based on active tab
   const filteredParticipations = useMemo(() => {

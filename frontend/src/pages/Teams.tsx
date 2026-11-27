@@ -28,6 +28,7 @@ import {
   Sparkles
 } from "lucide-react";
 import { useAuth, useCache, useToast } from "../context";
+import { USER_CACHE_TTL_MS } from "../context/CacheContext";
 import { usePageChrome } from "../context/pageChrome";
 import { teamApi, userApi } from "../services";
 import AppDropdown from "../components/AppDropdown";
@@ -162,7 +163,7 @@ export default function TeamsPage() {
   }, [toggleSidebar]);
   const [searchParams] = useSearchParams();
 
-  const { teamsData, setTeamsData } = useCache();
+  const { teamsData, teamsFetchedAt, setTeamsData } = useCache();
 
   // Core Data States
   const [teams, setTeams] = useState<Team[]>(teamsData?.teams || []);
@@ -352,6 +353,11 @@ export default function TeamsPage() {
   };
 
   useEffect(() => {
+    const isFresh = !!teamsData && Date.now() - teamsFetchedAt < USER_CACHE_TTL_MS;
+    if (isFresh) {
+      setLoading(false);
+      return;
+    }
     loadTeams(!!teamsData);
   }, []);
 

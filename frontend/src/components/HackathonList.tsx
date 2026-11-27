@@ -63,10 +63,19 @@ type SortBy = '' | 'best-fit' | 'deadline-asc' | 'deadline-desc' | 'prize-desc' 
 
 
 const DESKTOP_MEDIA_QUERY = '(min-width: 1024px)'
+const FRONTEND_CACHE_TTL_MS = 5 * 60 * 1000 // 5 minutes
 
 const HackathonList = () => {
     const navigate = useNavigate()
-    const { hackathons: cachedHackathons, setHackathons: setCachedHackathons, hackathonsFilters, setHackathonsFilters } = useCache()
+    const {
+        hackathons: cachedHackathons,
+        setHackathons: setCachedHackathons,
+        hackathonsCacheMeta,
+        setHackathonsCacheMeta,
+        hackathonsFilters,
+        setHackathonsFilters,
+        invalidateUserCaches,
+    } = useCache()
     const isInitialMountRef = useRef(true)
     const initialCacheRef = useRef(cachedHackathons)
 
@@ -184,7 +193,7 @@ const HackathonList = () => {
                 participationId: string;
                 status: 'tracking' | 'active' | 'eliminated' | 'finalist' | 'won';
             }> = {};
-            
+
             // Fetch all team hackathons in parallel
             await Promise.all(
                 userTeams.map(async (t) => {
@@ -202,7 +211,7 @@ const HackathonList = () => {
                     }
                 })
             );
-            
+
             setTrackedHackathons(mapping);
         } catch (error) {
             console.error('Failed to load tracking data', error);
@@ -227,10 +236,10 @@ const HackathonList = () => {
 
     const handleConfirmTrack = async () => {
         if (!selectedHackathonToTrack || !selectedTeamIdToTrack) return;
-        
+
         const hackathonId = selectedHackathonToTrack;
         const teamId = selectedTeamIdToTrack;
-        
+
         // 1. Optimistic Update: Add tracking status instantly to the UI
         const tempId = `optimistic_${Date.now()}`;
         setTrackedHackathons(prev => ({
@@ -241,16 +250,16 @@ const HackathonList = () => {
                 status: 'tracking'
             }
         }));
-        
+
         // 2. Close modal instantly for seamless UX
         setShowTrackModal(false);
         setSelectedHackathonToTrack(null);
         setIsTrackingSubmitting(false);
-        
+
         try {
             // 3. Fire API in background
             const response = await teamApi.linkHackathon(teamId, hackathonId);
-            
+
             // 4. Update with actual participation ID from server
             setTrackedHackathons(prev => {
                 if (prev[hackathonId]?.participationId === tempId) {
@@ -265,10 +274,11 @@ const HackathonList = () => {
                 }
                 return prev;
             });
+            invalidateUserCaches();
             showToast("Hackathon tracked successfully", "success");
         } catch (error: any) {
             console.error("Failed to track hackathon in background", error);
-            
+
             // 5. Revert optimistic update on failure
             setTrackedHackathons(prev => {
                 if (prev[hackathonId]?.participationId === tempId) {
@@ -314,7 +324,7 @@ const HackathonList = () => {
             showToast("Hackathon untracked successfully", "success");
         } catch (error: any) {
             console.error("Failed to untrack in background", error);
-            
+
             // 5. Revert optimistic removal on failure
             setTrackedHackathons(prev => ({
                 ...prev,
@@ -374,7 +384,32 @@ const HackathonList = () => {
 
         const hadCachedData = initialCacheRef.current;
         initialCacheRef.current = null;
-        const isSilentRevalidation = isInitialMount && !!hadCachedData;
+        const serverSortBy = sortBy === 'best-fit' ? '' : sortBy;
+        const requestCacheKey = JSON.stringify({
+            search: deferredSearch,
+            platform,
+            mode,
+            locationFilter,
+            sortBy: serverSortBy,
+        });
+
+        const isCacheFresh =
+            refreshNonce === 0 &&
+            !!cachedHackathons &&
+            hackathonsCacheMeta?.key === requestCacheKey &&
+            Date.now() - hackathonsCacheMeta.fetchedAt < FRONTEND_CACHE_TTL_MS;
+
+        if (isCacheFresh) {
+            setHackathons(cachedHackathons);
+            setHasLoadedFromServer(true);
+            setLoading(false);
+            setIsRefreshing(false);
+            return;
+        }
+
+        const isSilentRevalidation =
+            refreshNonce === 0 &&
+            ((isInitialMount && !!hadCachedData) || (!!cachedHackathons && hackathonsCacheMeta?.key === requestCacheKey));
 
         if (!isSilentRevalidation) {
             setLoading(true)
@@ -391,7 +426,7 @@ const HackathonList = () => {
                     platform,
                     mode,
                     location: locationFilter,
-                    sortBy: sortBy === 'best-fit' ? '' : sortBy,
+                    sortBy: serverSortBy,
                     showExpired: "false"
                 },
             })
@@ -407,6 +442,7 @@ const HackathonList = () => {
                             : []
                     setHackathons(responseData)
                     setCachedHackathons(responseData)
+                    setHackathonsCacheMeta({ key: requestCacheKey, fetchedAt: Date.now() })
                     setHasLoadedFromServer(true)
                     finishTimeout = window.setTimeout(() => {
                         if (!isMounted) {
@@ -441,7 +477,7 @@ const HackathonList = () => {
                 window.clearTimeout(finishTimeout)
             }
         }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [refreshNonce, deferredSearch, platform, mode, locationFilter, sortBy, setCachedHackathons])
 
     // isStillLoading is declared at top
@@ -620,7 +656,7 @@ const HackathonList = () => {
                                     onShare={() => handleShareHackathon(hack)}
                                     fitBadge={fitResult ? { label: fitResult.label, verdict: fitResult.verdict } : null}
                                     extraActions={[
-                                        { label: isTracked ? "TRACKED_TRUE" : "TRACKED_FALSE", onClick: () => {} },
+                                        { label: isTracked ? "TRACKED_TRUE" : "TRACKED_FALSE", onClick: () => { } },
                                         { label: "TRACK_HANDLER", onClick: () => handleInitiateTrack(hack._id) }
                                     ]}
                                 />
@@ -668,7 +704,7 @@ const HackathonList = () => {
                                     <h3 className="text-xl font-extrabold text-zinc-900 dark:text-zinc-50 tracking-tight leading-snug">
                                         Ready to Win Your Next Hackathon?
                                     </h3>
-                                    
+
                                     <div className="space-y-3.5 text-left bg-zinc-50 dark:bg-zinc-900/60 p-4 rounded-lg border border-zinc-100 dark:border-zinc-800/80">
                                         <p className="text-[10px] font-bold text-zinc-400 dark:text-zinc-500 uppercase tracking-widest mb-1">What you get instantly:</p>
                                         {[
@@ -783,7 +819,7 @@ const HackathonList = () => {
                     const hackToUntrack = hackathons.find(h => h._id === hackathonIdToUntrack);
                     const trackingInfo = hackathonIdToUntrack ? trackedHackathons[hackathonIdToUntrack] : null;
                     const teamToUntrack = trackingInfo ? teams.find(t => t._id === trackingInfo.teamId) : null;
-                    
+
                     return (
                         <motion.div
                             initial={{ opacity: 0 }}
