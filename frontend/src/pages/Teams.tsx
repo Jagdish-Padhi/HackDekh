@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState, useRef } from "react";
 import React from "react";
-import { useSearchParams } from "react-router-dom";
+import { useSearchParams, useNavigate } from "react-router-dom";
 import {
   ArrowRight,
   Calendar,
@@ -10,8 +10,6 @@ import {
   Loader2,
   Trash2,
   Users,
-  CalendarRange,
-  Layers,
   Flag,
   Search,
   CheckCircle2,
@@ -27,11 +25,10 @@ import { useAuth, useCache, useToast } from "../context";
 import { USER_CACHE_TTL_MS } from "../context/CacheContext";
 import { usePageChrome } from "../context/pageChrome";
 import { teamApi } from "../services";
-import AppDropdown from "../components/AppDropdown";
-import type { Team, TeamHackathon, Stage } from "../types";
+import type { Team, TeamHackathon } from "../types";
 import { motion, AnimatePresence } from "framer-motion";
 
-const teamTabs = ["Hackathons", "Members", "Stages", "Settings"] as const;
+const teamTabs = ["Hackathons", "Members", "Settings"] as const;
 
 export const isRegistrationStage = (name: string): boolean => {
   return /register|registration|apply|application|prep|regn/i.test(name);
@@ -158,6 +155,7 @@ export default function TeamsPage() {
     toggleSidebarRef.current = toggleSidebar;
   }, [toggleSidebar]);
   const [searchParams] = useSearchParams();
+  const navigate = useNavigate();
 
   const { teamsData, teamsFetchedAt, setTeamsData } = useCache();
 
@@ -192,10 +190,7 @@ export default function TeamsPage() {
   const [savingTeam, setSavingTeam] = useState(false);
   const [workspaceMessage, setWorkspaceMessage] = useState<string | null>(null);
   const [workspaceError, setWorkspaceError] = useState<string | null>(null);
-  const [newStageDraft, setNewStageDraft] = useState<Record<string, { name: string; deadline: string }>>({});
-  const [isAddingStageMap, setIsAddingStageMap] = useState<Record<string, boolean>>({});
   const [selectedParticipationId, setSelectedParticipationId] = useState<string>("");
-  const [stageSaving, setStageSaving] = useState<Record<string, "saved" | "saving" | "error">>({});
   const [stripSort, setStripSort] = useState<'most_qualified' | 'latest' | 'oldest'>('latest');
 
   const [regeneratingCode, setRegeneratingCode] = useState(false);
@@ -230,10 +225,6 @@ export default function TeamsPage() {
   const [leaveTeamLoading, setLeaveTeamLoading] = useState(false);
 
   const selectedTeam = useMemo(() => teams.find((team) => team._id === selectedTeamId) || null, [teams, selectedTeamId]);
-  const selectedParticipation = useMemo(
-    () => teamParticipations.find((participation) => participation._id === selectedParticipationId) || null,
-    [teamParticipations, selectedParticipationId]
-  );
 
   // Sort participations and assign sequence numbers based on createdAt (earliest = #1)
   const sortedParticipations = useMemo(() => {
@@ -416,23 +407,7 @@ export default function TeamsPage() {
     }
   }, [teamParticipations, selectedParticipationId, searchParams]);
 
-  // Smooth scroll and highlight focus stage
-  useEffect(() => {
-    const stageIdParam = searchParams.get("stageId");
-    if (activeTab === "Stages" && selectedParticipationId && stageIdParam) {
-      const timer = setTimeout(() => {
-        const el = document.getElementById(`stage-${stageIdParam}`);
-        if (el) {
-          el.scrollIntoView({ behavior: 'smooth', block: 'center' });
-          el.classList.add('ring-4', 'ring-blue-500/40', 'dark:ring-blue-400/40');
-          setTimeout(() => {
-            el.classList.remove('ring-4', 'ring-blue-500/40', 'dark:ring-blue-400/40');
-          }, 3000);
-        }
-      }, 700);
-      return () => clearTimeout(timer);
-    }
-  }, [activeTab, selectedParticipationId, searchParams]);
+  // Auto-select first participation
 
   // Create Team
   const handleCreateTeam = async () => {
@@ -782,110 +757,6 @@ export default function TeamsPage() {
     } finally {
       setIsUntracking(false);
     }
-  };
-
-  // Stages operations
-  const handleAddStage = async (participationId: string) => {
-    const draft = newStageDraft[participationId];
-    if (!draft?.name?.trim() || isAddingStageMap[participationId]) return;
-
-    const participation = teamParticipations.find((item) => item._id === participationId);
-    if (!participation) return;
-
-    if (isRegistrationStage(draft.name)) {
-      showToast("Registration is tracked automatically. Please add a competitive milestone.", "error");
-      return;
-    }
-
-    const targetCanonical = getCanonicalStageName(draft.name);
-    const duplicate = participation.stages.some(
-      (s) => getCanonicalStageName(s.name) === targetCanonical
-    );
-    if (duplicate) {
-      showToast("A stage with this name already exists.", "error");
-      return;
-    }
-
-    setIsAddingStageMap((prev) => ({ ...prev, [participationId]: true }));
-    try {
-      const createdStage = await teamApi.addStage(participation.teamInfo._id, participationId, {
-        name: draft.name.trim(),
-        deadline: draft.deadline || undefined,
-      });
-      setTeamParticipations((current) =>
-        current.map((item) => (item._id === participationId ? { ...item, stages: [...item.stages, createdStage] } : item))
-      );
-      setNewStageDraft((current) => ({ ...current, [participationId]: { name: "", deadline: "" } }));
-
-      // Update local participations map
-      setAllParticipations(prev => ({
-        ...prev,
-        [participation.teamInfo._id]: prev[participation.teamInfo._id].map(p =>
-          p._id === participationId ? { ...p, stages: [...p.stages, createdStage] } : p
-        )
-      }));
-    } catch (error: any) {
-      console.error("Failed to add stage", error);
-      showToast(error.response?.data?.message || "Failed to add stage", "error");
-    } finally {
-      setIsAddingStageMap((prev) => ({ ...prev, [participationId]: false }));
-    }
-  };
-
-  const handleUpdateStage = async (participationId: string, stageId: string, payload: { name?: string; deadline?: string | null; result?: Stage["result"] }) => {
-    const participation = teamParticipations.find((item) => item._id === participationId);
-    if (!participation) return;
-
-    if (payload.name !== undefined) {
-      if (isRegistrationStage(payload.name)) {
-        showToast("Registration is tracked automatically. Please use a competitive milestone name.", "error");
-        setStageSaving((current) => ({ ...current, [stageId]: "error" }));
-        return;
-      }
-      const stage = participation.stages.find((s) => s._id === stageId);
-      if (stage && payload.name.trim() !== stage.name) {
-        const canonicalName = getCanonicalStageName(payload.name);
-        const duplicate = participation.stages.some(
-          (s) => s._id !== stageId && getCanonicalStageName(s.name) === canonicalName
-        );
-        if (duplicate) {
-          showToast("A stage with this name already exists.", "error");
-          setStageSaving((current) => ({ ...current, [stageId]: "error" }));
-          return;
-        }
-      }
-    }
-
-    setStageSaving((current) => ({ ...current, [stageId]: "saving" }));
-    try {
-      const updatedStage = await teamApi.updateStage(participation.teamInfo._id, participationId, stageId, payload);
-      const updater = (current: TeamHackathon[]) =>
-        current.map((item) => ({
-          ...item,
-          stages: item._id === participationId ? item.stages.map((stage) => (stage._id === stageId ? { ...stage, ...updatedStage } : stage)) : item.stages,
-        }));
-
-      setTeamParticipations((current) => updater(current) as TeamParticipation[]);
-      setAllParticipations(prev => ({
-        ...prev,
-        [participation.teamInfo._id]: updater(prev[participation.teamInfo._id])
-      }));
-
-      setStageSaving((current) => ({ ...current, [stageId]: "saved" }));
-
-      // If a result was changed, silently re-fetch to sync backend-driven resets
-      if (payload.result !== undefined) {
-        await loadTeamWorkspace(participation.teamInfo._id, true);
-      }
-    } catch (error: any) {
-      console.error("Failed to update stage", error);
-      showToast(error.response?.data?.message || "Failed to update stage", "error");
-      setStageSaving((current) => ({ ...current, [stageId]: "error" }));
-    }
-  };
-
-  const handleDeleteStage = (participationId: string, stageId: string, stageName: string) => {
-    setStageToDelete({ participationId, stageId, stageName });
   };
 
   const handleConfirmDeleteStage = async () => {
@@ -1376,7 +1247,7 @@ export default function TeamsPage() {
                                       <div className="flex items-start gap-3 rounded-lg border border-zinc-200/60 dark:border-zinc-800/40 bg-zinc-50/40 dark:bg-zinc-900/5 px-4 py-3.5 text-zinc-500 dark:text-zinc-400 text-xs text-left max-w-md shadow-xs backdrop-blur-sm">
                                         <Info className="h-4 w-4 text-zinc-400 dark:text-zinc-500 shrink-0 mt-0.5" />
                                         <p className="leading-relaxed">
-                                          No competitive stages defined yet. Go to the <span className="font-semibold text-blue-650 dark:text-blue-400 cursor-pointer hover:underline" onClick={() => setActiveTab("Stages")}>Stages tab</span> to add custom tracker milestones.
+                                          No competitive stages defined yet. Manage rounds and deadlines in the <span className="font-semibold text-blue-650 dark:text-blue-400 cursor-pointer hover:underline" onClick={() => navigate("/tracker")}>Tracker</span>.
                                         </p>
                                       </div>
                                     ) : (
@@ -1445,10 +1316,7 @@ export default function TeamsPage() {
                                               animate={{ scale: 1, opacity: 1 }}
                                               transition={{ delay: sIdx * segmentDuration, duration: 0.25, ease: "backOut" }}
                                               className="relative flex flex-col items-center group overflow-visible cursor-pointer flex-1 min-w-0 hover:z-50 pt-3"
-                                              onClick={() => {
-                                                setSelectedParticipationId(participation._id);
-                                                setActiveTab("Stages");
-                                              }}
+                                              onClick={() => navigate("/tracker")}
                                             >
                                               {/* Connector line inside the node, positioned absolutely behind the dot */}
                                               {hasPrev && (
@@ -1727,252 +1595,6 @@ export default function TeamsPage() {
                       </div>
                     );
                   })()}
-
-                  {/* 3. STAGES TAB: Stages Editor */}
-                  {activeTab === "Stages" && (
-                    <div className="space-y-6">
-                      {loadingTeamData ? (
-                        <div className="space-y-3 select-none pointer-events-none animate-pulse">
-                          {Array.from({ length: 3 }).map((_, index) => (
-                            <div key={index} className="h-20 rounded-xl border border-zinc-200/80 bg-white p-4 dark:border-zinc-800 dark:bg-zinc-900/60 shadow-xs">
-                              <div className="h-full w-full rounded-lg bg-[linear-gradient(110deg,rgba(228,228,231,0.6),rgba(250,250,250,0.95),rgba(228,228,231,0.6))] bg-size-[200%_100%] animate-[shimmer_1.3s_linear_infinite] dark:bg-[linear-gradient(110deg,rgba(39,39,42,0.9),rgba(63,63,70,0.95),rgba(39,39,42,0.9))]" />
-                            </div>
-                          ))}
-                        </div>
-                      ) : selectedParticipation ? (() => {
-                        const competitiveStages = selectedParticipation.stages.filter(s => !isRegistrationStage(s.name));
-                        const failedStageIdx = competitiveStages.findIndex(s => s.result === 'rejected');
-                        const hasRejections = failedStageIdx !== -1;
-                        const isTerminated = hasRejections || ['won', 'eliminated'].includes(selectedParticipation.status);
-
-                        return (
-                          <div className="space-y-6">
-                            {/* Top Bar: Clean Enterprise Section Header & Hackathon Selector */}
-                            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 p-4 rounded-xl border border-zinc-200/80 bg-white dark:border-zinc-800 dark:bg-zinc-900/50 shadow-xs">
-                              <div className="flex items-center gap-3 min-w-0">
-                                <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-blue-500/10 text-blue-600 dark:text-blue-400 border border-blue-500/20">
-                                  <Layers className="h-4.5 w-4.5" />
-                                </div>
-                                <div className="min-w-0">
-                                  <h3 className="text-sm font-bold text-zinc-900 dark:text-white leading-tight">Timeline Milestones</h3>
-                                  <p className="text-xs text-zinc-500 dark:text-zinc-400 truncate leading-tight mt-0.5">
-                                    Configure rounds, qualification deadlines, and stage progress
-                                  </p>
-                                </div>
-                              </div>
-
-                              <div className="flex items-center gap-2.5 shrink-0 self-end sm:self-auto">
-                                <span className="text-xs font-semibold text-zinc-500 dark:text-zinc-400 whitespace-nowrap">
-                                  Hackathon:
-                                </span>
-                                <AppDropdown
-                                  value={selectedParticipationId}
-                                  onChange={setSelectedParticipationId}
-                                  options={teamParticipations.map(p => ({
-                                    label: p.hackathon.title,
-                                    value: p._id,
-                                  }))}
-                                  placeholder="Choose hackathon…"
-                                  align="right"
-                                  className="w-56 sm:w-72"
-                                />
-                              </div>
-                            </div>
-
-                            {/* Stages list editor */}
-                            <div className="space-y-3">
-                              {competitiveStages.length === 0 ? (
-                                <div className="rounded-xl border border-dashed border-zinc-300 dark:border-zinc-800 bg-zinc-50/50 dark:bg-zinc-950/20 p-10 text-center">
-                                  <CalendarRange className="mx-auto h-9 w-9 text-zinc-400" />
-                                  <h4 className="mt-3 text-sm font-bold text-zinc-900 dark:text-white">No milestones defined</h4>
-                                  <p className="mt-1 text-xs text-zinc-500 dark:text-zinc-400">Create stages like "Ideation", "Prototype Submission", or "Final Pitch" below.</p>
-                                </div>
-                              ) : (
-                                competitiveStages.map((stage, sIdx) => {
-                                  const isDisqualified = failedStageIdx !== -1 && sIdx > failedStageIdx;
-                                  const isStageEditable = !isDisqualified && selectedParticipation.status !== 'won';
-
-                                  return (
-                                    <div
-                                      id={`stage-${stage._id}`}
-                                      key={stage._id}
-                                      className={`rounded-xl border p-4 transition-all duration-200 ${isDisqualified
-                                        ? "border-dashed border-zinc-250 bg-zinc-50/40 dark:border-zinc-800/40 dark:bg-zinc-950/20 opacity-60"
-                                        : "border-zinc-200/90 bg-white dark:border-zinc-800 dark:bg-zinc-900/60 shadow-xs hover:border-zinc-300 dark:hover:border-zinc-700"
-                                        }`}
-                                    >
-                                      <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-3.5">
-                                        {/* Left: Step Number Badge + Stage Name Input */}
-                                        <div className="flex items-center gap-3 flex-1 min-w-0">
-                                          <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-md bg-zinc-100 dark:bg-zinc-800 text-[11px] font-bold text-zinc-600 dark:text-zinc-300 border border-zinc-200/70 dark:border-zinc-700/60">
-                                            {String(sIdx + 1).padStart(2, '0')}
-                                          </span>
-
-                                          <div className="flex-1 min-w-0 flex items-center gap-2">
-                                            <input
-                                              disabled={!isStageEditable}
-                                              defaultValue={stage.name}
-                                              onBlur={(event) => {
-                                                if (event.target.value.trim() && event.target.value !== stage.name) {
-                                                  handleUpdateStage(selectedParticipation._id, stage._id, { name: event.target.value.trim() });
-                                                }
-                                              }}
-                                              placeholder="Stage milestone name"
-                                              className="w-full rounded-md border border-transparent hover:border-zinc-200 dark:hover:border-zinc-700 focus:border-blue-500/50 focus:bg-zinc-50/60 dark:focus:bg-zinc-800/50 px-2 py-1 text-sm font-bold text-zinc-900 dark:text-white outline-none transition disabled:cursor-not-allowed disabled:hover:border-transparent truncate"
-                                            />
-                                            {isDisqualified && (
-                                              <span className="inline-flex items-center gap-1 rounded-md bg-zinc-200/80 px-2 py-0.5 text-[9px] font-black uppercase text-zinc-600 dark:bg-zinc-800 dark:text-zinc-400 shrink-0">
-                                                Disqualified
-                                              </span>
-                                            )}
-                                          </div>
-                                        </div>
-
-                                        {/* Right: Controls - ALL EXACTLY h-9 (36px) HEIGHT */}
-                                        <div className="flex flex-wrap sm:flex-nowrap items-center gap-2.5 pt-2.5 lg:pt-0 border-t border-zinc-150 dark:border-zinc-800/60 lg:border-t-0 shrink-0">
-                                          {/* Deadline */}
-                                          <div className="flex items-center gap-1.5">
-                                            <span className="text-[10px] font-bold uppercase tracking-wider text-zinc-400 dark:text-zinc-500 shrink-0">
-                                              Deadline:
-                                            </span>
-                                            <input
-                                              type="date"
-                                              disabled={!isStageEditable}
-                                              defaultValue={stage.deadline ? new Date(stage.deadline).toISOString().slice(0, 10) : ""}
-                                              onBlur={(event) => {
-                                                const nextDeadline = event.target.value || null;
-                                                const currentDeadline = stage.deadline ? new Date(stage.deadline).toISOString().slice(0, 10) : "";
-                                                if (nextDeadline !== currentDeadline) {
-                                                  handleUpdateStage(selectedParticipation._id, stage._id, { deadline: nextDeadline });
-                                                }
-                                              }}
-                                              className="h-9 rounded-lg border border-zinc-250 dark:border-zinc-700 bg-white dark:bg-zinc-950 px-2.5 text-xs font-semibold text-zinc-800 dark:text-zinc-200 outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-500/10 cursor-pointer disabled:cursor-not-allowed disabled:opacity-50"
-                                            />
-                                          </div>
-
-                                          {/* Result */}
-                                          <div className="flex items-center gap-1.5">
-                                            <span className="text-[10px] font-bold uppercase tracking-wider text-zinc-400 dark:text-zinc-500 shrink-0">
-                                              Result:
-                                            </span>
-                                            <AppDropdown
-                                              value={isDisqualified ? "pending" : stage.result}
-                                              disabled={!isStageEditable}
-                                              size="sm"
-                                              onChange={(val) => {
-                                                if (val !== stage.result) {
-                                                  handleUpdateStage(selectedParticipation._id, stage._id, { result: val as Stage["result"] });
-                                                }
-                                              }}
-                                              options={[
-                                                { label: "Pending", value: "pending", dotClass: "bg-amber-500" },
-                                                { label: "Qualified", value: "qualified", dotClass: "bg-emerald-500" },
-                                                { label: "Rejected", value: "rejected", dotClass: "bg-rose-500" },
-                                              ]}
-                                              placeholder="Result"
-                                              align="right"
-                                              className="w-32 sm:w-36"
-                                            />
-                                          </div>
-
-                                          {/* Status indicator */}
-                                          {stageSaving[stage._id] && (
-                                            <span className="text-[10px] font-medium text-zinc-400 shrink-0 min-w-[48px] text-right">
-                                              {stageSaving[stage._id] === "saving" ? "Saving..." : stageSaving[stage._id] === "saved" ? "Saved" : "Error"}
-                                            </span>
-                                          )}
-
-                                          {/* Delete Button */}
-                                          <button
-                                            onClick={() => handleDeleteStage(selectedParticipation._id, stage._id, stage.name)}
-                                            disabled={!isStageEditable}
-                                            className="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-lg border border-transparent hover:border-zinc-200 text-zinc-400 hover:bg-rose-50 hover:text-rose-600 dark:hover:border-zinc-700 dark:hover:bg-rose-950/30 dark:hover:text-rose-400 transition cursor-pointer disabled:opacity-30 disabled:cursor-not-allowed"
-                                            title="Delete stage"
-                                            aria-label="Delete stage"
-                                          >
-                                            <Trash2 className="h-4 w-4" />
-                                          </button>
-                                        </div>
-                                      </div>
-                                    </div>
-                                  );
-                                })
-                              )}
-                            </div>
-
-                            {/* Add stage form */}
-                            <div className="rounded-xl border border-zinc-200/90 bg-white p-5 dark:border-zinc-800 dark:bg-zinc-900/60 shadow-xs mt-6">
-                              <div className="flex items-center gap-2">
-                                <Plus className="h-4 w-4 text-blue-600 dark:text-blue-400" />
-                                <h4 className="text-xs font-bold uppercase tracking-wider text-zinc-800 dark:text-zinc-200">
-                                  Add Stage Milestone
-                                </h4>
-                              </div>
-
-                              {isTerminated && (
-                                <p className="mt-2 text-[11px] text-amber-600 dark:text-amber-400 font-semibold leading-normal">
-                                  Milestone tracking locked (this participation is marked as won or eliminated). You cannot add new stages.
-                                </p>
-                              )}
-
-                              <div className="mt-3.5 flex flex-col sm:flex-row items-stretch sm:items-center gap-3">
-                                <div className="flex-1 min-w-0">
-                                  <input
-                                    value={newStageDraft[selectedParticipation._id]?.name || ""}
-                                    disabled={isTerminated}
-                                    onChange={(event) =>
-                                      setNewStageDraft((current) => ({
-                                        ...current,
-                                        [selectedParticipation._id]: {
-                                          name: event.target.value,
-                                          deadline: current[selectedParticipation._id]?.deadline || "",
-                                        },
-                                      }))
-                                    }
-                                    placeholder="e.g. Round 2: Video Pitch & Prototype"
-                                    className="h-10 w-full rounded-lg border border-zinc-250 dark:border-zinc-700 bg-zinc-50/50 dark:bg-zinc-950 px-3.5 text-sm text-zinc-900 dark:text-zinc-100 placeholder:text-zinc-400 outline-none transition focus:border-blue-500 focus:bg-white dark:focus:bg-zinc-900 disabled:cursor-not-allowed disabled:opacity-50"
-                                  />
-                                </div>
-
-                                <div className="sm:w-44 shrink-0">
-                                  <input
-                                    type="date"
-                                    value={newStageDraft[selectedParticipation._id]?.deadline || ""}
-                                    disabled={isTerminated}
-                                    onChange={(event) =>
-                                      setNewStageDraft((current) => ({
-                                        ...current,
-                                        [selectedParticipation._id]: {
-                                          name: current[selectedParticipation._id]?.name || "",
-                                          deadline: event.target.value,
-                                        },
-                                      }))
-                                    }
-                                    className="h-10 w-full rounded-lg border border-zinc-250 dark:border-zinc-700 bg-zinc-50/50 dark:bg-zinc-950 px-3 text-xs font-semibold text-zinc-800 dark:text-zinc-200 outline-none transition focus:border-blue-500 focus:bg-white dark:focus:bg-zinc-900 disabled:cursor-not-allowed disabled:opacity-50 cursor-pointer"
-                                  />
-                                </div>
-
-                                <button
-                                  onClick={() => handleAddStage(selectedParticipation._id)}
-                                  disabled={isTerminated || !newStageDraft[selectedParticipation._id]?.name?.trim()}
-                                  className="btn-brand-primary h-10 px-4 rounded-lg text-xs font-bold gap-1.5 shrink-0 whitespace-nowrap cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
-                                >
-                                  <Plus className="h-4 w-4" />
-                                  <span>Add Stage</span>
-                                </button>
-                              </div>
-                            </div>
-                          </div>
-                        );
-                      })() : (
-                        <div className="rounded-xl border border-dashed border-zinc-250 bg-zinc-50/30 p-8 text-center dark:border-zinc-800 dark:bg-zinc-900/10">
-                          <CalendarRange className="mx-auto h-10 w-10 text-zinc-400" />
-                          <h4 className="mt-3 text-sm font-bold text-zinc-900 dark:text-white">No active trackings</h4>
-                          <p className="mt-1.5 text-xs text-zinc-500 dark:text-zinc-400">Join a hackathon to start configuring tracking stage paths.</p>
-                        </div>
-                      )}
-                    </div>
-                  )}
 
                   {activeTab === "Settings" && (() => {
                     const isOwner = selectedTeam.owner._id === user?._id;

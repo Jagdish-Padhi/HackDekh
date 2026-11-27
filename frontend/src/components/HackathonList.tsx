@@ -22,6 +22,7 @@ import {
 
 type Hackathon = {
     _id: string
+    slug?: string
     title: string
     platform: string
     coverImage?: string
@@ -222,25 +223,7 @@ const HackathonList = () => {
         loadTrackedHackathons();
     }, [loadTrackedHackathons]);
 
-    const handleInitiateTrack = (hackathonId: string) => {
-        if (!isAuthenticated) {
-            setShowFunnelModal(true);
-            return;
-        }
-        setSelectedHackathonToTrack(hackathonId);
-        if (teams.length > 0) {
-            setSelectedTeamIdToTrack(teams[0]._id);
-        }
-        setShowTrackModal(true);
-    };
-
-    const handleConfirmTrack = async () => {
-        if (!selectedHackathonToTrack || !selectedTeamIdToTrack) return;
-
-        const hackathonId = selectedHackathonToTrack;
-        const teamId = selectedTeamIdToTrack;
-
-        // 1. Optimistic Update: Add tracking status instantly to the UI
+    const trackOnTeam = async (hackathonId: string, teamId: string) => {
         const tempId = `optimistic_${Date.now()}`;
         setTrackedHackathons(prev => ({
             ...prev,
@@ -251,16 +234,8 @@ const HackathonList = () => {
             }
         }));
 
-        // 2. Close modal instantly for seamless UX
-        setShowTrackModal(false);
-        setSelectedHackathonToTrack(null);
-        setIsTrackingSubmitting(false);
-
         try {
-            // 3. Fire API in background
             const response = await teamApi.linkHackathon(teamId, hackathonId);
-
-            // 4. Update with actual participation ID from server
             setTrackedHackathons(prev => {
                 if (prev[hackathonId]?.participationId === tempId) {
                     return {
@@ -278,8 +253,6 @@ const HackathonList = () => {
             showToast("Hackathon tracked successfully", "success");
         } catch (error: any) {
             console.error("Failed to track hackathon in background", error);
-
-            // 5. Revert optimistic update on failure
             setTrackedHackathons(prev => {
                 if (prev[hackathonId]?.participationId === tempId) {
                     const next = { ...prev };
@@ -290,6 +263,43 @@ const HackathonList = () => {
             });
             showToast(error.response?.data?.message || error.message || "Failed to start tracking", "error");
         }
+    };
+
+    const handleInitiateTrack = async (hackathonId: string) => {
+        if (!isAuthenticated) {
+            setShowFunnelModal(true);
+            return;
+        }
+        if (teams.length === 0) {
+            try {
+                const personalTeam = await teamApi.createTeam({ name: "Personal" });
+                setTeams([personalTeam]);
+                invalidateUserCaches();
+                await trackOnTeam(hackathonId, personalTeam._id);
+            } catch (error: any) {
+                showToast(error.response?.data?.message || "Failed to track hackathon", "error");
+            }
+            return;
+        }
+        if (teams.length === 1) {
+            await trackOnTeam(hackathonId, teams[0]._id);
+            return;
+        }
+        setSelectedHackathonToTrack(hackathonId);
+        setSelectedTeamIdToTrack(teams[0]._id);
+        setShowTrackModal(true);
+    };
+
+    const handleConfirmTrack = async () => {
+        if (!selectedHackathonToTrack || !selectedTeamIdToTrack) return;
+        const hackathonId = selectedHackathonToTrack;
+        const teamId = selectedTeamIdToTrack;
+
+        setShowTrackModal(false);
+        setSelectedHackathonToTrack(null);
+        setIsTrackingSubmitting(false);
+
+        await trackOnTeam(hackathonId, teamId);
     };
 
     const handleInitiateUntrack = (hackathonId: string) => {
@@ -512,18 +522,19 @@ const HackathonList = () => {
     }, [hackathons, teamSizeFilter, sortBy, activePreferences])
 
     const handleShareHackathon = useCallback(async (hack: Hackathon) => {
+        const shareUrl = `${window.location.origin}/hackathons/${hack.slug || hack._id}`
         const parts = [
             `${hack.title} (${hack.platform})`,
             hack.prize ? `Prize: ${hack.prize}` : null,
             hack.deadline ? `Deadline: ${new Date(hack.deadline).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}` : null,
-            (hack as any).applyLink || window.location.href,
+            shareUrl,
         ].filter(Boolean)
 
         try {
             await navigator.clipboard.writeText(parts.join(' • '))
-            showToast('Hackathon details copied for sharing.', 'success')
+            showToast('Hackathon link copied for sharing.', 'success')
         } catch {
-            showToast('Could not copy hackathon details.', 'error')
+            showToast('Could not copy hackathon link.', 'error')
         }
     }, [showToast])
 

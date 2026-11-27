@@ -1,6 +1,6 @@
 import { asyncHandler } from "../../../shared/utils/asyncHandler.ts";
 import { ApiResponse } from "../../../shared/responses/apiResponse.ts";
-import { getHackathonsService } from "../services/hackathon.service.ts";
+import { getHackathonsService, getHackathonBySlugService } from "../services/hackathon.service.ts";
 
 export const getHackathons = asyncHandler(async (req: any, res: any) => {
   const { search, platform, mode, location, sortBy, showExpired } = req.query;
@@ -15,4 +15,12 @@ export const getHackathons = asyncHandler(async (req: any, res: any) => {
   });
 
   return res.status(200).json(new ApiResponse(200, result.data, result.message));
+});
+
+export const getHackathonBySlug = asyncHandler(async (req: any, res: any) => {
+  const item = await getHackathonBySlugService(String(req.params.slug || ""));
+  if (!item) {
+    return res.status(404).json(new ApiResponse(404, null, "Hackathon not found"));
+  }
+  return res.status(200).json(new ApiResponse(200, item, "Hackathon fetched successfully"));
 });

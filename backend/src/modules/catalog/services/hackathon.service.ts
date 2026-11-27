@@ -337,3 +337,23 @@ export const getHackathonsService = async (filters: HackathonQueryFilters): Prom
     fromCache: false,
   };
 };
+
+export const getHackathonBySlugService = async (slugOrId: string) => {
+  const key = slugOrId.trim();
+  if (!key) return null;
+
+  const doc: any = await hackathon
+    .findOne({
+      $or: [
+        { slug: key },
+        ...(key.match(/^[0-9a-fA-F]{24}$/) ? [{ _id: key }] : []),
+      ],
+    })
+    .lean();
+
+  if (!doc) return null;
+
+  const usdToInrRate = await getUSDToINRExchangeRate();
+  doc.prize = convertAndFormatPrizeToINR(doc.prize, doc.platform, usdToInrRate);
+  return doc;
+};

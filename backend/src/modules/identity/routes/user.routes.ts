@@ -10,7 +10,6 @@ import {
   changeCurrentPassword,
   updateAccountDetails,
   updateUserPreferences,
-  getPendingReflections,
   githubAuth,
   googleAuth,
   searchUsers,
@@ -37,8 +36,5 @@ router.get("/search", verifyJWT, searchRateLimiter, searchUsers);
 router.post("/change-password", verifyJWT, authRateLimiter, changeCurrentPassword);
 router.put("/update", verifyJWT, updateAccountDetails);
 router.put("/preferences", verifyJWT, updateUserPreferences);
-
-// Pending stage reflections
-router.get("/pending-reflections", verifyJWT, getPendingReflections);
 
 export default router;

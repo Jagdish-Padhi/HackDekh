@@ -7,6 +7,7 @@ import { AuthProvider, CacheProvider, ToastProvider } from './context';
 
 // Code-split non-landing routes so the initial landing page bundle is lightweight
 const HackathonsPage = lazy(() => import('./pages/Hackathons'));
+const HackathonDetailPage = lazy(() => import('./pages/HackathonDetail'));
 const LoginPage = lazy(() => import('./pages/Login'));
 const VerificationPage = lazy(() => import('./pages/VerifyEmail'));
 const ResetPasswordPage = lazy(() => import('./pages/ResetPassword'));
@@ -36,6 +37,7 @@ function AppContent() {
             <Route path="/verify-email" element={<VerificationPage />} />
             <Route path="/reset-password" element={<ResetPasswordPage />} />
             <Route path="/hackathons" element={<HackathonsPage />} />
+            <Route path="/hackathons/:slug" element={<HackathonDetailPage />} />
             <Route path="/accept-invitation" element={<AcceptInvitationPage />} />
             <Route path="/auth/github/callback" element={<GithubCallbackPage />} />
             <Route path="/squad/:code" element={<PublicSquadPage />} />
