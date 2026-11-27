@@ -1,128 +1,137 @@
 import { motion, useReducedMotion } from "framer-motion";
-import { Trophy, Award } from "lucide-react";
+import { BellRing, Calendar, CheckCircle2, Clock, Flag, Users } from "lucide-react";
 
-const records = [
+const upcomingDeadlines = [
   {
-    initials: "OD",
-    name: "Odoo Hackathon 2026",
-    team: "Jagdish & Saman • 1st Place",
-    meta: "Gandhinagar • 24h Build & Architecture",
-    badge: "Winner 🏆",
-    isWin: true,
+    stage: "Prototype Submission",
+    event: "ETHIndia 2026 • Esc(Reality)",
+    date: "29 Nov 2026",
+    due: "Tomorrow",
+    urgent: true,
   },
   {
-    initials: "FA",
-    name: "Far Away Hackathon",
-    team: "Jagdish & Twinkle • International",
-    meta: "Tokyo, Japan • On-Site Grand Finale",
-    badge: "Finalist 🇯🇵",
-    isWin: false,
+    stage: "Registration Cutoff",
+    event: "BuildForBharat AI • BharatBytes",
+    date: "30 Nov 2026",
+    due: "2 days left",
+    urgent: true,
   },
   {
-    initials: "ER",
-    name: "Google Solution Challenge",
-    team: "Esc(Reality) • Jagdish (Lead) + 3",
-    meta: "Global Evaluation • UN SDG Architecture",
-    badge: "Top 100 🏆",
-    isWin: true,
+    stage: "Finalist Pitch Deck",
+    event: "HackOn Hills • ARJUN",
+    date: "03 Dec 2026",
+    due: "5 days left",
+    urgent: false,
   },
   {
-    initials: "HH",
-    name: "HackHazards 2026",
-    team: "Twinkle & Team • Round 2 Review",
-    meta: "Online Build • Selected Top 50 Finalist",
-    badge: "Top 50",
-    isWin: false,
+    stage: "Demo Day Video",
+    event: "HackHazards • KARNA",
+    date: "07 Dec 2026",
+    due: "9 days left",
+    urgent: false,
   },
+];
+
+const counters = [
+  { label: "In Queue", value: "4", icon: Clock },
+  { label: "Registered", value: "2", icon: CheckCircle2 },
+  { label: "Pending Stages", value: "4", icon: Flag },
+  { label: "Squads", value: "2", icon: Users },
 ];
 
 export default function DashboardScene() {
   const shouldReduceMotion = useReducedMotion();
 
   return (
-    <div className="flex flex-col gap-2 h-full overflow-hidden">
-      {/* 4 Stat Tiles */}
-      <div className="grid grid-cols-4 gap-1.5 shrink-0">
-        <motion.div
-          initial={shouldReduceMotion ? { opacity: 0 } : { opacity: 0, scale: 0.96 }}
-          animate={{ opacity: 1, scale: 1 }}
-          transition={{ duration: 0.2 }}
-          className="rounded-xl border border-zinc-200/90 bg-white p-2 text-center dark:border-zinc-800/90 dark:bg-zinc-900"
-        >
-          <p className="text-base font-extrabold text-zinc-900 dark:text-zinc-100">18</p>
-          <p className="text-[8.5px] font-medium text-zinc-400">Events</p>
-        </motion.div>
+    <div className="grid grid-cols-[1.7fr_1fr] gap-3 h-full overflow-hidden items-stretch">
+      {/* Left 75%: Upcoming Stages & Deadlines */}
+      <div className="rounded-xl border border-zinc-200 bg-white p-3.5 dark:border-zinc-800 dark:bg-zinc-900 flex flex-col">
+        <div className="flex items-center justify-between mb-3 shrink-0">
+          <div className="flex items-center gap-1.5">
+            <Calendar className="h-3.5 w-3.5 text-blue-600 dark:text-blue-400" />
+            <span className="text-[9.5px] font-extrabold uppercase tracking-wider text-zinc-900 dark:text-zinc-100">
+              Upcoming Stages &amp; Deadlines
+            </span>
+          </div>
+          <span className="rounded-full bg-zinc-100 dark:bg-zinc-800 px-2 py-0.5 text-[8.5px] font-semibold text-zinc-600 dark:text-zinc-300">
+            4 pending
+          </span>
+        </div>
 
-        <motion.div
-          initial={shouldReduceMotion ? { opacity: 0 } : { opacity: 0, scale: 0.96 }}
-          animate={{ opacity: 1, scale: 1 }}
-          transition={{ duration: 0.2, delay: 0.05 }}
-          className="rounded-xl border border-zinc-200/90 bg-white p-2 text-center dark:border-zinc-800/90 dark:bg-zinc-900"
-        >
-          <p className="text-base font-extrabold text-blue-600 dark:text-blue-400">Winner 🏆</p>
-          <p className="text-[8.5px] font-medium text-zinc-400">Odoo 2026</p>
-        </motion.div>
-
-        <motion.div
-          initial={shouldReduceMotion ? { opacity: 0 } : { opacity: 0, scale: 0.96 }}
-          animate={{ opacity: 1, scale: 1 }}
-          transition={{ duration: 0.2, delay: 0.1 }}
-          className="rounded-xl border border-zinc-200/90 bg-white p-2 text-center dark:border-zinc-800/90 dark:bg-zinc-900"
-        >
-          <p className="text-base font-extrabold text-zinc-900 dark:text-zinc-100">Finalist 🇯🇵</p>
-          <p className="text-[8.5px] font-medium text-zinc-400">Tokyo, Japan</p>
-        </motion.div>
-
-        <motion.div
-          initial={shouldReduceMotion ? { opacity: 0 } : { opacity: 0, scale: 0.96 }}
-          animate={{ opacity: 1, scale: 1 }}
-          transition={{ duration: 0.2, delay: 0.15 }}
-          className="rounded-xl border border-zinc-200/90 bg-white p-2 text-center dark:border-zinc-800/90 dark:bg-zinc-900"
-        >
-          <p className="text-base font-extrabold text-zinc-900 dark:text-zinc-100">Top 100</p>
-          <p className="text-[8.5px] font-medium text-zinc-400">Google</p>
-        </motion.div>
+        <div className="relative border-l border-zinc-200 dark:border-zinc-800 pl-3.5 ml-1.5 space-y-3 pt-0.5">
+          {upcomingDeadlines.map((item, idx) => (
+            <motion.div
+              key={item.stage}
+              initial={shouldReduceMotion ? { opacity: 0 } : { opacity: 0, x: -4 }}
+              animate={{ opacity: 1, x: 0 }}
+              transition={{ duration: 0.2, delay: idx * 0.06 }}
+              className="relative"
+            >
+              <span
+                className={`absolute -left-[19px] top-1 h-2.5 w-2.5 rounded-full border-2 border-white dark:border-zinc-900 ${item.urgent ? "bg-amber-500" : "bg-blue-600"
+                  }`}
+              />
+              <div className="flex items-center justify-between gap-2">
+                <p className="text-[10.5px] font-bold text-zinc-900 dark:text-zinc-100 truncate">
+                  {item.stage}
+                </p>
+                <span
+                  className={`shrink-0 rounded-full px-1.5 py-0.5 text-[8px] font-bold ${item.urgent
+                    ? "bg-amber-500/10 text-amber-600 dark:text-amber-400"
+                    : "bg-zinc-100 text-zinc-600 dark:bg-zinc-800 dark:text-zinc-400"
+                    }`}
+                >
+                  {item.due}
+                </span>
+              </div>
+              <p className="text-[9px] text-zinc-500 dark:text-zinc-400 truncate mt-0.5">
+                {item.event}
+              </p>
+              <p className="text-[8px] text-zinc-400 dark:text-zinc-500 mt-0.5">
+                Deadline: {item.date}
+              </p>
+            </motion.div>
+          ))}
+        </div>
       </div>
 
-      {/* Evenly Spaced Records List — perfectly consistent rhythm */}
-      <div className="flex flex-col gap-1.5 flex-1 justify-between">
-        {records.map((r, idx) => (
-          <motion.div
-            key={r.name}
-            initial={shouldReduceMotion ? { opacity: 0 } : { opacity: 0, y: 6 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.2, delay: 0.12 + idx * 0.05 }}
-            className="rounded-xl border border-zinc-200/90 bg-white px-2.5 py-1.5 shadow-xs dark:border-zinc-800/90 dark:bg-zinc-900"
-          >
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-2 min-w-0">
-                <div className="flex h-6 w-6 shrink-0 items-center justify-center rounded-lg bg-zinc-900 text-white dark:bg-zinc-800 text-[9.5px] font-bold">
-                  {r.initials}
-                </div>
-                <div className="min-w-0 truncate">
-                  <p className="text-[11px] font-bold text-zinc-900 dark:text-zinc-100 truncate">
-                    {r.name}
-                  </p>
-                  <p className="text-[8.5px] text-zinc-400 truncate">
-                    {r.team}
-                  </p>
-                </div>
-              </div>
-
-              <span className="shrink-0 ml-2 inline-flex items-center gap-1 rounded-md border border-zinc-200 bg-zinc-50 px-1.5 py-0.5 text-[8.5px] font-bold text-zinc-800 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-200">
-                {r.isWin ? (
-                  <Trophy className="h-2.5 w-2.5 text-blue-600 dark:text-blue-400" />
-                ) : (
-                  <Award className="h-2.5 w-2.5 text-blue-600 dark:text-blue-400" />
-                )}
-                {r.badge}
+      {/* Right 25%: Compact Horizontal Counter Strips */}
+      <div className="flex flex-col gap-2">
+        {counters.map((c, idx) => {
+          const Icon = c.icon;
+          return (
+            <motion.div
+              key={c.label}
+              initial={shouldReduceMotion ? { opacity: 0 } : { opacity: 0, y: 6 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.2, delay: 0.05 * idx }}
+              className="flex items-center justify-between rounded-xl border border-zinc-200 bg-white px-3 py-2.5 dark:border-zinc-800 dark:bg-zinc-900"
+            >
+              <span className="flex items-center gap-1.5 text-[10px] font-medium text-zinc-500 dark:text-zinc-400 truncate">
+                <Icon className="h-3 w-3 shrink-0 text-zinc-400" />
+                {c.label}
               </span>
-            </div>
-            <p className="text-[8.5px] text-zinc-500 dark:text-zinc-400 border-t border-zinc-100 mt-1 pt-1 dark:border-zinc-800/70 truncate">
-              {r.meta}
-            </p>
-          </motion.div>
-        ))}
+              <span className="text-sm font-bold tabular-nums text-zinc-900 dark:text-zinc-100">
+                {c.value}
+              </span>
+            </motion.div>
+          );
+        })}
+
+        <motion.div
+          initial={shouldReduceMotion ? { opacity: 0 } : { opacity: 0, y: 6 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.2, delay: 0.24 }}
+          className="mt-auto rounded-xl border border-zinc-200 bg-zinc-50/70 p-2.5 dark:border-zinc-800 dark:bg-zinc-900/60"
+        >
+          <div className="flex items-center gap-1.5 text-[9.5px] font-bold text-zinc-800 dark:text-zinc-200">
+            <BellRing className="h-3 w-3 text-amber-500 shrink-0" />
+            <span>24h Alerts Active</span>
+          </div>
+          <p className="mt-1 text-[8.5px] leading-relaxed text-zinc-500 dark:text-zinc-400">
+            Email &amp; Discord reminders armed for 3 upcoming cutoffs.
+          </p>
+        </motion.div>
       </div>
     </div>
   );

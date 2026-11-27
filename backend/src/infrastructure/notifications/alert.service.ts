@@ -166,7 +166,7 @@ export async function dispatchDeadlineAlert(
         await axios.post(
           webhook,
           {
-            content: `**24h Deadline Alert — ${hackathon.title}**\nSquad: **${teamName}** • Platform: ${hackathon.platform}\nDeadline: ${deadlineStr}\n${detailUrl}`,
+            content: `**24h Deadline Alert: ${hackathon.title}**\nSquad: **${teamName}** • Platform: ${hackathon.platform}\nDeadline: ${deadlineStr}\n${detailUrl}`,
           },
           { timeout: 10000 }
         );

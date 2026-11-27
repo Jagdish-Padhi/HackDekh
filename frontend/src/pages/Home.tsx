@@ -116,10 +116,10 @@ const HomePage = () => {
                             <Users className="h-5 w-5" />
                         </div>
                         <h3 className="mt-5 text-lg font-bold text-zinc-900 dark:text-zinc-100 tracking-tight">
-                            6-Digit Squad Codes
+                            One Squad, Same Page
                         </h3>
                         <p className="mt-2 text-sm text-zinc-600 dark:text-zinc-400 leading-relaxed">
-                            Create a squad and share a 6-character join code. Teammates hop in within seconds—no email invites or waiting.
+                            Share a quick squad code so your teammates see the exact same tracked hackathons and deadlines, with no more &ldquo;did we apply?&rdquo; texts.
                         </p>
                     </div>
 
@@ -193,12 +193,12 @@ const HomePage = () => {
                     <FeatureCard
                         icon={Compass}
                         title="Shareable Event & Squad Links"
-                        desc="Send a clean HackDekh link for any hackathon or public squad schedule—showing prizes, deadlines, and team size without login walls."
+                        desc="Send a clean HackDekh link for any hackathon or public squad schedule, showing prizes, deadlines, and team size without login walls."
                     />
                     <FeatureCard
                         icon={BarChart3}
-                        title="Fast Cached Browsing"
-                        desc="Switch tabs instantly with smart client caching and daily 3 AM platform refreshes—no waiting for listings to reload."
+                        title="24h Deadline Alerts"
+                        desc="Toggle reminders in one click and get a heads-up 24 hours before cutoffs via Email, Discord, or Telegram."
                     />
                 </div>
             </motion.section>

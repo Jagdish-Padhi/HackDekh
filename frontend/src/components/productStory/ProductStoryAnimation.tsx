@@ -33,10 +33,10 @@ type StoryScene = {
 const SCENE_DURATION_MS = 6500;
 
 const storyScenes: StoryScene[] = [
-  { id: 0, shortLabel: "Discovery",   icon: Compass,   component: BrowseScene,        sceneTitle: "Live Hackathons • Devfolio & Unstop" },
-  { id: 1, shortLabel: "Teams",       icon: Users,     component: TeamsScene,         sceneTitle: "Team Workspace & Roles" },
-  { id: 2, shortLabel: "Stages",      icon: Flag,      component: StageTrackingScene, sceneTitle: "Stage-by-Stage Milestone Tracker" },
-  { id: 3, shortLabel: "Overview",    icon: BarChart3, component: DashboardScene,     sceneTitle: "Deadlines & Active Overview" },
+  { id: 0, shortLabel: "Discovery", icon: Compass,   component: BrowseScene,        sceneTitle: "Live Hackathons • All Platforms" },
+  { id: 1, shortLabel: "Tracker",   icon: Flag,      component: StageTrackingScene, sceneTitle: "1-Click Track & 24h Alerts" },
+  { id: 2, shortLabel: "Squads",    icon: Users,     component: TeamsScene,         sceneTitle: "Squad Codes & Shared Schedules" },
+  { id: 3, shortLabel: "Overview",  icon: BarChart3, component: DashboardScene,     sceneTitle: "Upcoming Deadlines & Counters" },
 ];
 
 export default function ProductStoryAnimation() {
@@ -101,13 +101,13 @@ export default function ProductStoryAnimation() {
           transformStyle: "preserve-3d",
           willChange: "transform",
         }}
-        className="relative overflow-hidden rounded-xl border border-zinc-200/90 bg-white
+        className="relative overflow-hidden rounded-xl border border-zinc-200 bg-white
           shadow-[0_16px_40px_-8px_rgba(0,0,0,0.12)]
-          dark:border-zinc-800/90 dark:bg-zinc-950
+          dark:border-zinc-800 dark:bg-zinc-950
           dark:shadow-[0_20px_48px_-8px_rgba(0,0,0,0.65)]"
       >
         {/* Browser Chrome Header */}
-        <div className="flex items-center justify-between gap-3 border-b border-zinc-100
+        <div className="flex items-center justify-between gap-3 border-b border-zinc-200/80
           bg-zinc-50/90 px-3.5 py-1.5 dark:border-zinc-800/80 dark:bg-zinc-900/80">
           <div className="flex items-center gap-1.5 shrink-0">
             <span className="h-2.5 w-2.5 rounded-full bg-[#ff5f57]" />

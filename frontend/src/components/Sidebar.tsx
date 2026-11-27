@@ -5,10 +5,10 @@ import { usePageChrome } from '../context/pageChrome'
 import { useAuth, useCache } from '../context'
 
 const navItems = [
-    { name: 'Hackathons', path: '/hackathons', icon: Trophy },
-    { name: 'Teams', path: '/teams', icon: Users },
-    { name: 'Tracker', path: '/tracker', icon: Crosshair },
     { name: 'Dashboard', path: '/dashboard', icon: BarChart3 },
+    { name: 'Hackathons', path: '/hackathons', icon: Trophy },
+    { name: 'Tracker', path: '/tracker', icon: Crosshair },
+    { name: 'Teams', path: '/teams', icon: Users },
     { name: 'Settings', path: '/settings', icon: Settings },
 ]
 
@@ -121,10 +121,9 @@ const Sidebar = () => {
                                 key={item.name}
                                 to={item.path}
                                 className={() =>
-                                    `flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-all duration-200 ${
-                                        active
-                                            ? 'bg-blue-600 text-white shadow-sm dark:bg-blue-500'
-                                            : 'text-zinc-600 hover:bg-zinc-100 hover:text-zinc-900 dark:text-zinc-300 dark:hover:bg-zinc-900 dark:hover:text-white'
+                                    `flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-all duration-200 ${active
+                                        ? 'bg-blue-600 text-white shadow-sm dark:bg-blue-500'
+                                        : 'text-zinc-600 hover:bg-zinc-100 hover:text-zinc-900 dark:text-zinc-300 dark:hover:bg-zinc-900 dark:hover:text-white'
                                     }`
                                 }
                                 onClick={() => {

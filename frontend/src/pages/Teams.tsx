@@ -1533,7 +1533,7 @@ export default function TeamsPage() {
                               <div>
                                 <h3 className="text-sm font-bold text-zinc-900 dark:text-zinc-100">Share Squad Schedule</h3>
                                 <p className="text-xs text-zinc-500 dark:text-zinc-400 mt-0.5">
-                                  Send a read-only link on WhatsApp or Discord—no login required for teammates.
+                                  Send a read-only link on WhatsApp or Discord. No login required for teammates.
                                 </p>
                               </div>
                               <button
