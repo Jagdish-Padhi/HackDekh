@@ -12,7 +12,6 @@ export async function processDeadlineAlerts(): Promise<number> {
   const in24Hours = new Date(now.getTime() + 24 * 60 * 60 * 1000);
 
   const candidates = await TeamHackathon.find({
-    alertEnabled: true,
     alertSentAt: null,
     status: { $in: ["tracking", "active"] },
   })
@@ -48,7 +47,7 @@ export async function processDeadlineAlerts(): Promise<number> {
         prize: hack.prize,
         applyLink: hack.applyLink,
       },
-      team.name || "Your Squad"
+      team.name || "Your Team"
     );
 
     if (delivered) {

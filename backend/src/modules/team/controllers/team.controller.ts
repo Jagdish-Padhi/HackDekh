@@ -318,14 +318,15 @@ export const respondToInvitation = asyncHandler(async (
 export const getPublicSquadByCode = asyncHandler(async (req: Request<{ code: string }>, res: Response) => {
     const code = req.params.code?.trim();
     if (!code) {
-        return res.status(400).json(new ApiResponse(400, null, 'Squad code is required'));
+        return res.status(400).json(new ApiResponse(400, null, 'Team code is required'));
     }
 
     const squad = await teamService.getPublicSquadByCode(code);
     if (!squad) {
-        return res.status(404).json(new ApiResponse(404, null, 'Squad not found'));
+        return res.status(404).json(new ApiResponse(404, null, 'Team not found'));
     }
 
-    return res.status(200).json(new ApiResponse(200, squad, 'Public squad fetched successfully'));
+    res.setHeader('Cache-Control', 'no-store');
+    return res.status(200).json(new ApiResponse(200, squad, 'Public team fetched successfully'));
 });
 

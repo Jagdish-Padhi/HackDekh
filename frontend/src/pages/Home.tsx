@@ -22,7 +22,7 @@ const HomePage = () => {
     useSeo({
         title: "HackDekh — Discover Hackathons, Check Fit & Track Deadlines",
         description:
-            "Find live hackathons from Devfolio, Unstop, Devpost, MLH, and Hack2Skill in one feed. Check if an event fits your city and prize goals, get 24h deadline alerts, and sync with your squad.",
+            "Find live hackathons from Devfolio, Unstop, Devpost, MLH, and Hack2Skill in one feed. Check if an event fits your city and prize goals, get 24h deadline alerts, and sync with your team.",
         path: "/",
     });
 
@@ -113,7 +113,7 @@ const HomePage = () => {
                         Stop losing track of hackathons in group chats
                     </h2>
                     <p className="text-base text-zinc-600 dark:text-zinc-400 max-w-2xl mx-auto">
-                        No more buried Devfolio links, forgotten Unstop cutoffs, or asking your squad whether anyone actually registered.
+                        No more buried Devfolio links, forgotten Unstop cutoffs, or asking your team whether anyone actually registered.
                     </p>
                 </div>
 
@@ -124,10 +124,10 @@ const HomePage = () => {
                             <Users className="h-5 w-5" />
                         </div>
                         <h3 className="mt-5 text-lg font-bold text-zinc-900 dark:text-zinc-100 tracking-tight">
-                            One Squad, Same Page
+                            One Team, Same Page
                         </h3>
                         <p className="mt-2 text-sm text-zinc-600 dark:text-zinc-400 leading-relaxed">
-                            Share a quick squad code so your teammates see the exact same tracked hackathons and deadlines, with no more &ldquo;did we apply?&rdquo; texts.
+                            Share a quick team code so your teammates see the exact same tracked hackathons and deadlines, with no more &ldquo;did we apply?&rdquo; texts.
                         </p>
                     </div>
 
@@ -173,7 +173,7 @@ const HomePage = () => {
                         Built for how students actually compete
                     </h2>
                     <p className="text-base text-zinc-600 dark:text-zinc-400 max-w-2xl mx-auto">
-                        Everything you need from finding the right event to tracking every round with your squad.
+                        Everything you need from finding the right event to tracking every round with your team.
                     </p>
                 </div>
 
@@ -185,8 +185,8 @@ const HomePage = () => {
                     />
                     <FeatureCard
                         icon={Users}
-                        title="Solo or Squad Tracking"
-                        desc="Start tracking solo with one click, or switch between squads in your Tracker header when you team up with different friends."
+                        title="Solo or Team Tracking"
+                        desc="Start tracking solo with one click, or filter by team in your Tracker header when you compete with different friends."
                     />
                     <FeatureCard
                         icon={Workflow}
@@ -200,8 +200,8 @@ const HomePage = () => {
                     />
                     <FeatureCard
                         icon={Compass}
-                        title="Shareable Event & Squad Links"
-                        desc="Send a clean HackDekh link for any hackathon or public squad schedule, showing prizes, deadlines, and team size without login walls."
+                        title="Shareable Event & Team Links"
+                        desc="Send a clean HackDekh link for any hackathon or public team schedule, showing prizes, deadlines, and team size without login walls."
                     />
                     <FeatureCard
                         icon={BarChart3}
@@ -226,7 +226,7 @@ const HomePage = () => {
                             Ready for your next hackathon?
                         </h2>
                         <p className="text-base text-zinc-600 dark:text-zinc-400">
-                            Find events worth your weekend, sync with your squad using a 6-digit code, and track every deadline in one place.
+                            Find events worth your weekend, sync with your team using a 6-digit code, and track every deadline in one place.
                         </p>
                         <div className="pt-4 flex flex-col sm:flex-row items-center justify-center gap-4">
                             <Link

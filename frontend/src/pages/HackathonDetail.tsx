@@ -138,7 +138,7 @@ export default function HackathonDetailPage() {
       ? `${hackathon.title} (${hackathon.platform}) — Prize, Deadline & Fit Check | HackDekh`
       : "Hackathon Details | HackDekh",
     description: hackathon
-      ? `${hackathon.title} on ${hackathon.platform}. Prize: ${hackathon.prize || "TBD"}. Mode: ${hackathon.mode || "Online"}. Deadline: ${formatDate(hackathon.deadline)}. Check fit and track with your squad on HackDekh.`
+      ? `${hackathon.title} on ${hackathon.platform}. Prize: ${hackathon.prize || "TBD"}. Mode: ${hackathon.mode || "Online"}. Deadline: ${formatDate(hackathon.deadline)}. Check fit and track with your team on HackDekh.`
       : "View hackathon prize pool, deadline, team size, and fit breakdown on HackDekh.",
     path: slug ? `/hackathons/${encodeURIComponent(slug)}` : "/hackathons",
     image: hackathon?.coverImage,

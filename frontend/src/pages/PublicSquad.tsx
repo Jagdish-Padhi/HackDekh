@@ -47,12 +47,13 @@ export default function PublicSquadPage() {
   const [data, setData] = useState<PublicSquadData | null>(null);
   const [loading, setLoading] = useState(true);
   const [notFound, setNotFound] = useState(false);
+  const [loadError, setLoadError] = useState(false);
 
   useSeo({
-    title: data ? `${data.team.name} — Squad Schedule | HackDekh` : "Squad Schedule | HackDekh",
+    title: data ? `${data.team.name} — Team Schedule | HackDekh` : "Team Schedule | HackDekh",
     description: data
       ? `${data.team.name} (${data.team.memberCount} members) is tracking ${data.hackathons.length} hackathon(s) on HackDekh.`
-      : "View a shared squad hackathon schedule and upcoming deadlines on HackDekh.",
+      : "View a shared team hackathon schedule and upcoming deadlines on HackDekh.",
     path: code ? `/squad/${encodeURIComponent(code)}` : "/teams",
   });
 
@@ -66,11 +67,18 @@ export default function PublicSquadPage() {
       }
       setLoading(true);
       setNotFound(false);
+      setLoadError(false);
       try {
         const res = await teamApi.getPublicSquad(code);
         if (active) setData(res);
-      } catch {
-        if (active) setNotFound(true);
+      } catch (err: any) {
+        if (active) {
+          if (err?.response?.status === 404) {
+            setNotFound(true);
+          } else {
+            setLoadError(true);
+          }
+        }
       } finally {
         if (active) setLoading(false);
       }
@@ -84,7 +92,7 @@ export default function PublicSquadPage() {
   const handleCopyShareLink = async () => {
     try {
       await navigator.clipboard.writeText(window.location.href);
-      showToast("Squad link copied. Share it on WhatsApp or Discord.", "success");
+      showToast("Team link copied. Share it on WhatsApp or Discord.", "success");
     } catch {
       showToast("Could not copy link.", "error");
     }
@@ -100,15 +108,38 @@ export default function PublicSquadPage() {
     );
   }
 
+  if (loadError) {
+    return (
+      <div className="mx-auto w-full max-w-lg py-16 text-center space-y-4">
+        <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-zinc-100 text-zinc-500 dark:bg-zinc-900 dark:text-zinc-400">
+          <Users className="h-5 w-5" />
+        </div>
+        <h1 className="text-xl font-bold text-zinc-900 dark:text-zinc-100">Could not load team</h1>
+        <p className="text-sm text-zinc-500 dark:text-zinc-400">
+          The server is temporarily unreachable. Please try again in a moment.
+        </p>
+        <div className="pt-2">
+          <button
+            type="button"
+            onClick={() => window.location.reload()}
+            className="btn btn-primary inline-flex items-center gap-2 cursor-pointer"
+          >
+            Retry
+          </button>
+        </div>
+      </div>
+    );
+  }
+
   if (notFound || !data) {
     return (
       <div className="mx-auto w-full max-w-lg py-16 text-center space-y-4">
         <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-zinc-100 text-zinc-500 dark:bg-zinc-900 dark:text-zinc-400">
           <Users className="h-5 w-5" />
         </div>
-        <h1 className="text-xl font-bold text-zinc-900 dark:text-zinc-100">Squad not found</h1>
+        <h1 className="text-xl font-bold text-zinc-900 dark:text-zinc-100">Team not found</h1>
         <p className="text-sm text-zinc-500 dark:text-zinc-400">
-          This squad link may have expired or the join code was regenerated.
+          This team link may have expired or the join code was regenerated.
         </p>
         <div className="pt-2">
           <Link to="/hackathons" className="btn btn-primary inline-flex items-center gap-2">
@@ -130,7 +161,7 @@ export default function PublicSquadPage() {
           <div className="space-y-1">
             <div className="flex items-center gap-2.5">
               <span className="inline-flex items-center rounded-md border border-blue-200 bg-blue-50 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider text-blue-700 dark:border-blue-800/60 dark:bg-blue-950/40 dark:text-blue-300">
-                Squad Schedule
+                Team Schedule
               </span>
               <span className="text-xs font-mono font-semibold text-zinc-400 dark:text-zinc-500">
                 #{team.code}
@@ -148,7 +179,7 @@ export default function PublicSquadPage() {
             <button
               type="button"
               onClick={handleCopyShareLink}
-              className="inline-flex items-center gap-1.5 rounded-lg border border-zinc-200 bg-white px-3.5 py-2 text-xs font-bold text-zinc-700 transition hover:bg-zinc-50 dark:border-zinc-800 dark:bg-zinc-950 dark:text-zinc-200 dark:hover:bg-zinc-900 cursor-pointer"
+              className="inline-flex items-center gap-1.5 rounded-lg border border-zinc-200 bg-white px-3.5 py-2 text-xs font-bold text-zinc-700 transition hover:border-zinc-300 hover:bg-zinc-50 dark:border-zinc-800 dark:bg-zinc-950 dark:text-zinc-200 dark:hover:border-zinc-700 dark:hover:bg-zinc-900 cursor-pointer"
             >
               <Copy className="h-3.5 w-3.5" />
               Copy Link
@@ -172,7 +203,7 @@ export default function PublicSquadPage() {
           <Trophy className="mx-auto h-8 w-8 text-zinc-400" />
           <h2 className="mt-3 text-sm font-bold text-zinc-900 dark:text-zinc-100">No hackathons tracked yet</h2>
           <p className="mt-1 text-xs text-zinc-500 dark:text-zinc-400">
-            Hackathons tracked by this squad will appear here automatically.
+            Hackathons tracked by this team will appear here automatically.
           </p>
         </div>
       ) : (
@@ -186,7 +217,11 @@ export default function PublicSquadPage() {
                 ? "Registered"
                 : status.charAt(0).toUpperCase() + status.slice(1);
 
-            const pendingStages = stages.filter((s) => s.result === "pending" && s.deadline);
+            const orderedStages = [...stages].sort((a, b) => {
+              const ta = a.deadline ? new Date(a.deadline).getTime() : Number.MAX_SAFE_INTEGER;
+              const tb = b.deadline ? new Date(b.deadline).getTime() : Number.MAX_SAFE_INTEGER;
+              return ta - tb;
+            });
 
             return (
               <div
@@ -194,7 +229,7 @@ export default function PublicSquadPage() {
                 className="rounded-xl border border-zinc-200 bg-white p-5 shadow-xs dark:border-zinc-800 dark:bg-zinc-900/60 space-y-4"
               >
                 <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3">
-                  <div className="space-y-1.5 min-w-0">
+                  <div className="space-y-2 min-w-0 flex-1">
                     <div className="flex flex-wrap items-center gap-2">
                       <span className="rounded bg-zinc-900 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider text-white dark:bg-zinc-800">
                         {hackathon.platform}
@@ -209,33 +244,9 @@ export default function PublicSquadPage() {
                       </span>
                     </div>
 
-                    <h2 className="text-base font-bold text-zinc-900 dark:text-zinc-100">
+                    <h2 className="text-base font-bold text-zinc-900 dark:text-zinc-100 leading-snug">
                       {hackathon.title}
                     </h2>
-
-                    <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-zinc-500 dark:text-zinc-400">
-                      <span className="inline-flex items-center gap-1.5">
-                        <Calendar className="h-3.5 w-3.5 text-zinc-400" />
-                        Deadline: <strong className="text-zinc-800 dark:text-zinc-200">{formatDate(hackathon.deadline)}</strong>
-                        {daysInfo && (
-                          <span className={`ml-1 font-semibold ${daysInfo.urgent ? "text-rose-600 dark:text-rose-400" : ""}`}>
-                            ({daysInfo.text})
-                          </span>
-                        )}
-                      </span>
-                      {hackathon.location && (
-                        <span className="inline-flex items-center gap-1.5">
-                          <MapPin className="h-3.5 w-3.5 text-zinc-400" />
-                          {hackathon.location}
-                        </span>
-                      )}
-                      {hackathon.prize && (
-                        <span className="inline-flex items-center gap-1.5 text-emerald-700 dark:text-emerald-400 font-semibold">
-                          <Trophy className="h-3.5 w-3.5" />
-                          {hackathon.prize}
-                        </span>
-                      )}
-                    </div>
                   </div>
 
                   <div className="flex items-center gap-2 shrink-0">
@@ -253,16 +264,74 @@ export default function PublicSquadPage() {
                   </div>
                 </div>
 
-                {pendingStages.length > 0 && (
-                  <div className="border-t border-zinc-100 pt-3 dark:border-zinc-800/80 flex flex-wrap gap-2">
-                    {pendingStages.map((stage) => (
-                      <span
-                        key={stage._id}
-                        className="inline-flex items-center gap-1.5 rounded-md border border-zinc-200/80 bg-zinc-50 px-2.5 py-1 text-[11px] font-medium text-zinc-700 dark:border-zinc-800 dark:bg-zinc-950 dark:text-zinc-300"
-                      >
-                        {stage.name} • {formatDate(stage.deadline)}
+                {/* Clean 3-column Key Info Strip */}
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5 text-xs">
+                  <div className="flex items-center gap-2 rounded-lg border border-zinc-200/80 bg-zinc-50/50 px-3 py-2 dark:border-zinc-800/80 dark:bg-zinc-950/40 min-w-0">
+                    <Calendar className="h-3.5 w-3.5 text-zinc-400 shrink-0" />
+                    <span className="text-zinc-500 dark:text-zinc-400 shrink-0">Deadline:</span>
+                    <strong className="text-zinc-800 dark:text-zinc-200 truncate">{formatDate(hackathon.deadline)}</strong>
+                    {daysInfo && (
+                      <span className={`ml-auto text-[11px] font-semibold shrink-0 ${daysInfo.urgent ? "text-rose-600 dark:text-rose-400" : "text-zinc-500 dark:text-zinc-400"}`}>
+                        {daysInfo.text}
                       </span>
-                    ))}
+                    )}
+                  </div>
+
+                  <div className="flex items-center gap-2 rounded-lg border border-zinc-200/80 bg-zinc-50/50 px-3 py-2 dark:border-zinc-800/80 dark:bg-zinc-950/40 min-w-0">
+                    <Trophy className="h-3.5 w-3.5 text-emerald-600 dark:text-emerald-400 shrink-0" />
+                    <span className="text-zinc-500 dark:text-zinc-400 shrink-0">Prize:</span>
+                    <span className="font-semibold text-emerald-700 dark:text-emerald-400 truncate">
+                      {hackathon.prize || "TBD"}
+                    </span>
+                  </div>
+
+                  <div
+                    title={hackathon.location || "Online / TBA"}
+                    className="flex items-center gap-2 rounded-lg border border-zinc-200/80 bg-zinc-50/50 px-3 py-2 dark:border-zinc-800/80 dark:bg-zinc-950/40 min-w-0"
+                  >
+                    <MapPin className="h-3.5 w-3.5 text-zinc-400 shrink-0" />
+                    <span className="text-zinc-600 dark:text-zinc-300 truncate">
+                      {hackathon.location || (/online/i.test(hackathon.mode || "") ? "Online" : "TBA")}
+                    </span>
+                  </div>
+                </div>
+
+                {/* Structured Rounds & Milestones */}
+                {orderedStages.length > 0 && (
+                  <div className="border-t border-zinc-200/80 pt-3.5 dark:border-zinc-800/80 space-y-2">
+                    <p className="text-[10px] font-bold uppercase tracking-wider text-zinc-400 dark:text-zinc-500">
+                      Rounds &amp; Milestones
+                    </p>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                      {orderedStages.map((stage, idx) => {
+                        const badgeCls =
+                          stage.result === "qualified"
+                            ? "border-emerald-500/40 bg-emerald-500/15 text-emerald-700 dark:text-emerald-300"
+                            : stage.result === "rejected"
+                            ? "border-rose-500/40 bg-rose-500/15 text-rose-700 dark:text-rose-300"
+                            : "border-zinc-200 bg-white text-zinc-600 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-300";
+
+                        return (
+                          <div
+                            key={stage._id}
+                            title={stage.name}
+                            className="flex items-center justify-between gap-2.5 rounded-lg border border-zinc-200 bg-zinc-50/60 px-3 py-2 dark:border-zinc-800 dark:bg-zinc-950/60 min-w-0"
+                          >
+                            <div className="flex items-center gap-2 min-w-0">
+                              <span className={`inline-flex h-5 w-5 shrink-0 items-center justify-center rounded-full border text-[10px] font-bold ${badgeCls}`}>
+                                {idx + 1}
+                              </span>
+                              <span className="text-xs font-medium text-zinc-800 dark:text-zinc-200 truncate">
+                                {stage.name}
+                              </span>
+                            </div>
+                            <span className="text-[11px] font-semibold tabular-nums text-zinc-500 dark:text-zinc-400 shrink-0">
+                              {formatDate(stage.deadline)}
+                            </span>
+                          </div>
+                        );
+                      })}
+                    </div>
                   </div>
                 )}
               </div>
