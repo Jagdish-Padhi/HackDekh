@@ -1,4 +1,4 @@
-import { RefreshCw, ArrowRight, AlertTriangle, X } from 'lucide-react'
+import { RefreshCw, ArrowRight, AlertTriangle, X, SlidersHorizontal } from 'lucide-react'
 import { useCallback, useDeferredValue, useEffect, useMemo, useRef, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { AnimatePresence, motion } from 'framer-motion'
@@ -170,6 +170,14 @@ const HackathonList = () => {
         }
     }, [])
 
+    const [mobileFiltersOpen, setMobileFiltersOpen] = useState(false)
+    const activeFilterCount = [
+        platform !== 'all',
+        mode !== 'all',
+        sortBy !== '',
+        locationFilter !== 'all',
+        teamSizeFilter !== 'all',
+    ].filter(Boolean).length
     const [showFunnelModal, setShowFunnelModal] = useState(false)
     const [trackedHackathons, setTrackedHackathons] = useState<Record<string, {
         teamId: string;
@@ -606,39 +614,58 @@ const HackathonList = () => {
 
     return (
         <div className="space-y-4">
-            <div className="relative z-50 isolate space-y-3 lg:hidden">
-                <div className="relative z-50 isolate overflow-visible rounded-xl border border-zinc-200 bg-white/90 p-4 shadow-xs backdrop-blur-md dark:border-zinc-800 dark:bg-zinc-900/78">
-                    <div className="flex items-end gap-3">
-                        <div className="min-w-0 flex-1">
-                            <SearchBar value={search} onChange={setSearch} />
-                        </div>
-                        <button
-                            type="button"
-                            onClick={handleRefresh}
-                            disabled={isStillLoading}
-                            className="inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-zinc-200 bg-white text-zinc-600 shadow-xs transition-all duration-200 hover:border-zinc-300 hover:bg-zinc-50 hover:text-zinc-900 disabled:cursor-not-allowed disabled:opacity-60 dark:border-zinc-800 dark:bg-zinc-900 dark:text-zinc-300 dark:hover:border-zinc-700 dark:hover:bg-zinc-800 dark:hover:text-zinc-100 cursor-pointer"
-                            aria-label="Refresh hackathons"
-                            title="Refresh hackathons"
-                        >
-                            <RefreshCw className={`h-4 w-4 ${isRefreshing ? 'animate-spin' : ''}`} />
-                        </button>
+            <div className="sticky top-14 z-40 -mx-3 px-3 py-2.5 bg-white/95 dark:bg-zinc-950/95 backdrop-blur-xl border-b border-zinc-200/70 dark:border-zinc-800/70 space-y-2.5 lg:hidden">
+                <div className="flex items-center gap-2">
+                    <div className="min-w-0 flex-1">
+                        <SearchBar value={search} onChange={setSearch} />
                     </div>
+                    <button
+                        type="button"
+                        onClick={() => setMobileFiltersOpen(prev => !prev)}
+                        className={`relative inline-flex h-10 shrink-0 items-center justify-center gap-1.5 rounded-xl border px-3 text-xs font-semibold shadow-xs transition-all duration-200 cursor-pointer ${
+                            mobileFiltersOpen || activeFilterCount > 0
+                                ? 'border-blue-500/60 bg-blue-50 text-blue-600 dark:border-blue-500/50 dark:bg-blue-950/40 dark:text-blue-400'
+                                : 'border-zinc-200 bg-white text-zinc-600 hover:border-zinc-300 hover:bg-zinc-50 dark:border-zinc-800 dark:bg-zinc-900 dark:text-zinc-300 dark:hover:border-zinc-700'
+                        }`}
+                        aria-expanded={mobileFiltersOpen}
+                        aria-label="Toggle filters"
+                    >
+                        <SlidersHorizontal className="h-4 w-4" />
+                        <span>Filter</span>
+                        {activeFilterCount > 0 && (
+                            <span className="inline-flex h-4 min-w-4 items-center justify-center rounded-full bg-blue-600 px-1 text-[10px] font-bold text-white">
+                                {activeFilterCount}
+                            </span>
+                        )}
+                    </button>
+                    <button
+                        type="button"
+                        onClick={handleRefresh}
+                        disabled={isStillLoading}
+                        className="inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-zinc-200 bg-white text-zinc-600 shadow-xs transition-all duration-200 hover:border-zinc-300 hover:bg-zinc-50 hover:text-zinc-900 disabled:cursor-not-allowed disabled:opacity-60 dark:border-zinc-800 dark:bg-zinc-900 dark:text-zinc-300 dark:hover:border-zinc-700 dark:hover:bg-zinc-800 dark:hover:text-zinc-100 cursor-pointer"
+                        aria-label="Refresh hackathons"
+                        title="Refresh hackathons"
+                    >
+                        <RefreshCw className={`h-4 w-4 ${isRefreshing ? 'animate-spin' : ''}`} />
+                    </button>
                 </div>
 
-                <div className="relative z-50 isolate overflow-visible rounded-xl border border-zinc-200 bg-white/90 p-4 shadow-xs backdrop-blur-md dark:border-zinc-800 dark:bg-zinc-900/78">
-                    <FilterPanel
-                        platform={platform}
-                        setPlatform={setPlatform}
-                        mode={mode}
-                        setMode={setMode}
-                        sortBy={sortBy}
-                        setSortBy={value => setSortBy(value as SortBy)}
-                        locationFilter={locationFilter}
-                        setLocationFilter={setLocationFilter}
-                        teamSizeFilter={teamSizeFilter}
-                        setTeamSizeFilter={setTeamSizeFilter}
-                    />
-                </div>
+                {mobileFiltersOpen && (
+                    <div className="pt-1 overflow-visible">
+                        <FilterPanel
+                            platform={platform}
+                            setPlatform={setPlatform}
+                            mode={mode}
+                            setMode={setMode}
+                            sortBy={sortBy}
+                            setSortBy={value => setSortBy(value as SortBy)}
+                            locationFilter={locationFilter}
+                            setLocationFilter={setLocationFilter}
+                            teamSizeFilter={teamSizeFilter}
+                            setTeamSizeFilter={setTeamSizeFilter}
+                        />
+                    </div>
+                )}
             </div>
 
             <div className="relative space-y-4">

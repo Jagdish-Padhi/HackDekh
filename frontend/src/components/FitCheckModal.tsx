@@ -126,35 +126,35 @@ export default function FitCheckModal({
   return (
     <AnimatePresence>
       {isOpen && (
-        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-zinc-950/60 backdrop-blur-sm p-4">
+        <div className="fixed inset-0 z-[100] flex items-end sm:items-center justify-center bg-zinc-950/60 backdrop-blur-sm p-0 sm:p-4">
           <motion.div
-            initial={{ opacity: 0, scale: 0.96, y: 8 }}
+            initial={{ opacity: 0, scale: 0.98, y: 16 }}
             animate={{ opacity: 1, scale: 1, y: 0 }}
-            exit={{ opacity: 0, scale: 0.96, y: 8 }}
+            exit={{ opacity: 0, scale: 0.98, y: 16 }}
             transition={{ duration: 0.16 }}
-            className="w-full max-w-lg max-h-[90vh] flex flex-col rounded-xl border border-zinc-200 bg-white shadow-2xl dark:border-zinc-800 dark:bg-zinc-950 overflow-hidden"
+            className="w-full sm:max-w-lg max-h-[90dvh] flex flex-col rounded-t-2xl sm:rounded-xl border border-zinc-200 bg-white shadow-2xl dark:border-zinc-800 dark:bg-zinc-950 overflow-hidden"
           >
             {/* Header */}
-            <div className="flex items-start justify-between gap-4 border-b border-zinc-200/80 px-6 py-4 dark:border-zinc-800/80 shrink-0">
+            <div className="flex items-start justify-between gap-3 border-b border-zinc-200/80 px-4 py-3.5 sm:px-6 sm:py-4 dark:border-zinc-800/80 shrink-0">
               <div className="min-w-0">
                 <p className="text-[11px] font-bold uppercase tracking-wider text-blue-600 dark:text-blue-400">
                   Participation Fit Check
                 </p>
-                <h3 className="mt-0.5 text-base font-bold text-zinc-900 dark:text-zinc-100 line-clamp-1">
+                <h3 className="mt-0.5 text-sm sm:text-base font-bold text-zinc-900 dark:text-zinc-100 line-clamp-1">
                   {hackathon.title}
                 </h3>
               </div>
               <button
                 type="button"
                 onClick={onClose}
-                className="rounded-lg p-1.5 text-zinc-400 transition hover:bg-zinc-100 hover:text-zinc-700 dark:hover:bg-zinc-900 dark:hover:text-zinc-200 cursor-pointer"
+                className="rounded-lg p-1.5 text-zinc-400 transition hover:bg-zinc-100 hover:text-zinc-700 dark:hover:bg-zinc-900 dark:hover:text-zinc-200 cursor-pointer shrink-0"
                 aria-label="Close"
               >
                 <X className="h-4 w-4" />
               </button>
             </div>
 
-            <div className="p-6 overflow-y-auto">
+            <div className="p-4 sm:p-6 pb-[max(1.25rem,env(safe-area-inset-bottom))] sm:pb-6 overflow-y-auto">
               {isEditing ? (
                 <form onSubmit={handleSave} className="space-y-4">
                   <div>
@@ -347,14 +347,14 @@ export default function FitCheckModal({
                   </div>
                 </form>
               ) : (
-                <div className="space-y-5">
+                <div className="space-y-4 sm:space-y-5">
                   {/* Verdict Summary */}
-                  <div className={`flex items-center justify-between gap-4 rounded-xl border p-4 ${verdictStyles.badge}`}>
-                    <div className="flex items-center gap-3">
+                  <div className={`flex items-center justify-between gap-3 rounded-xl border p-3.5 sm:p-4 ${verdictStyles.badge}`}>
+                    <div className="flex items-center gap-2.5 sm:gap-3 min-w-0">
                       {verdictStyles.icon}
-                      <div>
-                        <p className="text-sm font-extrabold">{result.label}</p>
-                        <p className="text-xs opacity-85">
+                      <div className="min-w-0">
+                        <p className="text-sm font-extrabold leading-tight">{result.label}</p>
+                        <p className="text-[11px] sm:text-xs opacity-85 truncate mt-0.5">
                           Fit Score: {result.score}/100 • {hackathon.platform}
                         </p>
                       </div>
@@ -362,9 +362,9 @@ export default function FitCheckModal({
                     <button
                       type="button"
                       onClick={() => setIsEditing(true)}
-                      className="inline-flex items-center gap-1.5 rounded-lg border border-current/20 bg-white/70 px-2.5 py-1.5 text-[11px] font-bold transition hover:bg-white dark:bg-zinc-900/70 dark:hover:bg-zinc-900 cursor-pointer"
+                      className="inline-flex items-center gap-1.5 rounded-lg border border-current/20 bg-white/70 px-2.5 py-1.5 text-[11px] font-bold transition hover:bg-white dark:bg-zinc-900/70 dark:hover:bg-zinc-900 cursor-pointer shrink-0 whitespace-nowrap"
                     >
-                      <SlidersHorizontal className="h-3 w-3" />
+                      <SlidersHorizontal className="h-3 w-3 shrink-0" />
                       Edit Context
                     </button>
                   </div>

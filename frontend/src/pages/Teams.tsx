@@ -838,29 +838,26 @@ export default function TeamsPage() {
       ) : (
         <>
 
-          {/* Mobile Filter / Action Panel (Consistent layout with Hackathons page, only when not viewing team workspace) */}
+          {/* Mobile Sticky Filter / Action Panel (only when not viewing team workspace) */}
           {!selectedTeamId && (
-            <div className="relative z-50 isolate space-y-3 lg:hidden">
-              <div className="relative z-50 isolate overflow-visible rounded-xl border border-zinc-200 bg-white/90 p-4 shadow-xs backdrop-blur-md dark:border-zinc-800 dark:bg-zinc-900/78 flex items-end gap-3">
-                {/* Search */}
-                <div className="relative min-w-0 flex-1">
-                  <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-zinc-400 dark:text-zinc-500" />
-                  <input
-                    type="text"
-                    className="h-10 w-full rounded-lg border border-zinc-200 bg-white pl-9 pr-8 py-2 text-sm text-zinc-900 shadow-xs transition-all placeholder:text-zinc-400 hover:border-zinc-300 focus:border-blue-500/70 focus:outline-none focus:ring-3 focus:ring-blue-500/12 dark:border-zinc-800 dark:bg-zinc-900 dark:text-zinc-100 dark:placeholder:text-zinc-500 dark:hover:border-zinc-700 dark:focus:border-blue-500/60 dark:focus:ring-blue-500/15"
-                    placeholder="Search teams or members..."
-                    value={searchQuery}
-                    onChange={e => setSearchQuery(e.target.value)}
-                  />
-                  {searchQuery && (
-                    <button
-                      onClick={() => setSearchQuery("")}
-                      className="absolute right-2.5 top-1/2 -translate-y-1/2 text-zinc-400 hover:text-zinc-600"
-                    >
-                      <X className="h-3.5 w-3.5" />
-                    </button>
-                  )}
-                </div>
+            <div className="sticky top-14 z-40 -mx-3 px-3 py-2.5 bg-white/95 dark:bg-zinc-950/95 backdrop-blur-xl border-b border-zinc-200/70 dark:border-zinc-800/70 space-y-2.5 lg:hidden">
+              <div className="relative min-w-0 flex-1">
+                <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-zinc-400 dark:text-zinc-500" />
+                <input
+                  type="text"
+                  className="h-10 w-full rounded-lg border border-zinc-200 bg-white pl-9 pr-8 py-2 text-sm text-zinc-900 shadow-xs transition-all placeholder:text-zinc-400 hover:border-zinc-300 focus:border-blue-500/70 focus:outline-none focus:ring-3 focus:ring-blue-500/12 dark:border-zinc-800 dark:bg-zinc-900 dark:text-zinc-100 dark:placeholder:text-zinc-500 dark:hover:border-zinc-700 dark:focus:border-blue-500/60 dark:focus:ring-blue-500/15"
+                  placeholder="Search teams or members..."
+                  value={searchQuery}
+                  onChange={e => setSearchQuery(e.target.value)}
+                />
+                {searchQuery && (
+                  <button
+                    onClick={() => setSearchQuery("")}
+                    className="absolute right-2.5 top-1/2 -translate-y-1/2 text-zinc-400 hover:text-zinc-600"
+                  >
+                    <X className="h-3.5 w-3.5" />
+                  </button>
+                )}
               </div>
 
               <div className="flex gap-2 w-full">
@@ -1012,9 +1009,9 @@ export default function TeamsPage() {
             /* Team Workspace Details view */
             <div className="space-y-4">
 
-              {/* Mobile-only header panel */}
+              {/* Mobile-only sticky header panel */}
               {selectedTeam && (
-                <div className="lg:hidden flex flex-col gap-3 bg-white dark:bg-zinc-900/40 border border-zinc-200 dark:border-zinc-800 p-4 rounded-xl shadow-xs">
+                <div className="sticky top-14 z-40 -mx-3 px-3 py-2.5 bg-white/95 dark:bg-zinc-950/95 backdrop-blur-xl border-b border-zinc-200/70 dark:border-zinc-800/70 lg:hidden flex flex-col gap-3">
                   <div className="flex items-center gap-3">
                     <button
                       onClick={() => setSelectedTeamId("")}
@@ -1070,7 +1067,7 @@ export default function TeamsPage() {
                             return (
                               <div
                                 key={participation._id}
-                                className="relative flex flex-col lg:flex-row lg:items-start gap-6 lg:gap-8 py-5 px-5 lg:py-6 lg:px-6 rounded-xl border border-zinc-200 bg-white hover:shadow-md hover:border-zinc-300 dark:border-zinc-800 dark:bg-zinc-900/60 dark:hover:border-zinc-700 transition-all duration-300 overflow-visible w-full"
+                                className="relative flex flex-col lg:flex-row lg:items-start gap-4 lg:gap-8 p-4 lg:py-6 lg:px-6 rounded-xl border border-zinc-200 bg-white hover:shadow-md hover:border-zinc-300 dark:border-zinc-800 dark:bg-zinc-900/60 dark:hover:border-zinc-700 transition-all duration-300 overflow-visible w-full"
                               >
                                 {/* Sequence pill badge — muted zinc, inside top-left of card */}
                                 <span className="absolute top-3 left-3.5 inline-flex items-center px-1.5 py-0.5 rounded-md bg-zinc-100 dark:bg-zinc-800 text-zinc-500 dark:text-zinc-400 border border-zinc-200 dark:border-zinc-700 text-[9px] font-semibold tabular-nums select-none leading-none tracking-wide">
@@ -1185,20 +1182,20 @@ export default function TeamsPage() {
                                         </div>
                                       </div>
 
-                                      <div className="flex items-center gap-2 shrink-0 self-end sm:self-auto">
+                                      <div className="grid grid-cols-2 sm:flex items-center gap-2 shrink-0 w-full sm:w-auto">
                                         {participation.hackathon.applyLink && (
                                           <a
                                             href={participation.hackathon.applyLink}
                                             target="_blank"
                                             rel="noopener noreferrer"
-                                            className="inline-flex items-center gap-1.5 h-7.5 px-3.5 rounded-lg border border-amber-500/20 hover:border-amber-500/35 bg-white dark:bg-zinc-950 text-amber-700 dark:text-amber-400 font-bold transition-all duration-200 hover:bg-amber-500/5 text-[10.5px] cursor-pointer"
+                                            className="inline-flex items-center justify-center gap-1.5 h-8 sm:h-7.5 px-3 sm:px-3.5 rounded-lg border border-amber-500/20 hover:border-amber-500/35 bg-white dark:bg-zinc-950 text-amber-700 dark:text-amber-400 font-bold transition-all duration-200 hover:bg-amber-500/5 text-[10.5px] cursor-pointer whitespace-nowrap"
                                           >
-                                            Register Site <ExternalLink className="h-3 w-3" />
+                                            Register Site <ExternalLink className="h-3 w-3 shrink-0" />
                                           </a>
                                         )}
                                         <button
                                           onClick={() => handleUpdateParticipationStatus(participation._id, 'active')}
-                                          className="inline-flex items-center justify-center gap-1.5 h-7.5 px-3.5 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white font-bold transition duration-150 text-[10.5px] shadow-xs active:scale-95 cursor-pointer leading-none"
+                                          className={`inline-flex items-center justify-center gap-1.5 h-8 sm:h-7.5 px-3 sm:px-3.5 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white font-bold transition duration-150 text-[10.5px] shadow-xs active:scale-95 cursor-pointer leading-none whitespace-nowrap ${!participation.hackathon.applyLink ? 'col-span-2' : ''}`}
                                         >
                                           Mark Registered
                                         </button>
@@ -1207,7 +1204,7 @@ export default function TeamsPage() {
                                   )}
 
                                   {/* Stages Timeline */}
-                                  <div className={`pt-1 pb-24 overflow-visible transition-all duration-300 ${participation.status === 'tracking' ? 'opacity-40 select-none' : ''
+                                  <div className={`pt-1 pb-1 md:pb-24 overflow-visible transition-all duration-300 ${participation.status === 'tracking' ? 'opacity-65 md:opacity-40 select-none' : ''
                                     }`}>
                                     {competitiveStages.length === 0 ? (
                                       <div className="flex items-start gap-3 rounded-lg border border-zinc-200 dark:border-zinc-800 bg-zinc-50/60 dark:bg-zinc-900/30 px-4 py-3.5 text-zinc-500 dark:text-zinc-400 text-xs text-left max-w-md shadow-xs backdrop-blur-sm">
@@ -1217,10 +1214,63 @@ export default function TeamsPage() {
                                         </p>
                                       </div>
                                     ) : (
-                                      <div
-                                        className="flex items-start gap-0 relative overflow-visible w-full pt-1"
-                                        style={{ maxWidth: competitiveStages.length > 0 ? `${competitiveStages.length * 130}px` : '100%' }}
-                                      >
+                                      <>
+                                        {/* Mobile Clean Vertical Stage List */}
+                                        <div className="md:hidden space-y-1.5">
+                                          {competitiveStages.map((stage, sIdx) => {
+                                            const isFailedStage = sIdx === failedStageIdx;
+                                            const isPostDisqualification = failedStageIdx !== -1 && sIdx > failedStageIdx;
+                                            const isFirstPending = failedStageIdx === -1 && competitiveStages.findIndex(st => st.result === 'pending') === sIdx;
+                                            const statusLabel = isPostDisqualification ? 'disqualified' : stage.result;
+
+                                            const dotCls = isPostDisqualification
+                                              ? 'border-rose-500/25 bg-white dark:bg-zinc-900 text-rose-500/40'
+                                              : isFailedStage
+                                              ? 'border-rose-500/50 bg-rose-500/15 text-rose-600 dark:text-rose-400'
+                                              : stage.result === 'qualified'
+                                              ? 'border-emerald-500/50 bg-emerald-500/15 text-emerald-600 dark:text-emerald-400'
+                                              : isFirstPending
+                                              ? 'border-blue-500/50 bg-blue-500/10 text-blue-600 dark:text-blue-400'
+                                              : 'border-zinc-200 bg-white dark:border-zinc-700 dark:bg-zinc-900 text-zinc-500 dark:text-zinc-400';
+
+                                            const statusTextCls = statusLabel === 'qualified'
+                                              ? 'text-emerald-600 dark:text-emerald-400'
+                                              : statusLabel === 'rejected' || statusLabel === 'disqualified'
+                                              ? 'text-rose-600 dark:text-rose-400'
+                                              : 'text-blue-600 dark:text-blue-400';
+
+                                            return (
+                                              <div
+                                                key={stage._id}
+                                                onClick={() => navigate("/tracker")}
+                                                className="flex items-center justify-between gap-2.5 rounded-lg border border-zinc-200/90 bg-zinc-50/70 px-3 py-2 dark:border-zinc-800 dark:bg-zinc-950/60 active:scale-[0.99] transition cursor-pointer"
+                                              >
+                                                <div className="flex items-center gap-2.5 min-w-0">
+                                                  <span className={`inline-flex h-5 w-5 shrink-0 items-center justify-center rounded-full border text-[10px] font-bold ${dotCls}`}>
+                                                    {isFailedStage || isPostDisqualification ? '✕' : stage.result === 'qualified' ? '✓' : sIdx + 1}
+                                                  </span>
+                                                  <div className="min-w-0">
+                                                    <p className="text-xs font-semibold text-zinc-900 dark:text-zinc-100 truncate">
+                                                      {stage.name}
+                                                    </p>
+                                                    <p className="text-[10px] text-zinc-500 dark:text-zinc-400">
+                                                      Deadline: {formatDate(stage.deadline)}
+                                                    </p>
+                                                  </div>
+                                                </div>
+                                                <span className={`text-[9px] font-extrabold uppercase tracking-wider shrink-0 ${statusTextCls}`}>
+                                                  {statusLabel}
+                                                </span>
+                                              </div>
+                                            );
+                                          })}
+                                        </div>
+
+                                        {/* Desktop Horizontal Dot Timeline */}
+                                        <div
+                                          className="hidden md:flex items-start gap-0 relative overflow-visible w-full pt-1"
+                                          style={{ maxWidth: competitiveStages.length > 0 ? `${competitiveStages.length * 130}px` : '100%' }}
+                                        >
                                         {competitiveStages.map((stage, sIdx) => {
                                           const hasPrev = sIdx > 0;
                                           const isFailedStage = sIdx === failedStageIdx;
@@ -1408,6 +1458,7 @@ export default function TeamsPage() {
                                           );
                                         })}
                                       </div>
+                                      </>
                                     )}
                                   </div>
                                 </div>

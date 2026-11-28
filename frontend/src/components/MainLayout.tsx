@@ -25,11 +25,28 @@ const Shell = ({ children }: MainLayoutProps) => {
     const [showBackToTop, setShowBackToTop] = useState(false)
 
     useEffect(() => {
-        document.body.classList.add('overflow-x-hidden')
+        document.body.classList.add('overflow-x-clip')
 
         return () => {
-            document.body.classList.remove('overflow-x-hidden')
+            document.body.classList.remove('overflow-x-clip')
         }
+    }, [])
+
+    useEffect(() => {
+        window.scrollTo(0, 0)
+    }, [location.pathname])
+
+    useEffect(() => {
+        const syncThemeColor = () => {
+            const isDark = document.documentElement.classList.contains('dark')
+            const meta = document.querySelector('meta[name="theme-color"]')
+            if (meta) {
+                meta.setAttribute('content', isDark ? '#09090b' : '#ffffff')
+            }
+        }
+        syncThemeColor()
+        window.addEventListener('hackdekh-theme-change', syncThemeColor)
+        return () => window.removeEventListener('hackdekh-theme-change', syncThemeColor)
     }, [])
 
     useEffect(() => {
@@ -128,18 +145,18 @@ const Shell = ({ children }: MainLayoutProps) => {
             <button
                 type="button"
                 onClick={handleBackToTop}
-                className={`fixed bottom-5 right-4 z-50 inline-flex h-11 w-11 items-center justify-center rounded-full btn-brand-primary ${showBackToTop ? "translate-y-0 opacity-100" : "pointer-events-none translate-y-2 opacity-0"}`}
+                className={`fixed bottom-20 right-4 lg:bottom-5 z-50 inline-flex h-10 w-10 sm:h-11 sm:w-11 items-center justify-center rounded-full btn-brand-primary ${showBackToTop ? "translate-y-0 opacity-100" : "pointer-events-none translate-y-2 opacity-0"}`}
                 aria-label="Back to top"
                 title="Back to top"
             >
                 <ArrowUp className="h-5 w-5" />
             </button>
 
-            <div className="relative z-10 grid flex-1 pt-20 lg:grid-cols-[auto_1fr] lg:pt-16">
+            <div className="relative z-10 grid flex-1 pt-14 lg:grid-cols-[auto_1fr] lg:pt-16">
                 <Sidebar />
 
-                <div className="min-w-0 flex min-h-[calc(100vh-80px)] flex-col lg:min-h-[calc(100vh-64px)]">
-                    <main className="flex w-full flex-1 flex-col px-3 py-4 sm:px-4 lg:px-6 lg:py-5">
+                <div className="min-w-0 flex min-h-[calc(100dvh-56px)] flex-col lg:min-h-[calc(100vh-64px)]">
+                    <main className="flex w-full flex-1 flex-col px-3 pt-3 pb-24 sm:px-4 lg:px-6 lg:py-5">
                         <div className="w-full">{children}</div>
                     </main>
                 </div>
