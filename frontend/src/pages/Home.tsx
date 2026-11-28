@@ -10,7 +10,10 @@ import {
     Users,
     Workflow,
     ArrowRight,
+    Smartphone,
+    Download,
 } from "lucide-react";
+import { useEffect, useState } from "react";
 import ProductStoryAnimation from "../components/productStory/ProductStoryAnimation";
 import { Navigate, Link } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
@@ -18,6 +21,29 @@ import { useSeo } from "../utils/useSeo";
 
 const HomePage = () => {
     const { isAuthenticated, isLoading } = useAuth();
+    const [installPromptEvent, setInstallPromptEvent] = useState<any>(null);
+    const [isStandalone] = useState(() => {
+        if (typeof window === "undefined") return false;
+        return window.matchMedia("(display-mode: standalone)").matches || (window.navigator as any).standalone === true;
+    });
+
+    useEffect(() => {
+        const onBeforeInstall = (e: Event) => {
+            e.preventDefault();
+            setInstallPromptEvent(e);
+        };
+        window.addEventListener("beforeinstallprompt", onBeforeInstall);
+        return () => window.removeEventListener("beforeinstallprompt", onBeforeInstall);
+    }, []);
+
+    const handleInstallClick = async () => {
+        if (!installPromptEvent) return;
+        await installPromptEvent.prompt();
+        const choice = await installPromptEvent.userChoice;
+        if (choice?.outcome === "accepted") {
+            setInstallPromptEvent(null);
+        }
+    };
 
     useSeo({
         title: "HackDekh — Discover Hackathons, Check Fit & Track Deadlines",
@@ -33,7 +59,58 @@ const HomePage = () => {
     return (
         <div className="relative flex flex-col items-center justify-center gap-16 sm:gap-28 lg:gap-36 pt-0 pb-12 sm:pb-20 lg:pb-28 w-full">
             {/* 1. Hero Section */}
-            <section className="relative w-full min-h-[calc(100dvh-4.25rem)] lg:h-[calc(100vh-4.25rem)] flex items-center justify-center">
+            <section className="relative w-full min-h-[calc(100dvh-4.25rem)] lg:h-[calc(100vh-4.25rem)] flex flex-col justify-center">
+                {/* Slim App Promo Strip — sits cleanly just below navbar without shifting hero */}
+                {!isStandalone && (
+                    <motion.div
+                        initial={{ opacity: 0, y: -6 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        transition={{ duration: 0.35, ease: "easeOut" }}
+                        className="w-full mb-6 lg:mb-0 lg:absolute lg:top-1 lg:inset-x-0 z-20"
+                    >
+                        <div className="mx-auto w-full rounded-xl border border-blue-200/70 bg-gradient-to-r from-blue-50/85 via-white/95 to-indigo-50/75 px-3.5 py-2 sm:px-4 sm:py-2 backdrop-blur-md dark:border-blue-900/40 dark:from-blue-950/35 dark:via-zinc-900/85 dark:to-indigo-950/30 flex flex-col sm:flex-row sm:items-center justify-between gap-2 shadow-xs">
+                            <div className="flex items-center gap-2.5 min-w-0">
+                                <div className="flex h-6 w-6 shrink-0 items-center justify-center rounded-md bg-blue-600 text-white">
+                                    <Smartphone className="h-3.5 w-3.5" />
+                                </div>
+                                <span className="text-xs font-bold text-zinc-900 dark:text-zinc-100 truncate">
+                                    Try HackDekh as Mobile App Now!
+                                </span>
+                            </div>
+
+                            <div className="flex items-center justify-between sm:justify-end gap-2 flex-wrap shrink-0">
+                                <div className="flex items-center gap-1.5 sm:gap-2 text-[10.5px] sm:text-[11px] font-medium text-zinc-600 dark:text-zinc-300 flex-wrap">
+                                    <span className="inline-flex items-center gap-1">
+                                        <span className="inline-flex h-4 w-4 items-center justify-center rounded-full bg-blue-600/15 text-[9.5px] font-bold text-blue-700 dark:bg-blue-400/20 dark:text-blue-300">1</span>
+                                        Open on phone
+                                    </span>
+                                    <span className="text-zinc-300 dark:text-zinc-700">→</span>
+                                    <span className="inline-flex items-center gap-1">
+                                        <span className="inline-flex h-4 w-4 items-center justify-center rounded-full bg-blue-600/15 text-[9.5px] font-bold text-blue-700 dark:bg-blue-400/20 dark:text-blue-300">2</span>
+                                        Tap Share / ⋮
+                                    </span>
+                                    <span className="text-zinc-300 dark:text-zinc-700">→</span>
+                                    <span className="inline-flex items-center gap-1">
+                                        <span className="inline-flex h-4 w-4 items-center justify-center rounded-full bg-blue-600/15 text-[9.5px] font-bold text-blue-700 dark:bg-blue-400/20 dark:text-blue-300">3</span>
+                                        Add to Home Screen
+                                    </span>
+                                </div>
+
+                                {installPromptEvent && (
+                                    <button
+                                        type="button"
+                                        onClick={handleInstallClick}
+                                        className="btn-brand-primary rounded-lg px-2.5 py-1 text-[11px] gap-1 cursor-pointer whitespace-nowrap"
+                                    >
+                                        <Download className="h-3 w-3" />
+                                        <span>Install</span>
+                                    </button>
+                                )}
+                            </div>
+                        </div>
+                    </motion.div>
+                )}
+
                 <div className="grid w-full items-center gap-12 lg:grid-cols-[minmax(0,1fr)_minmax(0,1.2fr)] lg:gap-10">
                     <motion.div
                         initial={{ opacity: 0, y: 16 }}
