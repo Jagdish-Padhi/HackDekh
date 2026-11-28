@@ -475,13 +475,8 @@ const HackathonList = () => {
                     setCachedHackathons(responseData)
                     setHackathonsCacheMeta({ key: requestCacheKey, fetchedAt: Date.now() })
                     setHasLoadedFromServer(true)
-                    finishTimeout = window.setTimeout(() => {
-                        if (!isMounted) {
-                            return
-                        }
-                        setLoading(false)
-                        setIsRefreshing(false)
-                    }, 280)
+                    setLoading(false)
+                    setIsRefreshing(false)
                 })
                 .catch((error) => {
                     if (!isMounted) {
@@ -541,6 +536,16 @@ const HackathonList = () => {
             return scoreB - scoreA
         })
     }, [hackathons, teamSizeFilter, sortBy, activePreferences])
+
+    const fitBadgeMap = useMemo(() => {
+        if (!hasConfiguredPreferences(activePreferences)) return new Map<string, { label: string; verdict: 'strong' | 'consider' | 'poor' }>()
+        const map = new Map<string, { label: string; verdict: 'strong' | 'consider' | 'poor' }>()
+        for (const hack of visibleHackathons) {
+            const res = evaluateHackathonFit(hack, activePreferences)
+            map.set(hack._id, { label: res.label, verdict: res.verdict })
+        }
+        return map
+    }, [visibleHackathons, activePreferences])
 
     const handleShareHackathon = useCallback(async (hack: Hackathon) => {
         const shareUrl = `${window.location.origin}/hackathons/${hack.slug || hack._id}`
@@ -693,9 +698,6 @@ const HackathonList = () => {
                         {visibleHackathons.map((hack, index) => {
                             const trackingInfo = trackedHackathons[hack._id];
                             const isTracked = !!trackingInfo;
-                            const fitResult = hasConfiguredPreferences(activePreferences)
-                                ? evaluateHackathonFit(hack, activePreferences)
-                                : null;
                             return (
                                 <HackathonCard
                                     key={hack._id}
@@ -705,7 +707,7 @@ const HackathonList = () => {
                                     onUntrack={() => handleInitiateUntrack(hack._id)}
                                     onWorthIt={() => setFitModalHackathon(hack)}
                                     onShare={() => handleShareHackathon(hack)}
-                                    fitBadge={fitResult ? { label: fitResult.label, verdict: fitResult.verdict } : null}
+                                    fitBadge={fitBadgeMap.get(hack._id) || null}
                                     extraActions={[
                                         { label: isTracked ? "TRACKED_TRUE" : "TRACKED_FALSE", onClick: () => { } },
                                         { label: "TRACK_HANDLER", onClick: () => handleInitiateTrack(hack._id) }

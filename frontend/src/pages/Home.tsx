@@ -68,36 +68,47 @@ const HomePage = () => {
                         transition={{ duration: 0.35, ease: "easeOut" }}
                         className="w-full absolute top-1 inset-x-0 z-20"
                     >
-                        <div className="mx-auto w-full rounded-xl border border-blue-200/70 bg-gradient-to-r from-blue-50/85 via-white/95 to-indigo-50/75 px-3.5 py-2 sm:px-4 sm:py-2 backdrop-blur-md dark:border-blue-900/40 dark:from-blue-950/35 dark:via-zinc-900/85 dark:to-indigo-950/30 flex items-center justify-between gap-2.5 shadow-xs">
-                            <div className="flex items-center gap-2.5 min-w-0">
-                                <div className="flex h-6 w-6 shrink-0 items-center justify-center rounded-md bg-blue-600 text-white">
-                                    <Smartphone className="h-3.5 w-3.5" />
+                        <div className="mx-auto w-full rounded-xl border border-blue-200/70 bg-gradient-to-r from-blue-50/85 via-white/95 to-indigo-50/75 px-3.5 py-2 sm:px-4 sm:py-2 backdrop-blur-md dark:border-blue-900/40 dark:from-blue-950/35 dark:via-zinc-900/85 dark:to-indigo-950/30 flex flex-col sm:flex-row sm:items-center justify-between gap-1.5 sm:gap-2.5 shadow-xs">
+                            <div className="flex items-center justify-between gap-2 min-w-0">
+                                <div className="flex items-center gap-2 min-w-0">
+                                    <div className="flex h-6 w-6 shrink-0 items-center justify-center rounded-md bg-blue-600 text-white">
+                                        <Smartphone className="h-3.5 w-3.5" />
+                                    </div>
+                                    <span className="text-xs font-bold text-zinc-900 dark:text-zinc-100">
+                                        Try HackDekh as a Mobile App
+                                    </span>
                                 </div>
-                                <span className="text-xs font-bold text-zinc-900 dark:text-zinc-100 truncate">
-                                    Try HackDekh as Mobile App Now!
-                                </span>
+                                {installPromptEvent && (
+                                    <button
+                                        type="button"
+                                        onClick={handleInstallClick}
+                                        className="sm:hidden btn-brand-primary rounded-lg px-3 py-1 text-[11px] gap-1 cursor-pointer whitespace-nowrap shrink-0"
+                                    >
+                                        <Download className="h-3 w-3" />
+                                        <span>Install</span>
+                                    </button>
+                                )}
                             </div>
 
                             {installPromptEvent ? (
                                 <button
                                     type="button"
                                     onClick={handleInstallClick}
-                                    className="btn-brand-primary rounded-lg px-3 py-1 text-[11px] gap-1 cursor-pointer whitespace-nowrap shrink-0"
+                                    className="hidden sm:inline-flex btn-brand-primary rounded-lg px-3 py-1 text-[11px] gap-1 cursor-pointer whitespace-nowrap shrink-0"
                                 >
                                     <Download className="h-3 w-3" />
                                     <span>Install</span>
                                 </button>
                             ) : (
-                                <div className="flex items-center gap-1.5 sm:gap-2 text-[10px] sm:text-[11px] font-medium text-zinc-600 dark:text-zinc-300 flex-wrap justify-end">
+                                <div className="flex items-center gap-1.5 sm:gap-2 text-[10.5px] sm:text-[11px] font-medium text-zinc-600 dark:text-zinc-300 flex-wrap">
                                     <span className="inline-flex items-center gap-1">
                                         <span className="inline-flex h-4 w-4 items-center justify-center rounded-full bg-blue-600/15 text-[9.5px] font-bold text-blue-700 dark:bg-blue-400/20 dark:text-blue-300">1</span>
-                                        <span className="hidden sm:inline">Open on phone</span>
-                                        <span className="sm:hidden">Phone</span>
+                                        Open on phone
                                     </span>
                                     <span className="text-zinc-300 dark:text-zinc-700">→</span>
                                     <span className="inline-flex items-center gap-1">
                                         <span className="inline-flex h-4 w-4 items-center justify-center rounded-full bg-blue-600/15 text-[9.5px] font-bold text-blue-700 dark:bg-blue-400/20 dark:text-blue-300">2</span>
-                                        Share / ⋮
+                                        Tap Share / ⋮
                                     </span>
                                     <span className="text-zinc-300 dark:text-zinc-700">→</span>
                                     <span className="inline-flex items-center gap-1">
