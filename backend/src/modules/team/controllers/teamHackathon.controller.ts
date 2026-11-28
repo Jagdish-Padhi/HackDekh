@@ -101,6 +101,29 @@ export const toggleParticipationAlert = asyncHandler(async (req: AuthRequest, re
         .json(new ApiResponse(200, updated, enabled ? '24h deadline alert enabled' : '24h deadline alert disabled'));
 });
 
+// PATCH /teams/:id/hackathons/:thId/move
+export const moveParticipationToTeam = asyncHandler(async (req: AuthRequest, res: Response) => {
+    const { targetTeamId } = req.body || {};
+
+    if (!targetTeamId || typeof targetTeamId !== 'string') {
+        throw new ApiError(400, 'targetTeamId is required');
+    }
+
+    const result = await thService.moveParticipationToTeam(
+        String(req.params.thId),
+        targetTeamId,
+        req.user._id
+    );
+
+    if ('error' in result && result.error) {
+        throw new ApiError(400, result.error);
+    }
+
+    return res
+        .status(200)
+        .json(new ApiResponse(200, (result as any).participation, 'Hackathon moved to team successfully'));
+});
+
 // DELETE /teams/:id/hackathons/:hackathonId
 export const unlinkTeamFromHackathon = asyncHandler(async (req: AuthRequest, res: Response) => {
     const { hackathonId } = req.params;

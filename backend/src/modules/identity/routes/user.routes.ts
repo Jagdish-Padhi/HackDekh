@@ -10,6 +10,7 @@ import {
   changeCurrentPassword,
   updateAccountDetails,
   updateUserPreferences,
+  sendTestDeadlineAlert,
   githubAuth,
   googleAuth,
   searchUsers,
@@ -36,5 +37,6 @@ router.get("/search", verifyJWT, searchRateLimiter, searchUsers);
 router.post("/change-password", verifyJWT, authRateLimiter, changeCurrentPassword);
 router.put("/update", verifyJWT, updateAccountDetails);
 router.put("/preferences", verifyJWT, updateUserPreferences);
+router.post("/preferences/test-alert", verifyJWT, emailRateLimiter, sendTestDeadlineAlert);
 
 export default router;

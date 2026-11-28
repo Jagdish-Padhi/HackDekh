@@ -257,6 +257,64 @@ export const updateUserPreferences = asyncHandler(async (req: any, res: any) => 
     .json(new ApiResponse(200, user, "Preferences updated successfully!"));
 });
 
+export const sendTestDeadlineAlert = asyncHandler(async (req: any, res: any) => {
+  const user = await User.findById(req.user?._id).select("email fullName preferences");
+  if (!user) {
+    throw new ApiError(404, "User not found");
+  }
+
+  const { emailAlertsEnabled, discordWebhookUrl, telegramChatId } = req.body || {};
+  const resolvedDiscord =
+    typeof discordWebhookUrl === "string"
+      ? discordWebhookUrl.trim()
+      : user.preferences?.discordWebhookUrl || "";
+  const resolvedTelegram =
+    typeof telegramChatId === "string"
+      ? telegramChatId.trim()
+      : user.preferences?.telegramChatId || "";
+  const resolvedEmailEnabled =
+    typeof emailAlertsEnabled === "boolean"
+      ? emailAlertsEnabled
+      : user.preferences?.emailAlertsEnabled !== false;
+
+  if (resolvedDiscord && !/^https:\/\/(discord\.com|discordapp\.com)\/api\/webhooks\/\S+$/i.test(resolvedDiscord)) {
+    throw new ApiError(400, "Invalid Discord webhook URL.");
+  }
+  if (resolvedTelegram && !/^-?\d{4,20}$/.test(resolvedTelegram)) {
+    throw new ApiError(400, "Invalid Telegram Chat ID.");
+  }
+
+  const { dispatchDeadlineAlert } = await import("../../../infrastructure/notifications/alert.service.ts");
+  const delivered = await dispatchDeadlineAlert(
+    [
+      {
+        email: user.email,
+        fullName: user.fullName,
+        preferences: {
+          emailAlertsEnabled: resolvedEmailEnabled,
+          discordWebhookUrl: resolvedDiscord,
+          telegramChatId: resolvedTelegram,
+        },
+      },
+    ],
+    {
+      title: "Sample Hackathon (Test Alert)",
+      platform: "HackDekh",
+      deadline: new Date(Date.now() + 24 * 60 * 60 * 1000),
+      prize: "INR 1,00,000",
+    },
+    "Your Team"
+  );
+
+  if (!delivered) {
+    throw new ApiError(400, "No alert channel succeeded. Check your email, Discord webhook, or Telegram Chat ID.");
+  }
+
+  return res
+    .status(200)
+    .json(new ApiResponse(200, { delivered: true }, "Test alert sent successfully!"));
+});
+
 
 
 export const getPendingReflections = asyncHandler(async (req: any, res: any) => {

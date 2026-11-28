@@ -347,18 +347,6 @@ export default function formatUnstop(rawData: any) {
             }
           }
         }
-        if (parsedStages.length === 0) {
-          const regDeadline = h.regnRequirements?.end_regn_dt || h.end_date;
-          if (regDeadline) {
-            parsedStages.push({ name: "Registration Deadline", deadline: new Date(regDeadline) });
-          }
-          if (h.start_date) {
-            parsedStages.push({ name: "Hackathon Start", deadline: new Date(h.start_date) });
-          }
-          if (h.end_date) {
-            parsedStages.push({ name: "Hackathon End", deadline: new Date(h.end_date) });
-          }
-        }
         return parsedStages;
       })(),
       scrapedFromURL: "https://unstop.com/hackathons",

@@ -1,0 +1,16 @@
+User-agent: *
+Allow: /
+Allow: /hackathons
+Allow: /hackathons/
+Allow: /squad/
+
+Disallow: /dashboard
+Disallow: /tracker
+Disallow: /teams
+Disallow: /settings
+Disallow: /verify-email
+Disallow: /reset-password
+Disallow: /accept-invitation
+Disallow: /auth/
+
+Sitemap: https://hackdekh.jdecodes.tech/sitemap.xml

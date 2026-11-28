@@ -23,6 +23,7 @@ import {
   TRAVEL_PREFERENCE_LABELS,
 } from "../utils/fitEngine";
 import axiosInstance from "../utils/axiosInstance";
+import { useSeo } from "../utils/useSeo";
 import { AnimatePresence, motion } from "framer-motion";
 import posthog, { isPostHogEnabled } from "../posthog";
 
@@ -61,6 +62,12 @@ const NAV_ITEMS: { id: NavSection; label: string; icon: React.ElementType; dange
 /* ─── main component ─────────────────────────────────────────────────────────  */
 
 const SettingsPage = () => {
+  useSeo({
+    title: "Settings | HackDekh",
+    description: "Manage your profile, fit preferences, 24h deadline alert channels, and theme.",
+    path: "/settings",
+    noIndex: true,
+  });
   const { user, updateUser } = useAuth();
   const { showToast } = useToast();
   const [active, setActive] = useState<NavSection>("profile");
@@ -100,6 +107,7 @@ const SettingsPage = () => {
     (user?.preferences as any)?.telegramChatId || ""
   );
   const [prefsSaving, setPrefsSaving] = useState(false);
+  const [sendingTestAlert, setSendingTestAlert] = useState(false);
 
   useEffect(() => {
     if (user) {
@@ -157,6 +165,22 @@ const SettingsPage = () => {
       showToast(err.response?.data?.message || "Failed to update preferences.", "error");
     } finally {
       setPrefsSaving(false);
+    }
+  };
+
+  const handleSendTestAlert = async () => {
+    setSendingTestAlert(true);
+    try {
+      await userApi.sendTestAlert({
+        emailAlertsEnabled,
+        discordWebhookUrl: discordWebhookUrl.trim(),
+        telegramChatId: telegramChatId.trim(),
+      });
+      showToast("Test alert dispatched to your active channel(s).", "success");
+    } catch (err: any) {
+      showToast(err.response?.data?.message || "Failed to send test alert.", "error");
+    } finally {
+      setSendingTestAlert(false);
     }
   };
 
@@ -603,11 +627,22 @@ const SettingsPage = () => {
 
                 {/* Deadline Alert Channels */}
                 <div className="pt-4 border-t border-zinc-200/80 dark:border-zinc-800/80 space-y-4">
-                  <div>
-                    <h3 className="text-sm font-bold text-zinc-900 dark:text-zinc-100">24h Deadline Alert Channels</h3>
-                    <p className="text-xs text-zinc-500 dark:text-zinc-400 mt-0.5">
-                      Choose where HackDekh notifies you 24 hours before a tracked hackathon deadline.
-                    </p>
+                  <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
+                    <div>
+                      <h3 className="text-sm font-bold text-zinc-900 dark:text-zinc-100">24h Deadline Alert Channels</h3>
+                      <p className="text-xs text-zinc-500 dark:text-zinc-400 mt-0.5">
+                        Choose where HackDekh notifies you 24 hours before a tracked hackathon deadline.
+                      </p>
+                    </div>
+                    <button
+                      type="button"
+                      disabled={sendingTestAlert}
+                      onClick={handleSendTestAlert}
+                      className="inline-flex items-center justify-center gap-1.5 rounded-lg border border-zinc-200 bg-white px-3 py-1.5 text-xs font-semibold text-zinc-700 transition hover:border-zinc-300 hover:bg-zinc-50 disabled:opacity-50 dark:border-zinc-800 dark:bg-zinc-950 dark:text-zinc-200 dark:hover:border-zinc-700 dark:hover:bg-zinc-900 cursor-pointer shrink-0"
+                    >
+                      {sendingTestAlert ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : null}
+                      Send Test Alert
+                    </button>
                   </div>
 
                   <label className="flex items-center justify-between gap-3 rounded-lg border border-zinc-200 bg-zinc-50/50 px-3.5 py-2.5 dark:border-zinc-800 dark:bg-zinc-900/50 cursor-pointer">

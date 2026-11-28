@@ -13,11 +13,15 @@ import { USER_CACHE_TTL_MS } from "../context/CacheContext";
 import { usePageChrome } from "../context/pageChrome";
 import { teamApi } from "../services";
 import type { Stage, Team, TeamHackathon } from "../types";
+import { useSeo } from "../utils/useSeo";
 
 type Participation = TeamHackathon & { teamInfo: Team };
 
 export const isRegistrationStage = (name: string): boolean => {
-  return /register|registration|apply|application|prep|regn/i.test(name);
+  return (
+    /register|registration|apply|application|prep|regn/i.test(name) ||
+    /^hackathon\s*(start|starts|end|ends)(\s*\/\s*submission|\s*\(finale\))?$/i.test(name.trim())
+  );
 };
 
 const formatDate = (value?: string | null) => {
@@ -34,6 +38,12 @@ const getTeamName = (team: string | Team | undefined, fallback = "Team") => {
 };
 
 export default function DashboardPage() {
+  useSeo({
+    title: "Dashboard | HackDekh",
+    description: "Your upcoming hackathon stage deadlines and active tracking overview.",
+    path: "/dashboard",
+    noIndex: true,
+  });
   const { setPageActions } = usePageChrome();
   const { dashboardData, dashboardFetchedAt, setDashboardData } = useCache();
   const isInitialMountRef = useRef(true);
@@ -194,6 +204,12 @@ export default function DashboardPage() {
                 <Check className="mx-auto h-10 w-10 text-emerald-500 bg-emerald-500/10 p-2 rounded-full" />
                 <h4 className="mt-3 text-sm font-bold text-zinc-900 dark:text-zinc-100">All caught up!</h4>
                 <p className="text-xs text-zinc-500 dark:text-zinc-400 mt-1">No upcoming deadlines found in your tracker.</p>
+                <Link
+                  to="/hackathons"
+                  className="mt-4 inline-flex items-center justify-center rounded-lg bg-blue-600 px-4 py-2 text-xs font-bold text-white shadow-xs transition hover:bg-blue-500"
+                >
+                  Browse Hackathons
+                </Link>
               </div>
             ) : (
               <div className="flex-1 min-h-0 overflow-y-auto pr-2">

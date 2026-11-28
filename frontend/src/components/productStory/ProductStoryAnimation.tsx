@@ -35,7 +35,7 @@ const SCENE_DURATION_MS = 6500;
 const storyScenes: StoryScene[] = [
   { id: 0, shortLabel: "Discovery", icon: Compass,   component: BrowseScene,        sceneTitle: "Live Hackathons • All Platforms" },
   { id: 1, shortLabel: "Tracker",   icon: Flag,      component: StageTrackingScene, sceneTitle: "1-Click Track & 24h Alerts" },
-  { id: 2, shortLabel: "Squads",    icon: Users,     component: TeamsScene,         sceneTitle: "Squad Codes & Shared Schedules" },
+  { id: 2, shortLabel: "Teams",     icon: Users,     component: TeamsScene,         sceneTitle: "Team Codes & Shared Schedules" },
   { id: 3, shortLabel: "Overview",  icon: BarChart3, component: DashboardScene,     sceneTitle: "Upcoming Deadlines & Counters" },
 ];
 

@@ -36,7 +36,7 @@ const counters = [
   { label: "In Queue", value: "4", icon: Clock },
   { label: "Registered", value: "2", icon: CheckCircle2 },
   { label: "Pending Stages", value: "4", icon: Flag },
-  { label: "Squads", value: "2", icon: Users },
+  { label: "Teams", value: "2", icon: Users },
 ];
 
 export default function DashboardScene() {

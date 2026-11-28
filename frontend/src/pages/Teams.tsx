@@ -23,6 +23,7 @@ import {
 import { useAuth, useCache, useToast } from "../context";
 import { USER_CACHE_TTL_MS } from "../context/CacheContext";
 import { usePageChrome } from "../context/pageChrome";
+import { useSeo } from "../utils/useSeo";
 import { teamApi } from "../services";
 import type { Team, TeamHackathon } from "../types";
 import { motion, AnimatePresence } from "framer-motion";
@@ -138,6 +139,12 @@ const getGradientClass = (name: string) => {
 };
 
 export default function TeamsPage() {
+  useSeo({
+    title: "Teams | HackDekh",
+    description: "Manage your hackathon teams, 6-digit join codes, and shared team schedules.",
+    path: "/teams",
+    noIndex: true,
+  });
   const { user } = useAuth();
   const { showToast } = useToast();
   const { setPageActions, closeSidebar, sidebarExpanded, toggleSidebar } = usePageChrome();
@@ -567,16 +574,16 @@ export default function TeamsPage() {
                 const shareUrl = `${window.location.origin}/squad/${selectedTeam.code}`;
                 try {
                   await navigator.clipboard.writeText(shareUrl);
-                  showToast("Squad link copied. Share it on WhatsApp or Discord.", "success");
+                  showToast("Team link copied. Share it on WhatsApp or Discord.", "success");
                 } catch {
-                  showToast("Could not copy squad link.", "error");
+                  showToast("Could not copy team link.", "error");
                 }
               }}
-              title="Copy public read-only squad link for teammates"
-              className="inline-flex items-center gap-1.5 rounded-lg border border-zinc-200 bg-white px-3 py-1.5 text-xs font-semibold text-zinc-700 transition hover:bg-zinc-50 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-200 dark:hover:bg-zinc-800 cursor-pointer shrink-0"
+              title="Copy public read-only team link for teammates"
+              className="inline-flex items-center gap-1.5 rounded-lg border border-zinc-200 bg-white px-3 py-1.5 text-xs font-semibold text-zinc-700 transition hover:border-zinc-300 hover:bg-zinc-50 dark:border-zinc-800 dark:bg-zinc-900 dark:text-zinc-200 dark:hover:border-zinc-700 dark:hover:bg-zinc-800 cursor-pointer shrink-0"
             >
               <Copy className="h-3.5 w-3.5" />
-              Share Squad
+              Share Team
             </button>
           )}
         </div>
@@ -1531,7 +1538,7 @@ export default function TeamsPage() {
                           {selectedTeam.code && (
                             <div className="rounded-xl border border-zinc-200 bg-white p-5 shadow-xs dark:border-zinc-800 dark:bg-zinc-900/40 space-y-3">
                               <div>
-                                <h3 className="text-sm font-bold text-zinc-900 dark:text-zinc-100">Share Squad Schedule</h3>
+                                <h3 className="text-sm font-bold text-zinc-900 dark:text-zinc-100">Share Team Schedule</h3>
                                 <p className="text-xs text-zinc-500 dark:text-zinc-400 mt-0.5">
                                   Send a read-only link on WhatsApp or Discord. No login required for teammates.
                                 </p>
@@ -1541,12 +1548,12 @@ export default function TeamsPage() {
                                 onClick={async () => {
                                   const shareUrl = `${window.location.origin}/squad/${selectedTeam.code}`;
                                   await navigator.clipboard.writeText(shareUrl);
-                                  showToast("Squad link copied. Share it on WhatsApp or Discord.", "success");
+                                  showToast("Team link copied. Share it on WhatsApp or Discord.", "success");
                                 }}
                                 className="w-full inline-flex items-center justify-center gap-1.5 rounded-lg bg-blue-600 px-3.5 py-2 text-xs font-bold text-white transition hover:bg-blue-500 cursor-pointer"
                               >
                                 <Copy className="h-3.5 w-3.5" />
-                                Copy Public Squad Link
+                                Copy Public Team Link
                               </button>
                             </div>
                           )}

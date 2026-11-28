@@ -165,7 +165,7 @@ export async function dispatchDeadlineAlert(
         await axios.post(
           webhook,
           {
-            content: `**24h Deadline Alert: ${hackathon.title}**\nSquad: **${teamName}** • Platform: ${hackathon.platform}\nDeadline: ${deadlineStr}\n${detailUrl}`,
+            content: `**24h Deadline Alert: ${hackathon.title}**\nTeam: **${teamName}** • Platform: ${hackathon.platform}\nDeadline: ${deadlineStr}\n${detailUrl}`,
           },
           { timeout: 10000 }
         );
@@ -185,7 +185,7 @@ export async function dispatchDeadlineAlert(
           `https://api.telegram.org/bot${botToken}/sendMessage`,
           {
             chat_id: chatId,
-            text: `24h Deadline Alert: ${hackathon.title}\nSquad: ${teamName} (${hackathon.platform})\nDeadline: ${deadlineStr}\n${detailUrl}`,
+            text: `24h Deadline Alert: ${hackathon.title}\nTeam: ${teamName} (${hackathon.platform})\nDeadline: ${deadlineStr}\n${detailUrl}`,
           },
           { timeout: 10000 }
         );

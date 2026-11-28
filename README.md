@@ -38,7 +38,7 @@ Students rarely miss out on hackathons because they lack skills. They miss out b
 - **Unified Discovery Feed**: Live hackathons synced daily at 3:00 AM from top platforms with instant cached browsing.
 - **"Worth It?" Fit Check**: Score any hackathon against your city, preferred mode, team size, and minimum prize before committing a weekend.
 - **1-Click Tracking & Stage Pipeline**: Track solo immediately in one click, mark registered when you apply, and manage rounds cleanly in one Tracker.
-- **6-Digit Squad Codes**: Create squads and let teammates join in seconds via a 6-character code or public squad schedule link.
+- **6-Digit Team Codes**: Create teams and let teammates join in seconds via a 6-character code or public team schedule link.
 - **Shareable Public Pages**: Clean `/hackathons/:slug` and `/squad/:code` pages with prizes, deadlines, and team sizes, with no login wall to preview.
 
 ---
@@ -56,14 +56,14 @@ Students rarely miss out on hackathons because they lack skills. They miss out b
 - Every hackathon card evaluates fit into a clear verdict (**Strong Fit**, **Worth Considering**, or **Skip**) with a transparent score breakdown.
 
 ### 1-Click Track & Stage-by-Stage Tracker
-- Click **Track** on any hackathon card to add it to your Tracker immediately, without a forced squad-creation modal.
-- Single source of truth in **Tracker** with clean status tabs (**In Queue**, **Registered**, **Finished**) and a compact **Squad Filter** dropdown in the top header bar.
+- Click **Track** on any hackathon card to add it to your Tracker immediately, without a forced team-creation modal.
+- Single source of truth in **Tracker** with clean status tabs (**In Queue**, **Registered**, **Finished**) and a compact **Team Filter** dropdown in the top header bar.
 - Register via the external platform link, mark registered in one click, and advance through custom round stages with deadlines.
 
-### Frictionless Squads & Public Schedules
-- Create squads for different hackathons or recurring teammates.
+### Frictionless Teams & Public Schedules
+- Create teams for different hackathons or recurring teammates.
 - Invite teammates directly with a **6-character Join Code**, with no email invite queues or approval clutter.
-- Share a public `/squad/:code` link so teammates or mentors can view the squad's tracked hackathons and upcoming deadlines.
+- Share a public `/squad/:code` link so teammates or mentors can view the team's tracked hackathons and upcoming deadlines.
 
 ### Focused Dashboard & Auth
 - Single-screen **Dashboard** with a 75%/25% layout: upcoming stage deadlines on the left, live status counters on the right.

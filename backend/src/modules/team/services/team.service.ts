@@ -568,12 +568,17 @@ export async function respondToInvitation(invitationId: string, userId: Types.Ob
 }
 
 export async function getPublicSquadByCode(code: string) {
-    const normalizedCode = code.trim().toUpperCase();
+    const rawCode = code.trim();
+    const normalizedCode = rawCode.toUpperCase();
     if (!normalizedCode) {
         return null;
     }
 
-    const team = await Team.findOne({ code: normalizedCode })
+    const query = Types.ObjectId.isValid(rawCode)
+        ? { $or: [{ code: normalizedCode }, { _id: rawCode }] }
+        : { code: normalizedCode };
+
+    const team = await Team.findOne(query)
         .select('name code members owner')
         .populate('owner', 'username fullName')
         .populate('members', 'username fullName')
@@ -584,7 +589,7 @@ export async function getPublicSquadByCode(code: string) {
     }
 
     const participations = await TeamHackathon.find({ team: team._id })
-        .populate('hackathon', 'title platform coverImage deadline startDate mode prize location applyLink')
+        .populate('hackathon', 'title slug platform coverImage deadline startDate mode prize location applyLink')
         .populate({
             path: 'stages',
             select: 'name deadline result',

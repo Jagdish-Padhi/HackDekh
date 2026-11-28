@@ -75,6 +75,13 @@ export const teamApi = {
     return unwrap(response);
   },
 
+  moveHackathonTeam: async (teamId: string, thId: string, targetTeamId: string): Promise<TeamHackathon> => {
+    const response = await axiosInstance.patch<ApiResponse<TeamHackathon>>(`/teams/${teamId}/hackathons/${thId}/move`, {
+      targetTeamId,
+    });
+    return unwrap(response);
+  },
+
   addStage: async (
     teamId: string,
     thId: string,
@@ -225,6 +232,15 @@ export const userApi = {
     telegramChatId?: string;
   }) => {
     const response = await axiosInstance.put<ApiResponse<any>>('/users/preferences', preferences);
+    return unwrap(response);
+  },
+
+  sendTestAlert: async (channels?: {
+    emailAlertsEnabled?: boolean;
+    discordWebhookUrl?: string;
+    telegramChatId?: string;
+  }) => {
+    const response = await axiosInstance.post<ApiResponse<{ delivered: boolean }>>('/users/preferences/test-alert', channels || {});
     return unwrap(response);
   },
 };

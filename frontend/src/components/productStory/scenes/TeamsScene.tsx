@@ -44,14 +44,14 @@ export default function TeamsScene() {
       {/* Top Action Strip */}
       <div className="flex items-center justify-between gap-2 shrink-0">
         <span className="text-[10px] font-bold uppercase tracking-wider text-zinc-400 dark:text-zinc-500">
-          Your Squads (4)
+          Your Teams (4)
         </span>
         <div className="flex items-center gap-1.5">
           <span className="inline-flex items-center gap-1 rounded-md border border-zinc-200 bg-white px-2 py-0.5 text-[9.5px] font-semibold text-zinc-700 dark:border-zinc-800 dark:bg-zinc-900 dark:text-zinc-300">
             <KeyRound className="h-2.5 w-2.5 text-zinc-400" /> Join Code
           </span>
           <span className="inline-flex items-center gap-1 rounded-md bg-blue-600 px-2 py-0.5 text-[9.5px] font-semibold text-white">
-            <Plus className="h-2.5 w-2.5" /> New Squad
+            <Plus className="h-2.5 w-2.5" /> New Team
           </span>
         </div>
       </div>
