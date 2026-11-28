@@ -12,37 +12,33 @@ import {
     ArrowRight,
     Smartphone,
     Download,
+    X,
+    Share,
+    PlusSquare,
 } from "lucide-react";
-import { useEffect, useState } from "react";
+import { useState } from "react";
+import { AnimatePresence } from "framer-motion";
 import ProductStoryAnimation from "../components/productStory/ProductStoryAnimation";
 import { Navigate, Link } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
 import { useSeo } from "../utils/useSeo";
+import { usePwaInstall } from "../utils/pwaInstall";
 
 const HomePage = () => {
     const { isAuthenticated, isLoading } = useAuth();
-    const [installPromptEvent, setInstallPromptEvent] = useState<any>(null);
-    const [isStandalone] = useState(() => {
-        if (typeof window === "undefined") return false;
-        return window.matchMedia("(display-mode: standalone)").matches || (window.navigator as any).standalone === true;
-    });
-
-    useEffect(() => {
-        const onBeforeInstall = (e: Event) => {
-            e.preventDefault();
-            setInstallPromptEvent(e);
-        };
-        window.addEventListener("beforeinstallprompt", onBeforeInstall);
-        return () => window.removeEventListener("beforeinstallprompt", onBeforeInstall);
-    }, []);
+    const { canPromptInstall, isStandalone, promptInstall } = usePwaInstall();
+    const [showInstallGuide, setShowInstallGuide] = useState(false);
+    const isIos =
+        typeof navigator !== "undefined" &&
+        /iPad|iPhone|iPod/.test(navigator.userAgent) &&
+        !(window as any).MSStream;
 
     const handleInstallClick = async () => {
-        if (!installPromptEvent) return;
-        await installPromptEvent.prompt();
-        const choice = await installPromptEvent.userChoice;
-        if (choice?.outcome === "accepted") {
-            setInstallPromptEvent(null);
+        if (canPromptInstall) {
+            await promptInstall();
+            return;
         }
+        setShowInstallGuide(true);
     };
 
     useSeo({
@@ -68,55 +64,24 @@ const HomePage = () => {
                         transition={{ duration: 0.35, ease: "easeOut" }}
                         className="w-full absolute top-1 inset-x-0 z-20"
                     >
-                        <div className="mx-auto w-full rounded-xl border border-blue-200/70 bg-gradient-to-r from-blue-50/85 via-white/95 to-indigo-50/75 px-3.5 py-2 sm:px-4 sm:py-2 backdrop-blur-md dark:border-blue-900/40 dark:from-blue-950/35 dark:via-zinc-900/85 dark:to-indigo-950/30 flex flex-col sm:flex-row sm:items-center justify-between gap-1.5 sm:gap-2.5 shadow-xs">
-                            <div className="flex items-center justify-between gap-2 min-w-0">
-                                <div className="flex items-center gap-2 min-w-0">
-                                    <div className="flex h-6 w-6 shrink-0 items-center justify-center rounded-md bg-blue-600 text-white">
-                                        <Smartphone className="h-3.5 w-3.5" />
-                                    </div>
-                                    <span className="text-xs font-bold text-zinc-900 dark:text-zinc-100">
-                                        Try HackDekh as a Mobile App
-                                    </span>
+                        <div className="mx-auto w-full rounded-xl border border-blue-200/70 bg-gradient-to-r from-blue-50/85 via-white/95 to-indigo-50/75 px-3.5 py-2 sm:px-4 sm:py-2 backdrop-blur-md dark:border-blue-900/40 dark:from-blue-950/35 dark:via-zinc-900/85 dark:to-indigo-950/30 flex items-center justify-between gap-2.5 shadow-xs">
+                            <div className="flex items-center gap-2.5 min-w-0">
+                                <div className="flex h-6 w-6 shrink-0 items-center justify-center rounded-md bg-blue-600 text-white">
+                                    <Smartphone className="h-3.5 w-3.5" />
                                 </div>
-                                {installPromptEvent && (
-                                    <button
-                                        type="button"
-                                        onClick={handleInstallClick}
-                                        className="sm:hidden btn-brand-primary rounded-lg px-3 py-1 text-[11px] gap-1 cursor-pointer whitespace-nowrap shrink-0"
-                                    >
-                                        <Download className="h-3 w-3" />
-                                        <span>Install</span>
-                                    </button>
-                                )}
+                                <span className="text-xs font-bold text-zinc-900 dark:text-zinc-100 truncate">
+                                    Try HackDekh as a Mobile/Desktop App
+                                </span>
                             </div>
 
-                            {installPromptEvent ? (
-                                <button
-                                    type="button"
-                                    onClick={handleInstallClick}
-                                    className="hidden sm:inline-flex btn-brand-primary rounded-lg px-3 py-1 text-[11px] gap-1 cursor-pointer whitespace-nowrap shrink-0"
-                                >
-                                    <Download className="h-3 w-3" />
-                                    <span>Install</span>
-                                </button>
-                            ) : (
-                                <div className="flex items-center gap-1.5 sm:gap-2 text-[10.5px] sm:text-[11px] font-medium text-zinc-600 dark:text-zinc-300 flex-wrap">
-                                    <span className="inline-flex items-center gap-1">
-                                        <span className="inline-flex h-4 w-4 items-center justify-center rounded-full bg-blue-600/15 text-[9.5px] font-bold text-blue-700 dark:bg-blue-400/20 dark:text-blue-300">1</span>
-                                        Open on phone
-                                    </span>
-                                    <span className="text-zinc-300 dark:text-zinc-700">→</span>
-                                    <span className="inline-flex items-center gap-1">
-                                        <span className="inline-flex h-4 w-4 items-center justify-center rounded-full bg-blue-600/15 text-[9.5px] font-bold text-blue-700 dark:bg-blue-400/20 dark:text-blue-300">2</span>
-                                        Tap Share / ⋮
-                                    </span>
-                                    <span className="text-zinc-300 dark:text-zinc-700">→</span>
-                                    <span className="inline-flex items-center gap-1">
-                                        <span className="inline-flex h-4 w-4 items-center justify-center rounded-full bg-blue-600/15 text-[9.5px] font-bold text-blue-700 dark:bg-blue-400/20 dark:text-blue-300">3</span>
-                                        Add to Home
-                                    </span>
-                                </div>
-                            )}
+                            <button
+                                type="button"
+                                onClick={handleInstallClick}
+                                className="btn-brand-primary rounded-lg px-3 py-1.5 text-[11px] gap-1.5 cursor-pointer whitespace-nowrap shrink-0"
+                            >
+                                <Download className="h-3.5 w-3.5" />
+                                <span>Install</span>
+                            </button>
                         </div>
                     </motion.div>
                 )}
@@ -333,6 +298,68 @@ const HomePage = () => {
                     </div>
                 </div>
             </motion.section>
+            {/* Install App Guide Modal (for iOS / browsers without native prompt) */}
+            <AnimatePresence>
+                {showInstallGuide && (
+                    <div
+                        className="fixed inset-0 z-[100] flex items-end sm:items-center justify-center bg-zinc-950/65 backdrop-blur-sm p-0 sm:p-4"
+                        onClick={() => setShowInstallGuide(false)}
+                    >
+                        <motion.div
+                            initial={{ opacity: 0, y: 16, scale: 0.98 }}
+                            animate={{ opacity: 1, y: 0, scale: 1 }}
+                            exit={{ opacity: 0, y: 16, scale: 0.98 }}
+                            transition={{ duration: 0.16 }}
+                            onClick={(e) => e.stopPropagation()}
+                            className="w-full sm:max-w-sm rounded-t-2xl sm:rounded-xl border border-zinc-200 bg-white p-5 pb-[max(1.25rem,env(safe-area-inset-bottom))] sm:pb-5 shadow-2xl dark:border-zinc-800 dark:bg-zinc-950"
+                        >
+                            <div className="flex items-center justify-between gap-3 mb-3">
+                                <div className="flex items-center gap-2.5">
+                                    <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-blue-600 text-white">
+                                        <Smartphone className="h-4 w-4" />
+                                    </div>
+                                    <h3 className="text-sm font-bold text-zinc-900 dark:text-zinc-100">
+                                        Install HackDekh App
+                                    </h3>
+                                </div>
+                                <button
+                                    type="button"
+                                    onClick={() => setShowInstallGuide(false)}
+                                    className="rounded-lg p-1.5 text-zinc-400 hover:bg-zinc-100 hover:text-zinc-700 dark:hover:bg-zinc-900 dark:hover:text-zinc-200 cursor-pointer"
+                                    aria-label="Close"
+                                >
+                                    <X className="h-4 w-4" />
+                                </button>
+                            </div>
+
+                            {isIos ? (
+                                <div className="space-y-2.5 text-xs text-zinc-600 dark:text-zinc-300">
+                                    <p className="flex items-center gap-2">
+                                        <Share className="h-4 w-4 text-blue-600 dark:text-blue-400 shrink-0" />
+                                        <span>1. Tap the <strong>Share</strong> icon in your browser bar.</span>
+                                    </p>
+                                    <p className="flex items-center gap-2">
+                                        <PlusSquare className="h-4 w-4 text-blue-600 dark:text-blue-400 shrink-0" />
+                                        <span>2. Select <strong>Add to Home Screen</strong>, then tap <strong>Add</strong>.</span>
+                                    </p>
+                                </div>
+                            ) : (
+                                <p className="text-xs text-zinc-600 dark:text-zinc-300 leading-relaxed">
+                                    Open <strong>hackdekh.jdecodes.tech</strong> in your phone browser (Chrome or Safari) and tap <strong>Add to Home Screen</strong> or <strong>Install App</strong> from the browser menu.
+                                </p>
+                            )}
+
+                            <button
+                                type="button"
+                                onClick={() => setShowInstallGuide(false)}
+                                className="mt-4 w-full btn-brand-primary rounded-lg py-2 text-xs cursor-pointer"
+                            >
+                                Got it
+                            </button>
+                        </motion.div>
+                    </div>
+                )}
+            </AnimatePresence>
         </div>
     );
 };
