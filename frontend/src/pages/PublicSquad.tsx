@@ -252,7 +252,16 @@ export default function PublicSquadPage() {
                     </div>
 
                     <h2 className="text-base font-bold text-zinc-900 dark:text-zinc-100 leading-snug">
-                      {hackathon.title}
+                      {hackathon.slug ? (
+                        <Link
+                          to={`/hackathons/${encodeURIComponent(hackathon.slug)}`}
+                          className="hover:text-blue-600 dark:hover:text-blue-400 transition-colors"
+                        >
+                          {hackathon.title}
+                        </Link>
+                      ) : (
+                        hackathon.title
+                      )}
                     </h2>
                   </div>
 

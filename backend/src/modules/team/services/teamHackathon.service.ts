@@ -99,7 +99,7 @@ export async function getTeamHackathons(teamId: string, userId: Types.ObjectId) 
     if (!isMember) return null;
 
     return TeamHackathon.find({ team: teamId })
-        .populate('hackathon', 'title platform coverImage deadline prize mode location applyLink')
+        .populate('hackathon', 'title slug platform coverImage deadline prize mode location applyLink')
         .populate({
             path: 'stages',
             model: 'Stage',
@@ -164,6 +164,59 @@ export async function toggleParticipationAlert(
     return getPopulatedParticipation(thId);
 }
 
+// ─── Move Tracked Hackathon to Another Team ─────────────────────────────────
+export async function moveParticipationToTeam(
+    thId: string,
+    targetTeamId: string,
+    userId: Types.ObjectId
+): Promise<{ error: string } | { participation: unknown }> {
+    if (!Types.ObjectId.isValid(thId) || !Types.ObjectId.isValid(targetTeamId)) {
+        return { error: 'Invalid participation or target team ID' };
+    }
+
+    const participation = await TeamHackathon.findById(thId).populate('team');
+    if (!participation) {
+        return { error: 'Tracked hackathon not found' };
+    }
+
+    const currentTeam = participation.team as any;
+    const isCurrentMember =
+        String(currentTeam?.owner) === String(userId) ||
+        (Array.isArray(currentTeam?.members) && currentTeam.members.some((m: any) => String(m) === String(userId)));
+    if (!isCurrentMember) {
+        return { error: 'You are not a member of the current team' };
+    }
+
+    if (String(currentTeam?._id) === String(targetTeamId)) {
+        return { participation: await getPopulatedParticipation(thId) };
+    }
+
+    const targetTeam = await Team.findById(targetTeamId);
+    if (!targetTeam) {
+        return { error: 'Target team not found' };
+    }
+
+    const isTargetMember =
+        String(targetTeam.owner) === String(userId) ||
+        targetTeam.members.some((m) => String(m) === String(userId));
+    if (!isTargetMember) {
+        return { error: 'You are not a member of the target team' };
+    }
+
+    const duplicate = await TeamHackathon.findOne({
+        team: targetTeamId,
+        hackathon: participation.hackathon,
+    });
+    if (duplicate) {
+        return { error: `"${targetTeam.name}" is already tracking this hackathon` };
+    }
+
+    participation.team = targetTeam._id as Types.ObjectId;
+    await participation.save();
+
+    return { participation: await getPopulatedParticipation(thId) };
+}
+
 // ─── Unlink Team from Hackathon (Untrack) ──────────────────────────────────
 export async function unlinkTeamFromHackathon(
     teamId: string,
@@ -197,7 +250,7 @@ export async function unlinkTeamFromHackathon(
 // ─── Helper: Get Fully Populated Participation ──────────────────────────────
 async function getPopulatedParticipation(thId: string) {
     return TeamHackathon.findById(thId)
-        .populate('hackathon', 'title platform coverImage deadline prize mode location applyLink')
+        .populate('hackathon', 'title slug platform coverImage deadline prize mode location applyLink')
         .populate({
             path: 'stages',
             model: 'Stage',

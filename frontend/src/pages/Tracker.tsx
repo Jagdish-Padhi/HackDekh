@@ -4,10 +4,8 @@ import {
   Calendar,
   AlertTriangle,
   Users,
-  CheckCircle2,
   Trash2,
   ExternalLink,
-  Info,
   Check,
   Flag,
 } from "lucide-react";
@@ -26,16 +24,6 @@ export const isRegistrationStage = (name: string): boolean => {
     /register|registration|apply|application|prep|regn/i.test(name) ||
     /^hackathon\s*(start|starts|end|ends)(\s*\/\s*submission|\s*\(finale\))?$/i.test(name.trim())
   );
-};
-
-const formatDateTag = (value?: string | null) => {
-  if (!value) return "--/--/----";
-  const parsed = new Date(value);
-  if (Number.isNaN(parsed.getTime())) return "--/--/----";
-  const dd = String(parsed.getDate()).padStart(2, '0');
-  const mm = String(parsed.getMonth() + 1).padStart(2, '0');
-  const yyyy = parsed.getFullYear();
-  return `${dd}/${mm}/${yyyy}`;
 };
 
 export default function TrackerPage() {
@@ -308,16 +296,24 @@ export default function TrackerPage() {
               const failedStageIdx = competitiveStages.findIndex((s) => s.result === "rejected");
               const isTracking = part.status === "tracking";
 
+              const isFinished = ["won", "finalist", "eliminated"].includes(part.status);
+              const deadlineDays = part.hackathon.deadline
+                ? Math.ceil((new Date(part.hackathon.deadline).getTime() - Date.now()) / (1000 * 60 * 60 * 24))
+                : null;
+              const deadlineText = part.hackathon.deadline
+                ? new Date(part.hackathon.deadline).toLocaleDateString(undefined, { month: "short", day: "numeric", year: "numeric" })
+                : "TBD";
+
               return (
                 <div
                   key={part._id}
-                  className="group rounded-xl border border-zinc-200 bg-white p-5 text-left transition-all duration-300 hover:border-zinc-300 hover:shadow-md dark:border-zinc-800 dark:bg-zinc-900/40 dark:hover:border-zinc-700 flex flex-col lg:flex-row gap-6 overflow-hidden"
+                  className="group rounded-xl border border-zinc-200 bg-white p-5 text-left transition-all duration-200 hover:border-zinc-300 hover:shadow-md dark:border-zinc-800 dark:bg-zinc-900/40 dark:hover:border-zinc-700 flex flex-col lg:flex-row lg:items-center gap-5 overflow-visible"
                 >
-                  {/* Left Column: Cover & Identity */}
-                  <div className="w-full lg:w-80 shrink-0 flex flex-col gap-3.5 min-w-0">
-                    <div className="flex items-start gap-3.5 min-w-0">
+                  {/* Left Column: Cover, Identity & Actions */}
+                  <div className="w-full lg:w-[22rem] shrink-0 flex flex-col gap-3 min-w-0">
+                    <div className="flex items-start gap-3 min-w-0">
                       {/* Cover Image */}
-                      <div className="h-14 w-14 shrink-0 overflow-hidden rounded-lg border border-zinc-200 bg-zinc-100 dark:border-zinc-800 dark:bg-zinc-900">
+                      <div className="h-12 w-12 shrink-0 overflow-hidden rounded-lg border border-zinc-200 bg-zinc-100 dark:border-zinc-800 dark:bg-zinc-900">
                         <img
                           src={part.hackathon.coverImage || "/BrandImages/HackDekh.png"}
                           alt={part.hackathon.title}
@@ -329,8 +325,16 @@ export default function TrackerPage() {
                         />
                       </div>
 
-                      <div className="min-w-0 flex-1 space-y-1.5 text-left">
-                        {part.hackathon.applyLink ? (
+                      <div className="min-w-0 flex-1 space-y-1 text-left">
+                        {part.hackathon.slug ? (
+                          <Link
+                            to={`/hackathons/${encodeURIComponent(part.hackathon.slug)}`}
+                            className="block text-sm font-bold text-zinc-900 dark:text-white hover:text-blue-600 dark:hover:text-blue-400 transition-colors truncate"
+                            title={part.hackathon.title}
+                          >
+                            {part.hackathon.title}
+                          </Link>
+                        ) : part.hackathon.applyLink ? (
                           <a
                             href={part.hackathon.applyLink}
                             target="_blank"
@@ -346,88 +350,86 @@ export default function TrackerPage() {
                             {part.hackathon.title}
                           </span>
                         )}
-                        <div className="flex items-center gap-1.5 flex-wrap">
-                          <span className={`text-[9px] font-extrabold uppercase tracking-wider px-2 py-0.5 rounded-md border ${
-                            part.status === "won" ? "text-emerald-600 dark:text-emerald-400 bg-emerald-500/5 dark:bg-emerald-500/10 border-emerald-500/15" :
-                            part.status === "eliminated" ? "text-rose-600 dark:text-rose-400 bg-rose-500/5 dark:bg-rose-500/10 border-rose-500/15" :
-                            "text-blue-600 dark:text-blue-400 bg-blue-500/5 dark:bg-blue-500/10 border-blue-500/15"
-                          }`}>
-                            {part.status}
+
+                        <div className="flex items-center gap-2 flex-wrap text-[11px] text-zinc-500 dark:text-zinc-400">
+                          <span className="font-semibold text-zinc-700 dark:text-zinc-300">
+                            {part.hackathon.platform}
                           </span>
-                          <Link
-                            to={`/teams?teamId=${part.teamInfo._id}`}
-                            className="inline-flex items-center gap-1 rounded-md bg-zinc-100 hover:bg-zinc-200 dark:bg-zinc-800 dark:hover:bg-zinc-700 text-[9px] font-bold uppercase tracking-wider text-zinc-600 dark:text-zinc-300 px-2 py-0.5 border border-zinc-200 dark:border-zinc-700 transition-colors"
-                          >
-                            <Users className="h-2.5 w-2.5 shrink-0" />
-                            {part.teamInfo.name}
-                          </Link>
-                          <span className="inline-flex items-center gap-1 text-[10px] text-zinc-400 dark:text-zinc-500 font-medium">
+                          <span>•</span>
+                          <span className="inline-flex items-center gap-1">
                             <Calendar className="h-3 w-3 text-zinc-400" />
-                            {formatDateTag(part.createdAt)}
+                            {deadlineText}
                           </span>
+                          {deadlineDays !== null && deadlineDays >= 0 && deadlineDays <= 3 && !isFinished && (
+                            <span className="rounded px-1.5 py-0.5 text-[10px] font-bold bg-amber-500/10 text-amber-700 dark:text-amber-300">
+                              {deadlineDays === 0 ? "Ends today" : deadlineDays === 1 ? "1d left" : `${deadlineDays}d left`}
+                            </span>
+                          )}
+                          {isFinished && (
+                            <span className={`text-[9.5px] font-bold uppercase tracking-wider px-1.5 py-0.5 rounded border ${
+                              part.status === "won"
+                                ? "text-emerald-600 dark:text-emerald-400 bg-emerald-500/10 border-emerald-500/20"
+                                : part.status === "eliminated"
+                                ? "text-rose-600 dark:text-rose-400 bg-rose-500/10 border-rose-500/20"
+                                : "text-blue-600 dark:text-blue-400 bg-blue-500/10 border-blue-500/20"
+                            }`}>
+                              {part.status}
+                            </span>
+                          )}
                         </div>
                       </div>
                     </div>
 
                     {/* Action Buttons */}
-                    <div className="flex items-center gap-2 flex-wrap">
+                    <div className="flex items-center gap-2 flex-nowrap">
                       {part.hackathon.applyLink && (
                         <a
                           href={part.hackathon.applyLink}
                           target="_blank"
                           rel="noopener noreferrer"
-                          className="inline-flex items-center justify-center gap-1.5 h-8 px-3 rounded-lg border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-950 hover:border-zinc-300 hover:bg-zinc-50 dark:hover:border-zinc-700 dark:hover:bg-zinc-900 text-zinc-700 dark:text-zinc-200 text-[10.5px] font-bold transition duration-150 leading-none shrink-0"
+                          className="inline-flex items-center justify-center gap-1.5 h-8 px-2.5 rounded-lg border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-950 hover:border-zinc-300 hover:bg-zinc-50 dark:hover:border-zinc-700 dark:hover:bg-zinc-900 text-zinc-700 dark:text-zinc-200 text-[11px] font-semibold transition duration-150 leading-none shrink-0 whitespace-nowrap"
                         >
                           Official Site <ExternalLink className="h-3 w-3" />
                         </a>
                       )}
-                      {!isTracking && (
-                        <Link
-                          to={`/teams?teamId=${part.teamInfo._id}`}
-                          className="inline-flex items-center gap-1 h-8 px-3 rounded-lg bg-emerald-500/10 dark:bg-emerald-500/15 border border-emerald-500/20 dark:border-emerald-500/10 text-emerald-600 dark:text-emerald-400 text-[10.5px] font-bold leading-none shrink-0"
-                        >
-                          <CheckCircle2 className="h-3.5 w-3.5" /> Team
-                        </Link>
-                      )}
+                      <Link
+                        to={`/teams?teamId=${part.teamInfo._id}`}
+                        title={part.teamInfo.name}
+                        className="inline-flex items-center gap-1.5 h-8 px-2.5 rounded-lg border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-950 hover:border-zinc-300 hover:bg-zinc-50 dark:hover:border-zinc-700 dark:hover:bg-zinc-900 text-zinc-700 dark:text-zinc-300 text-[11px] font-semibold leading-none min-w-0 max-w-[120px]"
+                      >
+                        <Users className="h-3 w-3 text-zinc-400 shrink-0" />
+                        <span className="truncate">{part.teamInfo.name}</span>
+                      </Link>
                       <button
                         onClick={() => handleInitiateUntrack(part._id, part.teamInfo._id, part.hackathon._id, part.hackathon.title)}
-                        className="inline-flex items-center justify-center gap-1 h-8 px-3 rounded-lg border border-zinc-200 dark:border-zinc-800 hover:border-rose-300 dark:hover:border-rose-900/50 hover:bg-rose-500/5 text-zinc-500 dark:text-zinc-400 hover:text-rose-600 dark:hover:text-rose-400 text-[10.5px] font-bold transition duration-150 cursor-pointer leading-none shrink-0"
+                        className="inline-flex items-center justify-center gap-1 h-8 px-2.5 rounded-lg border border-zinc-200 dark:border-zinc-800 hover:border-rose-300 dark:hover:border-rose-900/50 hover:bg-rose-500/5 text-zinc-500 dark:text-zinc-400 hover:text-rose-600 dark:hover:text-rose-400 text-[11px] font-semibold transition duration-150 cursor-pointer leading-none shrink-0 whitespace-nowrap"
                       >
-                        <Trash2 className="h-3.5 w-3.5" /> Untrack
+                        <Trash2 className="h-3 w-3" /> Untrack
                       </button>
                     </div>
                   </div>
 
-                  {/* Right Column: Timeline & Prerequisite Info */}
-                  <div className="flex-1 min-w-0 flex flex-col gap-4 overflow-visible w-full justify-center">
-                    {/* Registration Tracker Block */}
+                  {/* Right Column: Registration Bar & Timeline */}
+                  <div className="flex-1 min-w-0 flex flex-col gap-3.5 overflow-visible w-full justify-center">
                     {isTracking && (
-                      <div className="w-full rounded-lg border p-3.5 flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs border-amber-500/20 bg-amber-500/5 dark:bg-amber-500/5 text-amber-800 dark:text-amber-300">
-                        <div className="flex items-center gap-2.5 min-w-0">
-                          <div className="h-7 w-7 rounded-lg flex items-center justify-center shrink-0 bg-gradient-to-tr from-amber-500 to-orange-500 text-white">
-                            <AlertTriangle className="h-4 w-4" />
-                          </div>
-                          <div className="min-w-0 text-left">
-                            <p className="font-extrabold uppercase tracking-wide text-[10px]">
-                              Prerequisite: Register for Hackathon
-                            </p>
-                            <p className="mt-0.5 text-zinc-600 dark:text-zinc-400 font-semibold truncate text-[11px]">
-                              {part.hackathon.deadline ? (
-                                <span>
-                                  Deadline: {new Date(part.hackathon.deadline).toLocaleDateString(undefined, { month: "short", day: "numeric", year: "numeric" })}
-                                  {(() => {
-                                    const days = Math.ceil((new Date(part.hackathon.deadline).getTime() - new Date().getTime()) / (1000 * 60 * 60 * 24));
-                                    if (days === 1) return " (Ends in 1 day)";
-                                    if (days > 1) return ` (Ends in ${days} days)`;
-                                    if (days === 0) return " (Ends today!)";
-                                    return " (Closed)";
-                                  })()}
-                                </span>
-                              ) : (
-                                "No official deadline specified."
-                              )}
-                            </p>
-                          </div>
+                      <div className="w-full rounded-lg border border-zinc-200 dark:border-zinc-800 bg-zinc-50/70 dark:bg-zinc-950/50 px-4 py-3 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                        <div className="min-w-0 text-left">
+                          <p className="text-xs font-semibold text-zinc-900 dark:text-zinc-100">
+                            Registration Pending
+                          </p>
+                          <p className="mt-0.5 text-[11px] text-zinc-500 dark:text-zinc-400 truncate">
+                            {part.hackathon.deadline
+                              ? `Apply on ${part.hackathon.platform} before ${deadlineText}${
+                                  deadlineDays !== null && deadlineDays >= 0
+                                    ? deadlineDays === 0
+                                      ? " (Ends today)"
+                                      : deadlineDays === 1
+                                      ? " (Ends in 1 day)"
+                                      : ` (${deadlineDays} days left)`
+                                    : " (Closed)"
+                                }`
+                              : `Confirm once your team has registered on ${part.hackathon.platform}.`}
+                          </p>
                         </div>
 
                         <button
@@ -440,103 +442,54 @@ export default function TrackerPage() {
                       </div>
                     )}
 
-                    {/* Stages Timeline */}
-                    <div className={`pt-1 pb-4 overflow-visible transition-all duration-300 ${isTracking ? "opacity-40 select-none" : ""}`}>
-                      {competitiveStages.length === 0 ? (
-                        <div className="flex items-start gap-3 rounded-lg border border-zinc-200 dark:border-zinc-800 bg-zinc-50/60 dark:bg-zinc-900/30 px-4 py-3 text-zinc-500 dark:text-zinc-400 text-xs text-left max-w-md shadow-xs">
-                          <Info className="h-4 w-4 text-zinc-400 dark:text-zinc-500 shrink-0 mt-0.5" />
-                          <p className="leading-relaxed">
-                            No competitive stages defined yet. View your{" "}
-                            <Link
-                              to={`/teams?teamId=${part.teamInfo._id}`}
-                              className="font-semibold text-blue-600 dark:text-blue-400 hover:underline"
-                            >
-                              {part.teamInfo.name}
-                            </Link>{" "}
-                            team to coordinate with teammates.
-                          </p>
-                        </div>
-                      ) : (
-                        <div
-                          className="flex items-start gap-0 relative overflow-visible w-full pt-1"
-                          style={{ maxWidth: competitiveStages.length > 0 ? `${competitiveStages.length * 130}px` : "100%" }}
-                        >
+                    {/* Stages Timeline (only shown when real competitive stages exist) */}
+                    {competitiveStages.length > 0 && (
+                      <div className={`space-y-2 transition-all duration-200 ${isTracking ? "opacity-80" : ""}`}>
+                        <p className="text-[10px] font-bold uppercase tracking-wider text-zinc-400 dark:text-zinc-500">
+                          Rounds &amp; Milestones
+                        </p>
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
                           {competitiveStages.map((stage, sIdx) => {
-                            const hasPrev = sIdx > 0;
                             const isFailedStage = sIdx === failedStageIdx;
                             const isPostDisqualification = failedStageIdx !== -1 && sIdx > failedStageIdx;
-
-                            let lineBg = "bg-zinc-200 dark:bg-zinc-800";
-                            if (hasPrev) {
-                              const prevStageIdx = sIdx - 1;
-                              if (failedStageIdx !== -1 && prevStageIdx >= failedStageIdx) {
-                                lineBg = "bg-rose-500/30 dark:bg-rose-500/20";
-                              } else {
-                                const prevStageObj = competitiveStages[prevStageIdx];
-                                if (prevStageObj.result === "qualified") {
-                                  lineBg = "bg-emerald-500 dark:bg-emerald-400";
-                                } else if (prevStageObj.result === "rejected") {
-                                  lineBg = "bg-rose-500 dark:bg-rose-400";
-                                }
-                              }
-                            }
-
-                            let ringClass = "border-zinc-200 bg-white dark:border-zinc-800 dark:bg-zinc-900";
                             const isFirstPending = failedStageIdx === -1 && competitiveStages.findIndex((st) => st.result === "pending") === sIdx;
 
-                            if (isPostDisqualification) {
-                              ringClass = "border-rose-500/25 bg-white dark:border-rose-500/20 dark:bg-zinc-900 text-rose-500/30 dark:text-rose-400/30";
-                            } else if (isFailedStage) {
-                              ringClass = "border-rose-500/50 bg-rose-50 dark:border-rose-500/40 dark:bg-rose-950 text-rose-600 dark:text-rose-400";
-                            } else if (stage.result === "qualified") {
-                              ringClass = "border-emerald-500/50 bg-emerald-50 dark:border-emerald-500/40 dark:bg-emerald-950 text-emerald-600 dark:text-emerald-400";
-                            } else if (isFirstPending) {
-                              ringClass = "border-blue-500/50 bg-blue-50 dark:border-blue-500/40 dark:bg-blue-950 ring-4 ring-blue-500/5 text-blue-600 dark:text-blue-400";
-                            } else {
-                              ringClass = "border-zinc-200 bg-white dark:border-zinc-800 dark:bg-zinc-900 text-zinc-400 dark:text-zinc-500";
-                            }
+                            const badgeCls = isPostDisqualification
+                              ? "border-rose-500/20 bg-white dark:bg-zinc-900 text-rose-500/40"
+                              : isFailedStage
+                              ? "border-rose-500/50 bg-rose-500/15 text-rose-600 dark:text-rose-400"
+                              : stage.result === "qualified"
+                              ? "border-emerald-500/50 bg-emerald-500/15 text-emerald-600 dark:text-emerald-400"
+                              : isFirstPending
+                              ? "border-blue-500/50 bg-blue-500/10 text-blue-600 dark:text-blue-400"
+                              : "border-zinc-200 bg-white dark:border-zinc-700 dark:bg-zinc-900 text-zinc-500 dark:text-zinc-400";
 
                             return (
                               <Link
                                 key={stage._id}
                                 to={`/teams?teamId=${part.teamInfo._id}&tab=Stages&participationId=${part._id}&stageId=${stage._id}`}
-                                className="relative flex flex-col items-center group overflow-visible cursor-pointer flex-1 min-w-0 hover:z-50 pt-3"
+                                title={stage.name}
+                                className="flex items-center justify-between gap-2.5 rounded-lg border border-zinc-200 bg-zinc-50/60 px-3 py-2 hover:border-zinc-300 dark:border-zinc-800 dark:bg-zinc-950/60 dark:hover:border-zinc-700 transition-colors min-w-0"
                               >
-                                {hasPrev && (
-                                  <div className="absolute right-[50%] w-full h-[2px] bg-zinc-200 dark:bg-zinc-800 top-[21px] z-0 origin-right">
-                                    <div className={`absolute inset-0 origin-left ${lineBg}`} />
-                                  </div>
-                                )}
-
-                                <div className={`h-5 w-5 rounded-full border flex items-center justify-center transition-all duration-300 z-10 cursor-pointer ${ringClass}`}>
-                                  {isFailedStage ? (
-                                    <svg className="h-2.5 w-2.5" viewBox="0 0 12 12" fill="none">
-                                      <path d="M2.5 2.5L9.5 9.5" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" />
-                                      <path d="M9.5 2.5L2.5 9.5" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" />
-                                    </svg>
-                                  ) : stage.result === "qualified" ? (
-                                    <Check className="h-3 w-3" strokeWidth={3.5} />
-                                  ) : (
-                                    <div className={`h-1.5 w-1.5 rounded-full ${isFirstPending ? "bg-blue-600 dark:bg-blue-400" : "bg-zinc-350 dark:bg-zinc-600"}`} />
-                                  )}
-                                </div>
-
-                                <div className="absolute top-9 flex flex-col items-center w-32 shrink-0 pointer-events-none">
-                                  <span className="text-[10px] font-extrabold text-zinc-700 dark:text-zinc-300 truncate max-w-[115px] group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors">
+                                <div className="flex items-center gap-2 min-w-0">
+                                  <span className={`inline-flex h-5 w-5 shrink-0 items-center justify-center rounded-full border text-[10px] font-bold ${badgeCls}`}>
+                                    {isFailedStage ? "✕" : stage.result === "qualified" ? <Check className="h-3 w-3" strokeWidth={3} /> : sIdx + 1}
+                                  </span>
+                                  <span className="text-xs font-medium text-zinc-800 dark:text-zinc-200 truncate">
                                     {stage.name}
                                   </span>
-                                  {stage.deadline && (
-                                    <span className="text-[9px] text-zinc-400 dark:text-zinc-550 font-semibold mt-0.5">
-                                      {new Date(stage.deadline).toLocaleDateString(undefined, { month: "short", day: "numeric" })}
-                                    </span>
-                                  )}
                                 </div>
+                                {stage.deadline && (
+                                  <span className="text-[11px] font-semibold tabular-nums text-zinc-500 dark:text-zinc-400 shrink-0">
+                                    {new Date(stage.deadline).toLocaleDateString(undefined, { month: "short", day: "numeric" })}
+                                  </span>
+                                )}
                               </Link>
                             );
                           })}
                         </div>
-                      )}
-                    </div>
+                      </div>
+                    )}
                   </div>
                 </div>
               );

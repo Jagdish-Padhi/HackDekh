@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { NavLink, useNavigate, Link } from 'react-router-dom'
-import { BarChart3, LogOut, Menu, PanelLeftClose, PanelLeftOpen, Trophy, Users, X, Settings, Crosshair } from 'lucide-react'
+import { BarChart3, LogOut, Menu, Trophy, Users, X, Settings, Crosshair } from 'lucide-react'
 import { usePageChrome } from '../context/pageChrome'
 import { useAuth, useCache } from '../context'
 
@@ -15,6 +15,7 @@ const navItems = [
 const Sidebar = () => {
     const navigate = useNavigate()
     const { sidebarExpanded, closeSidebar, toggleSidebar, pageActions } = usePageChrome()
+    const [isDesktopHovered, setIsDesktopHovered] = useState(false)
     const [isMobile, setIsMobile] = useState(() => {
         if (typeof window === 'undefined') {
             return false
@@ -52,7 +53,8 @@ const Sidebar = () => {
         }
     }
 
-    const sidebarWidthClass = sidebarExpanded ? 'lg:w-60' : 'lg:w-18'
+    const isExpanded = isMobile ? sidebarExpanded : isDesktopHovered
+    const sidebarWidthClass = isExpanded ? 'lg:w-60 lg:shadow-xl' : 'lg:w-18 lg:shadow-none'
     const mobileVisibilityClass = isMobile ? (sidebarExpanded ? 'translate-x-0' : '-translate-x-full') : 'translate-x-0'
 
     return (
@@ -90,25 +92,19 @@ const Sidebar = () => {
                     </div>
                 </Link>
 
-                <div className="flex shrink-0 items-center gap-2">
-                    <button
-                        type="button"
-                        onClick={toggleSidebar}
-                        className="inline-flex h-9 w-9 items-center justify-center rounded-lg border border-zinc-200 bg-white text-zinc-700 shadow-xs transition hover:border-zinc-300 hover:bg-zinc-50 hover:text-zinc-900 dark:border-zinc-800 dark:bg-zinc-900 dark:text-zinc-200 dark:hover:border-zinc-700 dark:hover:bg-zinc-800 dark:hover:text-zinc-100 cursor-pointer"
-                        aria-label={sidebarExpanded ? 'Collapse sidebar' : 'Expand sidebar'}
-                    >
-                        {sidebarExpanded ? <PanelLeftClose className="h-4.5 w-4.5" /> : <PanelLeftOpen className="h-4.5 w-4.5" />}
-                    </button>
-                </div>
-
                 <div className="ml-auto flex min-w-0 flex-1 items-center justify-end gap-2.5 overflow-visible">
                     {pageActions}
                 </div>
             </div>
 
-            {/* Sidebar - starts below logo header */}
+            {/* Desktop layout rail spacer so hover-expand never shifts page content */}
+            <div className="hidden lg:block lg:w-18 lg:shrink-0" aria-hidden="true" />
+
+            {/* Sidebar - starts below logo header; expands smoothly on hover on desktop */}
             <aside
-                className={`fixed left-0 top-20 z-80 flex w-full flex-col border-r border-zinc-200 bg-white/95 shadow-xl backdrop-blur-xl sidebar-transition max-h-[calc(100vh-80px)] lg:sticky lg:top-16 lg:z-30 lg:max-h-[calc(100vh-64px)] lg:shadow-none dark:border-zinc-800 dark:bg-zinc-950/95 ${sidebarWidthClass} ${mobileVisibilityClass}`}
+                onMouseEnter={() => { if (!isMobile) setIsDesktopHovered(true) }}
+                onMouseLeave={() => { if (!isMobile) setIsDesktopHovered(false) }}
+                className={`fixed left-0 top-20 z-80 flex w-full flex-col border-r border-zinc-200 bg-white/95 shadow-xl backdrop-blur-xl sidebar-transition max-h-[calc(100vh-80px)] lg:fixed lg:left-0 lg:top-16 lg:bottom-0 lg:z-40 lg:max-h-[calc(100vh-64px)] dark:border-zinc-800 dark:bg-zinc-950/95 ${sidebarWidthClass} ${mobileVisibilityClass}`}
                 aria-label="Primary navigation"
             >
                 <nav className="flex flex-1 flex-col gap-1 px-3 py-4 sm:px-4">
@@ -121,7 +117,7 @@ const Sidebar = () => {
                                 key={item.name}
                                 to={item.path}
                                 className={() =>
-                                    `flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-all duration-200 ${active
+                                    `flex items-center gap-3 whitespace-nowrap overflow-hidden rounded-lg px-3 py-2.5 text-sm font-medium transition-all duration-200 ${active
                                         ? 'bg-blue-600 text-white shadow-sm dark:bg-blue-500'
                                         : 'text-zinc-600 hover:bg-zinc-100 hover:text-zinc-900 dark:text-zinc-300 dark:hover:bg-zinc-900 dark:hover:text-white'
                                     }`
@@ -135,7 +131,7 @@ const Sidebar = () => {
                                 {() => (
                                     <>
                                         <Icon className={`h-4 w-4 shrink-0 ${active ? 'text-white stroke-white fill-none' : ''}`} />
-                                        {sidebarExpanded && (
+                                        {isExpanded && (
                                             <span className={active ? 'text-white' : ''}>
                                                 {item.name}
                                             </span>
@@ -149,11 +145,11 @@ const Sidebar = () => {
 
                 <div className="space-y-2 border-t border-zinc-200 p-3 sm:p-2.5 dark:border-zinc-800">
                     {isAuthenticated && user && (
-                        <div className="flex items-center gap-3 px-3 py-2 mb-2 rounded-lg bg-zinc-50 dark:bg-zinc-900/50">
+                        <div className="flex items-center gap-3 whitespace-nowrap overflow-hidden px-3 py-2 mb-2 rounded-lg bg-zinc-50 dark:bg-zinc-900/50">
                             <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-blue-600 font-bold text-white text-xs dark:bg-blue-500 uppercase font-logo">
                                 {user.fullName.slice(0, 2)}
                             </div>
-                            {sidebarExpanded && (
+                            {isExpanded && (
                                 <div className="min-w-0 flex-1">
                                     <p className="text-xs font-bold text-zinc-900 dark:text-zinc-100 truncate">{user.fullName}</p>
                                     <p className="text-[0.65rem] text-zinc-500 dark:text-zinc-400 truncate">@{user.username}</p>
@@ -165,24 +161,24 @@ const Sidebar = () => {
                         <button
                             type="button"
                             onClick={handleLogout}
-                            className="flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium text-red-600 transition hover:bg-red-50 dark:text-red-300 dark:hover:bg-red-500/10"
+                            className="flex w-full items-center gap-3 whitespace-nowrap overflow-hidden rounded-lg px-3 py-2.5 text-sm font-medium text-red-600 transition hover:bg-red-50 dark:text-red-300 dark:hover:bg-red-500/10"
                         >
                             <LogOut className="h-4 w-4 shrink-0" />
-                            {sidebarExpanded && <span>Logout</span>}
+                            {isExpanded && <span>Logout</span>}
                         </button>
                     ) : (
                         <div className="space-y-2">
                             <NavLink
                                 to="/login"
-                                className="block rounded-lg border border-zinc-200 px-3 py-3 text-center text-sm font-semibold text-zinc-700 transition hover:bg-zinc-100 dark:border-zinc-700 dark:text-zinc-200 dark:hover:bg-zinc-900"
+                                className="block whitespace-nowrap overflow-hidden rounded-lg border border-zinc-200 px-3 py-3 text-center text-sm font-semibold text-zinc-700 transition hover:bg-zinc-100 dark:border-zinc-700 dark:text-zinc-200 dark:hover:bg-zinc-900"
                             >
-                                {sidebarExpanded ? 'Login' : 'In'}
+                                {isExpanded ? 'Login' : 'In'}
                             </NavLink>
                             <NavLink
                                 to="/signup"
-                                className="block rounded-lg border border-blue-500/35 bg-blue-600 px-3 py-3 text-center text-sm font-semibold text-white transition hover:bg-blue-500 dark:bg-blue-500 dark:hover:bg-blue-400"
+                                className="block whitespace-nowrap overflow-hidden rounded-lg border border-blue-500/35 bg-blue-600 px-3 py-3 text-center text-sm font-semibold text-white transition hover:bg-blue-500 dark:bg-blue-500 dark:hover:bg-blue-400"
                             >
-                                {sidebarExpanded ? 'Sign Up' : 'Up'}
+                                {isExpanded ? 'Sign Up' : 'Up'}
                             </NavLink>
                         </div>
                     )}

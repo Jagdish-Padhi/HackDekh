@@ -16,6 +16,7 @@ import {
     getTeamHackathons,
     updateParticipationStatus,
     toggleParticipationAlert,
+    moveParticipationToTeam,
     unlinkTeamFromHackathon,
 } from "../controllers/teamHackathon.controller.ts";
 import {
@@ -53,6 +54,7 @@ router.route("/:id/hackathons").post(linkTeamToHackathon).get(getTeamHackathons)
 router.route("/:id/hackathons/:hackathonId").delete(unlinkTeamFromHackathon);
 router.route("/:id/hackathons/:thId/status").patch(updateParticipationStatus);
 router.route("/:id/hackathons/:thId/alert").patch(toggleParticipationAlert);
+router.route("/:id/hackathons/:thId/move").patch(moveParticipationToTeam);
 
 // Stages
 router.route("/:id/hackathons/:thId/stages").post(addStage);

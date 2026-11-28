@@ -589,7 +589,7 @@ export async function getPublicSquadByCode(code: string) {
     }
 
     const participations = await TeamHackathon.find({ team: team._id })
-        .populate('hackathon', 'title platform coverImage deadline startDate mode prize location applyLink')
+        .populate('hackathon', 'title slug platform coverImage deadline startDate mode prize location applyLink')
         .populate({
             path: 'stages',
             select: 'name deadline result',

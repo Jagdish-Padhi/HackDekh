@@ -7,6 +7,7 @@ export interface UserLite {
 
 export interface HackathonLite {
   _id: string;
+  slug?: string;
   title: string;
   platform: string;
   coverImage?: string;
