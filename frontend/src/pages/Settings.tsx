@@ -23,6 +23,7 @@ import {
   TRAVEL_PREFERENCE_LABELS,
 } from "../utils/fitEngine";
 import axiosInstance from "../utils/axiosInstance";
+import { useSeo } from "../utils/useSeo";
 import { AnimatePresence, motion } from "framer-motion";
 import posthog, { isPostHogEnabled } from "../posthog";
 
@@ -61,6 +62,12 @@ const NAV_ITEMS: { id: NavSection; label: string; icon: React.ElementType; dange
 /* ─── main component ─────────────────────────────────────────────────────────  */
 
 const SettingsPage = () => {
+  useSeo({
+    title: "Settings | HackDekh",
+    description: "Manage your profile, fit preferences, 24h deadline alert channels, and theme.",
+    path: "/settings",
+    noIndex: true,
+  });
   const { user, updateUser } = useAuth();
   const { showToast } = useToast();
   const [active, setActive] = useState<NavSection>("profile");

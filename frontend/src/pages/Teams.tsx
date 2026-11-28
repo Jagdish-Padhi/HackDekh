@@ -23,6 +23,7 @@ import {
 import { useAuth, useCache, useToast } from "../context";
 import { USER_CACHE_TTL_MS } from "../context/CacheContext";
 import { usePageChrome } from "../context/pageChrome";
+import { useSeo } from "../utils/useSeo";
 import { teamApi } from "../services";
 import type { Team, TeamHackathon } from "../types";
 import { motion, AnimatePresence } from "framer-motion";
@@ -138,6 +139,12 @@ const getGradientClass = (name: string) => {
 };
 
 export default function TeamsPage() {
+  useSeo({
+    title: "Squads | HackDekh",
+    description: "Manage your hackathon squads, 6-digit join codes, and shared squad schedules.",
+    path: "/teams",
+    noIndex: true,
+  });
   const { user } = useAuth();
   const { showToast } = useToast();
   const { setPageActions, closeSidebar, sidebarExpanded, toggleSidebar } = usePageChrome();

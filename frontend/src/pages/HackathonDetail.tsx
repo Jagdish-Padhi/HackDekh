@@ -21,6 +21,7 @@ import {
   loadLocalPreferences,
   saveLocalPreferences,
 } from "../utils/fitEngine";
+import { useSeo } from "../utils/useSeo";
 
 type HackathonDetailData = {
   _id: string;
@@ -97,6 +98,52 @@ export default function HackathonDetailPage() {
       active = false;
     };
   }, [slug]);
+
+  const eventJsonLd = useMemo(() => {
+    if (!hackathon) return null;
+    const isOnline = /online/i.test(hackathon.mode || "");
+    const attendanceMode = isOnline
+      ? "https://schema.org/OnlineEventAttendanceMode"
+      : /hybrid/i.test(hackathon.mode || "")
+      ? "https://schema.org/MixedEventAttendanceMode"
+      : "https://schema.org/OfflineEventAttendanceMode";
+
+    return {
+      "@context": "https://schema.org",
+      "@type": "Event",
+      name: hackathon.title,
+      url: `https://hackdekh.jdecodes.tech/hackathons/${encodeURIComponent(hackathon.slug || slug || "")}`,
+      eventAttendanceMode: attendanceMode,
+      eventStatus: "https://schema.org/EventScheduled",
+      ...(hackathon.startDate ? { startDate: hackathon.startDate } : hackathon.deadline ? { startDate: hackathon.deadline } : {}),
+      ...(hackathon.deadline ? { endDate: hackathon.deadline } : {}),
+      ...(hackathon.coverImage ? { image: [hackathon.coverImage] } : {}),
+      ...(hackathon.description ? { description: hackathon.description.slice(0, 300) } : {}),
+      location: isOnline
+        ? { "@type": "VirtualLocation", url: hackathon.applyLink || `https://hackdekh.jdecodes.tech/hackathons/${hackathon.slug}` }
+        : { "@type": "Place", name: hackathon.location || "TBA" },
+      ...(hackathon.organization || hackathon.platform
+        ? {
+            organizer: {
+              "@type": "Organization",
+              name: hackathon.organization || hackathon.platform,
+            },
+          }
+        : {}),
+    };
+  }, [hackathon, slug]);
+
+  useSeo({
+    title: hackathon
+      ? `${hackathon.title} (${hackathon.platform}) — Prize, Deadline & Fit Check | HackDekh`
+      : "Hackathon Details | HackDekh",
+    description: hackathon
+      ? `${hackathon.title} on ${hackathon.platform}. Prize: ${hackathon.prize || "TBD"}. Mode: ${hackathon.mode || "Online"}. Deadline: ${formatDate(hackathon.deadline)}. Check fit and track with your squad on HackDekh.`
+      : "View hackathon prize pool, deadline, team size, and fit breakdown on HackDekh.",
+    path: slug ? `/hackathons/${encodeURIComponent(slug)}` : "/hackathons",
+    image: hackathon?.coverImage,
+    jsonLd: eventJsonLd,
+  });
 
   const handleSavePreferences = useCallback(
     async (prefs: UserPreferences) => {

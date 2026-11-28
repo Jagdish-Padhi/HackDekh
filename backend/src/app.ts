@@ -3,6 +3,7 @@ import cors from "cors";
 import { globalErrorHandler } from "./shared/errors/globalErrorHandler.ts";
 import { apiRateLimiter } from "./shared/middlewares/rateLimiter.ts";
 import { hackathonRouter } from "./modules/catalog/index.ts";
+import { getHackathonsSitemap } from "./modules/catalog/controllers/hackathon.controller.ts";
 import { ingestionRouter } from "./modules/ingestion/index.ts";
 import { teamRouter } from "./modules/team/index.ts";
 import { userRouter } from "./modules/identity/index.ts";
@@ -22,6 +23,8 @@ app.use("/api/v1/scrape", ingestionRouter);
 app.use("/api/v1/hackathons", hackathonRouter);
 app.use("/api/v1/users", userRouter);
 app.use("/api/v1/teams", teamRouter);
+
+app.get("/sitemap.xml", getHackathonsSitemap);
 
 app.get("/api/v1/ping", (req, res) => {
   res.status(200).json({ success: true, message: "pong" });

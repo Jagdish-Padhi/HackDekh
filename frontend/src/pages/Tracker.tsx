@@ -21,6 +21,7 @@ import { teamApi } from "../services";
 import AppDropdown from "../components/AppDropdown";
 import type { Team, TeamHackathon } from "../types";
 import posthog, { isPostHogEnabled } from "../posthog";
+import { useSeo } from "../utils/useSeo";
 
 export const isRegistrationStage = (name: string): boolean => {
   return /register|registration|apply|application|prep|regn/i.test(name);
@@ -37,6 +38,12 @@ const formatDateTag = (value?: string | null) => {
 };
 
 export default function TrackerPage() {
+  useSeo({
+    title: "Tracker | HackDekh",
+    description: "Manage your tracked and registered hackathons, stages, and 24h deadline alerts.",
+    path: "/tracker",
+    noIndex: true,
+  });
   const { isAuthenticated } = useAuth();
   const { showToast } = useToast();
   const navigate = useNavigate();

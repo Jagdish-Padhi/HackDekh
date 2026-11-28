@@ -14,9 +14,17 @@ import {
 import ProductStoryAnimation from "../components/productStory/ProductStoryAnimation";
 import { Navigate, Link } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
+import { useSeo } from "../utils/useSeo";
 
 const HomePage = () => {
     const { isAuthenticated, isLoading } = useAuth();
+
+    useSeo({
+        title: "HackDekh — Discover Hackathons, Check Fit & Track Deadlines",
+        description:
+            "Find live hackathons from Devfolio, Unstop, Devpost, MLH, and Hack2Skill in one feed. Check if an event fits your city and prize goals, get 24h deadline alerts, and sync with your squad.",
+        path: "/",
+    });
 
     if (!isLoading && isAuthenticated) {
         return <Navigate to="/dashboard" replace />;

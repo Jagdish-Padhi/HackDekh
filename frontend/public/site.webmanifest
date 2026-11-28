@@ -1,0 +1,16 @@
+{
+  "name": "HackDekh",
+  "short_name": "HackDekh",
+  "description": "Discover hackathons, check fit, get 24h deadline alerts, and sync with your squad.",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#09090b",
+  "theme_color": "#09090b",
+  "icons": [
+    {
+      "src": "/BrandImages/HackDekh.png",
+      "sizes": "512x512",
+      "type": "image/png"
+    }
+  ]
+}

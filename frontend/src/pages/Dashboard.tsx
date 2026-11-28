@@ -13,6 +13,7 @@ import { USER_CACHE_TTL_MS } from "../context/CacheContext";
 import { usePageChrome } from "../context/pageChrome";
 import { teamApi } from "../services";
 import type { Stage, Team, TeamHackathon } from "../types";
+import { useSeo } from "../utils/useSeo";
 
 type Participation = TeamHackathon & { teamInfo: Team };
 
@@ -34,6 +35,12 @@ const getTeamName = (team: string | Team | undefined, fallback = "Team") => {
 };
 
 export default function DashboardPage() {
+  useSeo({
+    title: "Dashboard | HackDekh",
+    description: "Your upcoming hackathon stage deadlines and active tracking overview.",
+    path: "/dashboard",
+    noIndex: true,
+  });
   const { setPageActions } = usePageChrome();
   const { dashboardData, dashboardFetchedAt, setDashboardData } = useCache();
   const isInitialMountRef = useRef(true);

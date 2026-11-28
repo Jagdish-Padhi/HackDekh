@@ -4,6 +4,7 @@ import { Calendar, Copy, ExternalLink, MapPin, Trophy, Users, ArrowRight } from 
 import { teamApi } from "../services";
 import { useAuth, useToast } from "../context";
 import type { HackathonLite } from "../types";
+import { useSeo } from "../utils/useSeo";
 
 type PublicSquadData = {
   team: {
@@ -46,6 +47,14 @@ export default function PublicSquadPage() {
   const [data, setData] = useState<PublicSquadData | null>(null);
   const [loading, setLoading] = useState(true);
   const [notFound, setNotFound] = useState(false);
+
+  useSeo({
+    title: data ? `${data.team.name} — Squad Schedule | HackDekh` : "Squad Schedule | HackDekh",
+    description: data
+      ? `${data.team.name} (${data.team.memberCount} members) is tracking ${data.hackathons.length} hackathon(s) on HackDekh.`
+      : "View a shared squad hackathon schedule and upcoming deadlines on HackDekh.",
+    path: code ? `/squad/${encodeURIComponent(code)}` : "/teams",
+  });
 
   useEffect(() => {
     let active = true;
