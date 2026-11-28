@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { memo, useEffect, useRef, useState } from "react";
 import { ExternalLink, CheckCircle2, Share2, Users } from "lucide-react";
 
 type Hackathon = {
@@ -53,7 +53,7 @@ const defaultImages = [
 ];
 
 const IMAGE_LOAD_TIMEOUT_MS = 4500;
-const CARD_REVEAL_ROOT_MARGIN = "0px 0px -8% 0px";
+const CARD_REVEAL_ROOT_MARGIN = "300px 0px 450px 0px";
 const loadedImageSourceCache = new Set<string>();
 const revealedCardCache = new Set<string>();
 
@@ -149,7 +149,7 @@ const getDeadlineDisplay = (deadline?: string): DeadlineDisplay => {
 const HackathonCard = ({ hackathon, displayIndex, extraActions = [], trackingStatus, onUntrack, onWorthIt, onShare, fitBadge }: HackathonCardProps) => {
     const cardRef = useRef<HTMLDivElement | null>(null);
     const imgRef = useRef<HTMLImageElement | null>(null);
-    const hasBeenRevealed = revealedCardCache.has(hackathon._id);
+    const hasBeenRevealed = displayIndex < 12 || revealedCardCache.has(hackathon._id);
     const fallbackImageRef = useRef<string>(getStableDefaultImage(`${hackathon._id}:${hackathon.title}`));
     const fallbackImage = fallbackImageRef.current;
     const primaryImage = hackathon.coverImage?.trim() || "";
@@ -196,7 +196,7 @@ const HackathonCard = ({ hackathon, displayIndex, extraActions = [], trackingSta
                 observer.disconnect();
             },
             {
-                threshold: 0.15,
+                threshold: 0,
                 rootMargin: CARD_REVEAL_ROOT_MARGIN,
             }
         );
@@ -206,11 +206,11 @@ const HackathonCard = ({ hackathon, displayIndex, extraActions = [], trackingSta
     }, [hackathon._id, isVisible]);
 
     useEffect(() => {
-        if (imageLoaded) {
+        if (imageLoaded || !isVisible) {
             return;
         }
 
-        // If wsrv.nl stalls, fall back to direct primaryImage first, then local SVG
+        // Only start fallback timer once card is near/in viewport so lazy images don't time out prematurely
         const timeoutId = window.setTimeout(() => {
             setImageSource(currentSource => {
                 if (currentSource === fallbackImage) {
@@ -225,7 +225,7 @@ const HackathonCard = ({ hackathon, displayIndex, extraActions = [], trackingSta
         }, IMAGE_LOAD_TIMEOUT_MS);
 
         return () => window.clearTimeout(timeoutId);
-    }, [imageLoaded, fallbackImage, imageSource]);
+    }, [imageLoaded, isVisible, fallbackImage, imageSource, primaryImage]);
 
         const deadlineDisplay = getDeadlineDisplay(hackathon.deadline);
     const locationLabel = hackathon.location?.trim() || "TBD";
@@ -233,9 +233,6 @@ const HackathonCard = ({ hackathon, displayIndex, extraActions = [], trackingSta
     const prizeChipClass = prizeDisplay.isTbd
         ? "inline-flex max-w-full items-center gap-1 rounded-md border border-zinc-200 bg-zinc-50 px-2 py-0.5 h-6 text-[10px] font-semibold text-zinc-500 dark:border-zinc-800 dark:bg-zinc-800/50 dark:text-zinc-400"
         : "inline-flex max-w-full items-center gap-1 rounded-md border border-emerald-200/80 bg-emerald-50/60 px-2 py-0.5 h-6 text-[10.5px] font-bold text-emerald-700 dark:border-emerald-500/25 dark:bg-emerald-500/10 dark:text-emerald-400";
-    const revealDelay = (displayIndex % 4) * 65;
-
-    // Read tracked state
     const trackHandler = extraActions.find(action => action.label === "TRACK_HANDLER")?.onClick;
     const isRegistered = trackingStatus && trackingStatus !== 'tracking';
 
@@ -244,8 +241,8 @@ const HackathonCard = ({ hackathon, displayIndex, extraActions = [], trackingSta
     return (
         <div
             ref={cardRef}
-            className={`group premium-border-card relative flex h-full flex-col overflow-hidden rounded-xl border border-zinc-200 bg-white p-4 shadow-xs transition-all duration-300 ease-out hover:-translate-y-0.5 hover:border-zinc-300 hover:shadow-md dark:border-zinc-800 dark:bg-zinc-900 dark:hover:border-zinc-700 ${isExpired ? "expired opacity-80" : ""} ${isVisible ? "translate-x-0 translate-y-0 opacity-100" : "-translate-x-3 translate-y-2 opacity-0"}`}
-            style={{ transitionDelay: isVisible ? `${revealDelay}ms` : "0ms" }}
+            className={`group premium-border-card relative flex h-full flex-col overflow-hidden rounded-xl border border-zinc-200 bg-white p-4 shadow-xs transition-all duration-150 ease-out hover:-translate-y-0.5 hover:border-zinc-300 hover:shadow-md dark:border-zinc-800 dark:bg-zinc-900 dark:hover:border-zinc-700 ${isExpired ? "expired opacity-80" : ""} ${isVisible ? "translate-y-0 opacity-100" : "translate-y-1 opacity-0"}`}
+            style={{ contentVisibility: "auto", containIntrinsicSize: "auto 340px" }}
         >
             {isExpired && (
                 <div className="absolute inset-0 pointer-events-none z-30 flex items-center justify-center overflow-hidden">
@@ -287,7 +284,8 @@ const HackathonCard = ({ hackathon, displayIndex, extraActions = [], trackingSta
                     ref={imgRef}
                     src={imageSource}
                     alt={hackathon.title}
-                    loading="lazy"
+                    loading={displayIndex < 8 ? "eager" : "lazy"}
+                    fetchPriority={displayIndex < 4 ? "high" : "auto"}
                     decoding="async"
                     referrerPolicy="no-referrer"
                     onLoad={() => {
@@ -465,4 +463,4 @@ const HackathonCard = ({ hackathon, displayIndex, extraActions = [], trackingSta
     );
 };
 
-export default HackathonCard;
+export default memo(HackathonCard);
