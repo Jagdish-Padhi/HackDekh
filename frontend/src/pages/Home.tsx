@@ -59,16 +59,16 @@ const HomePage = () => {
     return (
         <div className="relative flex flex-col items-center justify-center gap-16 sm:gap-28 lg:gap-36 pt-0 pb-12 sm:pb-20 lg:pb-28 w-full">
             {/* 1. Hero Section */}
-            <section className="relative w-full min-h-[calc(100dvh-4.25rem)] lg:h-[calc(100vh-4.25rem)] flex flex-col justify-center">
-                {/* Slim App Promo Strip — sits cleanly just below navbar without shifting hero */}
+            <section className="relative w-full min-h-[calc(100dvh-4.25rem)] lg:h-[calc(100vh-4.25rem)] flex flex-col justify-center pt-14 sm:pt-12 lg:pt-0 overflow-x-clip">
+                {/* Slim App Promo Strip — pinned cleanly just below navbar on all screens */}
                 {!isStandalone && (
                     <motion.div
                         initial={{ opacity: 0, y: -6 }}
                         animate={{ opacity: 1, y: 0 }}
                         transition={{ duration: 0.35, ease: "easeOut" }}
-                        className="w-full mb-6 lg:mb-0 lg:absolute lg:top-1 lg:inset-x-0 z-20"
+                        className="w-full absolute top-1 inset-x-0 z-20"
                     >
-                        <div className="mx-auto w-full rounded-xl border border-blue-200/70 bg-gradient-to-r from-blue-50/85 via-white/95 to-indigo-50/75 px-3.5 py-2 sm:px-4 sm:py-2 backdrop-blur-md dark:border-blue-900/40 dark:from-blue-950/35 dark:via-zinc-900/85 dark:to-indigo-950/30 flex flex-col sm:flex-row sm:items-center justify-between gap-2 shadow-xs">
+                        <div className="mx-auto w-full rounded-xl border border-blue-200/70 bg-gradient-to-r from-blue-50/85 via-white/95 to-indigo-50/75 px-3.5 py-2 sm:px-4 sm:py-2 backdrop-blur-md dark:border-blue-900/40 dark:from-blue-950/35 dark:via-zinc-900/85 dark:to-indigo-950/30 flex items-center justify-between gap-2.5 shadow-xs">
                             <div className="flex items-center gap-2.5 min-w-0">
                                 <div className="flex h-6 w-6 shrink-0 items-center justify-center rounded-md bg-blue-600 text-white">
                                     <Smartphone className="h-3.5 w-3.5" />
@@ -78,52 +78,51 @@ const HomePage = () => {
                                 </span>
                             </div>
 
-                            <div className="flex items-center justify-between sm:justify-end gap-2 flex-wrap shrink-0">
-                                <div className="flex items-center gap-1.5 sm:gap-2 text-[10.5px] sm:text-[11px] font-medium text-zinc-600 dark:text-zinc-300 flex-wrap">
+                            {installPromptEvent ? (
+                                <button
+                                    type="button"
+                                    onClick={handleInstallClick}
+                                    className="btn-brand-primary rounded-lg px-3 py-1 text-[11px] gap-1 cursor-pointer whitespace-nowrap shrink-0"
+                                >
+                                    <Download className="h-3 w-3" />
+                                    <span>Install</span>
+                                </button>
+                            ) : (
+                                <div className="flex items-center gap-1.5 sm:gap-2 text-[10px] sm:text-[11px] font-medium text-zinc-600 dark:text-zinc-300 flex-wrap justify-end">
                                     <span className="inline-flex items-center gap-1">
                                         <span className="inline-flex h-4 w-4 items-center justify-center rounded-full bg-blue-600/15 text-[9.5px] font-bold text-blue-700 dark:bg-blue-400/20 dark:text-blue-300">1</span>
-                                        Open on phone
+                                        <span className="hidden sm:inline">Open on phone</span>
+                                        <span className="sm:hidden">Phone</span>
                                     </span>
                                     <span className="text-zinc-300 dark:text-zinc-700">→</span>
                                     <span className="inline-flex items-center gap-1">
                                         <span className="inline-flex h-4 w-4 items-center justify-center rounded-full bg-blue-600/15 text-[9.5px] font-bold text-blue-700 dark:bg-blue-400/20 dark:text-blue-300">2</span>
-                                        Tap Share / ⋮
+                                        Share / ⋮
                                     </span>
                                     <span className="text-zinc-300 dark:text-zinc-700">→</span>
                                     <span className="inline-flex items-center gap-1">
                                         <span className="inline-flex h-4 w-4 items-center justify-center rounded-full bg-blue-600/15 text-[9.5px] font-bold text-blue-700 dark:bg-blue-400/20 dark:text-blue-300">3</span>
-                                        Add to Home Screen
+                                        Add to Home
                                     </span>
                                 </div>
-
-                                {installPromptEvent && (
-                                    <button
-                                        type="button"
-                                        onClick={handleInstallClick}
-                                        className="btn-brand-primary rounded-lg px-2.5 py-1 text-[11px] gap-1 cursor-pointer whitespace-nowrap"
-                                    >
-                                        <Download className="h-3 w-3" />
-                                        <span>Install</span>
-                                    </button>
-                                )}
-                            </div>
+                            )}
                         </div>
                     </motion.div>
                 )}
 
-                <div className="grid w-full items-center gap-12 lg:grid-cols-[minmax(0,1fr)_minmax(0,1.2fr)] lg:gap-10">
+                <div className="grid w-full items-center gap-7 sm:gap-10 lg:grid-cols-[minmax(0,1fr)_minmax(0,1.2fr)] lg:gap-10">
                     <motion.div
                         initial={{ opacity: 0, y: 16 }}
                         animate={{ opacity: 1, y: 0 }}
                         transition={{ duration: 0.5, ease: "easeOut" }}
                         style={{ willChange: "transform, opacity" }}
-                        className="relative text-center lg:text-left flex flex-col items-center lg:items-start lg:-translate-y-5"
+                        className="relative text-center lg:text-left flex flex-col items-center lg:items-start lg:-translate-y-5 min-w-0"
                     >
                         {/* Pure Clean Industry-Grade Headline Lockup */}
-                        <h1 className="text-3xl sm:text-4xl md:text-5xl lg:text-[3.25rem] xl:text-[3.65rem] font-extrabold tracking-[-0.035em] leading-[1.15] text-zinc-900 dark:text-white text-center lg:text-left select-none flex flex-col gap-2 sm:gap-2.5 lg:gap-3">
-                            <span className="block whitespace-nowrap">Discover Faster.</span>
-                            <span className="block whitespace-nowrap">Build Better.</span>
-                            <span className="relative inline-block w-fit whitespace-nowrap pb-4">
+                        <h1 className="text-[1.85rem] sm:text-4xl md:text-5xl lg:text-[3.25rem] xl:text-[3.65rem] font-extrabold tracking-[-0.035em] leading-[1.15] text-zinc-900 dark:text-white text-center lg:text-left select-none flex flex-col gap-1.5 sm:gap-2.5 lg:gap-3 max-w-full">
+                            <span className="block sm:whitespace-nowrap">Discover Faster.</span>
+                            <span className="block sm:whitespace-nowrap">Build Better.</span>
+                            <span className="relative inline-block w-fit sm:whitespace-nowrap pb-3 sm:pb-4 mx-auto lg:mx-0">
                                 <span className="moving-logo-gradient">Win Together.</span>
                                 {/* Handwritten pen scribble underline — cleanly below 'g' */}
                                 <svg
@@ -147,17 +146,17 @@ const HomePage = () => {
                             </span>
                         </h1>
 
-                        <div className="mt-10 lg:mt-11 flex flex-col sm:flex-row items-center gap-4 w-full sm:w-auto">
+                        <div className="mt-7 sm:mt-8 lg:mt-11 flex flex-col sm:flex-row items-center gap-3 sm:gap-4 w-full max-w-xs sm:max-w-none mx-auto lg:mx-0 sm:w-auto">
                             <Link
                                 to="/hackathons"
-                                className="btn-brand-primary w-full sm:w-auto rounded-lg px-7 py-3.5 text-base gap-2"
+                                className="btn-brand-primary w-full sm:w-auto rounded-lg px-6 sm:px-7 py-3 sm:py-3.5 text-sm sm:text-base gap-2"
                             >
                                 <span>Explore Hackathons</span>
                                 <ArrowRight className="h-4 w-4" />
                             </Link>
                             <Link
                                 to="/signup?returnTo=/teams"
-                                className="btn-brand-secondary w-full sm:w-auto rounded-lg px-7 py-3.5 text-base gap-2"
+                                className="btn-brand-secondary w-full sm:w-auto rounded-lg px-6 sm:px-7 py-3 sm:py-3.5 text-sm sm:text-base gap-2"
                             >
                                 Create Your Team
                             </Link>
@@ -169,7 +168,7 @@ const HomePage = () => {
                         animate={{ opacity: 1, scale: 1 }}
                         transition={{ duration: 0.6, delay: 0.1, ease: "easeOut" }}
                         style={{ willChange: "transform, opacity" }}
-                        className="relative mx-auto w-full max-w-2xl lg:max-w-none flex justify-center lg:justify-end"
+                        className="relative mx-auto w-full max-w-2xl lg:max-w-none hidden lg:flex justify-center lg:justify-end"
                     >
                         <ProductStoryAnimation />
                     </motion.div>
