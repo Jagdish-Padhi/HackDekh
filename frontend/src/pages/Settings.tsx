@@ -11,9 +11,14 @@ import {
   Loader2,
   User,
   SlidersHorizontal,
+  LogOut,
+  ChevronRight,
+  ChevronLeft,
+  Smartphone,
 } from "lucide-react";
+import { useNavigate } from "react-router-dom";
 import { useAuth, type TravelPreference, type UserPreferences } from "../context/AuthContext";
-import { useToast } from "../context";
+import { useCache, useToast } from "../context";
 import { userApi } from "../services";
 import {
   AVAILABLE_MODES,
@@ -51,12 +56,12 @@ const inputCls =
 
 type NavSection = "profile" | "preferences" | "security" | "appearance" | "danger";
 
-const NAV_ITEMS: { id: NavSection; label: string; icon: React.ElementType; danger?: boolean }[] = [
-  { id: "profile", label: "Profile", icon: User },
-  { id: "preferences", label: "Fit Preferences", icon: SlidersHorizontal },
-  { id: "security", label: "Security", icon: Shield },
-  { id: "appearance", label: "Appearance", icon: Moon },
-  { id: "danger", label: "Danger Zone", icon: AlertTriangle, danger: true },
+const NAV_ITEMS: { id: NavSection; label: string; subtitle: string; icon: React.ElementType; danger?: boolean }[] = [
+  { id: "profile", label: "Profile", subtitle: "Name, email & username", icon: User },
+  { id: "preferences", label: "Fit Preferences", subtitle: "City, travel, skills & 24h alerts", icon: SlidersHorizontal },
+  { id: "security", label: "Security", subtitle: "Update your password", icon: Shield },
+  { id: "appearance", label: "Appearance", subtitle: "Light or dark theme", icon: Moon },
+  { id: "danger", label: "Danger Zone", subtitle: "Delete your account", icon: AlertTriangle, danger: true },
 ];
 
 /* ─── main component ─────────────────────────────────────────────────────────  */
@@ -68,9 +73,62 @@ const SettingsPage = () => {
     path: "/settings",
     noIndex: true,
   });
-  const { user, updateUser } = useAuth();
+  const navigate = useNavigate();
+  const { user, updateUser, logout } = useAuth();
+  const { clearCache } = useCache();
   const { showToast } = useToast();
   const [active, setActive] = useState<NavSection>("profile");
+  const [mobileShowDetail, setMobileShowDetail] = useState(false);
+  const [loggingOut, setLoggingOut] = useState(false);
+  const [installPromptEvent, setInstallPromptEvent] = useState<any>(null);
+  const [isStandalone, setIsStandalone] = useState(() => {
+    if (typeof window === "undefined") return false;
+    return window.matchMedia("(display-mode: standalone)").matches || (window.navigator as any).standalone === true;
+  });
+  const isIosSafari =
+    typeof navigator !== "undefined" &&
+    /iPad|iPhone|iPod/.test(navigator.userAgent) &&
+    !(window as any).MSStream;
+
+  useEffect(() => {
+    const onBeforeInstall = (e: Event) => {
+      e.preventDefault();
+      setInstallPromptEvent(e);
+    };
+    const onInstalled = () => {
+      setIsStandalone(true);
+      setInstallPromptEvent(null);
+    };
+    window.addEventListener("beforeinstallprompt", onBeforeInstall);
+    window.addEventListener("appinstalled", onInstalled);
+    return () => {
+      window.removeEventListener("beforeinstallprompt", onBeforeInstall);
+      window.removeEventListener("appinstalled", onInstalled);
+    };
+  }, []);
+
+  const handleInstallApp = async () => {
+    if (!installPromptEvent) return;
+    await installPromptEvent.prompt();
+    const choice = await installPromptEvent.userChoice;
+    if (choice?.outcome === "accepted") {
+      setInstallPromptEvent(null);
+      showToast("Installing HackDekh app...", "success");
+    }
+  };
+
+  const handleLogout = async () => {
+    setLoggingOut(true);
+    try {
+      await logout();
+    } catch {
+      // fallback
+    } finally {
+      clearCache();
+      sessionStorage.removeItem("dismissedSignupFunnel");
+      navigate("/login");
+    }
+  };
 
   // ── Profile ──
   const [fullName, setFullName] = useState(user?.fullName || "");
@@ -296,11 +354,9 @@ const SettingsPage = () => {
   const initials = (user?.fullName || "U").slice(0, 2).toUpperCase();
 
   return (
-    <section className="mx-auto w-full max-w-5xl py-6 px-0">
-
-
-      <div className="flex gap-10 md:gap-16">
-        {/* ── Left sidebar nav ── */}
+    <section className="mx-auto w-full max-w-5xl px-1 sm:px-2 py-2 sm:py-5">
+      <div className="flex flex-col md:flex-row gap-5 md:gap-12 lg:gap-16">
+        {/* ── Left sidebar nav (desktop) ── */}
         <nav className="hidden md:flex flex-col gap-0.5 w-44 shrink-0">
           {NAV_ITEMS.map((item) => {
             const Icon = item.icon;
@@ -309,7 +365,7 @@ const SettingsPage = () => {
               <button
                 key={item.id}
                 onClick={() => setActive(item.id)}
-                className={`relative flex items-center gap-2.5 w-full rounded-lg px-3 py-2 text-sm font-medium text-left transition-colors ${
+                className={`relative flex items-center gap-2.5 w-full rounded-lg px-3 py-2 text-sm font-medium text-left transition-colors cursor-pointer ${
                   isActive
                     ? item.danger
                       ? "bg-rose-50 text-rose-600 dark:bg-rose-950/30 dark:text-rose-400"
@@ -333,60 +389,185 @@ const SettingsPage = () => {
           })}
         </nav>
 
-        {/* Mobile tabs (small screens) */}
-        <div className="flex md:hidden gap-1 mb-6 flex-wrap w-full">
-          {NAV_ITEMS.map((item) => {
-            const Icon = item.icon;
-            const isActive = active === item.id;
-            return (
+        {/* Mobile Native Settings List (shown when no sub-page is open) */}
+        {!mobileShowDetail && (
+          <div className="md:hidden space-y-4 w-full">
+            {/* Account Summary Card */}
+            <button
+              type="button"
+              onClick={() => { setActive("profile"); setMobileShowDetail(true); }}
+              className="w-full flex items-center justify-between gap-3 rounded-xl border border-zinc-200 bg-white p-4 text-left shadow-xs transition active:scale-[0.99] dark:border-zinc-800 dark:bg-zinc-900/60"
+            >
+              <div className="flex items-center gap-3.5 min-w-0">
+                <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-blue-500 to-indigo-600 text-base font-extrabold text-white shadow-sm select-none">
+                  {initials}
+                </div>
+                <div className="min-w-0">
+                  <p className="text-sm font-bold text-zinc-900 dark:text-zinc-100 truncate">
+                    {user?.fullName || "Your Name"}
+                  </p>
+                  <p className="text-xs text-zinc-500 dark:text-zinc-400 truncate">
+                    @{user?.username || "username"} • {user?.email || ""}
+                  </p>
+                </div>
+              </div>
+              <ChevronRight className="h-4 w-4 text-zinc-400 shrink-0" />
+            </button>
+
+            {/* Primary Settings List */}
+            <div className="rounded-xl border border-zinc-200 bg-white divide-y divide-zinc-100 overflow-hidden shadow-xs dark:border-zinc-800 dark:bg-zinc-900/60 dark:divide-zinc-800/80">
+              {NAV_ITEMS.filter((item) => !item.danger).map((item) => {
+                const Icon = item.icon;
+                return (
+                  <button
+                    key={item.id}
+                    type="button"
+                    onClick={() => { setActive(item.id); setMobileShowDetail(true); }}
+                    className="w-full flex items-center justify-between gap-3 px-4 py-3.5 text-left transition hover:bg-zinc-50 active:bg-zinc-100 dark:hover:bg-zinc-800/50 dark:active:bg-zinc-800"
+                  >
+                    <div className="flex items-center gap-3 min-w-0">
+                      <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-zinc-100 text-zinc-600 dark:bg-zinc-800 dark:text-zinc-300">
+                        <Icon className="h-4 w-4" />
+                      </div>
+                      <div className="min-w-0">
+                        <p className="text-sm font-semibold text-zinc-900 dark:text-zinc-100 truncate">
+                          {item.label}
+                        </p>
+                        <p className="text-[11px] text-zinc-500 dark:text-zinc-400 truncate">
+                          {item.subtitle}
+                        </p>
+                      </div>
+                    </div>
+                    <ChevronRight className="h-4 w-4 text-zinc-400 shrink-0" />
+                  </button>
+                );
+              })}
+            </div>
+
+            {/* Install App Card (shown only when not already running as installed app) */}
+            {!isStandalone && (installPromptEvent || isIosSafari) && (
+              <div className="rounded-xl border border-blue-200/80 bg-blue-50/60 p-3.5 dark:border-blue-900/50 dark:bg-blue-950/25 flex items-center justify-between gap-3">
+                <div className="flex items-center gap-3 min-w-0">
+                  <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-blue-600 text-white">
+                    <Smartphone className="h-4 w-4" />
+                  </div>
+                  <div className="min-w-0">
+                    <p className="text-xs font-bold text-zinc-900 dark:text-zinc-100">
+                      Install HackDekh App
+                    </p>
+                    <p className="text-[11px] text-zinc-600 dark:text-zinc-400 truncate">
+                      {installPromptEvent
+                        ? "Add to home screen for full-screen app feel"
+                        : "Tap Share → Add to Home Screen"}
+                    </p>
+                  </div>
+                </div>
+                {installPromptEvent && (
+                  <button
+                    type="button"
+                    onClick={handleInstallApp}
+                    className="shrink-0 rounded-lg bg-blue-600 px-3 py-1.5 text-xs font-bold text-white shadow-xs transition active:scale-95"
+                  >
+                    Install
+                  </button>
+                )}
+              </div>
+            )}
+
+            {/* Danger & Session Group */}
+            <div className="rounded-xl border border-zinc-200 bg-white divide-y divide-zinc-100 overflow-hidden shadow-xs dark:border-zinc-800 dark:bg-zinc-900/60 dark:divide-zinc-800/80">
+              {NAV_ITEMS.filter((item) => item.danger).map((item) => {
+                const Icon = item.icon;
+                return (
+                  <button
+                    key={item.id}
+                    type="button"
+                    onClick={() => { setActive(item.id); setMobileShowDetail(true); }}
+                    className="w-full flex items-center justify-between gap-3 px-4 py-3.5 text-left transition hover:bg-rose-50/40 active:bg-rose-50 dark:hover:bg-rose-950/20"
+                  >
+                    <div className="flex items-center gap-3 min-w-0">
+                      <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-rose-50 text-rose-600 dark:bg-rose-950/40 dark:text-rose-400">
+                        <Icon className="h-4 w-4" />
+                      </div>
+                      <div className="min-w-0">
+                        <p className="text-sm font-semibold text-rose-600 dark:text-rose-400 truncate">
+                          {item.label}
+                        </p>
+                        <p className="text-[11px] text-zinc-500 dark:text-zinc-400 truncate">
+                          {item.subtitle}
+                        </p>
+                      </div>
+                    </div>
+                    <ChevronRight className="h-4 w-4 text-zinc-400 shrink-0" />
+                  </button>
+                );
+              })}
+
               <button
-                key={item.id}
-                onClick={() => setActive(item.id)}
-                className={`flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-semibold transition ${
-                  isActive
-                    ? item.danger
-                      ? "bg-rose-600 text-white"
-                      : "bg-blue-600 text-white"
-                    : "bg-zinc-100 text-zinc-600 dark:bg-zinc-800 dark:text-zinc-300"
-                }`}
+                type="button"
+                onClick={handleLogout}
+                disabled={loggingOut}
+                className="w-full flex items-center justify-between gap-3 px-4 py-3.5 text-left transition hover:bg-rose-50/40 active:bg-rose-50 dark:hover:bg-rose-950/20"
               >
-                <Icon className="h-3.5 w-3.5" />
-                {item.label}
+                <div className="flex items-center gap-3 min-w-0">
+                  <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-zinc-100 text-rose-600 dark:bg-zinc-800 dark:text-rose-400">
+                    {loggingOut ? <Loader2 className="h-4 w-4 animate-spin" /> : <LogOut className="h-4 w-4" />}
+                  </div>
+                  <div className="min-w-0">
+                    <p className="text-sm font-semibold text-rose-600 dark:text-rose-400">
+                      Log out
+                    </p>
+                    <p className="text-[11px] text-zinc-500 dark:text-zinc-400 truncate">
+                      Sign out of your account on this device
+                    </p>
+                  </div>
+                </div>
               </button>
-            );
-          })}
-        </div>
+            </div>
+          </div>
+        )}
 
         {/* ── Right content ── */}
-        <div className="flex-1 min-w-0 space-y-0">
+        <div className={`flex-1 min-w-0 space-y-0 ${mobileShowDetail ? "block" : "hidden md:block"}`}>
+          {/* Mobile Detail Back Header */}
+          <div className="md:hidden mb-4 pb-3 border-b border-zinc-200/80 dark:border-zinc-800/80">
+            <button
+              type="button"
+              onClick={() => setMobileShowDetail(false)}
+              className="inline-flex items-center gap-1.5 text-xs font-semibold text-blue-600 dark:text-blue-400 active:opacity-75"
+            >
+              <ChevronLeft className="h-4 w-4" />
+              Settings
+            </button>
+          </div>
           {/* PROFILE */}
           {active === "profile" && (
             <div>
               <h2 className="text-base font-bold text-zinc-900 dark:text-zinc-100 mb-1">Profile</h2>
-              <p className="text-sm text-zinc-500 dark:text-zinc-400 mb-6">
+              <p className="text-xs sm:text-sm text-zinc-500 dark:text-zinc-400 mb-5 sm:mb-6">
                 Your name and email are shown to teammates and on your profile.
               </p>
 
               {/* Avatar row */}
-              <div className="flex items-center gap-4 mb-8 pb-6 border-b border-zinc-100 dark:border-zinc-800">
-                <div className="flex h-16 w-16 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-blue-500 to-indigo-600 text-xl font-extrabold text-white shadow-md select-none">
+              <div className="flex items-center gap-3.5 sm:gap-4 mb-6 sm:mb-8 pb-5 sm:pb-6 border-b border-zinc-100 dark:border-zinc-800">
+                <div className="flex h-14 w-14 sm:h-16 sm:w-16 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-blue-500 to-indigo-600 text-lg sm:text-xl font-extrabold text-white shadow-md select-none">
                   {initials}
                 </div>
-                <div>
-                  <p className="text-sm font-semibold text-zinc-800 dark:text-zinc-200">
+                <div className="min-w-0">
+                  <p className="text-sm font-semibold text-zinc-800 dark:text-zinc-200 truncate">
                     {user?.fullName || "Your Name"}
                   </p>
-                  <p className="text-xs text-zinc-500 dark:text-zinc-400">@{user?.username || "username"}</p>
+                  <p className="text-xs text-zinc-500 dark:text-zinc-400 truncate">@{user?.username || "username"}</p>
                   <p className="text-[11px] text-zinc-400 dark:text-zinc-500 mt-1">
                     Avatar is auto-generated from your initials.
                   </p>
                 </div>
               </div>
 
-              <form onSubmit={handleSaveProfile} className="space-y-6">
+              <form onSubmit={handleSaveProfile} className="space-y-5 sm:space-y-6">
                 {/* Full name */}
-                <div className="flex items-start justify-between gap-6 pb-6 border-b border-zinc-100 dark:border-zinc-800">
-                  <div className="shrink-0 w-44">
+                <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-2 sm:gap-6 pb-5 sm:pb-6 border-b border-zinc-100 dark:border-zinc-800">
+                  <div className="w-full sm:w-44 shrink-0">
                     <label className="text-sm font-semibold text-zinc-700 dark:text-zinc-300 block">
                       Full Name
                     </label>
@@ -399,14 +580,14 @@ const SettingsPage = () => {
                     required
                     value={fullName}
                     onChange={(e) => setFullName(e.target.value)}
-                    className={`${inputCls} max-w-sm`}
+                    className={`${inputCls} sm:max-w-sm`}
                     placeholder="Your full name"
                   />
                 </div>
 
                 {/* Email */}
-                <div className="flex items-start justify-between gap-6 pb-6 border-b border-zinc-100 dark:border-zinc-800">
-                  <div className="shrink-0 w-44">
+                <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-2 sm:gap-6 pb-5 sm:pb-6 border-b border-zinc-100 dark:border-zinc-800">
+                  <div className="w-full sm:w-44 shrink-0">
                     <label className="text-sm font-semibold text-zinc-700 dark:text-zinc-300 block">
                       Email Address
                     </label>
@@ -419,14 +600,14 @@ const SettingsPage = () => {
                     required
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
-                    className={`${inputCls} max-w-sm`}
+                    className={`${inputCls} sm:max-w-sm`}
                     placeholder="you@example.com"
                   />
                 </div>
 
                 {/* Username (read-only) */}
-                <div className="flex items-start justify-between gap-6 pb-6 border-b border-zinc-100 dark:border-zinc-800">
-                  <div className="shrink-0 w-44">
+                <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-2 sm:gap-6 pb-5 sm:pb-6 border-b border-zinc-100 dark:border-zinc-800">
+                  <div className="w-full sm:w-44 shrink-0">
                     <label className="text-sm font-semibold text-zinc-700 dark:text-zinc-300 block">
                       Username
                     </label>
@@ -434,7 +615,7 @@ const SettingsPage = () => {
                       Cannot be changed. Used for identity.
                     </p>
                   </div>
-                  <div className="flex items-center gap-2 max-w-sm w-full">
+                  <div className="flex items-center gap-2 w-full sm:max-w-sm">
                     <input
                       type="text"
                       disabled
@@ -446,17 +627,38 @@ const SettingsPage = () => {
                 </div>
 
                 {/* Save row */}
-                <div className="flex justify-end pt-2">
+                <div className="flex justify-end pt-1 sm:pt-2">
                   <button
                     type="submit"
                     disabled={profileSaving}
-                    className="btn btn-primary"
+                    className="btn btn-primary w-full sm:w-auto justify-center"
                   >
                     {profileSaving ? <Loader2 className="h-4 w-4 animate-spin text-zinc-400" /> : null}
                     Save changes
                   </button>
                 </div>
               </form>
+
+              {/* Session / Logout */}
+              <div className="mt-8 pt-6 border-t border-zinc-200/80 dark:border-zinc-800/80 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+                <div>
+                  <p className="text-sm font-semibold text-zinc-800 dark:text-zinc-200">
+                    Sign out
+                  </p>
+                  <p className="text-xs text-zinc-500 dark:text-zinc-400 mt-0.5">
+                    Log out of your HackDekh account on this device.
+                  </p>
+                </div>
+                <button
+                  type="button"
+                  onClick={handleLogout}
+                  disabled={loggingOut}
+                  className="btn w-full sm:w-auto justify-center shrink-0 border border-zinc-200 bg-white text-rose-600 hover:bg-rose-50 hover:border-rose-200 dark:bg-zinc-900 dark:border-zinc-800 dark:text-rose-400 dark:hover:bg-rose-950/30 dark:hover:border-rose-900/50 transition-colors cursor-pointer"
+                >
+                  {loggingOut ? <Loader2 className="h-4 w-4 animate-spin" /> : <LogOut className="h-4 w-4" />}
+                  Log out
+                </button>
+              </div>
             </div>
           )}
 
@@ -504,7 +706,7 @@ const SettingsPage = () => {
                   <label className="block text-xs font-semibold text-zinc-700 dark:text-zinc-300 mb-1.5">
                     Travel Willingness
                   </label>
-                  <div className="grid grid-cols-2 gap-2.5">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
                     {(Object.keys(TRAVEL_PREFERENCE_LABELS) as TravelPreference[]).map((key) => (
                       <button
                         key={key}
@@ -638,7 +840,7 @@ const SettingsPage = () => {
                       type="button"
                       disabled={sendingTestAlert}
                       onClick={handleSendTestAlert}
-                      className="inline-flex items-center justify-center gap-1.5 rounded-lg border border-zinc-200 bg-white px-3 py-1.5 text-xs font-semibold text-zinc-700 transition hover:border-zinc-300 hover:bg-zinc-50 disabled:opacity-50 dark:border-zinc-800 dark:bg-zinc-950 dark:text-zinc-200 dark:hover:border-zinc-700 dark:hover:bg-zinc-900 cursor-pointer shrink-0"
+                      className="inline-flex w-full sm:w-auto items-center justify-center gap-1.5 rounded-lg border border-zinc-200 bg-white px-3 py-2 sm:py-1.5 text-xs font-semibold text-zinc-700 transition hover:border-zinc-300 hover:bg-zinc-50 disabled:opacity-50 dark:border-zinc-800 dark:bg-zinc-950 dark:text-zinc-200 dark:hover:border-zinc-700 dark:hover:bg-zinc-900 cursor-pointer shrink-0"
                     >
                       {sendingTestAlert ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : null}
                       Send Test Alert
@@ -687,7 +889,7 @@ const SettingsPage = () => {
                 </div>
 
                 <div className="pt-2">
-                  <button type="submit" disabled={prefsSaving} className="btn btn-primary">
+                  <button type="submit" disabled={prefsSaving} className="btn btn-primary w-full sm:w-auto justify-center">
                     {prefsSaving ? <Loader2 className="h-4 w-4 animate-spin text-zinc-400" /> : null}
                     Save preferences
                   </button>
@@ -700,14 +902,14 @@ const SettingsPage = () => {
           {active === "security" && (
             <div>
               <h2 className="text-base font-bold text-zinc-900 dark:text-zinc-100 mb-1">Security</h2>
-              <p className="text-sm text-zinc-500 dark:text-zinc-400 mb-6">
+              <p className="text-xs sm:text-sm text-zinc-500 dark:text-zinc-400 mb-5 sm:mb-6">
                 Change your login password. Use a strong, unique password.
               </p>
 
-              <form onSubmit={handleChangePassword} className="space-y-6">
+              <form onSubmit={handleChangePassword} className="space-y-5 sm:space-y-6">
                 {/* Current password */}
-                <div className="flex items-start justify-between gap-6 pb-6 border-b border-zinc-100 dark:border-zinc-800">
-                  <div className="shrink-0 w-44">
+                <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-2 sm:gap-6 pb-5 sm:pb-6 border-b border-zinc-100 dark:border-zinc-800">
+                  <div className="w-full sm:w-44 shrink-0">
                     <label className="text-sm font-semibold text-zinc-700 dark:text-zinc-300 block">
                       Current Password
                     </label>
@@ -715,7 +917,7 @@ const SettingsPage = () => {
                       Your existing password.
                     </p>
                   </div>
-                  <div className="relative max-w-sm w-full">
+                  <div className="relative w-full sm:max-w-sm">
                     <input
                       type={showOld ? "text" : "password"}
                       required
@@ -735,8 +937,8 @@ const SettingsPage = () => {
                 </div>
 
                 {/* New password + strength */}
-                <div className="flex items-start justify-between gap-6 pb-6 border-b border-zinc-100 dark:border-zinc-800">
-                  <div className="shrink-0 w-44">
+                <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-2 sm:gap-6 pb-5 sm:pb-6 border-b border-zinc-100 dark:border-zinc-800">
+                  <div className="w-full sm:w-44 shrink-0">
                     <label className="text-sm font-semibold text-zinc-700 dark:text-zinc-300 block">
                       New Password
                     </label>
@@ -744,7 +946,7 @@ const SettingsPage = () => {
                       Min 8 chars, include symbols.
                     </p>
                   </div>
-                  <div className="max-w-sm w-full space-y-2">
+                  <div className="w-full sm:max-w-sm space-y-2">
                     <div className="relative">
                       <input
                         type={showNew ? "text" : "password"}
@@ -783,8 +985,8 @@ const SettingsPage = () => {
                 </div>
 
                 {/* Confirm password */}
-                <div className="flex items-start justify-between gap-6 pb-6 border-b border-zinc-100 dark:border-zinc-800">
-                  <div className="shrink-0 w-44">
+                <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-2 sm:gap-6 pb-5 sm:pb-6 border-b border-zinc-100 dark:border-zinc-800">
+                  <div className="w-full sm:w-44 shrink-0">
                     <label className="text-sm font-semibold text-zinc-700 dark:text-zinc-300 block">
                       Confirm Password
                     </label>
@@ -792,7 +994,7 @@ const SettingsPage = () => {
                       Must match new password.
                     </p>
                   </div>
-                  <div className="max-w-sm w-full space-y-1">
+                  <div className="w-full sm:max-w-sm space-y-1">
                     <div className="relative">
                       <input
                         type={showConfirm ? "text" : "password"}
@@ -820,11 +1022,11 @@ const SettingsPage = () => {
                   </div>
                 </div>
 
-                <div className="flex justify-end pt-2">
+                <div className="flex justify-end pt-1 sm:pt-2">
                   <button
                     type="submit"
                     disabled={pwSaving || (!!confirmPw && confirmPw !== newPw)}
-                    className="btn btn-primary"
+                    className="btn btn-primary w-full sm:w-auto justify-center"
                   >
                     {pwSaving ? <Loader2 className="h-4 w-4 animate-spin text-zinc-400" /> : null}
                     Update password
@@ -897,25 +1099,25 @@ const SettingsPage = () => {
           {active === "danger" && (
             <div>
               <h2 className="text-base font-bold text-zinc-900 dark:text-zinc-100 mb-1">Danger Zone</h2>
-              <p className="text-sm text-zinc-500 dark:text-zinc-400 mb-6">
+              <p className="text-xs sm:text-sm text-zinc-500 dark:text-zinc-400 mb-5 sm:mb-6">
                 Irreversible and destructive account actions.
               </p>
 
               <div className="rounded-lg border border-rose-200 bg-rose-50/30 dark:border-rose-900/50 dark:bg-rose-950/10 divide-y divide-rose-200/60 dark:divide-rose-900/40">
                 {/* Delete account */}
-                <div className="flex items-center justify-between gap-6 px-5 py-4">
+                <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 px-4 sm:px-5 py-4">
                   <div>
                     <p className="text-sm font-semibold text-zinc-800 dark:text-zinc-200">
                       Delete your account
                     </p>
-                    <p className="text-xs text-zinc-500 dark:text-zinc-400 mt-0.5 max-w-sm">
+                    <p className="text-xs text-zinc-500 dark:text-zinc-400 mt-0.5 max-w-sm leading-relaxed">
                       Permanently delete your HackDekh account, all your teams and participation data. This action{" "}
                       <strong className="text-rose-600 dark:text-rose-400">cannot</strong> be undone.
                     </p>
                   </div>
                   <button
                     onClick={() => { setDeleteInput(""); setShowDeleteModal(true); }}
-                    className="btn shrink-0 border border-rose-200 bg-white text-rose-600 hover:bg-rose-600 hover:text-white hover:border-rose-600 dark:bg-transparent dark:border-rose-800 dark:text-rose-400 dark:hover:bg-rose-600 dark:hover:text-white dark:hover:border-rose-600 transition-colors"
+                    className="btn w-full sm:w-auto justify-center shrink-0 border border-rose-200 bg-white text-rose-600 hover:bg-rose-600 hover:text-white hover:border-rose-600 dark:bg-transparent dark:border-rose-800 dark:text-rose-400 dark:hover:bg-rose-600 dark:hover:text-white dark:hover:border-rose-600 transition-colors cursor-pointer"
                   >
                     <Trash2 className="h-4 w-4" />
                     Delete account
@@ -930,12 +1132,12 @@ const SettingsPage = () => {
       {/* ── Delete Account Confirmation Modal ── */}
       <AnimatePresence>
         {showDeleteModal && (
-          <div className="fixed inset-0 z-[100] flex items-center justify-center bg-zinc-950/65 backdrop-blur-sm p-4">
+          <div className="fixed inset-0 z-[100] flex items-end sm:items-center justify-center bg-zinc-950/65 backdrop-blur-sm p-0 sm:p-4">
             <motion.div
-              initial={{ scale: 0.95, opacity: 0 }}
-              animate={{ scale: 1, opacity: 1 }}
-              exit={{ scale: 0.95, opacity: 0 }}
-              className="w-full max-w-md rounded-xl border border-zinc-200 bg-white dark:border-zinc-800 dark:bg-zinc-950 p-6 shadow-2xl"
+              initial={{ y: 20, scale: 0.96, opacity: 0 }}
+              animate={{ y: 0, scale: 1, opacity: 1 }}
+              exit={{ y: 20, scale: 0.96, opacity: 0 }}
+              className="w-full sm:max-w-md rounded-t-2xl sm:rounded-xl border border-zinc-200 bg-white dark:border-zinc-800 dark:bg-zinc-950 p-5 sm:p-6 pb-[max(1.25rem,env(safe-area-inset-bottom))] sm:pb-6 shadow-2xl"
             >
               <div className="flex items-center gap-3 mb-4">
                 <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-rose-500/10">

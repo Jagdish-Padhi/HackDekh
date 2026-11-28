@@ -172,29 +172,29 @@ export default function DashboardPage() {
   ];
 
   return (
-    <div className="mx-auto w-full max-w-7xl px-4 py-2 md:px-6 lg:h-[calc(100vh-5.5rem)] lg:overflow-hidden flex flex-col relative">
+    <div className="mx-auto w-full max-w-7xl px-0 sm:px-2 lg:px-6 py-1 sm:py-2 h-[calc(100dvh-10.25rem)] lg:h-[calc(100vh-5.5rem)] overflow-hidden flex flex-col relative">
       {loadingData ? (
-        <div className="flex-1 min-h-0 grid gap-5 grid-cols-1 lg:grid-cols-[minmax(0,3fr)_minmax(240px,1fr)] select-none pointer-events-none animate-pulse">
-          <div className="rounded-xl border border-zinc-200 bg-white p-6 shadow-xs dark:border-zinc-800 dark:bg-zinc-950/40 h-full min-h-[320px]">
+        <div className="flex-1 min-h-0 flex flex-col lg:grid gap-3.5 sm:gap-5 lg:grid-cols-[minmax(0,3fr)_minmax(240px,1fr)] select-none pointer-events-none animate-pulse">
+          <div className="flex-1 min-h-0 rounded-xl border border-zinc-200 bg-white p-4 sm:p-6 shadow-xs dark:border-zinc-800 dark:bg-zinc-950/40">
             <div className="h-full w-full rounded-lg bg-[linear-gradient(110deg,rgba(228,228,231,0.6),rgba(250,250,250,0.95),rgba(228,228,231,0.6))] bg-size-[200%_100%] animate-[shimmer_1.3s_linear_infinite] dark:bg-[linear-gradient(110deg,rgba(39,39,42,0.9),rgba(63,63,70,0.95),rgba(39,39,42,0.9))]" />
           </div>
 
-          <div className="space-y-2.5">
+          <div className="order-first lg:order-last shrink-0 grid grid-cols-2 lg:grid-cols-1 gap-2.5">
             {Array.from({ length: 4 }).map((_, index) => (
               <div key={index} className="h-12 rounded-xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900/60" />
             ))}
           </div>
         </div>
       ) : (
-        <div className="flex-1 min-h-0 grid gap-5 grid-cols-1 lg:grid-cols-[minmax(0,3fr)_minmax(240px,1fr)]">
+        <div className="flex-1 min-h-0 flex flex-col lg:grid gap-3.5 sm:gap-5 lg:grid-cols-[minmax(0,3fr)_minmax(240px,1fr)]">
           {/* Left Column (75%): Upcoming Stages & Deadlines */}
-          <div className="min-h-0 flex flex-col rounded-xl border border-zinc-200 bg-white p-6 shadow-xs dark:border-zinc-800 dark:bg-zinc-950/40">
-            <div className="flex items-center justify-between mb-5 shrink-0">
-              <div className="flex items-center gap-2">
-                <Calendar className="h-5 w-5 text-blue-600 dark:text-blue-400" />
-                <h2 className="text-sm font-extrabold text-zinc-900 dark:text-zinc-100 uppercase tracking-wider">Upcoming Stages & Deadlines</h2>
+          <div className="flex-1 min-h-0 flex flex-col rounded-xl border border-zinc-200 bg-white p-4 sm:p-6 shadow-xs dark:border-zinc-800 dark:bg-zinc-950/40">
+            <div className="flex items-center justify-between gap-2 mb-4 sm:mb-5 shrink-0">
+              <div className="flex items-center gap-2 min-w-0">
+                <Calendar className="h-4 w-4 sm:h-5 sm:w-5 text-blue-600 dark:text-blue-400 shrink-0" />
+                <h2 className="text-xs sm:text-sm font-extrabold text-zinc-900 dark:text-zinc-100 uppercase tracking-wider truncate">Upcoming Stages & Deadlines</h2>
               </div>
-              <span className="rounded-full bg-zinc-100 dark:bg-zinc-900 px-3 py-1 text-xs font-medium text-zinc-600 dark:text-zinc-400">
+              <span className="rounded-full bg-zinc-100 dark:bg-zinc-900 px-2.5 py-0.5 sm:px-3 sm:py-1 text-[11px] sm:text-xs font-medium text-zinc-600 dark:text-zinc-400 shrink-0">
                 {upcomingDeadlines.length} pending
               </span>
             </div>
@@ -212,8 +212,8 @@ export default function DashboardPage() {
                 </Link>
               </div>
             ) : (
-              <div className="flex-1 min-h-0 overflow-y-auto pr-2">
-                <div className="relative border-l border-zinc-200 dark:border-zinc-800 pl-5 ml-2.5 space-y-5 py-1">
+              <div className="flex-1 min-h-0 overflow-y-auto pr-1 sm:pr-2">
+                <div className="relative border-l border-zinc-200 dark:border-zinc-800 pl-4 sm:pl-5 ml-2 sm:ml-2.5 space-y-4 sm:space-y-5 py-1">
                   {upcomingDeadlines.map(({ stage, participation, daysRemaining }) => {
                     const statusColor = daysRemaining < 0
                       ? "bg-rose-500"
@@ -227,14 +227,14 @@ export default function DashboardPage() {
                         to="/tracker"
                         className="relative group block cursor-pointer hover:bg-zinc-50/50 dark:hover:bg-zinc-900/20 p-2 -m-2 rounded-lg transition-all duration-200"
                       >
-                        <span className={`absolute -left-[19px] top-3 h-3.5 w-3.5 rounded-full border-2 border-white dark:border-zinc-950 ${statusColor}`} />
+                        <span className={`absolute -left-[15px] sm:-left-[19px] top-3 h-3 w-3 sm:h-3.5 sm:w-3.5 rounded-full border-2 border-white dark:border-zinc-950 ${statusColor}`} />
 
-                        <div className="space-y-1 pl-2">
-                          <div className="flex flex-wrap items-center justify-between gap-2">
-                            <h3 className="text-sm font-bold text-zinc-900 dark:text-zinc-100 group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors">
+                        <div className="space-y-1 pl-1.5 sm:pl-2">
+                          <div className="flex items-start justify-between gap-2">
+                            <h3 className="text-xs sm:text-sm font-bold text-zinc-900 dark:text-zinc-100 group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors leading-snug">
                               {stage.name}
                             </h3>
-                            <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${
+                            <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full shrink-0 whitespace-nowrap ${
                               daysRemaining < 0
                                 ? "bg-rose-500/10 text-rose-600 dark:text-rose-400"
                                 : daysRemaining <= 3
@@ -250,7 +250,7 @@ export default function DashboardPage() {
                                 : `${daysRemaining} days left`}
                             </span>
                           </div>
-                          <p className="text-xs text-zinc-500 dark:text-zinc-400">
+                          <p className="text-xs text-zinc-500 dark:text-zinc-400 line-clamp-2">
                             {participation.hackathon.title} • {getTeamName(participation.teamInfo)}
                           </p>
                           {stage.deadline && (
@@ -267,21 +267,21 @@ export default function DashboardPage() {
             )}
           </div>
 
-          {/* Right Column (25%): Horizontal Counter Strips & Team Invitations */}
-          <div className="min-h-0 flex flex-col gap-4 lg:overflow-y-auto">
-            <div className="space-y-2.5">
+          {/* Right Column (25%): Summary Counters (2x2 pinned at top on mobile, stacked on desktop) */}
+          <div className="order-first lg:order-last shrink-0 lg:min-h-0 flex flex-col gap-3 lg:overflow-y-auto">
+            <div className="grid grid-cols-2 lg:grid-cols-1 gap-2.5">
               {summaryCounters.map((item) => {
                 const Icon = item.icon;
                 return (
                   <div
                     key={item.label}
-                    className="flex items-center justify-between rounded-xl border border-zinc-200 bg-white px-4 py-3 shadow-xs dark:border-zinc-800 dark:bg-zinc-900/60"
+                    className="flex items-center justify-between gap-2 rounded-xl border border-zinc-200 bg-white px-3.5 py-2.5 sm:px-4 sm:py-3 shadow-xs dark:border-zinc-800 dark:bg-zinc-900/60"
                   >
-                    <span className="flex items-center gap-2.5 text-xs font-medium text-zinc-500 dark:text-zinc-400">
+                    <span className="flex items-center gap-2 text-[11px] sm:text-xs font-medium text-zinc-500 dark:text-zinc-400 min-w-0">
                       <Icon className="h-3.5 w-3.5 shrink-0 text-zinc-400 dark:text-zinc-500" />
-                      {item.label}
+                      <span className="truncate">{item.label}</span>
                     </span>
-                    <span className="text-base font-bold tabular-nums tracking-tight text-zinc-900 dark:text-zinc-50">
+                    <span className="text-base font-bold tabular-nums tracking-tight text-zinc-900 dark:text-zinc-50 shrink-0">
                       {item.value}
                     </span>
                   </div>

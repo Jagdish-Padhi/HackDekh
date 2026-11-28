@@ -31,9 +31,9 @@ const HomePage = () => {
     }
 
     return (
-        <div className="relative flex flex-col items-center justify-center gap-24 sm:gap-32 lg:gap-36 pt-0 pb-16 sm:pb-20 lg:pb-28 w-full">
+        <div className="relative flex flex-col items-center justify-center gap-16 sm:gap-28 lg:gap-36 pt-0 pb-12 sm:pb-20 lg:pb-28 w-full">
             {/* 1. Hero Section */}
-            <section className="relative w-full min-h-[calc(100vh-4.25rem)] lg:h-[calc(100vh-4.25rem)] flex items-center justify-center">
+            <section className="relative w-full min-h-[calc(100dvh-4.25rem)] lg:h-[calc(100vh-4.25rem)] flex items-center justify-center">
                 <div className="grid w-full items-center gap-12 lg:grid-cols-[minmax(0,1fr)_minmax(0,1.2fr)] lg:gap-10">
                     <motion.div
                         initial={{ opacity: 0, y: 16 }}
@@ -109,17 +109,17 @@ const HomePage = () => {
                 className="w-full space-y-10"
             >
                 <div className="mx-auto max-w-3xl text-center space-y-3">
-                    <h2 className="text-3xl font-bold tracking-tight text-zinc-900 sm:text-4xl dark:text-zinc-100">
+                    <h2 className="text-2xl font-bold tracking-tight text-zinc-900 sm:text-4xl dark:text-zinc-100">
                         Stop losing track of hackathons in group chats
                     </h2>
-                    <p className="text-base text-zinc-600 dark:text-zinc-400 max-w-2xl mx-auto">
+                    <p className="text-sm sm:text-base text-zinc-600 dark:text-zinc-400 max-w-2xl mx-auto">
                         No more buried Devfolio links, forgotten Unstop cutoffs, or asking your team whether anyone actually registered.
                     </p>
                 </div>
 
-                <div className="grid gap-6 sm:grid-cols-3 text-left">
+                <div className="grid gap-4 sm:gap-6 sm:grid-cols-3 text-left">
                     {/* Highlight 1 */}
-                    <div className="group premium-border-card relative overflow-hidden rounded-xl border border-zinc-200 bg-white/75 p-7 backdrop-blur-md transition-all duration-200 hover:-translate-y-1 hover:border-zinc-300 dark:border-zinc-800 dark:bg-zinc-900/75 dark:hover:border-zinc-700">
+                    <div className="group premium-border-card relative overflow-hidden rounded-xl border border-zinc-200 bg-white/75 p-5 sm:p-7 backdrop-blur-md transition-all duration-200 hover:-translate-y-1 hover:border-zinc-300 dark:border-zinc-800 dark:bg-zinc-900/75 dark:hover:border-zinc-700">
                         <div className="flex h-11 w-11 items-center justify-center rounded-lg bg-blue-500/10 text-blue-600 dark:text-blue-400">
                             <Users className="h-5 w-5" />
                         </div>
@@ -169,10 +169,10 @@ const HomePage = () => {
                 className="w-full space-y-10"
             >
                 <div className="mx-auto max-w-3xl text-center space-y-3">
-                    <h2 className="text-3xl font-bold tracking-tight text-zinc-900 sm:text-4xl dark:text-zinc-100">
+                    <h2 className="text-2xl font-bold tracking-tight text-zinc-900 sm:text-4xl dark:text-zinc-100">
                         Built for how students actually compete
                     </h2>
-                    <p className="text-base text-zinc-600 dark:text-zinc-400 max-w-2xl mx-auto">
+                    <p className="text-sm sm:text-base text-zinc-600 dark:text-zinc-400 max-w-2xl mx-auto">
                         Everything you need from finding the right event to tracking every round with your team.
                     </p>
                 </div>
@@ -220,12 +220,12 @@ const HomePage = () => {
                 style={{ willChange: "transform, opacity" }}
                 className="w-full"
             >
-                <div className="group premium-border-card relative overflow-hidden rounded-xl border border-zinc-200 bg-white/75 p-8 sm:p-12 text-center dark:border-zinc-800 dark:bg-zinc-900/75 backdrop-blur-md">
+                <div className="group premium-border-card relative overflow-hidden rounded-xl border border-zinc-200 bg-white/75 p-6 sm:p-12 text-center dark:border-zinc-800 dark:bg-zinc-900/75 backdrop-blur-md">
                     <div className="mx-auto max-w-2xl space-y-4">
-                        <h2 className="text-3xl font-extrabold tracking-tight text-zinc-900 sm:text-4xl dark:text-zinc-50">
+                        <h2 className="text-2xl font-extrabold tracking-tight text-zinc-900 sm:text-4xl dark:text-zinc-50">
                             Ready for your next hackathon?
                         </h2>
-                        <p className="text-base text-zinc-600 dark:text-zinc-400">
+                        <p className="text-sm sm:text-base text-zinc-600 dark:text-zinc-400">
                             Find events worth your weekend, sync with your team using a 6-digit code, and track every deadline in one place.
                         </p>
                         <div className="pt-4 flex flex-col sm:flex-row items-center justify-center gap-4">

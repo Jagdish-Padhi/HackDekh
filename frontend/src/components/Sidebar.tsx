@@ -1,6 +1,6 @@
-import { useEffect, useState } from 'react'
-import { NavLink, useNavigate, Link } from 'react-router-dom'
-import { BarChart3, LogOut, Menu, Trophy, Users, X, Settings, Crosshair } from 'lucide-react'
+import { useState } from 'react'
+import { NavLink, useNavigate, Link, useLocation } from 'react-router-dom'
+import { BarChart3, LogOut, Trophy, Users, Settings, Crosshair } from 'lucide-react'
 import { usePageChrome } from '../context/pageChrome'
 import { useAuth, useCache } from '../context'
 
@@ -14,31 +14,12 @@ const navItems = [
 
 const Sidebar = () => {
     const navigate = useNavigate()
-    const { sidebarExpanded, closeSidebar, toggleSidebar, pageActions } = usePageChrome()
+    const location = useLocation()
+    const { closeSidebar, pageActions } = usePageChrome()
     const [isDesktopHovered, setIsDesktopHovered] = useState(false)
-    const [isMobile, setIsMobile] = useState(() => {
-        if (typeof window === 'undefined') {
-            return false
-        }
-
-        return window.innerWidth < 1024
-    })
     const { user, isAuthenticated, logout } = useAuth()
     const logoDestination = isAuthenticated ? '/dashboard' : '/hackathons'
     const { clearCache } = useCache()
-
-    useEffect(() => {
-        if (typeof window === 'undefined') {
-            return
-        }
-
-        const updateViewportMode = () => setIsMobile(window.innerWidth < 1024)
-
-        updateViewportMode()
-        window.addEventListener('resize', updateViewportMode)
-
-        return () => window.removeEventListener('resize', updateViewportMode)
-    }, [])
 
     const handleLogout = async () => {
         try {
@@ -53,31 +34,49 @@ const Sidebar = () => {
         }
     }
 
-    const isExpanded = isMobile ? sidebarExpanded : isDesktopHovered
+    const isExpanded = isDesktopHovered
     const sidebarWidthClass = isExpanded ? 'lg:w-60 lg:shadow-xl' : 'lg:w-18 lg:shadow-none'
-    const mobileVisibilityClass = isMobile ? (sidebarExpanded ? 'translate-x-0' : '-translate-x-full') : 'translate-x-0'
+    const activeTabTitle =
+        navItems.find((item) => location.pathname === item.path)?.name ||
+        (location.pathname.startsWith('/hackathons/') ? 'Hackathon' : '')
 
     return (
         <>
-            {/* Mobile logo header - fixed at top, visible on mobile */}
-            <div className="fixed inset-x-0 top-0 z-90 flex items-center justify-between border-b border-zinc-200 bg-white/95 px-4 py-4 backdrop-blur-xl dark:border-zinc-800 dark:bg-zinc-950/95 lg:hidden">
-                <Link to={logoDestination} className="flex items-center gap-2.5">
-                    <img src="/BrandImages/HackDekh.png" alt="HackDekh Logo" className="h-10 w-10 sm:h-11 sm:w-11 rounded-full object-contain shrink-0 drop-shadow-md" />
-                    <span className="text-lg font-extrabold tracking-tight font-logo flex items-center">
-                        <span className="text-zinc-900 dark:text-white">Hack</span>
-                        <span className="bg-gradient-to-r from-blue-500 to-indigo-500 dark:from-blue-400 dark:via-sky-400 dark:to-indigo-400 bg-clip-text text-transparent">Dekh</span>
-                    </span>
-                </Link>
-                <div className="flex items-center gap-2">
-                    <button
-                        type="button"
-                        onClick={toggleSidebar}
-                        className="inline-flex h-9 w-9 items-center justify-center rounded-full border border-zinc-200 bg-white text-zinc-600 shadow-xs transition hover:border-zinc-300 hover:bg-zinc-50 hover:text-zinc-900 dark:border-zinc-800 dark:bg-zinc-900 dark:text-zinc-300 dark:hover:border-zinc-700 dark:hover:bg-zinc-800 dark:hover:text-zinc-100"
-                        aria-label={sidebarExpanded ? 'Close sidebar' : 'Open sidebar'}
-                    >
-                        {sidebarExpanded ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
-                    </button>
+            {/* Mobile compact top header - fixed at top, visible on mobile */}
+            <div className="fixed inset-x-0 top-0 z-90 flex h-14 items-center justify-between border-b border-zinc-200/80 bg-white/90 px-4 backdrop-blur-xl dark:border-zinc-800/80 dark:bg-zinc-950/90 lg:hidden">
+                <div className="flex items-center gap-2.5 min-w-0">
+                    <Link to={logoDestination} className="flex items-center gap-2 shrink-0 select-none">
+                        <img src="/BrandImages/HackDekh.png" alt="HackDekh Logo" className="h-8 w-8 rounded-full object-contain shrink-0 drop-shadow-sm" />
+                        <span className="text-base font-extrabold tracking-tight font-logo flex items-center">
+                            <span className="text-zinc-900 dark:text-white">Hack</span>
+                            <span className="bg-gradient-to-r from-blue-500 to-indigo-500 dark:from-blue-400 dark:via-sky-400 dark:to-indigo-400 bg-clip-text text-transparent">Dekh</span>
+                        </span>
+                    </Link>
+                    {isAuthenticated && activeTabTitle && (
+                        <>
+                            <span className="text-zinc-300 dark:text-zinc-700 font-light select-none">/</span>
+                            <span className="text-sm font-semibold text-zinc-700 dark:text-zinc-200 truncate select-none">
+                                {activeTabTitle}
+                            </span>
+                        </>
+                    )}
                 </div>
+                {!isAuthenticated && (
+                    <div className="flex items-center gap-1.5 shrink-0">
+                        <Link
+                            to="/login"
+                            className="rounded-lg border border-zinc-200 px-2.5 py-1.5 text-xs font-semibold text-zinc-700 dark:border-zinc-700 dark:text-zinc-200"
+                        >
+                            Login
+                        </Link>
+                        <Link
+                            to="/signup"
+                            className="rounded-lg bg-blue-600 px-2.5 py-1.5 text-xs font-semibold text-white"
+                        >
+                            Sign Up
+                        </Link>
+                    </div>
+                )}
             </div>
 
             {/* Desktop logo header - fixed at top, always visible */}
@@ -100,11 +99,11 @@ const Sidebar = () => {
             {/* Desktop layout rail spacer so hover-expand never shifts page content */}
             <div className="hidden lg:block lg:w-18 lg:shrink-0" aria-hidden="true" />
 
-            {/* Sidebar - starts below logo header; expands smoothly on hover on desktop */}
+            {/* Desktop Sidebar - starts below logo header; expands smoothly on hover */}
             <aside
-                onMouseEnter={() => { if (!isMobile) setIsDesktopHovered(true) }}
-                onMouseLeave={() => { if (!isMobile) setIsDesktopHovered(false) }}
-                className={`fixed left-0 top-20 z-80 flex w-full flex-col border-r border-zinc-200 bg-white/95 shadow-xl backdrop-blur-xl sidebar-transition max-h-[calc(100vh-80px)] lg:fixed lg:left-0 lg:top-16 lg:bottom-0 lg:z-40 lg:max-h-[calc(100vh-64px)] dark:border-zinc-800 dark:bg-zinc-950/95 ${sidebarWidthClass} ${mobileVisibilityClass}`}
+                onMouseEnter={() => setIsDesktopHovered(true)}
+                onMouseLeave={() => setIsDesktopHovered(false)}
+                className={`hidden lg:flex fixed left-0 top-16 bottom-0 z-40 flex-col border-r border-zinc-200 bg-white/95 shadow-xl backdrop-blur-xl sidebar-transition max-h-[calc(100vh-64px)] dark:border-zinc-800 dark:bg-zinc-950/95 ${sidebarWidthClass}`}
                 aria-label="Primary navigation"
             >
                 <nav className="flex flex-1 flex-col gap-1 px-3 py-4 sm:px-4">
@@ -122,11 +121,6 @@ const Sidebar = () => {
                                         : 'text-zinc-600 hover:bg-zinc-100 hover:text-zinc-900 dark:text-zinc-300 dark:hover:bg-zinc-900 dark:hover:text-white'
                                     }`
                                 }
-                                onClick={() => {
-                                    if (isMobile) {
-                                        closeSidebar()
-                                    }
-                                }}
                             >
                                 {() => (
                                     <>
@@ -185,9 +179,42 @@ const Sidebar = () => {
                 </div>
             </aside>
 
-            {isMobile && sidebarExpanded && (
-                <div className="fixed inset-0 z-70 bg-black/20 backdrop-blur-[1px] lg:hidden" onClick={closeSidebar} aria-hidden="true" />
-            )}
+            {/* Mobile Bottom Navigation Bar */}
+            <nav
+                className="fixed inset-x-0 bottom-0 z-80 border-t border-zinc-200/80 bg-white/95 backdrop-blur-xl dark:border-zinc-800/80 dark:bg-zinc-950/95 pb-[env(safe-area-inset-bottom)] lg:hidden"
+                aria-label="Mobile navigation"
+            >
+                <div className="grid grid-cols-5 h-15">
+                    {navItems.map((item) => {
+                        const Icon = item.icon
+                        const active = location.pathname === item.path
+
+                        return (
+                            <NavLink
+                                key={item.name}
+                                to={item.path}
+                                onClick={() => {
+                                    if (active) {
+                                        window.scrollTo({ top: 0, behavior: 'smooth' })
+                                    }
+                                }}
+                                className={`relative flex flex-col items-center justify-center gap-1 select-none transition-transform active:scale-95 ${active
+                                    ? 'text-blue-600 dark:text-blue-400'
+                                    : 'text-zinc-500 hover:text-zinc-900 dark:text-zinc-400 dark:hover:text-zinc-100'
+                                    }`}
+                            >
+                                {active && (
+                                    <span className="absolute top-0 h-0.5 w-7 rounded-full bg-blue-600 dark:bg-blue-400" />
+                                )}
+                                <Icon className={`h-[18px] w-[18px] shrink-0 ${active ? 'stroke-[2.25]' : 'stroke-[1.75]'}`} />
+                                <span className={`text-[10px] leading-none tracking-tight ${active ? 'font-bold' : 'font-medium'}`}>
+                                    {item.name}
+                                </span>
+                            </NavLink>
+                        )
+                    })}
+                </div>
+            </nav>
         </>
     )
 }
