@@ -24,7 +24,7 @@ app.use("/api/v1/hackathons", hackathonRouter);
 app.use("/api/v1/users", userRouter);
 app.use("/api/v1/teams", teamRouter);
 
-app.get("/sitemap.xml", getHackathonsSitemap);
+app.get("/sitemap.xml", apiRateLimiter, getHackathonsSitemap);
 
 app.get("/api/v1/ping", (req, res) => {
   res.status(200).json({ success: true, message: "pong" });
