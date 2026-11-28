@@ -2,6 +2,7 @@ import { StrictMode } from 'react'
 import { createRoot } from 'react-dom/client'
 import './index.css'
 import './posthog'
+import './utils/pwaInstall'
 import App from './App.tsx'
 
 // Set dark mode by default

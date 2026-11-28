@@ -29,6 +29,7 @@ import {
 } from "../utils/fitEngine";
 import axiosInstance from "../utils/axiosInstance";
 import { useSeo } from "../utils/useSeo";
+import { usePwaInstall } from "../utils/pwaInstall";
 import { AnimatePresence, motion } from "framer-motion";
 import posthog, { isPostHogEnabled } from "../posthog";
 
@@ -80,39 +81,15 @@ const SettingsPage = () => {
   const [active, setActive] = useState<NavSection>("profile");
   const [mobileShowDetail, setMobileShowDetail] = useState(false);
   const [loggingOut, setLoggingOut] = useState(false);
-  const [installPromptEvent, setInstallPromptEvent] = useState<any>(null);
-  const [isStandalone, setIsStandalone] = useState(() => {
-    if (typeof window === "undefined") return false;
-    return window.matchMedia("(display-mode: standalone)").matches || (window.navigator as any).standalone === true;
-  });
+  const { canPromptInstall, isStandalone, promptInstall } = usePwaInstall();
   const isIosSafari =
     typeof navigator !== "undefined" &&
     /iPad|iPhone|iPod/.test(navigator.userAgent) &&
     !(window as any).MSStream;
 
-  useEffect(() => {
-    const onBeforeInstall = (e: Event) => {
-      e.preventDefault();
-      setInstallPromptEvent(e);
-    };
-    const onInstalled = () => {
-      setIsStandalone(true);
-      setInstallPromptEvent(null);
-    };
-    window.addEventListener("beforeinstallprompt", onBeforeInstall);
-    window.addEventListener("appinstalled", onInstalled);
-    return () => {
-      window.removeEventListener("beforeinstallprompt", onBeforeInstall);
-      window.removeEventListener("appinstalled", onInstalled);
-    };
-  }, []);
-
   const handleInstallApp = async () => {
-    if (!installPromptEvent) return;
-    await installPromptEvent.prompt();
-    const choice = await installPromptEvent.userChoice;
-    if (choice?.outcome === "accepted") {
-      setInstallPromptEvent(null);
+    const result = await promptInstall();
+    if (result === "accepted") {
       showToast("Installing HackDekh app...", "success");
     }
   };
@@ -445,7 +422,7 @@ const SettingsPage = () => {
             </div>
 
             {/* Install App Card (shown only when not already running as installed app) */}
-            {!isStandalone && (installPromptEvent || isIosSafari) && (
+            {!isStandalone && (canPromptInstall || isIosSafari) && (
               <div className="rounded-xl border border-blue-200/80 bg-blue-50/60 p-3.5 dark:border-blue-900/50 dark:bg-blue-950/25 flex items-center justify-between gap-3">
                 <div className="flex items-center gap-3 min-w-0">
                   <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-blue-600 text-white">
@@ -456,13 +433,13 @@ const SettingsPage = () => {
                       Install HackDekh App
                     </p>
                     <p className="text-[11px] text-zinc-600 dark:text-zinc-400 truncate">
-                      {installPromptEvent
+                      {canPromptInstall
                         ? "Add to home screen for full-screen app feel"
                         : "Tap Share → Add to Home Screen"}
                     </p>
                   </div>
                 </div>
-                {installPromptEvent && (
+                {canPromptInstall && (
                   <button
                     type="button"
                     onClick={handleInstallApp}
