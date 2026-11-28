@@ -91,16 +91,16 @@ const Shell = ({ children }: MainLayoutProps) => {
                 </Link>
 
                 {/* Direct Action Controls */}
-                <div className="flex items-center gap-3">
+                <div className="flex items-center gap-2 sm:gap-3 shrink-0">
                     <Link
                         to="/login"
-                        className="btn-brand-secondary rounded-lg px-4 py-2 text-sm"
+                        className="btn-brand-secondary rounded-lg px-3 py-1.5 text-xs sm:px-4 sm:py-2 sm:text-sm"
                     >
                         Login
                     </Link>
                     <Link
                         to="/signup"
-                        className="btn-brand-primary rounded-lg px-4 py-2 text-sm"
+                        className="btn-brand-primary rounded-lg px-3 py-1.5 text-xs sm:px-4 sm:py-2 sm:text-sm"
                     >
                         Sign Up
                     </Link>
