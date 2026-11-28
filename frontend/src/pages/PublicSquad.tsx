@@ -217,11 +217,18 @@ export default function PublicSquadPage() {
                 ? "Registered"
                 : status.charAt(0).toUpperCase() + status.slice(1);
 
-            const orderedStages = [...stages].sort((a, b) => {
-              const ta = a.deadline ? new Date(a.deadline).getTime() : Number.MAX_SAFE_INTEGER;
-              const tb = b.deadline ? new Date(b.deadline).getTime() : Number.MAX_SAFE_INTEGER;
-              return ta - tb;
-            });
+            const orderedStages = [...stages]
+              .filter(
+                (s) =>
+                  !/^hackathon\s*(start|starts|end|ends)(\s*\/\s*submission|\s*\(finale\))?$/i.test(
+                    (s.name || "").trim()
+                  )
+              )
+              .sort((a, b) => {
+                const ta = a.deadline ? new Date(a.deadline).getTime() : Number.MAX_SAFE_INTEGER;
+                const tb = b.deadline ? new Date(b.deadline).getTime() : Number.MAX_SAFE_INTEGER;
+                return ta - tb;
+              });
 
             return (
               <div

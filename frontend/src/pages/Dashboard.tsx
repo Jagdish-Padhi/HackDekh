@@ -18,7 +18,10 @@ import { useSeo } from "../utils/useSeo";
 type Participation = TeamHackathon & { teamInfo: Team };
 
 export const isRegistrationStage = (name: string): boolean => {
-  return /register|registration|apply|application|prep|regn/i.test(name);
+  return (
+    /register|registration|apply|application|prep|regn/i.test(name) ||
+    /^hackathon\s*(start|starts|end|ends)(\s*\/\s*submission|\s*\(finale\))?$/i.test(name.trim())
+  );
 };
 
 const formatDate = (value?: string | null) => {

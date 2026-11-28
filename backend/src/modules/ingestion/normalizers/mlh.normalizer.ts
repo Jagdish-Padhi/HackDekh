@@ -103,16 +103,7 @@ export default function formatMLH(rawData: any[]) {
       teamSize,
       description,
       coverImage: h.backgroundUrl || h.logoUrl || null,
-      stages: (() => {
-        const parsedStages: any[] = [];
-        if (h.startsAt) {
-          parsedStages.push({ name: "Hackathon Starts", deadline: new Date(h.startsAt) });
-        }
-        if (h.endsAt) {
-          parsedStages.push({ name: "Project Submission & Demo", deadline: new Date(h.endsAt) });
-        }
-        return parsedStages;
-      })(),
+      stages: [],
       scrapedFromURL: "https://mlh.io/seasons/2026/events",
     };
   });

@@ -22,7 +22,10 @@ import posthog, { isPostHogEnabled } from "../posthog";
 import { useSeo } from "../utils/useSeo";
 
 export const isRegistrationStage = (name: string): boolean => {
-  return /register|registration|apply|application|prep|regn/i.test(name);
+  return (
+    /register|registration|apply|application|prep|regn/i.test(name) ||
+    /^hackathon\s*(start|starts|end|ends)(\s*\/\s*submission|\s*\(finale\))?$/i.test(name.trim())
+  );
 };
 
 const formatDateTag = (value?: string | null) => {

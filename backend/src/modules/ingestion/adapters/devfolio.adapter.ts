@@ -169,19 +169,6 @@ const enrichSingleDevfolioHackathon = async (hack: any): Promise<any> => {
         }
       }
     }
-    if (detailStages.length === 0) {
-      const regEnds = detailRegEndsAt || detailHackathon?.reg_ends_at;
-      if (regEnds) {
-        detailStages.push({ name: "Registration Deadline", deadline: new Date(regEnds) });
-      }
-      if (detailStartsAt) {
-        detailStages.push({ name: "Hackathon Starts", deadline: new Date(detailStartsAt) });
-      }
-      if (detailHackathon?.ends_at) {
-        detailStages.push({ name: "Hackathon Ends / Submission", deadline: new Date(detailHackathon.ends_at) });
-      }
-    }
-
     return {
       ...hack,
       _stages: detailStages,

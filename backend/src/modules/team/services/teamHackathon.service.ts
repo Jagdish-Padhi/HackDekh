@@ -41,12 +41,14 @@ export async function linkTeamToHackathon(
 
     const createdStageIds: Types.ObjectId[] = [];
 
-    const isRegistrationStageName = (name: string) => /register|registration|apply|application|prep|regn/i.test(name);
+    const isIgnoredStageName = (name: string) =>
+        /register|registration|apply|application|prep|regn/i.test(name) ||
+        /^hackathon\s*(start|starts|end|ends)(\s*\/\s*submission|\s*\(finale\))?$/i.test(name.trim());
 
     // If hackathon has template stages, populate them all!
     if (hack.stages && hack.stages.length > 0) {
         for (const tStage of hack.stages) {
-            if (isRegistrationStageName(tStage.name)) continue;
+            if (isIgnoredStageName(tStage.name)) continue;
             const stage = new Stage({
                 name: tStage.name,
                 deadline: tStage.deadline || undefined,
